@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KKUL — Catálogo y Cotización</title>
+<meta name="description" content="Catálogo de productos con sistema de cotización por WhatsApp.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body class="bg-cream text-ink font-body antialiased">
+
+<!-- Header -->
+<header class="sticky top-0 z-40 bg-cream/95 backdrop-blur border-b border-ink/10">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+    <a href="#top" class="font-display text-2xl sm:text-3xl tracking-wide text-ink">KKUL</a>
+
+    <div class="hidden sm:flex flex-1 max-w-md relative">
+      <input id="search-input" type="search" placeholder="Buscar productos..."
+        class="w-full rounded-full border border-ink/20 bg-white/60 px-4 py-2 text-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-blush" />
+    </div>
+
+    <button id="cart-toggle" type="button" aria-label="Abrir carrito"
+      class="relative inline-flex items-center gap-2 rounded-full bg-ink text-cream px-4 py-2 text-sm font-semibold hover:bg-ink/90 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      <span class="hidden sm:inline">Carrito</span>
+      <span id="cart-count" class="absolute -top-2 -right-2 bg-blush text-ink text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
+    </button>
+  </div>
+
+  <div class="sm:hidden px-4 pb-3">
+    <input id="search-input-mobile" type="search" placeholder="Buscar productos..."
+      class="w-full rounded-full border border-ink/20 bg-white/60 px-4 py-2 text-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-blush" />
+  </div>
+</header>
+
+<!-- Hero -->
+<section id="top" class="bg-blush/40">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 text-center">
+    <h1 class="font-display text-3xl sm:text-5xl text-ink">Catálogo &amp; Cotización</h1>
+    <p class="mt-3 text-ink/70 max-w-xl mx-auto">Arma tu pedido y envíanos tu cotización directo por WhatsApp — sin pagos en línea, sin complicaciones.</p>
+  </div>
+</section>
+
+<!-- Filters -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <div id="category-filters" class="flex flex-wrap gap-2 justify-center">
+    <!-- chips injected by JS -->
+  </div>
+</section>
+
+<!-- Status (loading / error) -->
+<div id="status-banner" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 hidden">
+  <div class="rounded-xl border border-ink/15 bg-white/60 px-4 py-3 text-sm text-ink/70" id="status-text"></div>
+</div>
+
+<!-- Product grid -->
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+  <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+    <!-- product cards injected by JS -->
+  </div>
+  <p id="empty-state" class="hidden text-center text-ink/50 py-16">No encontramos productos con esos filtros.</p>
+</main>
+
+<!-- Footer -->
+<footer class="border-t border-ink/10 py-10 text-center text-sm text-ink/50">
+  <p>© <span id="year"></span> KKUL. Catálogo para cotización — no se procesan pagos en este sitio.</p>
+</footer>
+
+<!-- Cart overlay -->
+<div id="cart-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+<!-- Cart drawer -->
+<aside id="cart-drawer" aria-label="Carrito de cotización"
+  class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
+  <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
+    <h2 class="font-display text-xl text-ink">Tu cotización</h2>
+    <button id="cart-close" type="button" aria-label="Cerrar carrito" class="text-ink/60 hover:text-ink text-2xl leading-none">&times;</button>
+  </div>
+
+  <div id="cart-items" class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+    <!-- cart line items injected by JS -->
+  </div>
+  <p id="cart-empty" class="hidden text-center text-ink/50 px-5 py-10">Tu carrito está vacío. Agrega productos del catálogo.</p>
+
+  <div class="border-t border-ink/10 px-5 py-4 space-y-4">
+    <div class="flex items-center justify-between font-semibold text-ink">
+      <span>Total estimado</span>
+      <span id="cart-total">$0.00</span>
+    </div>
+
+    <form id="quote-form" class="space-y-3">
+      <div>
+        <label for="customer-name" class="block text-xs font-semibold text-ink/60 mb-1">Tu nombre *</label>
+        <input id="customer-name" required type="text" placeholder="Nombre completo"
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+      </div>
+      <div>
+        <label for="customer-phone" class="block text-xs font-semibold text-ink/60 mb-1">Tu teléfono (opcional)</label>
+        <input id="customer-phone" type="tel" placeholder="55 1234 5678"
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+      </div>
+      <div>
+        <label for="customer-notes" class="block text-xs font-semibold text-ink/60 mb-1">Notas (opcional)</label>
+        <textarea id="customer-notes" rows="2" placeholder="Color, talla, comentarios..."
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blush"></textarea>
+      </div>
+      <button id="send-quote" type="submit"
+        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] text-white font-semibold py-3 hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
+        <span>Enviar cotización por WhatsApp</span>
+      </button>
+      <p class="text-[11px] text-center text-ink/40">Al enviar se abrirá WhatsApp con el resumen de tu pedido. No se realiza ningún cobro.</p>
+    </form>
+  </div>
+</aside>
+
+<script src="./app.js"></script>
+</body>
+</html>
