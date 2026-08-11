@@ -17,12 +17,17 @@ enviarlo como cotización estructurada por WhatsApp. No procesa pagos.
 1. Crea una hoja con estas columnas en la primera fila (los nombres pueden
    variar ligeramente, el sitio los reconoce en español o inglés):
 
-   | Nombre | Categoria | Marca | Precio | Imagen | Descripcion | SKU | Disponible |
-   |--------|-----------|-------|--------|--------|-------------|-----|------------|
+   | Nombre | Categoria | Marca | Precio | Imagen | Descripcion | SKU | Disponible | Destacado |
+   |--------|-----------|-------|--------|--------|-------------|-----|------------|-----------|
 
    - **Imagen**: URL pública de la foto del producto.
    - **Disponible**: `SI` / `NO` (si se deja vacío, se asume disponible).
    - **SKU**: opcional, sirve como identificador único de la fila.
+   - **Destacado**: opcional. Una o varias etiquetas separadas por coma
+     (ej. `Nuevo, Best Seller`). Cada etiqueta distinta genera una pestaña
+     de colección arriba del catálogo (como "Lo más nuevo" o "Best Sellers"
+     en el sitio original de KKUL). Si dejas la columna vacía en todas las
+     filas, esa sección de pestañas no se muestra.
 
 2. En Google Sheets: `Archivo` → `Compartir` → `Publicar en la Web`.
 3. Elige la hoja correspondiente y el formato **"Valores separados por comas (.csv)"**.

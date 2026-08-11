@@ -30,14 +30,14 @@ function placeholderImg(label, bg) {
 }
 
 const DEMO_PRODUCTS = [
-  { id: "d1", nombre: "Espuma Limpiadora de Té Verde", categoria: "Skincare", marca: "Haruharu", precio: 320, imagen: placeholderImg("Limpiadora", "#e9c3be"), descripcion: "Limpieza suave diaria.", disponible: true },
-  { id: "d2", nombre: "Sérum de Niacinamida 10%", categoria: "Skincare", marca: "Round Lab", precio: 450, imagen: placeholderImg("Sérum", "#f3d9d0"), descripcion: "Ilumina y empareja el tono.", disponible: true },
-  { id: "d3", nombre: "Crema Hidratante Cica", categoria: "Skincare", marca: "Dr.Althea", precio: 520, imagen: placeholderImg("Crema", "#e9c3be"), descripcion: "Calma e hidrata piel sensible.", disponible: true },
-  { id: "d4", nombre: "Protector Solar SPF50 PA++++", categoria: "Skincare", marca: "Beauty of Joseon", precio: 380, imagen: placeholderImg("Sunscreen", "#f3d9d0"), descripcion: "Ligero, sin dejar residuo blanco.", disponible: false },
-  { id: "d5", nombre: "Base Cushion Glow", categoria: "Maquillaje", marca: "Missha", precio: 480, imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true },
-  { id: "d6", nombre: "Labial Tinta Frutal", categoria: "Maquillaje", marca: "Rom&nd", precio: 260, imagen: placeholderImg("Labial", "#fbe6c8"), descripcion: "Larga duración, tono jugoso.", disponible: true },
-  { id: "d7", nombre: "Mascarilla Capilar Reparadora", categoria: "Cuidado Capilar", marca: "Mise en Scene", precio: 300, imagen: placeholderImg("Cabello", "#d9e2df"), descripcion: "Repara puntas abiertas.", disponible: true },
-  { id: "d8", nombre: "Mascarilla de Tela Hidratante (5pz)", categoria: "Skincare", marca: "Mediheal", precio: 210, imagen: placeholderImg("Mascarilla", "#e9c3be"), descripcion: "Hidratación profunda 20 min.", disponible: true },
+  { id: "d1", nombre: "Espuma Limpiadora de Té Verde", categoria: "Skincare", marca: "Haruharu", precio: 320, imagen: placeholderImg("Limpiadora", "#e9c3be"), descripcion: "Limpieza suave diaria.", disponible: true, destacado: ["Nuevo"] },
+  { id: "d2", nombre: "Sérum de Niacinamida 10%", categoria: "Skincare", marca: "Round Lab", precio: 450, imagen: placeholderImg("Sérum", "#f3d9d0"), descripcion: "Ilumina y empareja el tono.", disponible: true, destacado: ["Nuevo", "Best Seller"] },
+  { id: "d3", nombre: "Crema Hidratante Cica", categoria: "Skincare", marca: "Dr.Althea", precio: 520, imagen: placeholderImg("Crema", "#e9c3be"), descripcion: "Calma e hidrata piel sensible.", disponible: true, destacado: ["Best Seller"] },
+  { id: "d4", nombre: "Protector Solar SPF50 PA++++", categoria: "Skincare", marca: "Beauty of Joseon", precio: 380, imagen: placeholderImg("Sunscreen", "#f3d9d0"), descripcion: "Ligero, sin dejar residuo blanco.", disponible: false, destacado: [] },
+  { id: "d5", nombre: "Base Cushion Glow", categoria: "Maquillaje", marca: "Missha", precio: 480, imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true, destacado: ["Nuevo"] },
+  { id: "d6", nombre: "Labial Tinta Frutal", categoria: "Maquillaje", marca: "Rom&nd", precio: 260, imagen: placeholderImg("Labial", "#fbe6c8"), descripcion: "Larga duración, tono jugoso.", disponible: true, destacado: ["Best Seller"] },
+  { id: "d7", nombre: "Mascarilla Capilar Reparadora", categoria: "Cuidado Capilar", marca: "Mise en Scene", precio: 300, imagen: placeholderImg("Cabello", "#d9e2df"), descripcion: "Repara puntas abiertas.", disponible: true, destacado: [] },
+  { id: "d8", nombre: "Mascarilla de Tela Hidratante (5pz)", categoria: "Skincare", marca: "Mediheal", precio: 210, imagen: placeholderImg("Mascarilla", "#e9c3be"), descripcion: "Hidratación profunda 20 min.", disponible: true, destacado: ["Recomendado"] },
 ];
 
 /* ======================================================================
@@ -128,6 +128,7 @@ function csvToProducts(text) {
   const iDescripcion = findCol(headers, ["descripcion", "descripción", "description"]);
   const iSku = findCol(headers, ["sku", "codigo", "código"]);
   const iDisponible = findCol(headers, ["disponible", "stock", "available"]);
+  const iDestacado = findCol(headers, ["destacado", "coleccion", "colección", "tag", "tags", "etiqueta", "etiquetas"]);
 
   return rows
     .slice(1)
@@ -139,6 +140,10 @@ function csvToProducts(text) {
           ? true
           : ["si", "sí", "yes", "true", "1", "disponible"].includes(disponibleRaw);
       const precioRaw = get(iPrecio).replace(/[^0-9.,]/g, "").replace(",", ".");
+      const destacado = get(iDestacado)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       return {
         id: get(iSku) || `row${n}`,
         nombre: get(iNombre) || "Producto sin nombre",
@@ -148,6 +153,7 @@ function csvToProducts(text) {
         imagen: get(iImagen),
         descripcion: get(iDescripcion),
         disponible,
+        destacado,
       };
     })
     .filter((p) => p.nombre && p.nombre !== "Producto sin nombre");
@@ -222,6 +228,35 @@ function getFilteredProducts() {
   });
 }
 
+function productCardHTML(p) {
+  const img = p.imagen || placeholderImg(p.categoria || "KKUL", "#e9c3be");
+  return `
+    <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full">
+      <div class="aspect-square bg-blush/20 overflow-hidden relative">
+        <img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
+          class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+        ${!p.disponible ? `<span class="absolute top-2 left-2 bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>` : ""}
+      </div>
+      <div class="p-3 flex flex-col flex-1">
+        <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
+        <h3 class="font-semibold text-sm text-ink leading-snug mt-0.5 line-clamp-2">${escapeHtml(p.nombre)}</h3>
+        <div class="mt-auto pt-2 flex items-center justify-between gap-2">
+          <span class="font-display text-ink">${formatPrice(p.precio)}</span>
+          <button data-add="${escapeAttr(p.id)}" ${!p.disponible ? "disabled" : ""}
+            class="rounded-full bg-ink text-cream text-xs font-semibold px-3 py-1.5 hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
+            Agregar
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function wireAddButtons(container) {
+  container.querySelectorAll("[data-add]").forEach((btn) => {
+    btn.addEventListener("click", () => addToCart(btn.dataset.add));
+  });
+}
+
 function renderProducts() {
   const grid = document.getElementById("product-grid");
   const empty = document.getElementById("empty-state");
@@ -233,38 +268,68 @@ function renderProducts() {
     return;
   }
   empty.classList.add("hidden");
+  grid.innerHTML = list.map(productCardHTML).join("");
+  wireAddButtons(grid);
+}
 
-  grid.innerHTML = list
-    .map((p) => {
-      const img = p.imagen || placeholderImg(p.categoria || "KKUL", "#e9c3be");
-      return `
-      <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col">
-        <div class="aspect-square bg-blush/20 overflow-hidden relative">
-          <img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
-            class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-          ${!p.disponible ? `<span class="absolute top-2 left-2 bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>` : ""}
-        </div>
-        <div class="p-3 flex flex-col flex-1">
-          <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
-          <h3 class="font-semibold text-sm text-ink leading-snug mt-0.5 line-clamp-2">${escapeHtml(p.nombre)}</h3>
-          <div class="mt-auto pt-2 flex items-center justify-between gap-2">
-            <span class="font-display text-ink">${formatPrice(p.precio)}</span>
-            <button data-add="${escapeAttr(p.id)}" ${!p.disponible ? "disabled" : ""}
-              class="rounded-full bg-ink text-cream text-xs font-semibold px-3 py-1.5 hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
-              Agregar
-            </button>
-          </div>
-        </div>
-      </div>`;
+/* ======================================================================
+   Colecciones destacadas (pestañas) — usa la columna opcional "Destacado"
+   del Google Sheet (ej. "Nuevo", "Best Seller"). Si ningún producto trae
+   esa columna, la sección se oculta automáticamente.
+   ====================================================================== */
+let activeFeaturedTag = null;
+
+function getFeaturedTagMap() {
+  const map = new Map();
+  products.forEach((p) => {
+    (p.destacado || []).forEach((tag) => {
+      if (!map.has(tag)) map.set(tag, []);
+      map.get(tag).push(p);
+    });
+  });
+  return map;
+}
+
+function renderFeatured() {
+  const section = document.getElementById("featured-section");
+  const tagMap = getFeaturedTagMap();
+  const tags = [...tagMap.keys()];
+
+  if (!tags.length) {
+    section.classList.add("hidden");
+    return;
+  }
+  section.classList.remove("hidden");
+  if (!activeFeaturedTag || !tagMap.has(activeFeaturedTag)) activeFeaturedTag = tags[0];
+
+  const tabsWrap = document.getElementById("featured-tabs");
+  tabsWrap.innerHTML = tags
+    .map((tag) => {
+      const active = tag === activeFeaturedTag;
+      return `<button type="button" data-tab="${escapeAttr(tag)}"
+        class="rounded-full px-3 py-1 text-xs font-semibold border transition
+          ${active ? "bg-ink text-cream border-ink" : "bg-transparent text-ink/70 border-ink/20 hover:border-ink/40"}">
+        ${escapeHtml(tag)}
+      </button>`;
     })
     .join("");
-
-  grid.querySelectorAll("[data-add]").forEach((btn) => {
-    btn.addEventListener("click", () => addToCart(btn.dataset.add));
+  tabsWrap.querySelectorAll("[data-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activeFeaturedTag = btn.dataset.tab;
+      renderFeatured();
+    });
   });
+
+  const row = document.getElementById("featured-row");
+  const items = tagMap.get(activeFeaturedTag) || [];
+  row.innerHTML = items
+    .map((p) => `<div class="w-40 sm:w-48 flex-shrink-0 snap-start">${productCardHTML(p)}</div>`)
+    .join("");
+  wireAddButtons(row);
 }
 
 function renderAll() {
+  renderFeatured();
   renderCategoryFilters();
   renderProducts();
   renderCart();
