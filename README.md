@@ -81,10 +81,17 @@ Todas las secciones basadas en datos (colecciones, tipo de piel, marcas,
 categorías) se ocultan automáticamente si tu catálogo no tiene esa
 información — no se muestra contenido inventado.
 
-### Menú móvil (☰)
+### Menú (barra de escritorio + ☰ en móvil)
 
-En pantallas pequeñas, la barra de categorías se reemplaza por un botón de
-menú que abre un panel con:
+El mismo listado de items se usa en dos formas, según el tamaño de
+pantalla:
+
+- **Escritorio**: barra horizontal siempre visible debajo del header, con
+  flechas para desplazarse si no caben todos los items.
+- **Móvil**: la barra se reemplaza por un botón ☰ que abre un panel vertical
+  con los mismos items.
+
+El listado (función `getMenuItems()` en `app.js`) combina:
 - Links reales a las secciones que existen (colecciones, arma tu rutina,
   tipo de piel, marcas, cada categoría, catálogo completo).
 - Accesos "próximamente" definidos en `CONFIG.MENU_COMING_SOON` (por

@@ -353,26 +353,75 @@ function renderTicker() {
 }
 
 /* ======================================================================
-   Navegación de categorías (barra horizontal con flechas)
+   Ítems del menú — se usan tanto en la barra horizontal de escritorio
+   (siempre visible, debajo del header) como en el menú ☰ de móvil.
+   Mezcla links reales a secciones de la página, categorías del catálogo,
+   y accesos "próximamente" definidos en CONFIG.MENU_COMING_SOON.
+   ====================================================================== */
+function getMenuItems() {
+  const categories = [...new Set(products.map((p) => p.categoria))];
+
+  const sectionLinks = [
+    { label: "Colecciones destacadas", href: "#featured-section" },
+    { label: "Arma tu rutina", href: "#routine-section" },
+    { label: "Explora por tipo de piel", href: "#skintype-section" },
+    { label: "Marcas", href: "#brands-section" },
+  ].filter((item) => {
+    const el = document.querySelector(item.href);
+    return el && !el.classList.contains("hidden");
+  });
+
+  return [
+    ...sectionLinks.map((s) => ({ type: "link", label: s.label, href: s.href })),
+    ...categories.map((cat) => ({ type: "category", label: cat, category: cat })),
+    { type: "link", label: "Todos los productos", href: "#product-grid" },
+    ...(CONFIG.MENU_COMING_SOON || []).map((label) => ({ type: "soon", label })),
+  ];
+}
+
+function menuItemHTML(item, variant) {
+  const isHorizontal = variant === "horizontal";
+  const base = isHorizontal
+    ? "text-sm font-semibold whitespace-nowrap"
+    : "block px-5 py-4 border-b border-ink/10 font-semibold uppercase text-sm tracking-wide";
+
+  if (item.type === "soon") {
+    return `<button type="button" data-menu-soon="${escapeAttr(item.label)}"
+      class="${base} text-ink/40 ${isHorizontal ? "" : "w-full text-left"}">${escapeHtml(item.label)}</button>`;
+  }
+  const href = item.type === "category" ? "#product-grid" : item.href;
+  const catAttr = item.type === "category" ? ` data-menu-cat="${escapeAttr(item.category)}"` : "";
+  return `<a href="${escapeAttr(href)}" data-menu-link${catAttr}
+    class="${base} text-ink/80 hover:text-ink transition">${escapeHtml(item.label)}</a>`;
+}
+
+function wireMenuItems(container, onNavigate) {
+  container.querySelectorAll("[data-menu-link]").forEach((link) => {
+    link.addEventListener("click", () => {
+      if (link.dataset.menuCat) {
+        activeCategory = link.dataset.menuCat;
+        renderCategoryFilters();
+        renderProducts();
+      }
+      if (onNavigate) onNavigate();
+    });
+  });
+  container.querySelectorAll("[data-menu-soon]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (onNavigate) onNavigate();
+      setStatus(`Muy pronto: "${btn.dataset.menuSoon}" — esta función todavía no está disponible.`);
+    });
+  });
+}
+
+/* ======================================================================
+   Navegación de escritorio (barra horizontal con flechas, siempre visible)
    ====================================================================== */
 function renderCategoryNav() {
   const nav = document.getElementById("category-nav");
-  const categories = [...new Set(products.map((p) => p.categoria))];
-  nav.innerHTML = categories
-    .map(
-      (cat) =>
-        `<a href="#product-grid" data-cat-link="${escapeAttr(cat)}"
-          class="text-sm font-semibold text-ink/70 hover:text-ink transition">${escapeHtml(cat)}</a>`
-    )
-    .join("");
-
-  nav.querySelectorAll("[data-cat-link]").forEach((link) => {
-    link.addEventListener("click", () => {
-      activeCategory = link.dataset.catLink;
-      renderCategoryFilters();
-      renderProducts();
-    });
-  });
+  const items = getMenuItems();
+  nav.innerHTML = items.map((item) => menuItemHTML(item, "horizontal")).join("");
+  wireMenuItems(nav);
 
   const prevBtn = document.getElementById("nav-prev");
   const nextBtn = document.getElementById("nav-next");
@@ -381,53 +430,13 @@ function renderCategoryNav() {
 }
 
 /* ======================================================================
-   Menú móvil (☰) — mezcla links reales a secciones de la página con
-   accesos "próximamente" definidos en CONFIG.MENU_COMING_SOON.
+   Menú móvil (☰)
    ====================================================================== */
 function renderMobileMenu() {
-  const categories = [...new Set(products.map((p) => p.categoria))];
-
-  const sectionLinks = [
-    { label: "Colecciones destacadas", href: "#featured-section" },
-    { label: "Arma tu rutina", href: "#routine-section" },
-    { label: "Explora por tipo de piel", href: "#skintype-section" },
-    { label: "Marcas", href: "#brands-section" },
-  ].filter((item) => document.querySelector(item.href) && !document.querySelector(item.href).classList.contains("hidden"));
-
-  const linkRow = (label, href) =>
-    `<a href="${escapeAttr(href)}" data-menu-link
-      class="block px-5 py-4 border-b border-ink/10 font-semibold text-ink uppercase text-sm tracking-wide">${escapeHtml(label)}</a>`;
-
-  const comingSoonRow = (label) =>
-    `<button type="button" data-menu-soon="${escapeAttr(label)}"
-      class="w-full text-left px-5 py-4 border-b border-ink/10 font-semibold text-ink/70 uppercase text-sm tracking-wide">${escapeHtml(label)}</button>`;
-
-  const html = [
-    ...sectionLinks.map((s) => linkRow(s.label, s.href)),
-    ...categories.map((cat) => linkRow(cat, "#product-grid").replace("data-menu-link", `data-menu-link data-menu-cat="${escapeAttr(cat)}"`)),
-    linkRow("Todos los productos", "#product-grid"),
-    ...(CONFIG.MENU_COMING_SOON || []).map(comingSoonRow),
-  ].join("");
-
   const nav = document.getElementById("mobile-menu-items");
-  nav.innerHTML = html;
-
-  nav.querySelectorAll("[data-menu-link]").forEach((link) => {
-    link.addEventListener("click", () => {
-      if (link.dataset.menuCat) {
-        activeCategory = link.dataset.menuCat;
-        renderCategoryFilters();
-        renderProducts();
-      }
-      closeMobileMenu();
-    });
-  });
-  nav.querySelectorAll("[data-menu-soon]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      closeMobileMenu();
-      setStatus(`Muy pronto: "${btn.dataset.menuSoon}" — esta función todavía no está disponible.`);
-    });
-  });
+  const items = getMenuItems();
+  nav.innerHTML = items.map((item) => menuItemHTML(item, "vertical")).join("");
+  wireMenuItems(nav, closeMobileMenu);
 }
 
 function openMobileMenu() {
@@ -680,15 +689,17 @@ function renderBenefits() {
 }
 
 function renderAll() {
-  renderCategoryNav();
+  // El orden importa: renderCategoryNav/renderMobileMenu leen qué secciones
+  // quedaron visibles, así que corren después de decidir esa visibilidad.
   renderRoutineSteps();
   renderFeatured();
   renderSkinTypes();
   renderBrands();
+  renderCategoryNav();
+  renderMobileMenu();
   renderCategoryFilters();
   renderProducts();
   renderCart();
-  renderMobileMenu();
 }
 
 /* ======================================================================
