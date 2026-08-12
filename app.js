@@ -182,7 +182,7 @@ const DEMO_PRODUCTS = [
    Estado
    ====================================================================== */
 let products = [];
-const CART_KEY = "kkul_cart_v1";
+const CART_KEY = "alpacca_cart_v1";
 let cart = loadCart();
 
 /* ======================================================================
@@ -960,7 +960,7 @@ function renderCart() {
 
   wrap.innerHTML = items
     .map(([id, it]) => {
-      const img = it.product.imagen || placeholderImg(it.product.categoria || "KKUL", "#e9c3be");
+      const img = it.product.imagen || placeholderImg(it.product.categoria || "Alpacca", "#e9c3be");
       return `
       <div class="flex gap-3 items-center">
         <img src="${escapeAttr(img)}" alt="${escapeAttr(it.product.nombre)}" class="w-16 h-16 rounded-lg object-cover border border-ink/10" />

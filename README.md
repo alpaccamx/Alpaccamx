@@ -4,9 +4,9 @@ Sitio (HTML + Tailwind CSS + JavaScript) que lee productos desde un Google
 Sheet publicado como CSV y permite al cliente armar un carrito y enviarlo
 como cotización estructurada por WhatsApp. No procesa pagos.
 
-El diseño está inspirado en la estructura de sitios de e-commerce de
-skincare coreano (tipo KKUL) pero con marca, copys y datos propios — no
-reutiliza contenido, marcas ni fotografía de ningún negocio real.
+El diseño está inspirado en la estructura general de sitios de e-commerce
+de skincare coreano, pero con marca, copys y datos propios — no reutiliza
+contenido, marcas ni fotografía de ningún negocio real.
 
 ## Archivos
 
