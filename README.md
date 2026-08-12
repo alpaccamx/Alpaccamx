@@ -86,7 +86,7 @@ Header (buscador + carrito + menú ☰ en móvil) → nav de categorías (barra 
 escritorio / menú deslizante en móvil) → banner principal (rotativo) →
 barra deslizante → colecciones destacadas → arma tu rutina → explora por
 tipo de piel → banner promocional → marcas → catálogo completo con
-filtros → beneficios → newsletter → footer.
+filtros → beneficios → footer.
 
 Todas las secciones basadas en datos (colecciones, tipo de piel, marcas,
 categorías) se ocultan automáticamente si tu catálogo no tiene esa
@@ -131,9 +131,6 @@ El listado (función `getMenuItems()` en `app.js`) combina:
 - El botón flotante "Contáctanos" y el link del footer son para preguntas
   generales; el botón "Enviar cotización por WhatsApp" del carrito es para
   el pedido armado.
-- El formulario de newsletter no tiene backend propio: al enviarlo muestra
-  un aviso para conectar un servicio de email marketing (Mailchimp,
-  Klaviyo, etc.) en `initNewsletter()` dentro de `app.js`.
 - Si el Google Sheet no carga (sin internet, URL incorrecta, hoja no
   publicada), el sitio cae automáticamente al catálogo de ejemplo en lugar
   de mostrar una página en blanco.

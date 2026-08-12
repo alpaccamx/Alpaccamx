@@ -878,18 +878,6 @@ function initWhatsAppFloat() {
   });
 }
 
-/* ======================================================================
-   Newsletter — sin backend propio. Muestra un aviso en vez de simular un
-   registro que en realidad no llega a ningún lado.
-   ====================================================================== */
-function initNewsletter() {
-  const form = document.getElementById("newsletter-form");
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    setStatus("Para activar el registro por correo, conecta un servicio de email marketing (Mailchimp, Klaviyo, etc.) en initNewsletter() dentro de app.js.");
-  });
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -918,7 +906,6 @@ document.addEventListener("DOMContentLoaded", () => {
   renderPromoBanner();
   renderBenefits();
   initWhatsAppFloat();
-  initNewsletter();
 
   loadProducts();
   renderCart();
