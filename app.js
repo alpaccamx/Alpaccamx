@@ -55,6 +55,49 @@ const CONFIG = {
   },
   SKIN_TYPE_DEFAULT_EMOJI: "🏷️",
 
+  // Quiz de tipo de piel. El "type" de cada opción debe coincidir con una
+  // etiqueta de SKIN_TYPE_EMOJI y con los valores que uses en la columna
+  // "TipoPiel" de tu Google Sheet. Agrega, quita o reordena preguntas y
+  // opciones libremente.
+  SKIN_QUIZ: [
+    {
+      question: "¿Cómo se siente tu piel unas horas después de lavarla (sin crema)?",
+      options: [
+        { label: "Tirante y áspera", type: "Seca" },
+        { label: "Cómoda, ni grasosa ni tirante", type: "Normal" },
+        { label: "Brillante en toda la cara", type: "Grasa" },
+        { label: "Brillante solo en frente, nariz y mentón", type: "Mixta" },
+      ],
+    },
+    {
+      question: "¿Cómo reacciona tu piel a productos nuevos?",
+      options: [
+        { label: "Sin problema, aguanta todo", type: "Grasa" },
+        { label: "Se irrita o se pone roja fácil", type: "Sensible" },
+        { label: "Se reseca todavía más", type: "Seca" },
+        { label: "Depende de la zona de la cara", type: "Mixta" },
+      ],
+    },
+    {
+      question: "¿Qué tan notorios son tus poros?",
+      options: [
+        { label: "Casi no se notan", type: "Seca" },
+        { label: "Se notan poco, parejos", type: "Normal" },
+        { label: "Se notan en toda la cara", type: "Grasa" },
+        { label: "Se notan solo en frente, nariz y mentón", type: "Mixta" },
+      ],
+    },
+    {
+      question: "¿Con qué frecuencia sientes brillo en el rostro durante el día?",
+      options: [
+        { label: "Casi nunca", type: "Seca" },
+        { label: "Rara vez", type: "Normal" },
+        { label: "Todo el día", type: "Grasa" },
+        { label: "Se pone roja o incómoda con sol o viento", type: "Sensible" },
+      ],
+    },
+  ],
+
   // Franja promocional ancha, entre las colecciones y las marcas.
   PROMO_BANNER: {
     title: "Lo mejor, al mejor precio",
@@ -460,60 +503,6 @@ function wireAddButtons(container) {
 }
 
 /* ======================================================================
-   Secciones por pestañas basadas en etiquetas (colecciones / tipo de piel).
-   Usan columnas opcionales del Google Sheet ("Destacado", "TipoPiel"). Si
-   ningún producto trae esa columna, la sección se oculta automáticamente.
-   ====================================================================== */
-function makeTagSectionRenderer({ field, sectionId, tabsId, rowId, emojiFor }) {
-  let activeTag = null;
-
-  return function render() {
-    const section = document.getElementById(sectionId);
-    const tagMap = new Map();
-    products.forEach((p) => {
-      (p[field] || []).forEach((tag) => {
-        if (!tagMap.has(tag)) tagMap.set(tag, []);
-        tagMap.get(tag).push(p);
-      });
-    });
-    const tags = [...tagMap.keys()];
-
-    if (!tags.length) {
-      section.classList.add("hidden");
-      return;
-    }
-    section.classList.remove("hidden");
-    if (!activeTag || !tagMap.has(activeTag)) activeTag = tags[0];
-
-    const tabsWrap = document.getElementById(tabsId);
-    tabsWrap.innerHTML = tags
-      .map((tag) => {
-        const active = tag === activeTag;
-        const emoji = emojiFor ? emojiFor(tag) : "";
-        return `<button type="button" data-tab="${escapeAttr(tag)}"
-          class="rounded-full px-3 py-1 text-xs font-semibold border transition
-            ${active ? "bg-ink text-cream border-ink" : "bg-transparent text-ink/70 border-ink/20 hover:border-ink/40"}">
-          ${emoji ? emoji + " " : ""}${escapeHtml(tag)}
-        </button>`;
-      })
-      .join("");
-    tabsWrap.querySelectorAll("[data-tab]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        activeTag = btn.dataset.tab;
-        render();
-      });
-    });
-
-    const row = document.getElementById(rowId);
-    const items = tagMap.get(activeTag) || [];
-    row.innerHTML = items
-      .map((p) => `<div class="w-40 sm:w-48 flex-shrink-0 snap-start">${productCardHTML(p)}</div>`)
-      .join("");
-    wireAddButtons(row);
-  };
-}
-
-/* ======================================================================
    Best Seller — top 6 numerado. Usa los productos cuya columna
    "Destacado" incluye la etiqueta "Best Seller" (hasta 6, en el orden
    del Google Sheet). Si no hay ninguno, la sección se oculta.
@@ -533,13 +522,124 @@ function renderBestSellers() {
   wireAddButtons(grid);
 }
 
-const renderSkinTypes = makeTagSectionRenderer({
-  field: "tipoPiel",
-  sectionId: "skintype-section",
-  tabsId: "skintype-tabs",
-  rowId: "skintype-row",
-  emojiFor: (tag) => CONFIG.SKIN_TYPE_EMOJI[tag] || CONFIG.SKIN_TYPE_DEFAULT_EMOJI,
-});
+/* ======================================================================
+   Quiz de tipo de piel. Preguntas en CONFIG.SKIN_QUIZ; cada opción apunta
+   a un tipo (debe coincidir con las etiquetas de la columna "TipoPiel" del
+   Google Sheet). Al terminar, se guarda el resultado en localStorage y se
+   muestran los productos de ese tipo. Se oculta si el catálogo no tiene
+   datos de TipoPiel, o si no hay preguntas configuradas.
+   ====================================================================== */
+const SKIN_QUIZ_KEY = "alpacca_skin_quiz_result_v1";
+let quizIndex = 0;
+let quizAnswers = [];
+
+function renderSkinTypeSection() {
+  const section = document.getElementById("skintype-section");
+  const hasSkinData = products.some((p) => (p.tipoPiel || []).length > 0);
+  const hasQuiz = (CONFIG.SKIN_QUIZ || []).length > 0;
+
+  if (!hasSkinData || !hasQuiz) {
+    section.classList.add("hidden");
+    return;
+  }
+  section.classList.remove("hidden");
+
+  const saved = localStorage.getItem(SKIN_QUIZ_KEY);
+  if (saved) {
+    showQuizResult(saved);
+  } else {
+    quizIndex = 0;
+    quizAnswers = [];
+    renderQuizQuestion();
+  }
+}
+
+function renderQuizQuestion() {
+  document.getElementById("skin-quiz").classList.remove("hidden");
+  document.getElementById("skin-quiz-result").classList.add("hidden");
+
+  const questions = CONFIG.SKIN_QUIZ;
+  const q = questions[quizIndex];
+
+  document.getElementById("quiz-progress").innerHTML = questions
+    .map((_, i) => `<span class="w-6 h-1.5 rounded-full ${i <= quizIndex ? "bg-ink" : "bg-ink/15"}"></span>`)
+    .join("");
+
+  document.getElementById("quiz-question").textContent = q.question;
+
+  const optionsWrap = document.getElementById("quiz-options");
+  optionsWrap.innerHTML = q.options
+    .map(
+      (opt, i) => `<button type="button" data-opt="${i}"
+        class="rounded-xl border border-ink/15 bg-white/60 px-4 py-3 text-sm font-semibold text-ink text-left hover:border-ink/40 hover:bg-white transition">
+        ${escapeHtml(opt.label)}
+      </button>`
+    )
+    .join("");
+  optionsWrap.querySelectorAll("[data-opt]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      quizAnswers[quizIndex] = q.options[Number(btn.dataset.opt)].type;
+      if (quizIndex < questions.length - 1) {
+        quizIndex += 1;
+        renderQuizQuestion();
+      } else {
+        const result = computeQuizResult(quizAnswers);
+        localStorage.setItem(SKIN_QUIZ_KEY, result);
+        showQuizResult(result);
+      }
+    });
+  });
+
+  const backBtn = document.getElementById("quiz-back");
+  if (quizIndex > 0) {
+    backBtn.classList.remove("hidden");
+    backBtn.onclick = () => {
+      quizIndex -= 1;
+      renderQuizQuestion();
+    };
+  } else {
+    backBtn.classList.add("hidden");
+  }
+}
+
+function computeQuizResult(answers) {
+  const counts = {};
+  answers.forEach((type) => {
+    counts[type] = (counts[type] || 0) + 1;
+  });
+  let best = answers[0];
+  let bestCount = 0;
+  answers.forEach((type) => {
+    if (counts[type] > bestCount) {
+      best = type;
+      bestCount = counts[type];
+    }
+  });
+  return best;
+}
+
+function showQuizResult(type) {
+  document.getElementById("skin-quiz").classList.add("hidden");
+  document.getElementById("skin-quiz-result").classList.remove("hidden");
+
+  document.getElementById("quiz-result-emoji").textContent = CONFIG.SKIN_TYPE_EMOJI[type] || CONFIG.SKIN_TYPE_DEFAULT_EMOJI;
+  document.getElementById("quiz-result-label").textContent = type;
+
+  const items = products.filter((p) => (p.tipoPiel || []).includes(type));
+  const row = document.getElementById("skintype-row");
+  const empty = document.getElementById("skintype-empty");
+
+  if (!items.length) {
+    row.innerHTML = "";
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    row.innerHTML = items
+      .map((p) => `<div class="w-40 sm:w-48 flex-shrink-0 snap-start">${productCardHTML(p)}</div>`)
+      .join("");
+    wireAddButtons(row);
+  }
+}
 
 /* ======================================================================
    Franja promocional ancha
@@ -597,7 +697,7 @@ function renderAll() {
   // El orden importa: renderCategoryNav/renderMobileMenu leen qué secciones
   // quedaron visibles, así que corren después de decidir esa visibilidad.
   renderBestSellers();
-  renderSkinTypes();
+  renderSkinTypeSection();
   renderBrands();
   renderCategoryNav();
   renderMobileMenu();
@@ -791,6 +891,13 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("menu-close").addEventListener("click", closeMobileMenu);
   document.getElementById("menu-overlay").addEventListener("click", closeMobileMenu);
   document.getElementById("quote-form").addEventListener("submit", sendQuote);
+
+  document.getElementById("quiz-retake").addEventListener("click", () => {
+    localStorage.removeItem(SKIN_QUIZ_KEY);
+    quizIndex = 0;
+    quizAnswers = [];
+    renderQuizQuestion();
+  });
 
   renderTopBar();
   renderHeroSlide();

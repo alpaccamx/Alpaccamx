@@ -38,8 +38,10 @@ variar ligeramente, el sitio los reconoce en español o inglés):
   numerados del 1 al 6 en el orden en que aparecen en tu Sheet. Sin
   productos con esa etiqueta → la sección se oculta.
 - **TipoPiel**: opcional. Una o varias etiquetas separadas por coma (ej.
-  `Grasa, Mixta`) para la sección "Explora por tipo de piel". Los emojis
-  de cada etiqueta se configuran en `CONFIG.SKIN_TYPE_EMOJI`.
+  `Grasa, Mixta`) que le dicen al quiz de "¿Cuál es tu tipo de piel?" qué
+  productos recomendar según el resultado. Los emojis de cada etiqueta se
+  configuran en `CONFIG.SKIN_TYPE_EMOJI`, y deben coincidir con los
+  "type" que uses en las preguntas de `CONFIG.SKIN_QUIZ` (ver abajo).
 - **Categoria**: además de agrupar productos, cada categoría distinta
   también se usa para armar el grid de "Marcas" (a través de la columna
   Marca) — no necesitas configurarla aparte.
@@ -62,6 +64,7 @@ const CONFIG = {
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
   HERO_SLIDES: [...],          // slides del banner principal (título, subtítulo, botón)
   SKIN_TYPE_EMOJI: {...},      // emoji por etiqueta de TipoPiel
+  SKIN_QUIZ: [...],            // preguntas y opciones del quiz de tipo de piel
   PROMO_BANNER: {...},         // franja ancha promocional
   BENEFITS: [...],             // franja de 4 beneficios antes del footer
   MENU_COMING_SOON: [...],     // accesos del menú que aún no tienen función real
@@ -83,12 +86,32 @@ de datos.
 
 Header (logo + carrito + menú ☰ en móvil) → menú de secciones (barra en
 escritorio / panel deslizante en móvil) → banner principal (rotativo) →
-barra deslizante → Best Seller (top 6 numerado) → explora por tipo de
-piel → banner promocional → marcas → beneficios → footer.
+barra deslizante → Best Seller (top 6 numerado) → quiz de tipo de piel →
+banner promocional → marcas → beneficios → footer.
 
 Todas las secciones basadas en datos (Best Seller, tipo de piel, marcas)
 se ocultan automáticamente si tu catálogo no tiene esa información — no
 se muestra contenido inventado.
+
+### Quiz "¿Cuál es tu tipo de piel?"
+
+En vez de pestañas manuales, el cliente contesta unas preguntas de
+opción múltiple y al final ve su tipo de piel (con su emoji) y los
+productos de tu catálogo etiquetados con ese tipo (columna TipoPiel).
+
+- Preguntas y opciones: `CONFIG.SKIN_QUIZ` en `app.js`. Cada opción tiene
+  un `type` — debe ser exactamente el mismo texto que usas en la columna
+  **TipoPiel** de tu Sheet (ej. `"Grasa"`, `"Seca"`) para que el
+  resultado encuentre productos que recomendar. Puedes agregar, quitar o
+  reescribir preguntas y opciones libremente; no necesitan ser 4.
+- El resultado es el tipo con más respuestas; si hay empate, gana el que
+  se repitió primero.
+- El resultado se guarda en el navegador del cliente (no se vuelve a
+  preguntar en su próxima visita) hasta que toque "Repetir el quiz".
+- Si un tipo de piel no tiene productos etiquetados todavía, se muestra
+  un aviso en vez de una sección vacía.
+- Sección completa oculta si tu catálogo no usa la columna TipoPiel o si
+  `CONFIG.SKIN_QUIZ` está vacío.
 
 ### Menú (barra de escritorio + ☰ en móvil)
 
