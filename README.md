@@ -27,9 +27,13 @@ reutiliza contenido, marcas ni fotografía de ningún negocio real.
 Crea una hoja con estas columnas en la primera fila (los nombres pueden
 variar ligeramente, el sitio los reconoce en español o inglés):
 
-| Nombre | Categoria | Marca | Precio | Imagen | Descripcion | SKU | Disponible | Destacado | TipoPiel |
-|--------|-----------|-------|--------|--------|-------------|-----|------------|-----------|----------|
+| Nombre | Categoria | Marca | Precio | Peso | Imagen | Descripcion | SKU | Disponible | Destacado | TipoPiel |
+|--------|-----------|-------|--------|------|--------|-------------|-----|------------|-----------|----------|
 
+- **Peso**: opcional. Peso del producto en kilogramos (ej. `0.25`). Se
+  usa para calcular el peso total del carrito, que se incluye en el
+  mensaje de WhatsApp de la cotización (`📦 Peso total estimado: X kg`)
+  para que puedas cotizar el envío. Si lo dejas vacío se toma como 0.
 - **Imagen**: URL pública de la foto del producto.
 - **Disponible**: `SI` / `NO` (si se deja vacío, se asume disponible).
 - **SKU**: opcional, identificador único de la fila.
