@@ -5,7 +5,7 @@ module.exports = {
     extend: {
       colors: {
         cream: "#fffcf4",
-        ink: "#263d42",
+        ink: "#4b3e72",
         blush: "#e9c3be",
       },
       fontFamily: {

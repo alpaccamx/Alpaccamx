@@ -142,7 +142,7 @@ const ICONS = {
 function placeholderImg(label, bg) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">
     <rect width="100%" height="100%" fill="${bg}"/>
-    <text x="50%" y="50%" font-family="sans-serif" font-size="22" fill="#263d42"
+    <text x="50%" y="50%" font-family="sans-serif" font-size="22" fill="#4b3e72"
       text-anchor="middle" dominant-baseline="middle">${label}</text>
   </svg>`;
   return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
