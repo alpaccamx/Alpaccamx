@@ -8,7 +8,7 @@ module.exports = {
         ink: "#3d3a42",
         rose: "#ee6c92",
         lilac: "#8b84ac",
-        blush: "#e9c3be",
+        blush: "#f6cadb",
       },
       fontFamily: {
         display: ["Josefin Sans", "sans-serif"],
