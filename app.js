@@ -14,6 +14,49 @@ const CONFIG = {
   WHATSAPP_NUMBER: "52XXXXXXXXXX",
 
   BUSINESS_NAME: "KKUL",
+
+  // Mensaje de la barra superior.
+  SHIPPING_MESSAGE: "Envíos a todo México desde $189 MXN 🚚💨",
+
+  // Mensajes que se muestran en la barra deslizante debajo del banner.
+  TICKER_MESSAGES: [
+    "Envíos a todo México 🇲🇽",
+    "Cotiza sin compromiso ✨",
+    "Atención por WhatsApp 💬",
+  ],
+
+  // Íconos de redes sociales en la barra superior. Pon "" en href para ocultar uno.
+  SOCIAL_LINKS: [
+    { name: "Facebook", href: "", icon: "facebook" },
+    { name: "Instagram", href: "", icon: "instagram" },
+    { name: "TikTok", href: "", icon: "tiktok" },
+  ],
+
+  // Slides del banner principal. Agrega o quita objetos para más o menos slides.
+  HERO_SLIDES: [
+    {
+      title: "Skincare coreano, directo a tu puerta",
+      subtitle: "Arma tu pedido y cotiza por WhatsApp — sin pagos en línea.",
+      ctaText: "Ver catálogo",
+      ctaHref: "#product-grid",
+    },
+    {
+      title: "Lo nuevo llegó a KKUL",
+      subtitle: "Descubre las últimas novedades de skincare y maquillaje coreano.",
+      ctaText: "Ver novedades",
+      ctaHref: "#featured-section",
+    },
+  ],
+};
+
+/* ======================================================================
+   Íconos SVG usados en la barra superior / contacto
+   ====================================================================== */
+const ICONS = {
+  facebook: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.23 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22C18.34 21.23 22 17.08 22 12.06z"/></svg>`,
+  instagram: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>`,
+  tiktok: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor"><path d="M16.5 2h-3v13.5a2.5 2.5 0 1 1-2.5-2.5c.17 0 .34.02.5.05V9.9a5.5 5.5 0 1 0 5 5.48V8.2a7.4 7.4 0 0 0 4.5 1.5V6.7A4.5 4.5 0 0 1 16.5 2z"/></svg>`,
+  whatsapp: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>`,
 };
 
 /* ======================================================================
@@ -189,6 +232,112 @@ async function loadProducts() {
 }
 
 /* ======================================================================
+   Barra superior: redes sociales + mensaje de envíos
+   ====================================================================== */
+function renderTopBar() {
+  document.getElementById("shipping-message").textContent = CONFIG.SHIPPING_MESSAGE || "";
+
+  const wrap = document.getElementById("social-links");
+  const links = (CONFIG.SOCIAL_LINKS || []).filter((s) => s.href);
+  wrap.innerHTML = links
+    .map(
+      (s) => `<a href="${escapeAttr(s.href)}" target="_blank" rel="noopener" aria-label="${escapeAttr(s.name)}"
+        class="text-ink/70 hover:text-ink transition">${ICONS[s.icon] || ""}</a>`
+    )
+    .join("");
+}
+
+/* ======================================================================
+   Banner principal (hero con varios slides)
+   ====================================================================== */
+let heroIndex = 0;
+let heroTimer = null;
+
+function renderHeroSlide() {
+  const slides = CONFIG.HERO_SLIDES || [];
+  if (!slides.length) return;
+  const slide = slides[heroIndex];
+
+  document.getElementById("hero-slides").innerHTML = `
+    <div class="text-center">
+      <h1 class="font-logo text-3xl sm:text-5xl text-ink text-balance">${escapeHtml(slide.title)}</h1>
+      <p class="mt-3 text-ink/70 max-w-xl mx-auto">${escapeHtml(slide.subtitle || "")}</p>
+      ${
+        slide.ctaText
+          ? `<a href="${escapeAttr(slide.ctaHref || "#")}"
+              class="inline-block mt-6 rounded-full bg-ink text-cream font-semibold px-6 py-3 hover:bg-ink/90 transition">
+              ${escapeHtml(slide.ctaText)}
+            </a>`
+          : ""
+      }
+    </div>`;
+
+  document.getElementById("hero-dots").innerHTML = slides
+    .map(
+      (_, i) => `<button type="button" data-dot="${i}" aria-label="Ver slide ${i + 1}"
+        class="w-2.5 h-2.5 rounded-full transition ${i === heroIndex ? "bg-ink" : "bg-ink/25"}"></button>`
+    )
+    .join("");
+
+  document.querySelectorAll("[data-dot]").forEach((dot) => {
+    dot.addEventListener("click", () => {
+      heroIndex = Number(dot.dataset.dot);
+      renderHeroSlide();
+      restartHeroTimer();
+    });
+  });
+}
+
+function restartHeroTimer() {
+  clearInterval(heroTimer);
+  const slides = CONFIG.HERO_SLIDES || [];
+  if (slides.length < 2) return;
+  heroTimer = setInterval(() => {
+    heroIndex = (heroIndex + 1) % slides.length;
+    renderHeroSlide();
+  }, 6000);
+}
+
+/* ======================================================================
+   Barra deslizante (ticker)
+   ====================================================================== */
+function renderTicker() {
+  const messages = CONFIG.TICKER_MESSAGES || [];
+  if (!messages.length) return;
+  const items = messages.map((m) => `<span>${escapeHtml(m)}</span>`).join("");
+  // se duplica el contenido para que la animación haga un loop continuo
+  document.getElementById("ticker-track").innerHTML = items + items;
+}
+
+/* ======================================================================
+   Navegación de categorías (barra horizontal con flechas)
+   ====================================================================== */
+function renderCategoryNav() {
+  const nav = document.getElementById("category-nav");
+  const categories = [...new Set(products.map((p) => p.categoria))];
+  nav.innerHTML = categories
+    .map(
+      (cat) =>
+        `<a href="#product-grid" data-cat-link="${escapeAttr(cat)}"
+          class="text-sm font-semibold text-ink/70 hover:text-ink transition">${escapeHtml(cat)}</a>`
+    )
+    .join("");
+
+  nav.querySelectorAll("[data-cat-link]").forEach((link) => {
+    link.addEventListener("click", () => {
+      activeCategory = link.dataset.catLink;
+      renderCategoryFilters();
+      renderProducts();
+    });
+  });
+
+  const prevBtn = document.getElementById("nav-prev");
+  const nextBtn = document.getElementById("nav-next");
+  prevBtn.addEventListener("click", () => nav.scrollBy({ left: -200, behavior: "smooth" }));
+  nextBtn.addEventListener("click", () => nav.scrollBy({ left: 200, behavior: "smooth" }));
+}
+
+/* ======================================================================
    Render: filtros de categoría
    ====================================================================== */
 function renderCategoryFilters() {
@@ -329,6 +478,7 @@ function renderFeatured() {
 }
 
 function renderAll() {
+  renderCategoryNav();
   renderFeatured();
   renderCategoryFilters();
   renderProducts();
@@ -377,6 +527,7 @@ function renderCart() {
 
   document.getElementById("cart-count").textContent = cartCount();
   document.getElementById("cart-total").textContent = formatPrice(cartTotal());
+  document.getElementById("cart-total-header").textContent = formatPrice(cartTotal());
 
   const sendBtn = document.getElementById("send-quote");
   sendBtn.disabled = items.length === 0;
@@ -487,6 +638,20 @@ function escapeAttr(str) {
 /* ======================================================================
    Inicialización
    ====================================================================== */
+function initWhatsAppFloat() {
+  const btn = document.getElementById("whatsapp-float");
+  const numberIsPlaceholder = !CONFIG.WHATSAPP_NUMBER || CONFIG.WHATSAPP_NUMBER.includes("XXXX");
+  if (numberIsPlaceholder) {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      setStatus("Falta configurar CONFIG.WHATSAPP_NUMBER en app.js con tu número real.");
+    });
+    return;
+  }
+  const message = encodeURIComponent(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una pregunta.`);
+  btn.href = `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${message}`;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -503,6 +668,12 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   document.getElementById("search-input").addEventListener("input", (e) => syncSearch(e.target.value));
   document.getElementById("search-input-mobile").addEventListener("input", (e) => syncSearch(e.target.value));
+
+  renderTopBar();
+  renderHeroSlide();
+  restartHeroTimer();
+  renderTicker();
+  initWhatsAppFloat();
 
   loadProducts();
   renderCart();

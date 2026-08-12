@@ -42,11 +42,16 @@ const CONFIG = {
   GOOGLE_SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV", // el link del paso anterior
   WHATSAPP_NUMBER: "52XXXXXXXXXX",              // tu número con código de país, sin "+" ni espacios
   BUSINESS_NAME: "KKUL",
+  SHIPPING_MESSAGE: "Envíos a todo México desde $189 MXN 🚚💨", // barra superior
+  TICKER_MESSAGES: [...],   // frases de la barra deslizante
+  SOCIAL_LINKS: [...],      // links de Facebook/Instagram/TikTok (deja href: "" para ocultar)
+  HERO_SLIDES: [...],       // slides del banner principal (título, subtítulo, botón)
 };
 ```
 
-Mientras estos valores tengan el texto de ejemplo (`PEGA_AQUI` / `XXXX`), el
-sitio muestra un catálogo de demostración para que puedas ver cómo se ve.
+Mientras `GOOGLE_SHEET_CSV_URL`/`WHATSAPP_NUMBER` tengan el texto de ejemplo
+(`PEGA_AQUI` / `XXXX`), el sitio muestra un catálogo de demostración y el
+botón de WhatsApp no intenta abrir nada (avisa que falta configurarlo).
 
 ## 3. Publicar el sitio
 
@@ -63,3 +68,7 @@ de datos.
 - Si el Google Sheet no carga (sin internet, URL incorrecta, hoja no
   publicada), el sitio cae automáticamente al catálogo de ejemplo en lugar
   de mostrar una página en blanco.
+- La navegación de categorías (barra debajo del header) y los filtros se
+  generan automáticamente a partir de la columna **Categoria** de tu Sheet.
+- El botón flotante "Contáctanos" (WhatsApp) es para preguntas generales;
+  el botón "Enviar cotización por WhatsApp" del carrito es para el pedido.

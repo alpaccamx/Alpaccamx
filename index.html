@@ -7,57 +7,98 @@
 <meta name="description" content="Catálogo de productos con sistema de cotización por WhatsApp.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Josefin+Sans:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body class="bg-cream text-ink font-body antialiased">
 
+<!-- Top bar -->
+<div class="bg-blush text-ink text-xs sm:text-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-10 flex items-center justify-between gap-4">
+    <div id="social-links" class="hidden sm:flex items-center gap-3">
+      <!-- social icons injected by JS -->
+    </div>
+    <p class="flex-1 sm:flex-none text-center font-semibold truncate" id="shipping-message"></p>
+    <span class="hidden sm:inline text-ink/60 font-semibold">MXN $</span>
+  </div>
+</div>
+
 <!-- Header -->
 <header class="sticky top-0 z-40 bg-cream/95 backdrop-blur border-b border-ink/10">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-    <a href="#top" class="font-display text-2xl sm:text-3xl tracking-wide text-ink">KKUL</a>
+    <a href="#top" class="font-logo text-3xl sm:text-4xl text-ink">kkül</a>
 
     <div class="hidden sm:flex flex-1 max-w-md relative">
-      <input id="search-input" type="search" placeholder="Buscar productos..."
+      <input id="search-input" type="search" placeholder="Buscar por..."
         class="w-full rounded-full border border-ink/20 bg-white/60 px-4 py-2 text-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-blush" />
     </div>
 
     <button id="cart-toggle" type="button" aria-label="Abrir carrito"
       class="relative inline-flex items-center gap-2 rounded-full bg-ink text-cream px-4 py-2 text-sm font-semibold hover:bg-ink/90 transition">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-      <span class="hidden sm:inline">Carrito</span>
+      <span class="hidden sm:inline" id="cart-total-header">$0.00</span>
       <span id="cart-count" class="absolute -top-2 -right-2 bg-blush text-ink text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
     </button>
   </div>
 
   <div class="sm:hidden px-4 pb-3">
-    <input id="search-input-mobile" type="search" placeholder="Buscar productos..."
+    <input id="search-input-mobile" type="search" placeholder="Buscar por..."
       class="w-full rounded-full border border-ink/20 bg-white/60 px-4 py-2 text-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-blush" />
+  </div>
+
+  <!-- Category nav -->
+  <div class="border-t border-ink/10 relative">
+    <button id="nav-prev" type="button" aria-label="Ver categorías anteriores"
+      class="hidden sm:flex absolute left-0 top-0 bottom-0 z-10 items-center px-2 bg-gradient-to-r from-cream to-transparent">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div id="category-nav" class="flex items-center gap-6 overflow-x-auto px-4 sm:px-10 h-11 whitespace-nowrap [scrollbar-width:none]">
+      <!-- category links injected by JS -->
+    </div>
+    <button id="nav-next" type="button" aria-label="Ver más categorías"
+      class="hidden sm:flex absolute right-0 top-0 bottom-0 z-10 items-center px-2 bg-gradient-to-l from-cream to-transparent">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
   </div>
 </header>
 
 <!-- Hero -->
-<section id="top" class="bg-blush/40">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 text-center">
-    <h1 class="font-display text-3xl sm:text-5xl text-ink">Catálogo &amp; Cotización</h1>
-    <p class="mt-3 text-ink/70 max-w-xl mx-auto">Arma tu pedido y envíanos tu cotización directo por WhatsApp — sin pagos en línea, sin complicaciones.</p>
+<section id="top" class="relative bg-blush overflow-hidden">
+  <div id="hero-slides" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <!-- slide content injected by JS -->
   </div>
+  <div id="hero-dots" class="relative z-10 flex justify-center gap-2 pb-6"></div>
 </section>
 
+<!-- Scrolling ticker -->
+<div class="bg-ink text-cream overflow-hidden py-2">
+  <div id="ticker-track" class="flex gap-12 whitespace-nowrap animate-marquee text-xs sm:text-sm font-semibold uppercase tracking-wide">
+    <!-- ticker items injected by JS (duplicated for seamless loop) -->
+  </div>
+</div>
+
 <!-- Featured collections (tabs) -->
-<section id="featured-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 hidden">
-  <div class="flex items-center gap-2 flex-wrap mb-4">
-    <h2 class="font-display text-xl sm:text-2xl text-ink mr-2">Colecciones</h2>
-    <div id="featured-tabs" class="flex flex-wrap gap-2">
-      <!-- pestañas injected by JS -->
+<section id="featured-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">
+  <div class="text-center mb-6">
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Lo mejor de Corea</p>
+    <div class="flex items-center justify-center gap-2 flex-wrap mt-1">
+      <h2 class="font-logo text-2xl sm:text-3xl text-ink">Colecciones destacadas</h2>
     </div>
+  </div>
+  <div id="featured-tabs" class="flex flex-wrap gap-2 justify-center mb-5">
+    <!-- pestañas injected by JS -->
   </div>
   <div id="featured-row" class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
     <!-- product cards injected by JS -->
   </div>
 </section>
 
-<!-- Filters -->
+<!-- Catálogo completo -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-3 text-center">
+  <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Catálogo completo</p>
+  <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Todos los productos</h2>
+</section>
+
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
   <div id="category-filters" class="flex flex-wrap gap-2 justify-center">
     <!-- chips injected by JS -->
@@ -82,6 +123,13 @@
   <p>© <span id="year"></span> KKUL. Catálogo para cotización — no se procesan pagos en este sitio.</p>
 </footer>
 
+<!-- Floating WhatsApp contact -->
+<a id="whatsapp-float" href="#" target="_blank" rel="noopener"
+  class="fixed bottom-5 left-5 z-30 inline-flex items-center gap-2 rounded-full bg-[#25D366] text-white font-semibold text-sm px-4 py-3 shadow-lg hover:opacity-90 transition">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
+  <span>Contáctanos</span>
+</a>
+
 <!-- Cart overlay -->
 <div id="cart-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
@@ -89,7 +137,7 @@
 <aside id="cart-drawer" aria-label="Carrito de cotización"
   class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
-    <h2 class="font-display text-xl text-ink">Tu cotización</h2>
+    <h2 class="font-logo text-xl text-ink">Tu cotización</h2>
     <button id="cart-close" type="button" aria-label="Cerrar carrito" class="text-ink/60 hover:text-ink text-2xl leading-none">&times;</button>
   </div>
 
