@@ -27,9 +27,20 @@ reutiliza contenido, marcas ni fotografía de ningún negocio real.
 Crea una hoja con estas columnas en la primera fila (los nombres pueden
 variar ligeramente, el sitio los reconoce en español o inglés):
 
-| Nombre | Categoria | Marca | Precio | Peso | Presentacion | Imagen | Descripcion | SKU | Disponible | Destacado | TipoPiel |
-|--------|-----------|-------|--------|------|--------------|--------|-------------|-----|------------|-----------|----------|
+| Nombre | Categoria | Marca | Precio USD | Precio | Peso | Presentacion | Imagen | Descripcion | SKU | Disponible | Destacado | TipoPiel |
+|--------|-----------|-------|------------|--------|------|--------------|--------|-------------|-----|------------|-----------|----------|
 
+- **Precio USD** (opcional) / **Precio**: el sitio siempre lee la columna
+  **Precio** (en pesos) — es la que importa, no cambies su nombre. Para
+  los productos que compras en dólares (ej. de Corea), agrega una columna
+  extra **Precio USD** con tu costo en dólares, y en **Precio** pon la
+  fórmula `=ROUND(PrecioUSD * Config!$B$2, 2)` apuntando a la celda del
+  tipo de cambio de la pestaña **Config** (ver sección 1.1). Así, cuando
+  cambias el tipo de cambio en un solo lugar, todos esos precios se
+  recalculan solos — no hay que tocarlos uno por uno. Para productos que
+  ya manejas directamente en pesos, deja Precio USD vacío y escribe el
+  precio en pesos a mano en la celda de Precio (sin fórmula). La
+  plantilla que te compartí ya trae esto armado, solo cópialo por fila.
 - **Peso**: opcional. Peso del producto en kilogramos (ej. `0.25`). Se
   usa para calcular el peso total del carrito, que se incluye en el
   mensaje de WhatsApp de la cotización (`📦 Peso total estimado: X kg`)
@@ -76,9 +87,10 @@ separado (mismo pasos de arriba, pero eligiendo esa pestaña):
 | Envío nacional base | 80 |
 | Envío nacional por kg | 20 |
 
-- **Tipo de cambio**: cuántos pesos vale 1 dólar. Es el mismo tipo de
-  cambio que puedes usar en tus productos (ver sección de precios en
-  dólares más abajo) — cámbialo aquí cuando quieras y se recalcula todo.
+- **Tipo de cambio**: cuántos pesos vale 1 dólar. Es la misma celda que
+  usa la fórmula de la columna Precio en la pestaña Productos (ver
+  sección 1 arriba, "Precio USD / Precio") — cámbialo aquí cuando quieras
+  y se recalcula todo (tus productos en dólares y el envío Corea-EE.UU.).
 - **Envío nacional base / por kg**: costo fijo + costo por kilogramo del
   envío dentro de México, ya en pesos. Ejemplo: base $80 + $20/kg → un
   pedido de 2 kg cuesta $80 + $20×2 = $120 MXN.
