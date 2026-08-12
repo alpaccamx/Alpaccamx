@@ -161,8 +161,9 @@ function placeholderImg(label, bg) {
 }
 
 const DEMO_PRODUCTS = [
-  { id: "d1", nombre: "Espuma Limpiadora de Té Verde", categoria: "Skincare", marca: "Haruharu", precio: 320, peso: 0.18, imagen: placeholderImg("Limpiadora", "#e9c3be"), descripcion: "Limpieza suave diaria.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: ["Normal", "Mixta"] },
-  { id: "d2", nombre: "Sérum de Niacinamida 10%", categoria: "Skincare", marca: "Round Lab", precio: 450, peso: 0.09, imagen: placeholderImg("Sérum", "#f3d9d0"), descripcion: "Ilumina y empareja el tono.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: ["Grasa", "Mixta"] },
+  { id: "d1", nombre: "Espuma Limpiadora de Té Verde", categoria: "Skincare", marca: "Haruharu", precio: 320, peso: 0.18, presentacion: "Pieza individual", imagen: placeholderImg("Limpiadora", "#e9c3be"), descripcion: "Limpieza suave diaria.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: ["Normal", "Mixta"] },
+  { id: "d1b", nombre: "Espuma Limpiadora de Té Verde", categoria: "Skincare", marca: "Haruharu", precio: 3450, peso: 2.2, presentacion: "Caja con 12 piezas", imagen: placeholderImg("Limpiadora", "#e9c3be"), descripcion: "Limpieza suave diaria.", disponible: true, destacado: [], tipoPiel: ["Normal", "Mixta"] },
+  { id: "d2", nombre: "Sérum de Niacinamida 10%", categoria: "Skincare", marca: "Round Lab", precio: 450, peso: 0.09, presentacion: "Pieza individual", imagen: placeholderImg("Sérum", "#f3d9d0"), descripcion: "Ilumina y empareja el tono.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: ["Grasa", "Mixta"] },
   { id: "d3", nombre: "Crema Hidratante Cica", categoria: "Skincare", marca: "Dr.Althea", precio: 520, peso: 0.15, imagen: placeholderImg("Crema", "#e9c3be"), descripcion: "Calma e hidrata piel sensible.", disponible: true, destacado: ["Best Seller"], tipoPiel: ["Sensible", "Seca"] },
   { id: "d4", nombre: "Protector Solar SPF50 PA++++", categoria: "Skincare", marca: "Beauty of Joseon", precio: 380, peso: 0.06, imagen: placeholderImg("Sunscreen", "#f3d9d0"), descripcion: "Ligero, sin dejar residuo blanco.", disponible: false, destacado: [], tipoPiel: ["Normal"] },
   { id: "d5", nombre: "Base Cushion Glow", categoria: "Maquillaje", marca: "Missha", precio: 480, peso: 0.12, imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: [] },
@@ -260,6 +261,7 @@ function csvToProducts(text) {
   const iDestacado = findCol(headers, ["destacado", "coleccion", "colección", "tag", "tags", "etiqueta", "etiquetas"]);
   const iTipoPiel = findCol(headers, ["tipopiel", "tipo de piel", "piel", "skintype"]);
   const iPeso = findCol(headers, ["peso", "peso (kg)", "peso kg", "weight", "pesokg"]);
+  const iPresentacion = findCol(headers, ["presentacion", "presentación", "empaque", "variante", "unidad"]);
 
   return rows
     .slice(1)
@@ -280,6 +282,7 @@ function csvToProducts(text) {
         marca: get(iMarca),
         precio: parseFloat(precioRaw) || 0,
         peso: parseFloat(pesoRaw) || 0,
+        presentacion: get(iPresentacion),
         imagen: get(iImagen),
         descripcion: get(iDescripcion),
         disponible,
@@ -611,6 +614,11 @@ function productCardHTML(p, { rank } = {}) {
         ${!p.disponible ? `<span class="absolute top-2 ${rank ? "right-2" : "left-2"} bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>` : ""}
       </div>
       <div class="p-3 flex flex-col flex-1">
+        ${
+          p.presentacion
+            ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blush/50 text-ink/70 mb-1">${escapeHtml(p.presentacion)}</span>`
+            : ""
+        }
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
         <h3 class="font-semibold text-sm text-ink leading-snug mt-0.5 line-clamp-2">${escapeHtml(p.nombre)}</h3>
         <div class="mt-auto pt-2 flex items-center justify-between gap-2">
@@ -902,6 +910,7 @@ function renderCart() {
         <img src="${escapeAttr(img)}" alt="${escapeAttr(it.product.nombre)}" class="w-16 h-16 rounded-lg object-cover border border-ink/10" />
         <div class="flex-1 min-w-0">
           <p class="text-sm font-semibold text-ink truncate">${escapeHtml(it.product.nombre)}</p>
+          ${it.product.presentacion ? `<p class="text-xs text-ink/50">${escapeHtml(it.product.presentacion)}</p>` : ""}
           <p class="text-xs text-ink/50">${formatPrice(it.product.precio)} c/u</p>
           <div class="mt-1 flex items-center gap-2">
             <button data-dec="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">−</button>
@@ -944,9 +953,10 @@ function buildWhatsAppMessage() {
   const phone = document.getElementById("customer-phone").value.trim();
   const notes = document.getElementById("customer-notes").value.trim();
 
-  const lines = items.map(
-    (it, i) => `${i + 1}. ${it.product.nombre} x${it.qty} — ${formatPrice(it.product.precio * it.qty)}`
-  );
+  const lines = items.map((it, i) => {
+    const nombre = it.product.presentacion ? `${it.product.nombre} (${it.product.presentacion})` : it.product.nombre;
+    return `${i + 1}. ${nombre} x${it.qty} — ${formatPrice(it.product.precio * it.qty)}`;
+  });
 
   const weight = cartWeight();
   const shipping = shippingEstimate(weight);
