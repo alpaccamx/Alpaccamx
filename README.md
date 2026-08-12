@@ -44,16 +44,17 @@ variar ligeramente, el sitio los reconoce en español o inglés):
   En **Precio** pon la fórmula:
 
   ```
-  =ROUND(IF(PrecioUSD<>"", PrecioUSD*Config!$B$2, CostoMXN) * (1+Config!$B$3/100), 2)
+  =CEILING(IF(PrecioUSD<>"", PrecioUSD*Config!$B$2, CostoMXN) * (1+Config!$B$3/100), 1)
   ```
 
-  Eso toma tu costo (convertido de dólares si aplica) y le suma tu
+  Eso toma tu costo (convertido de dólares si aplica), le suma tu
   **comisión** (celda `Config!B3`, ver sección 1.1) para llegar al precio
-  de venta. Cambia el tipo de cambio o el % de comisión en un solo lugar
-  (la pestaña Config) y **todos** los precios se recalculan solos — la
-  comisión solo afecta productos, nunca las tarifas de envío. La
-  plantilla que te compartí ya trae esta fórmula armada, solo cópiala
-  por fila.
+  de venta, y redondea **hacia arriba** al siguiente peso entero (ej.
+  $56.32 → $57 — nunca hacia abajo). Cambia el tipo de cambio o el % de
+  comisión en un solo lugar (la pestaña Config) y **todos** los precios
+  se recalculan solos — la comisión solo afecta productos, nunca las
+  tarifas de envío. La plantilla que te compartí ya trae esta fórmula
+  armada, solo cópiala por fila.
 - **Peso**: opcional. Peso del producto en kilogramos (ej. `0.25`). Se
   usa para calcular el peso total del carrito, que se incluye en el
   mensaje de WhatsApp de la cotización (`📦 Peso total estimado: X kg`)
