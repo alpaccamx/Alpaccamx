@@ -9,6 +9,18 @@ const CONFIG = {
   // Pega aquí el link que te da Google.
   GOOGLE_SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV",
 
+  // Opcional: URL CSV publicada de una pestaña "Config" con dos columnas
+  // (Clave | Valor) para el tipo de cambio y la tarifa de envío nacional.
+  // Ver README para el formato exacto. Si se deja el placeholder, el
+  // envío nacional simplemente no aparece en la cotización.
+  SHIPPING_CONFIG_CSV_URL: "PEGA_AQUI_TU_URL_CSV_DE_CONFIG_ENVIOS",
+
+  // Opcional: URL CSV publicada de una pestaña con la tabla de tarifas de
+  // envío Corea → EE.UU. por peso (columnas: Peso Total de la Unidad |
+  // Costo (USD), más una fila "Cada 1 kg adicional" al final). Ver README.
+  // Si se deja el placeholder, el envío Corea-EE.UU. no aparece.
+  SHIPPING_KOREA_RATES_CSV_URL: "PEGA_AQUI_TU_URL_CSV_DE_TARIFAS_COREA",
+
   // Número de WhatsApp con código de país, solo dígitos, sin "+" ni espacios.
   // Ejemplo México: 5215512345678 (52 + 1 + 10 dígitos)
   WHATSAPP_NUMBER: "5216571920559",
@@ -276,6 +288,119 @@ function csvToProducts(text) {
       };
     })
     .filter((p) => p.nombre && p.nombre !== "Producto sin nombre");
+}
+
+/* ======================================================================
+   Tarifas de envío (opcionales) — Corea→EE.UU. por tabla de peso y
+   envío nacional en México (tarifa base + costo por kg), leídas desde
+   dos pestañas CSV separadas del Google Sheet. Ver README.
+   ====================================================================== */
+function normalizeKey(s) {
+  return (s || "")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+let shippingSettings = { exchangeRate: 0, nacionalBaseMXN: 0, nacionalPorKgMXN: 0 };
+let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0 };
+
+const SHIPPING_SETTING_ALIASES = {
+  exchangeRate: ["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"],
+  nacionalBaseMXN: ["envionacionalbase", "nacionalbase", "basenacional"],
+  nacionalPorKgMXN: ["envionacionalporkg", "nacionalporkg", "nacionalkg"],
+};
+
+function csvToShippingSettings(text) {
+  const rows = parseCSV(text);
+  const settings = { exchangeRate: 0, nacionalBaseMXN: 0, nacionalPorKgMXN: 0 };
+  rows.forEach((r) => {
+    const key = normalizeKey(r[0]);
+    const value = parseFloat((r[1] || "").replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0;
+    for (const field in SHIPPING_SETTING_ALIASES) {
+      if (SHIPPING_SETTING_ALIASES[field].includes(key)) settings[field] = value;
+    }
+  });
+  return settings;
+}
+
+function csvToKoreaShippingTiers(text) {
+  const rows = parseCSV(text);
+  if (!rows.length) return { tiers: [], extraPerKgUSD: 0 };
+  const headers = rows[0].map((h) => h.trim().toLowerCase());
+  const iPeso = findCol(headers, ["peso total de la unidad", "peso hasta", "peso hasta (kg)", "peso (kg)", "peso"]);
+  const iCosto = findCol(headers, ["costo (usd)", "costo usd", "costo"]);
+
+  const tiers = [];
+  let extraPerKgUSD = 0;
+
+  rows.slice(1).forEach((r) => {
+    const pesoRaw = (r[iPeso] || "").trim().toLowerCase();
+    const costo = parseFloat((r[iCosto] || "").replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
+
+    if (pesoRaw.includes("adicional") || pesoRaw.includes("extra")) {
+      extraPerKgUSD = costo;
+      return;
+    }
+    const maxKg = parseFloat(pesoRaw.replace(/[^0-9.,]/g, "").replace(",", "."));
+    if (!isNaN(maxKg)) tiers.push({ maxKg, costoUSD: costo });
+  });
+
+  tiers.sort((a, b) => a.maxKg - b.maxKg);
+  return { tiers, extraPerKgUSD };
+}
+
+function koreaShippingUSD(pesoKg) {
+  const { tiers, extraPerKgUSD } = shippingKoreaRates;
+  if (!tiers.length || pesoKg <= 0) return 0;
+  const inRange = tiers.find((t) => pesoKg <= t.maxKg);
+  if (inRange) return inRange.costoUSD;
+  const last = tiers[tiers.length - 1];
+  const extraKg = Math.ceil(pesoKg - last.maxKg);
+  return last.costoUSD + extraKg * extraPerKgUSD;
+}
+
+function shippingEstimate(pesoKg) {
+  if (pesoKg <= 0) return null;
+  const hasKorea = shippingKoreaRates.tiers.length > 0 && shippingSettings.exchangeRate > 0;
+  const hasNacional = shippingSettings.nacionalBaseMXN > 0 || shippingSettings.nacionalPorKgMXN > 0;
+  if (!hasKorea && !hasNacional) return null;
+
+  const coreaUSD = hasKorea ? koreaShippingUSD(pesoKg) : 0;
+  const coreaMXN = coreaUSD * (shippingSettings.exchangeRate || 0);
+  const nacionalMXN = hasNacional
+    ? shippingSettings.nacionalBaseMXN + shippingSettings.nacionalPorKgMXN * pesoKg
+    : 0;
+
+  return { hasKorea, hasNacional, coreaUSD, coreaMXN, nacionalMXN, totalMXN: coreaMXN + nacionalMXN };
+}
+
+async function loadShippingSettings() {
+  const isPlaceholder = !CONFIG.SHIPPING_CONFIG_CSV_URL || CONFIG.SHIPPING_CONFIG_CSV_URL.includes("PEGA_AQUI");
+  if (isPlaceholder) return;
+  try {
+    const res = await fetch(CONFIG.SHIPPING_CONFIG_CSV_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    shippingSettings = csvToShippingSettings(text);
+  } catch (err) {
+    console.warn("No se pudo cargar la configuración de envíos:", err);
+  }
+}
+
+async function loadShippingKoreaRates() {
+  const isPlaceholder = !CONFIG.SHIPPING_KOREA_RATES_CSV_URL || CONFIG.SHIPPING_KOREA_RATES_CSV_URL.includes("PEGA_AQUI");
+  if (isPlaceholder) return;
+  try {
+    const res = await fetch(CONFIG.SHIPPING_KOREA_RATES_CSV_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    shippingKoreaRates = csvToKoreaShippingTiers(text);
+  } catch (err) {
+    console.warn("No se pudo cargar la tabla de tarifas Corea-EE.UU.:", err);
+  }
 }
 
 /* ======================================================================
@@ -823,16 +948,29 @@ function buildWhatsAppMessage() {
     (it, i) => `${i + 1}. ${it.product.nombre} x${it.qty} — ${formatPrice(it.product.precio * it.qty)}`
   );
 
+  const weight = cartWeight();
+  const shipping = shippingEstimate(weight);
+
   const parts = [
     `Hola ${CONFIG.BUSINESS_NAME}! Quiero cotizar lo siguiente:`,
     "",
     ...lines,
     "",
     `*Total estimado: ${formatPrice(cartTotal())}*`,
-    `📦 Peso total estimado: ${formatWeight(cartWeight())}`,
-    "",
-    `Nombre: ${name}`,
+    `📦 Peso total estimado: ${formatWeight(weight)}`,
   ];
+
+  if (shipping) {
+    parts.push(`🚚 Envío estimado (referencia, sujeto a confirmación): ${formatPrice(shipping.totalMXN)}`);
+    if (shipping.hasKorea) {
+      parts.push(`   • Corea→EE.UU.: ${formatPrice(shipping.coreaMXN)} (≈ $${shipping.coreaUSD.toFixed(2)} USD)`);
+    }
+    if (shipping.hasNacional) {
+      parts.push(`   • Nacional MX: ${formatPrice(shipping.nacionalMXN)}`);
+    }
+  }
+
+  parts.push("", `Nombre: ${name}`);
   if (phone) parts.push(`Teléfono: ${phone}`);
   if (notes) parts.push(`Notas: ${notes}`);
 
@@ -920,5 +1058,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initWhatsAppFloat();
 
   loadProducts();
+  loadShippingSettings();
+  loadShippingKoreaRates();
   renderCart();
 });

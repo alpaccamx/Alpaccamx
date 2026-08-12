@@ -54,6 +54,71 @@ Luego: `Archivo` → `Compartir` → `Publicar en la Web` → elige la hoja →
 formato **"Valores separados por comas (.csv)"** → **Publicar**, y copia el
 link.
 
+## 1.1 (Opcional) Tarifas de envío en la cotización
+
+Si quieres que el mensaje de WhatsApp incluya una **referencia de costo de
+envío** (Corea→EE.UU. + nacional en México) además del peso, agrega **dos
+pestañas más** en el mismo Google Sheet y publica cada una como CSV por
+separado (mismo pasos de arriba, pero eligiendo esa pestaña):
+
+**Pestaña "Config"** — dos columnas, `Clave` y `Valor`:
+
+| Clave | Valor |
+|-------|-------|
+| Tipo de cambio | 18.00 |
+| Envío nacional base | 80 |
+| Envío nacional por kg | 20 |
+
+- **Tipo de cambio**: cuántos pesos vale 1 dólar. Es el mismo tipo de
+  cambio que puedes usar en tus productos (ver sección de precios en
+  dólares más abajo) — cámbialo aquí cuando quieras y se recalcula todo.
+- **Envío nacional base / por kg**: costo fijo + costo por kilogramo del
+  envío dentro de México, ya en pesos. Ejemplo: base $80 + $20/kg → un
+  pedido de 2 kg cuesta $80 + $20×2 = $120 MXN.
+
+**Pestaña "TarifasCorea"** — tabla de tarifas por peso, igual a la que
+maneja tu proveedor, con dos columnas: `Peso Total de la Unidad` y
+`Costo (USD)`:
+
+| Peso Total de la Unidad | Costo (USD) |
+|--------------------------|--------------|
+| <= 1 kg | 33.50 |
+| <= 1.5 kg | 39.00 |
+| <= 2 kg | 43.00 |
+| ... | ... |
+| <= 10 kg | 129.00 |
+| Cada 1 kg adicional | 12.50 |
+
+- Copia tus filas tal cual las tengas (puedes tener tantas como quieras,
+  no tienen que ser cada 0.5 kg). El sitio busca la primera fila cuyo
+  peso alcance el del carrito (redondeando hacia arriba al siguiente
+  escalón, como hace el paquetero).
+- La última fila, **"Cada 1 kg adicional"**, es el costo por cada kg que
+  se pase del último escalón de la tabla (ej. arriba de 10 kg).
+
+Pega los dos links CSV en `app.js`:
+
+```js
+SHIPPING_CONFIG_CSV_URL: "...",       // pestaña "Config"
+SHIPPING_KOREA_RATES_CSV_URL: "...",  // pestaña "TarifasCorea"
+```
+
+Si dejas alguno de los dos como el placeholder de ejemplo, esa parte del
+envío simplemente no aparece en la cotización (puedes tener solo el
+nacional, solo el de Corea, ninguno, o ambos). Cuando ambos están
+configurados, el mensaje de WhatsApp se ve así:
+
+```
+*Total estimado: $320.00*
+📦 Peso total estimado: 0.8 kg
+🚚 Envío estimado (referencia, sujeto a confirmación): $699.00
+   • Corea→EE.UU.: $603.00 (≈ $33.50 USD)
+   • Nacional MX: $96.00
+```
+
+Es una **referencia para ti** (no se suma al "Total estimado" que ve el
+cliente) — tú confirmas el costo real de envío antes de cerrar el pedido.
+
 ## 2. Configurar el sitio
 
 Abre `app.js` y edita el bloque `CONFIG` al inicio:
@@ -61,6 +126,8 @@ Abre `app.js` y edita el bloque `CONFIG` al inicio:
 ```js
 const CONFIG = {
   GOOGLE_SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV", // el link del paso anterior
+  SHIPPING_CONFIG_CSV_URL: "...",     // opcional — pestaña "Config" (ver sección 1.1)
+  SHIPPING_KOREA_RATES_CSV_URL: "...",// opcional — pestaña "TarifasCorea" (ver sección 1.1)
   WHATSAPP_NUMBER: "52XXXXXXXXXX",              // tu número con código de país, sin "+" ni espacios
   BUSINESS_NAME: "Alpacca",
   SHIPPING_MESSAGE: "...",     // barra superior
