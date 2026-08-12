@@ -38,9 +38,12 @@ variar ligeramente, el sitio los reconoce en español o inglés):
 - **Imagen**: URL pública de la foto del producto.
 - **Disponible**: `SI` / `NO` (si se deja vacío, se asume disponible).
 - **SKU**: opcional, identificador único de la fila.
-- **Destacado**: opcional. Una o varias etiquetas separadas por coma
-  (ej. `Nuevo, Best Seller`). Cada etiqueta genera una pestaña en
-  "Colecciones destacadas". Vacía en todas las filas → la sección se oculta.
+- **Destacado**: opcional. Marca los productos que quieres en la sección
+  "Best Seller" con la etiqueta `Best Seller` (puedes agregar otras
+  etiquetas también, ej. `Nuevo, Best Seller`, pero solo `Best Seller` se
+  usa en esa sección). Se muestran hasta 6, numerados del 1 al 6 en el
+  orden en que aparecen en tu Sheet. Sin productos con esa etiqueta →
+  la sección se oculta.
 - **TipoPiel**: opcional. Igual que Destacado pero para la sección
   "Explora por tipo de piel" (ej. `Grasa, Mixta`). Los emojis de cada
   etiqueta se configuran en `CONFIG.SKIN_TYPE_EMOJI`.

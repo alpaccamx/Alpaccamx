@@ -115,13 +115,13 @@ function placeholderImg(label, bg) {
 }
 
 const DEMO_PRODUCTS = [
-  { id: "d1", nombre: "Espuma Limpiadora de Té Verde", categoria: "Skincare", marca: "Haruharu", precio: 320, imagen: placeholderImg("Limpiadora", "#e9c3be"), descripcion: "Limpieza suave diaria.", disponible: true, destacado: ["Nuevo"], tipoPiel: ["Normal", "Mixta"] },
+  { id: "d1", nombre: "Espuma Limpiadora de Té Verde", categoria: "Skincare", marca: "Haruharu", precio: 320, imagen: placeholderImg("Limpiadora", "#e9c3be"), descripcion: "Limpieza suave diaria.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: ["Normal", "Mixta"] },
   { id: "d2", nombre: "Sérum de Niacinamida 10%", categoria: "Skincare", marca: "Round Lab", precio: 450, imagen: placeholderImg("Sérum", "#f3d9d0"), descripcion: "Ilumina y empareja el tono.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: ["Grasa", "Mixta"] },
   { id: "d3", nombre: "Crema Hidratante Cica", categoria: "Skincare", marca: "Dr.Althea", precio: 520, imagen: placeholderImg("Crema", "#e9c3be"), descripcion: "Calma e hidrata piel sensible.", disponible: true, destacado: ["Best Seller"], tipoPiel: ["Sensible", "Seca"] },
   { id: "d4", nombre: "Protector Solar SPF50 PA++++", categoria: "Skincare", marca: "Beauty of Joseon", precio: 380, imagen: placeholderImg("Sunscreen", "#f3d9d0"), descripcion: "Ligero, sin dejar residuo blanco.", disponible: false, destacado: [], tipoPiel: ["Normal"] },
-  { id: "d5", nombre: "Base Cushion Glow", categoria: "Maquillaje", marca: "Missha", precio: 480, imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true, destacado: ["Nuevo"], tipoPiel: [] },
+  { id: "d5", nombre: "Base Cushion Glow", categoria: "Maquillaje", marca: "Missha", precio: 480, imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: [] },
   { id: "d6", nombre: "Labial Tinta Frutal", categoria: "Maquillaje", marca: "Rom&nd", precio: 260, imagen: placeholderImg("Labial", "#fbe6c8"), descripcion: "Larga duración, tono jugoso.", disponible: true, destacado: ["Best Seller"], tipoPiel: [] },
-  { id: "d7", nombre: "Mascarilla Capilar Reparadora", categoria: "Cuidado Capilar", marca: "Mise en Scene", precio: 300, imagen: placeholderImg("Cabello", "#d9e2df"), descripcion: "Repara puntas abiertas.", disponible: true, destacado: [], tipoPiel: [] },
+  { id: "d7", nombre: "Mascarilla Capilar Reparadora", categoria: "Cuidado Capilar", marca: "Mise en Scene", precio: 300, imagen: placeholderImg("Cabello", "#d9e2df"), descripcion: "Repara puntas abiertas.", disponible: true, destacado: ["Best Seller"], tipoPiel: [] },
   { id: "d8", nombre: "Mascarilla de Tela Hidratante (5pz)", categoria: "Skincare", marca: "Mediheal", precio: 210, imagen: placeholderImg("Mascarilla", "#e9c3be"), descripcion: "Hidratación profunda 20 min.", disponible: true, destacado: ["Recomendado"], tipoPiel: ["Seca", "Sensible"] },
 ];
 
@@ -362,7 +362,7 @@ function getMenuItems() {
   const categories = [...new Set(products.map((p) => p.categoria))];
 
   const sectionLinks = [
-    { label: "Colecciones destacadas", href: "#featured-section" },
+    { label: "Best Seller", href: "#featured-section" },
     { label: "Arma tu rutina", href: "#routine-section" },
     { label: "Explora por tipo de piel", href: "#skintype-section" },
     { label: "Marcas", href: "#brands-section" },
@@ -489,14 +489,15 @@ function getFilteredProducts() {
   });
 }
 
-function productCardHTML(p) {
-  const img = p.imagen || placeholderImg(p.categoria || "KKUL", "#e9c3be");
+function productCardHTML(p, { rank } = {}) {
+  const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
   return `
     <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full">
       <div class="aspect-square bg-blush/20 overflow-hidden relative">
+        ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-ink text-cream font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
         <img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
           class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-        ${!p.disponible ? `<span class="absolute top-2 left-2 bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>` : ""}
+        ${!p.disponible ? `<span class="absolute top-2 ${rank ? "right-2" : "left-2"} bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>` : ""}
       </div>
       <div class="p-3 flex flex-col flex-1">
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
@@ -587,12 +588,25 @@ function makeTagSectionRenderer({ field, sectionId, tabsId, rowId, emojiFor }) {
   };
 }
 
-const renderFeatured = makeTagSectionRenderer({
-  field: "destacado",
-  sectionId: "featured-section",
-  tabsId: "featured-tabs",
-  rowId: "featured-row",
-});
+/* ======================================================================
+   Best Seller — top 6 numerado. Usa los productos cuya columna
+   "Destacado" incluye la etiqueta "Best Seller" (hasta 6, en el orden
+   del Google Sheet). Si no hay ninguno, la sección se oculta.
+   ====================================================================== */
+function renderBestSellers() {
+  const section = document.getElementById("featured-section");
+  const items = products.filter((p) => (p.destacado || []).includes("Best Seller")).slice(0, 6);
+
+  if (!items.length) {
+    section.classList.add("hidden");
+    return;
+  }
+  section.classList.remove("hidden");
+
+  const grid = document.getElementById("featured-top");
+  grid.innerHTML = items.map((p, i) => productCardHTML(p, { rank: i + 1 })).join("");
+  wireAddButtons(grid);
+}
 
 const renderSkinTypes = makeTagSectionRenderer({
   field: "tipoPiel",
@@ -692,7 +706,7 @@ function renderAll() {
   // El orden importa: renderCategoryNav/renderMobileMenu leen qué secciones
   // quedaron visibles, así que corren después de decidir esa visibilidad.
   renderRoutineSteps();
-  renderFeatured();
+  renderBestSellers();
   renderSkinTypes();
   renderBrands();
   renderCategoryNav();
