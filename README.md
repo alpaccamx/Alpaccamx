@@ -95,8 +95,6 @@ publícala como CSV aparte (mismos pasos de arriba, eligiendo esa pestaña):
 |-------|-------|
 | Tipo de cambio | 18.00 |
 | Comisión (%) | 15 |
-| Envío nacional base | 80 |
-| Envío nacional por kg | 20 |
 
 - **Tipo de cambio** (celda `B2`): cuántos pesos vale 1 dólar. La usa la
   fórmula de la columna Precio en Productos (sección 1 arriba) para
@@ -105,16 +103,10 @@ publícala como CSV aparte (mismos pasos de arriba, eligiendo esa pestaña):
 - **Comisión (%)** (celda `B3`): tu comisión, en porcentaje. La usa esa
   misma fórmula de Precio para llegar al precio de venta final — **no
   se aplica a los envíos**, solo a los productos.
-- **Envío nacional base / por kg** (opcional): costo fijo + costo por
-  kilogramo del envío dentro de México, ya en pesos. Ejemplo: base $80 +
-  $20/kg → un pedido de 2 kg cuesta $80 + $20×2 = $120 MXN. Se usa para
-  la referencia de envío en el mensaje de WhatsApp (ver abajo) — si tu
-  envío nacional depende de zona/código postal en vez de una tarifa
-  fija, no llenes estas dos filas (se manejará distinto, ver más abajo).
 
 Si además quieres que el mensaje de WhatsApp incluya una **referencia de
-costo de envío** (Corea→EE.UU. + nacional en México) junto al peso, agrega
-también la pestaña de tarifas de Corea:
+costo de envío** (Corea→EE.UU. y/o nacional en México) junto al peso,
+agrega también estas pestañas:
 
 **Pestaña "TarifasCorea"** — tabla de tarifas por peso, igual a la que
 maneja tu proveedor, con dos columnas: `Peso Total de la Unidad` y
@@ -136,24 +128,54 @@ maneja tu proveedor, con dos columnas: `Peso Total de la Unidad` y
 - La última fila, **"Cada 1 kg adicional"**, es el costo por cada kg que
   se pase del último escalón de la tabla (ej. arriba de 10 kg).
 
-Pega los dos links CSV en `app.js`:
+**Pestaña "TarifasNacional"** — tabla de envío nacional en México por
+**zona (estado + rango de código postal) y peso**, con cuatro columnas:
+`Estado` | `CP Destino` | `Peso (kg)` | `Costo Estafeta Terrestre (MXN)`:
+
+| Estado | CP Destino | Peso (kg) | Costo Estafeta Terrestre (MXN) |
+|--------|------------|-----------|----------------------------------|
+| Aguascalientes | 20000-27997 | 1 | 250 |
+| Aguascalientes | 20000-27997 | 2 | 250 |
+| ... | ... | ... | ... |
+| Aguascalientes | 20000-27997 | 15 | 644 |
+| Baja California | 21000-22997 | 1 | 250 |
+| ... | ... | ... | ... |
+
+- `CP Destino` es un rango tipo `20000-27997` (mismo formato que te dio
+  tu paquetería). El sitio toma el código postal que el cliente escribe
+  en el formulario, encuentra en qué rango cae, y busca ahí el primer
+  peso que alcance el del carrito (redondeando hacia arriba, igual que
+  con Corea). Si el peso del pedido se pasa del último escalón que
+  tengas cargado (ej. arriba de 15 kg), no se muestra estimado — te toca
+  cotizarlo manualmente.
+- Solo se usa **una paquetería a la vez** (actualmente Estafeta
+  Terrestre) — no hace falta cargar más columnas de otras paqueterías
+  aunque tu tabla original las traiga.
+- Si dos rangos de CP se traslapan en tu tabla, el sitio usa el rango
+  más angosto (más específico) de los dos.
+
+Pega los links CSV en `app.js`:
 
 ```js
-SHIPPING_CONFIG_CSV_URL: "...",       // pestaña "Config"
-SHIPPING_KOREA_RATES_CSV_URL: "...",  // pestaña "TarifasCorea"
+SHIPPING_CONFIG_CSV_URL: "...",         // pestaña "Config"
+SHIPPING_KOREA_RATES_CSV_URL: "...",    // pestaña "TarifasCorea"
+SHIPPING_NACIONAL_CSV_URL: "...",       // pestaña "TarifasNacional"
 ```
 
-Si dejas alguno de los dos como el placeholder de ejemplo, esa parte del
-envío simplemente no aparece en la cotización (puedes tener solo el
-nacional, solo el de Corea, ninguno, o ambos). Cuando ambos están
-configurados, el mensaje de WhatsApp se ve así:
+Si dejas alguno como el placeholder de ejemplo, esa parte del envío
+simplemente no aparece en la cotización (puedes tener solo el nacional,
+solo el de Corea, ninguno, o ambos). El envío nacional también necesita
+que el cliente escriba su **código postal** en el formulario del
+carrito (campo opcional "Código postal") — si lo deja vacío, esa parte
+del estimado no aparece. Cuando todo está configurado, el mensaje de
+WhatsApp se ve así:
 
 ```
 *Total estimado: $320.00*
 📦 Peso total estimado: 0.8 kg
-🚚 Envío estimado (referencia, sujeto a confirmación): $699.00
+🚚 Envío estimado (referencia, sujeto a confirmación): $853.00
    • Corea→EE.UU.: $603.00 (≈ $33.50 USD)
-   • Nacional MX: $96.00
+   • Nacional MX (Estafeta, CP 06700): $250.00
 ```
 
 Es una **referencia para ti** (no se suma al "Total estimado" que ve el
@@ -166,8 +188,9 @@ Abre `app.js` y edita el bloque `CONFIG` al inicio:
 ```js
 const CONFIG = {
   GOOGLE_SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV", // el link del paso anterior
-  SHIPPING_CONFIG_CSV_URL: "...",     // opcional — pestaña "Config" (ver sección 1.1)
-  SHIPPING_KOREA_RATES_CSV_URL: "...",// opcional — pestaña "TarifasCorea" (ver sección 1.1)
+  SHIPPING_CONFIG_CSV_URL: "...",      // opcional — pestaña "Config" (ver sección 1.1)
+  SHIPPING_KOREA_RATES_CSV_URL: "...", // opcional — pestaña "TarifasCorea" (ver sección 1.1)
+  SHIPPING_NACIONAL_CSV_URL: "...",    // opcional — pestaña "TarifasNacional" (ver sección 1.1)
   WHATSAPP_NUMBER: "52XXXXXXXXXX",              // tu número con código de país, sin "+" ni espacios
   BUSINESS_NAME: "Alpacca",
   SHIPPING_MESSAGE: "...",     // barra superior

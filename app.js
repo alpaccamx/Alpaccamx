@@ -10,9 +10,8 @@ const CONFIG = {
   GOOGLE_SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV",
 
   // Opcional: URL CSV publicada de una pestaña "Config" con dos columnas
-  // (Clave | Valor) para el tipo de cambio y la tarifa de envío nacional.
-  // Ver README para el formato exacto. Si se deja el placeholder, el
-  // envío nacional simplemente no aparece en la cotización.
+  // (Clave | Valor) para el tipo de cambio USD→MXN y tu comisión. Ver
+  // README para el formato exacto.
   SHIPPING_CONFIG_CSV_URL: "PEGA_AQUI_TU_URL_CSV_DE_CONFIG_ENVIOS",
 
   // Opcional: URL CSV publicada de una pestaña con la tabla de tarifas de
@@ -20,6 +19,13 @@ const CONFIG = {
   // Costo (USD), más una fila "Cada 1 kg adicional" al final). Ver README.
   // Si se deja el placeholder, el envío Corea-EE.UU. no aparece.
   SHIPPING_KOREA_RATES_CSV_URL: "PEGA_AQUI_TU_URL_CSV_DE_TARIFAS_COREA",
+
+  // Opcional: URL CSV publicada de una pestaña con la tabla de envío
+  // nacional (Estafeta Terrestre) por zona de código postal y peso
+  // (columnas: Estado | CP Destino | Peso (kg) | Costo Estafeta
+  // Terrestre (MXN)). Ver README. Si se deja el placeholder, el envío
+  // nacional simplemente no aparece en la cotización.
+  SHIPPING_NACIONAL_CSV_URL: "PEGA_AQUI_TU_URL_CSV_DE_TARIFAS_NACIONAL",
 
   // Número de WhatsApp con código de país, solo dígitos, sin "+" ni espacios.
   // Ejemplo México: 5215512345678 (52 + 1 + 10 dígitos)
@@ -294,9 +300,10 @@ function csvToProducts(text) {
 }
 
 /* ======================================================================
-   Tarifas de envío (opcionales) — Corea→EE.UU. por tabla de peso y
-   envío nacional en México (tarifa base + costo por kg), leídas desde
-   dos pestañas CSV separadas del Google Sheet. Ver README.
+   Tarifas de envío (opcionales) — Corea→EE.UU. por tabla de peso,
+   y envío nacional en México (Estafeta Terrestre) por zona de código
+   postal + peso, leídas desde pestañas CSV separadas del Google Sheet.
+   Ver README.
    ====================================================================== */
 function normalizeKey(s) {
   return (s || "")
@@ -307,18 +314,17 @@ function normalizeKey(s) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-let shippingSettings = { exchangeRate: 0, nacionalBaseMXN: 0, nacionalPorKgMXN: 0 };
+let shippingSettings = { exchangeRate: 0 };
 let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0 };
+let shippingNacionalRates = [];
 
 const SHIPPING_SETTING_ALIASES = {
   exchangeRate: ["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"],
-  nacionalBaseMXN: ["envionacionalbase", "nacionalbase", "basenacional"],
-  nacionalPorKgMXN: ["envionacionalporkg", "nacionalporkg", "nacionalkg"],
 };
 
 function csvToShippingSettings(text) {
   const rows = parseCSV(text);
-  const settings = { exchangeRate: 0, nacionalBaseMXN: 0, nacionalPorKgMXN: 0 };
+  const settings = { exchangeRate: 0 };
   rows.forEach((r) => {
     const key = normalizeKey(r[0]);
     const value = parseFloat((r[1] || "").replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0;
@@ -327,6 +333,45 @@ function csvToShippingSettings(text) {
     }
   });
   return settings;
+}
+
+function csvToNacionalRates(text) {
+  const rows = parseCSV(text);
+  if (!rows.length) return [];
+  const headers = rows[0].map((h) => h.trim().toLowerCase());
+  const iEstado = findCol(headers, ["estado"]);
+  const iCp = findCol(headers, ["cp destino", "codigo postal", "cp"]);
+  const iPeso = findCol(headers, ["peso (kg)", "peso"]);
+  const iCosto = findCol(headers, ["costo estafeta terrestre (mxn)", "costo estafeta terrestre", "costo estafeta", "costo"]);
+
+  const rates = [];
+  rows.slice(1).forEach((r) => {
+    const estado = (r[iEstado] || "").trim();
+    const cpRange = (r[iCp] || "").trim();
+    const peso = parseFloat((r[iPeso] || "").replace(",", "."));
+    const costo = parseFloat((r[iCosto] || "").replace(/[^0-9.,]/g, "").replace(",", "."));
+    const m = cpRange.match(/(\d{4,5})\s*-\s*(\d{4,5})/);
+    if (!estado || !m || isNaN(peso) || isNaN(costo)) return;
+    rates.push({ estado, cpMin: parseInt(m[1], 10), cpMax: parseInt(m[2], 10), pesoKg: peso, costoMXN: costo });
+  });
+  return rates;
+}
+
+function nacionalShippingMXN(cp, pesoKg) {
+  const cpNum = parseInt((cp || "").trim(), 10);
+  if (isNaN(cpNum) || pesoKg <= 0 || !shippingNacionalRates.length) return null;
+
+  const zonesInRange = shippingNacionalRates.filter((r) => cpNum >= r.cpMin && cpNum <= r.cpMax);
+  if (!zonesInRange.length) return null;
+
+  // Si el CP cae en más de una zona (rangos que se traslapan en tu tabla),
+  // se prefiere la zona con el rango más angosto (más específico).
+  const narrowestSpan = Math.min(...zonesInRange.map((r) => r.cpMax - r.cpMin));
+  const zoneRows = zonesInRange.filter((r) => r.cpMax - r.cpMin === narrowestSpan);
+
+  const sorted = zoneRows.slice().sort((a, b) => a.pesoKg - b.pesoKg);
+  const tier = sorted.find((r) => pesoKg <= r.pesoKg);
+  return tier ? tier.costoMXN : null;
 }
 
 function csvToKoreaShippingTiers(text) {
@@ -365,19 +410,17 @@ function koreaShippingUSD(pesoKg) {
   return last.costoUSD + extraKg * extraPerKgUSD;
 }
 
-function shippingEstimate(pesoKg) {
+function shippingEstimate(pesoKg, cp) {
   if (pesoKg <= 0) return null;
   const hasKorea = shippingKoreaRates.tiers.length > 0 && shippingSettings.exchangeRate > 0;
-  const hasNacional = shippingSettings.nacionalBaseMXN > 0 || shippingSettings.nacionalPorKgMXN > 0;
+  const nacionalMXN = nacionalShippingMXN(cp, pesoKg);
+  const hasNacional = nacionalMXN !== null;
   if (!hasKorea && !hasNacional) return null;
 
   const coreaUSD = hasKorea ? koreaShippingUSD(pesoKg) : 0;
   const coreaMXN = coreaUSD * (shippingSettings.exchangeRate || 0);
-  const nacionalMXN = hasNacional
-    ? shippingSettings.nacionalBaseMXN + shippingSettings.nacionalPorKgMXN * pesoKg
-    : 0;
 
-  return { hasKorea, hasNacional, coreaUSD, coreaMXN, nacionalMXN, totalMXN: coreaMXN + nacionalMXN };
+  return { hasKorea, hasNacional, coreaUSD, coreaMXN, nacionalMXN: nacionalMXN || 0, totalMXN: coreaMXN + (nacionalMXN || 0) };
 }
 
 async function loadShippingSettings() {
@@ -403,6 +446,19 @@ async function loadShippingKoreaRates() {
     shippingKoreaRates = csvToKoreaShippingTiers(text);
   } catch (err) {
     console.warn("No se pudo cargar la tabla de tarifas Corea-EE.UU.:", err);
+  }
+}
+
+async function loadShippingNacionalRates() {
+  const isPlaceholder = !CONFIG.SHIPPING_NACIONAL_CSV_URL || CONFIG.SHIPPING_NACIONAL_CSV_URL.includes("PEGA_AQUI");
+  if (isPlaceholder) return;
+  try {
+    const res = await fetch(CONFIG.SHIPPING_NACIONAL_CSV_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    shippingNacionalRates = csvToNacionalRates(text);
+  } catch (err) {
+    console.warn("No se pudo cargar la tabla de envío nacional:", err);
   }
 }
 
@@ -951,6 +1007,7 @@ function buildWhatsAppMessage() {
   const items = Object.values(cart);
   const name = document.getElementById("customer-name").value.trim();
   const phone = document.getElementById("customer-phone").value.trim();
+  const cp = document.getElementById("customer-cp").value.trim();
   const notes = document.getElementById("customer-notes").value.trim();
 
   const lines = items.map((it, i) => {
@@ -959,7 +1016,7 @@ function buildWhatsAppMessage() {
   });
 
   const weight = cartWeight();
-  const shipping = shippingEstimate(weight);
+  const shipping = shippingEstimate(weight, cp);
 
   const parts = [
     `Hola ${CONFIG.BUSINESS_NAME}! Quiero cotizar lo siguiente:`,
@@ -976,12 +1033,13 @@ function buildWhatsAppMessage() {
       parts.push(`   • Corea→EE.UU.: ${formatPrice(shipping.coreaMXN)} (≈ $${shipping.coreaUSD.toFixed(2)} USD)`);
     }
     if (shipping.hasNacional) {
-      parts.push(`   • Nacional MX: ${formatPrice(shipping.nacionalMXN)}`);
+      parts.push(`   • Nacional MX (Estafeta, CP ${cp}): ${formatPrice(shipping.nacionalMXN)}`);
     }
   }
 
   parts.push("", `Nombre: ${name}`);
   if (phone) parts.push(`Teléfono: ${phone}`);
+  if (cp) parts.push(`Código postal: ${cp}`);
   if (notes) parts.push(`Notas: ${notes}`);
 
   return parts.join("\n");
@@ -1070,5 +1128,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadProducts();
   loadShippingSettings();
   loadShippingKoreaRates();
+  loadShippingNacionalRates();
   renderCart();
 });
