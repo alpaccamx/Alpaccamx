@@ -27,20 +27,30 @@ reutiliza contenido, marcas ni fotografía de ningún negocio real.
 Crea una hoja con estas columnas en la primera fila (los nombres pueden
 variar ligeramente, el sitio los reconoce en español o inglés):
 
-| Nombre | Categoria | Marca | Precio USD | Precio | Peso | Presentacion | Imagen | Descripcion | SKU | Disponible | Destacado | TipoPiel |
-|--------|-----------|-------|------------|--------|------|--------------|--------|-------------|-----|------------|-----------|----------|
+| Nombre | Categoria | Marca | Precio USD | Costo MXN | Precio | Peso | Presentacion | Imagen | Descripcion | SKU | Disponible | Destacado | TipoPiel |
+|--------|-----------|-------|------------|-----------|--------|------|--------------|--------|-------------|-----|------------|-----------|----------|
 
-- **Precio USD** (opcional) / **Precio**: el sitio siempre lee la columna
-  **Precio** (en pesos) — es la que importa, no cambies su nombre. Para
-  los productos que compras en dólares (ej. de Corea), agrega una columna
-  extra **Precio USD** con tu costo en dólares, y en **Precio** pon la
-  fórmula `=ROUND(PrecioUSD * Config!$B$2, 2)` apuntando a la celda del
-  tipo de cambio de la pestaña **Config** (ver sección 1.1). Así, cuando
-  cambias el tipo de cambio en un solo lugar, todos esos precios se
-  recalculan solos — no hay que tocarlos uno por uno. Para productos que
-  ya manejas directamente en pesos, deja Precio USD vacío y escribe el
-  precio en pesos a mano en la celda de Precio (sin fórmula). La
-  plantilla que te compartí ya trae esto armado, solo cópialo por fila.
+- **Precio USD** / **Costo MXN** / **Precio**: el sitio siempre lee la
+  columna **Precio** (en pesos, ya con tu comisión incluida) — es la que
+  importa, no cambies su nombre. Las otras dos son tu costo, en la moneda
+  que te quede más fácil por producto (llena solo una de las dos por
+  fila, deja la otra vacía):
+  - **Precio USD**: tu costo en dólares (ej. productos de Corea).
+  - **Costo MXN**: tu costo ya en pesos (productos que no compras en dólares).
+
+  En **Precio** pon la fórmula:
+
+  ```
+  =ROUND(IF(PrecioUSD<>"", PrecioUSD*Config!$B$2, CostoMXN) * (1+Config!$B$3/100), 2)
+  ```
+
+  Eso toma tu costo (convertido de dólares si aplica) y le suma tu
+  **comisión** (celda `Config!B3`, ver sección 1.1) para llegar al precio
+  de venta. Cambia el tipo de cambio o el % de comisión en un solo lugar
+  (la pestaña Config) y **todos** los precios se recalculan solos — la
+  comisión solo afecta productos, nunca las tarifas de envío. La
+  plantilla que te compartí ya trae esta fórmula armada, solo cópiala
+  por fila.
 - **Peso**: opcional. Peso del producto en kilogramos (ej. `0.25`). Se
   usa para calcular el peso total del carrito, que se incluye en el
   mensaje de WhatsApp de la cotización (`📦 Peso total estimado: X kg`)
@@ -72,28 +82,35 @@ Luego: `Archivo` → `Compartir` → `Publicar en la Web` → elige la hoja →
 formato **"Valores separados por comas (.csv)"** → **Publicar**, y copia el
 link.
 
-## 1.1 (Opcional) Tarifas de envío en la cotización
+## 1.1 Pestaña "Config" (tipo de cambio, comisión, envíos)
 
-Si quieres que el mensaje de WhatsApp incluya una **referencia de costo de
-envío** (Corea→EE.UU. + nacional en México) además del peso, agrega **dos
-pestañas más** en el mismo Google Sheet y publica cada una como CSV por
-separado (mismo pasos de arriba, pero eligiendo esa pestaña):
-
-**Pestaña "Config"** — dos columnas, `Clave` y `Valor`:
+Crea una pestaña **"Config"** con dos columnas, `Clave` y `Valor`, y
+publícala como CSV aparte (mismos pasos de arriba, eligiendo esa pestaña):
 
 | Clave | Valor |
 |-------|-------|
 | Tipo de cambio | 18.00 |
+| Comisión (%) | 15 |
 | Envío nacional base | 80 |
 | Envío nacional por kg | 20 |
 
-- **Tipo de cambio**: cuántos pesos vale 1 dólar. Es la misma celda que
-  usa la fórmula de la columna Precio en la pestaña Productos (ver
-  sección 1 arriba, "Precio USD / Precio") — cámbialo aquí cuando quieras
-  y se recalcula todo (tus productos en dólares y el envío Corea-EE.UU.).
-- **Envío nacional base / por kg**: costo fijo + costo por kilogramo del
-  envío dentro de México, ya en pesos. Ejemplo: base $80 + $20/kg → un
-  pedido de 2 kg cuesta $80 + $20×2 = $120 MXN.
+- **Tipo de cambio** (celda `B2`): cuántos pesos vale 1 dólar. La usa la
+  fórmula de la columna Precio en Productos (sección 1 arriba) para
+  convertir tus costos en dólares, y también la cotización de envío
+  Corea-EE.UU. más abajo.
+- **Comisión (%)** (celda `B3`): tu comisión, en porcentaje. La usa esa
+  misma fórmula de Precio para llegar al precio de venta final — **no
+  se aplica a los envíos**, solo a los productos.
+- **Envío nacional base / por kg** (opcional): costo fijo + costo por
+  kilogramo del envío dentro de México, ya en pesos. Ejemplo: base $80 +
+  $20/kg → un pedido de 2 kg cuesta $80 + $20×2 = $120 MXN. Se usa para
+  la referencia de envío en el mensaje de WhatsApp (ver abajo) — si tu
+  envío nacional depende de zona/código postal en vez de una tarifa
+  fija, no llenes estas dos filas (se manejará distinto, ver más abajo).
+
+Si además quieres que el mensaje de WhatsApp incluya una **referencia de
+costo de envío** (Corea→EE.UU. + nacional en México) junto al peso, agrega
+también la pestaña de tarifas de Corea:
 
 **Pestaña "TarifasCorea"** — tabla de tarifas por peso, igual a la que
 maneja tu proveedor, con dos columnas: `Peso Total de la Unidad` y
