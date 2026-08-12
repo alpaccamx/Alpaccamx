@@ -340,7 +340,7 @@ function renderHeroSlide() {
       ${
         slide.ctaText
           ? `<a href="${escapeAttr(slide.ctaHref || "#")}"
-              class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition">
+              class="inline-block mt-6 rounded-full bg-rose text-ink font-semibold px-6 py-3 hover:bg-rose/90 transition">
               ${escapeHtml(slide.ctaText)}
             </a>`
           : ""
@@ -477,7 +477,7 @@ function productCardHTML(p, { rank } = {}) {
   return `
     <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full">
       <div class="aspect-square bg-blush/20 overflow-hidden relative">
-        ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-rose text-cream font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
+        ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-rose text-ink font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
         <img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
           class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
         ${!p.disponible ? `<span class="absolute top-2 ${rank ? "right-2" : "left-2"} bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>` : ""}
@@ -488,7 +488,7 @@ function productCardHTML(p, { rank } = {}) {
         <div class="mt-auto pt-2 flex items-center justify-between gap-2">
           <span class="font-display text-ink">${formatPrice(p.precio)}</span>
           <button data-add="${escapeAttr(p.id)}" ${!p.disponible ? "disabled" : ""}
-            class="rounded-full bg-rose text-cream text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
+            class="rounded-full bg-rose text-ink text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
             Agregar
           </button>
         </div>

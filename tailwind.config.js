@@ -6,7 +6,7 @@ module.exports = {
       colors: {
         cream: "#fffcf4",
         ink: "#3d3a42",
-        rose: "#d1587a",
+        rose: "#ee6c92",
         lilac: "#8b84ac",
         blush: "#e9c3be",
       },
