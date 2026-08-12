@@ -7,25 +7,25 @@ const CONFIG = {
   // Google Sheets: Archivo > Compartir > Publicar en la Web > elige la
   // hoja > formato "Valores separados por comas (.csv)" > Publicar.
   // Pega aquí el link que te da Google.
-  GOOGLE_SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV",
+  GOOGLE_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=926701642&single=true&output=csv",
 
   // Opcional: URL CSV publicada de una pestaña "Config" con dos columnas
   // (Clave | Valor) para el tipo de cambio USD→MXN y tu comisión. Ver
   // README para el formato exacto.
-  SHIPPING_CONFIG_CSV_URL: "PEGA_AQUI_TU_URL_CSV_DE_CONFIG_ENVIOS",
+  SHIPPING_CONFIG_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=532326747&single=true&output=csv",
 
   // Opcional: URL CSV publicada de una pestaña con la tabla de tarifas de
   // envío Corea → EE.UU. por peso (columnas: Peso Total de la Unidad |
   // Costo (USD), más una fila "Cada 1 kg adicional" al final). Ver README.
   // Si se deja el placeholder, el envío Corea-EE.UU. no aparece.
-  SHIPPING_KOREA_RATES_CSV_URL: "PEGA_AQUI_TU_URL_CSV_DE_TARIFAS_COREA",
+  SHIPPING_KOREA_RATES_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=888962170&single=true&output=csv",
 
   // Opcional: URL CSV publicada de una pestaña con la tabla de envío
   // nacional (Estafeta Terrestre) por zona de código postal y peso
   // (columnas: Estado | CP Destino | Peso (kg) | Costo Estafeta
   // Terrestre (MXN)). Ver README. Si se deja el placeholder, el envío
   // nacional simplemente no aparece en la cotización.
-  SHIPPING_NACIONAL_CSV_URL: "PEGA_AQUI_TU_URL_CSV_DE_TARIFAS_NACIONAL",
+  SHIPPING_NACIONAL_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=117332024&single=true&output=csv",
 
   // Número de WhatsApp con código de país, solo dígitos, sin "+" ni espacios.
   // Ejemplo México: 5215512345678 (52 + 1 + 10 dígitos)
