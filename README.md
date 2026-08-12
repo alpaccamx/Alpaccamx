@@ -15,6 +15,17 @@ reutiliza contenido, marcas ni fotografía de ningún negocio real.
 - `styles.css` — CSS de Tailwind ya compilado (no requiere CDN en producción).
 - `input.css` / `tailwind.config.js` / `package.json` — solo se usan para
   recompilar `styles.css` si cambias clases (`npm install && npm run build:css`).
+- `assets/logo-wordmark.png` — logotipo de Alpacca (header y footer).
+- `assets/favicon-32.png` / `assets/apple-touch-icon.png` — ícono de pestaña/celular, recortado del mascota.
+- `assets/mascot.png` — mascota sola, cuadrada y transparente, por si la quieres usar en otro lado.
+- `fonts/ReadyToParty.ttf` — la tipografía de marca ("Ready to Party" de Misti's Fonts),
+  cargada vía `@font-face` en `input.css` para los encabezados (`font-logo`).
+
+  ⚠️ **Licencia de la fuente**: viene de dafont.com. Muchas fuentes ahí son
+  gratis solo para uso personal y piden licencia aparte para uso comercial.
+  Antes de lanzar el sitio, confirma en la página de la fuente
+  (dafont.com/es/ready-to-party.font) o con Misti's Fonts que tu licencia
+  cubre uso comercial/web — no lo pude verificar desde aquí.
 
 ## 1. Configurar el Google Sheet
 

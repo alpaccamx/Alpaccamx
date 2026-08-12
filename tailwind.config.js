@@ -11,7 +11,7 @@ module.exports = {
       fontFamily: {
         display: ["Josefin Sans", "sans-serif"],
         body: ["Nunito", "sans-serif"],
-        logo: ["Baloo 2", "sans-serif"],
+        logo: ["Ready to Party", "sans-serif"],
       },
       animation: {
         marquee: "marquee 22s linear infinite",
