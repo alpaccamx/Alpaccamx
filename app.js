@@ -11,7 +11,7 @@ const CONFIG = {
 
   // Número de WhatsApp con código de país, solo dígitos, sin "+" ni espacios.
   // Ejemplo México: 5215512345678 (52 + 1 + 10 dígitos)
-  WHATSAPP_NUMBER: "52XXXXXXXXXX",
+  WHATSAPP_NUMBER: "5216571920559",
 
   BUSINESS_NAME: "Alpacca",
 
