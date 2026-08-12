@@ -79,6 +79,16 @@ const CONFIG = {
     { emoji: "🔒", title: "Cotización sin compromiso", text: "Sin pagos en línea" },
     { emoji: "✅", title: "Catálogo verificado", text: "Disponibilidad real" },
   ],
+
+  // Links del menú móvil (☰) que todavía no tienen una función real detrás.
+  // Al tocarlos se muestra un aviso "próximamente" en vez de un link roto.
+  // Bórralos de esta lista en cuanto la función exista de verdad.
+  MENU_COMING_SOON: [
+    "Asesoría personalizada ⭐",
+    "Mayoreo",
+    "Rastrea tu pedido 🚚",
+    "Mi cuenta",
+  ],
 };
 
 /* ======================================================================
@@ -371,6 +381,66 @@ function renderCategoryNav() {
 }
 
 /* ======================================================================
+   Menú móvil (☰) — mezcla links reales a secciones de la página con
+   accesos "próximamente" definidos en CONFIG.MENU_COMING_SOON.
+   ====================================================================== */
+function renderMobileMenu() {
+  const categories = [...new Set(products.map((p) => p.categoria))];
+
+  const sectionLinks = [
+    { label: "Colecciones destacadas", href: "#featured-section" },
+    { label: "Arma tu rutina", href: "#routine-section" },
+    { label: "Explora por tipo de piel", href: "#skintype-section" },
+    { label: "Marcas", href: "#brands-section" },
+  ].filter((item) => document.querySelector(item.href) && !document.querySelector(item.href).classList.contains("hidden"));
+
+  const linkRow = (label, href) =>
+    `<a href="${escapeAttr(href)}" data-menu-link
+      class="block px-5 py-4 border-b border-ink/10 font-semibold text-ink uppercase text-sm tracking-wide">${escapeHtml(label)}</a>`;
+
+  const comingSoonRow = (label) =>
+    `<button type="button" data-menu-soon="${escapeAttr(label)}"
+      class="w-full text-left px-5 py-4 border-b border-ink/10 font-semibold text-ink/70 uppercase text-sm tracking-wide">${escapeHtml(label)}</button>`;
+
+  const html = [
+    ...sectionLinks.map((s) => linkRow(s.label, s.href)),
+    ...categories.map((cat) => linkRow(cat, "#product-grid").replace("data-menu-link", `data-menu-link data-menu-cat="${escapeAttr(cat)}"`)),
+    linkRow("Todos los productos", "#product-grid"),
+    ...(CONFIG.MENU_COMING_SOON || []).map(comingSoonRow),
+  ].join("");
+
+  const nav = document.getElementById("mobile-menu-items");
+  nav.innerHTML = html;
+
+  nav.querySelectorAll("[data-menu-link]").forEach((link) => {
+    link.addEventListener("click", () => {
+      if (link.dataset.menuCat) {
+        activeCategory = link.dataset.menuCat;
+        renderCategoryFilters();
+        renderProducts();
+      }
+      closeMobileMenu();
+    });
+  });
+  nav.querySelectorAll("[data-menu-soon]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      closeMobileMenu();
+      setStatus(`Muy pronto: "${btn.dataset.menuSoon}" — esta función todavía no está disponible.`);
+    });
+  });
+}
+
+function openMobileMenu() {
+  document.getElementById("mobile-menu").classList.remove("-translate-x-full");
+  document.getElementById("menu-overlay").classList.remove("opacity-0", "pointer-events-none");
+}
+
+function closeMobileMenu() {
+  document.getElementById("mobile-menu").classList.add("-translate-x-full");
+  document.getElementById("menu-overlay").classList.add("opacity-0", "pointer-events-none");
+}
+
+/* ======================================================================
    Render: filtros de categoría
    ====================================================================== */
 function renderCategoryFilters() {
@@ -618,6 +688,7 @@ function renderAll() {
   renderCategoryFilters();
   renderProducts();
   renderCart();
+  renderMobileMenu();
 }
 
 /* ======================================================================
@@ -814,6 +885,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("cart-toggle").addEventListener("click", openCart);
   document.getElementById("cart-close").addEventListener("click", closeCart);
   document.getElementById("cart-overlay").addEventListener("click", closeCart);
+
+  document.getElementById("menu-toggle").addEventListener("click", openMobileMenu);
+  document.getElementById("menu-close").addEventListener("click", closeMobileMenu);
+  document.getElementById("menu-overlay").addEventListener("click", closeMobileMenu);
   document.getElementById("quote-form").addEventListener("submit", sendQuote);
 
   const syncSearch = (value) => {

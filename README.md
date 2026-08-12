@@ -71,14 +71,27 @@ de datos.
 
 ## Secciones de la página
 
-Header (buscador + carrito) → nav de categorías → banner principal
-(rotativo) → barra deslizante → colecciones destacadas → arma tu rutina →
-explora por tipo de piel → banner promocional → marcas → catálogo completo
-con filtros → beneficios → newsletter → footer.
+Header (buscador + carrito + menú ☰ en móvil) → nav de categorías (barra en
+escritorio / menú deslizante en móvil) → banner principal (rotativo) →
+barra deslizante → colecciones destacadas → arma tu rutina → explora por
+tipo de piel → banner promocional → marcas → catálogo completo con
+filtros → beneficios → newsletter → footer.
 
 Todas las secciones basadas en datos (colecciones, tipo de piel, marcas,
 categorías) se ocultan automáticamente si tu catálogo no tiene esa
 información — no se muestra contenido inventado.
+
+### Menú móvil (☰)
+
+En pantallas pequeñas, la barra de categorías se reemplaza por un botón de
+menú que abre un panel con:
+- Links reales a las secciones que existen (colecciones, arma tu rutina,
+  tipo de piel, marcas, cada categoría, catálogo completo).
+- Accesos "próximamente" definidos en `CONFIG.MENU_COMING_SOON` (por
+  defecto: Asesoría personalizada, Mayoreo, Rastrea tu pedido, Mi cuenta).
+  Al tocarlos se muestra un aviso en vez de llevar a una página vacía —
+  bórralos de la lista en `app.js` en cuanto conectes esa función de verdad
+  (por ejemplo, un sistema de cuentas o de rastreo de pedidos).
 
 ### Qué se dejó fuera a propósito
 

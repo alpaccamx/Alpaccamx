@@ -26,7 +26,13 @@
 <!-- Header -->
 <header class="sticky top-0 z-40 bg-cream/95 backdrop-blur border-b border-ink/10">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-    <a href="#top" class="font-logo text-3xl sm:text-4xl text-ink">alpacca</a>
+    <div class="flex items-center gap-3">
+      <button id="menu-toggle" type="button" aria-label="Abrir menú"
+        class="sm:hidden text-ink -ml-1 p-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <a href="#top" class="font-logo text-3xl sm:text-4xl text-ink">alpacca</a>
+    </div>
 
     <div class="hidden sm:flex flex-1 max-w-md relative">
       <input id="search-input" type="search" placeholder="Buscar por..."
@@ -46,21 +52,34 @@
       class="w-full rounded-full border border-ink/20 bg-white/60 px-4 py-2 text-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-blush" />
   </div>
 
-  <!-- Category nav -->
-  <div class="border-t border-ink/10 relative">
+  <!-- Category nav (desktop) -->
+  <div class="hidden sm:block border-t border-ink/10 relative">
     <button id="nav-prev" type="button" aria-label="Ver categorías anteriores"
-      class="hidden sm:flex absolute left-0 top-0 bottom-0 z-10 items-center px-2 bg-gradient-to-r from-cream to-transparent">
+      class="flex absolute left-0 top-0 bottom-0 z-10 items-center px-2 bg-gradient-to-r from-cream to-transparent">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <div id="category-nav" class="flex items-center gap-6 overflow-x-auto px-4 sm:px-10 h-11 whitespace-nowrap [scrollbar-width:none]">
       <!-- category links injected by JS -->
     </div>
     <button id="nav-next" type="button" aria-label="Ver más categorías"
-      class="hidden sm:flex absolute right-0 top-0 bottom-0 z-10 items-center px-2 bg-gradient-to-l from-cream to-transparent">
+      class="flex absolute right-0 top-0 bottom-0 z-10 items-center px-2 bg-gradient-to-l from-cream to-transparent">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </button>
   </div>
 </header>
+
+<!-- Mobile menu overlay + drawer -->
+<div id="menu-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 sm:hidden"></div>
+<aside id="mobile-menu" aria-label="Menú"
+  class="fixed top-0 left-0 h-full w-full bg-cream z-50 shadow-2xl -translate-x-full transition-transform duration-300 flex flex-col sm:hidden">
+  <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
+    <h2 class="font-logo text-2xl text-ink">Menú</h2>
+    <button id="menu-close" type="button" aria-label="Cerrar menú" class="text-ink/60 hover:text-ink text-2xl leading-none">&times;</button>
+  </div>
+  <nav id="mobile-menu-items" class="flex-1 overflow-y-auto">
+    <!-- items injected by JS -->
+  </nav>
+</aside>
 
 <!-- Hero -->
 <section id="top" class="relative bg-blush overflow-hidden">
