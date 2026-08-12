@@ -13,7 +13,7 @@ const CONFIG = {
   // Ejemplo México: 5215512345678 (52 + 1 + 10 dígitos)
   WHATSAPP_NUMBER: "5216571920559",
 
-  BUSINESS_NAME: "Alpacca",
+  BUSINESS_NAME: "Mae",
 
   // Mensaje de la barra superior.
   SHIPPING_MESSAGE: "📦 Pedido mínimo por mayoreo: $4,500 MXN ✨",
