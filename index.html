@@ -38,10 +38,7 @@
       </a>
     </div>
 
-    <div class="hidden sm:flex flex-1 max-w-md relative">
-      <input id="search-input" type="search" placeholder="Buscar por..."
-        class="w-full rounded-full border border-ink/20 bg-white/60 px-4 py-2 text-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-blush" />
-    </div>
+    <div class="flex-1"></div>
 
     <button id="cart-toggle" type="button" aria-label="Abrir carrito"
       class="relative inline-flex items-center gap-2 rounded-full bg-ink text-cream px-4 py-2 text-sm font-semibold hover:bg-ink/90 transition">
@@ -49,11 +46,6 @@
       <span class="hidden sm:inline" id="cart-total-header">$0.00</span>
       <span id="cart-count" class="absolute -top-2 -right-2 bg-blush text-ink text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
     </button>
-  </div>
-
-  <div class="sm:hidden px-4 pb-3">
-    <input id="search-input-mobile" type="search" placeholder="Buscar por..."
-      class="w-full rounded-full border border-ink/20 bg-white/60 px-4 py-2 text-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-blush" />
   </div>
 
   <!-- Category nav (desktop) -->
@@ -113,17 +105,6 @@
   </div>
 </section>
 
-<!-- Arma tu rutina -->
-<section id="routine-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
-  <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Compra por categoría</p>
-    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Arma tu rutina</h2>
-  </div>
-  <div id="routine-steps" class="flex flex-wrap justify-center gap-6 sm:gap-10">
-    <!-- accesos rápidos injected by JS -->
-  </div>
-</section>
-
 <!-- Explora por tipo de piel -->
 <section id="skintype-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="text-center mb-6">
@@ -158,24 +139,10 @@
   </div>
 </section>
 
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-6">
-  <div id="category-filters" class="flex flex-wrap gap-2 justify-center">
-    <!-- chips injected by JS -->
-  </div>
-</section>
-
 <!-- Status (loading / error) -->
-<div id="status-banner" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 hidden">
+<div id="status-banner" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="rounded-xl border border-ink/15 bg-white/60 px-4 py-3 text-sm text-ink/70" id="status-text"></div>
 </div>
-
-<!-- Product grid -->
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-  <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-    <!-- product cards injected by JS -->
-  </div>
-  <p id="empty-state" class="hidden text-center text-ink/50 py-16">No encontramos productos con esos filtros.</p>
-</main>
 
 <!-- Beneficios -->
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
@@ -197,7 +164,7 @@
       <p class="font-semibold text-ink mb-3">Encuéntranos</p>
       <ul class="space-y-2 text-ink/60">
         <li><a href="#top" class="hover:text-ink transition">Inicio</a></li>
-        <li><a href="#product-grid" class="hover:text-ink transition">Catálogo</a></li>
+        <li><a href="#featured-section" class="hover:text-ink transition">Productos</a></li>
       </ul>
     </div>
     <div>

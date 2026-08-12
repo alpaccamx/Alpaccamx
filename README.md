@@ -1,8 +1,8 @@
 # Catálogo Alpacca — cotización por WhatsApp
 
-Sitio de catálogo (HTML + Tailwind CSS + JavaScript) que lee productos desde
-un Google Sheet publicado como CSV y permite al cliente armar un carrito y
-enviarlo como cotización estructurada por WhatsApp. No procesa pagos.
+Sitio (HTML + Tailwind CSS + JavaScript) que lee productos desde un Google
+Sheet publicado como CSV y permite al cliente armar un carrito y enviarlo
+como cotización estructurada por WhatsApp. No procesa pagos.
 
 El diseño está inspirado en la estructura de sitios de e-commerce de
 skincare coreano (tipo KKUL) pero con marca, copys y datos propios — no
@@ -11,21 +11,16 @@ reutiliza contenido, marcas ni fotografía de ningún negocio real.
 ## Archivos
 
 - `index.html` — estructura de la página.
-- `app.js` — lógica: carga de CSV, catálogo, filtros, carrito, secciones, envío a WhatsApp.
+- `app.js` — lógica: carga de CSV, secciones, carrito, envío a WhatsApp.
 - `styles.css` — CSS de Tailwind ya compilado (no requiere CDN en producción).
 - `input.css` / `tailwind.config.js` / `package.json` — solo se usan para
   recompilar `styles.css` si cambias clases (`npm install && npm run build:css`).
-- `assets/logo-wordmark.png` — logotipo de Alpacca (header y footer).
-- `assets/favicon-32.png` / `assets/apple-touch-icon.png` — ícono de pestaña/celular, recortado del mascota.
+- `assets/logo-wordmark.png` — logotipo de Alpacca (header).
+- `assets/logo-full.png` — logotipo completo con la mascota (footer).
+- `assets/favicon-32.png` / `assets/apple-touch-icon.png` — ícono de pestaña/celular.
 - `assets/mascot.png` — mascota sola, cuadrada y transparente, por si la quieres usar en otro lado.
 - `fonts/ReadyToParty.ttf` — la tipografía de marca ("Ready to Party" de Misti's Fonts),
   cargada vía `@font-face` en `input.css` para los encabezados (`font-logo`).
-
-  ⚠️ **Licencia de la fuente**: viene de dafont.com. Muchas fuentes ahí son
-  gratis solo para uso personal y piden licencia aparte para uso comercial.
-  Antes de lanzar el sitio, confirma en la página de la fuente
-  (dafont.com/es/ready-to-party.font) o con Misti's Fonts que tu licencia
-  cubre uso comercial/web — no lo pude verificar desde aquí.
 
 ## 1. Configurar el Google Sheet
 
@@ -39,14 +34,15 @@ variar ligeramente, el sitio los reconoce en español o inglés):
 - **Disponible**: `SI` / `NO` (si se deja vacío, se asume disponible).
 - **SKU**: opcional, identificador único de la fila.
 - **Destacado**: opcional. Marca los productos que quieres en la sección
-  "Best Seller" con la etiqueta `Best Seller` (puedes agregar otras
-  etiquetas también, ej. `Nuevo, Best Seller`, pero solo `Best Seller` se
-  usa en esa sección). Se muestran hasta 6, numerados del 1 al 6 en el
-  orden en que aparecen en tu Sheet. Sin productos con esa etiqueta →
-  la sección se oculta.
-- **TipoPiel**: opcional. Igual que Destacado pero para la sección
-  "Explora por tipo de piel" (ej. `Grasa, Mixta`). Los emojis de cada
-  etiqueta se configuran en `CONFIG.SKIN_TYPE_EMOJI`.
+  "Best Seller" con la etiqueta `Best Seller`. Se muestran hasta 6,
+  numerados del 1 al 6 en el orden en que aparecen en tu Sheet. Sin
+  productos con esa etiqueta → la sección se oculta.
+- **TipoPiel**: opcional. Una o varias etiquetas separadas por coma (ej.
+  `Grasa, Mixta`) para la sección "Explora por tipo de piel". Los emojis
+  de cada etiqueta se configuran en `CONFIG.SKIN_TYPE_EMOJI`.
+- **Categoria**: además de agrupar productos, cada categoría distinta
+  también se usa para armar el grid de "Marcas" (a través de la columna
+  Marca) — no necesitas configurarla aparte.
 
 Luego: `Archivo` → `Compartir` → `Publicar en la Web` → elige la hoja →
 formato **"Valores separados por comas (.csv)"** → **Publicar**, y copia el
@@ -65,10 +61,10 @@ const CONFIG = {
   TICKER_MESSAGES: [...],      // frases de la barra deslizante
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
   HERO_SLIDES: [...],          // slides del banner principal (título, subtítulo, botón)
-  ROUTINE_STEPS: [...],        // accesos rápidos de "Arma tu rutina" (emoji + categoría)
   SKIN_TYPE_EMOJI: {...},      // emoji por etiqueta de TipoPiel
   PROMO_BANNER: {...},         // franja ancha promocional
   BENEFITS: [...],             // franja de 4 beneficios antes del footer
+  MENU_COMING_SOON: [...],     // accesos del menú que aún no tienen función real
 };
 ```
 
@@ -85,15 +81,14 @@ de datos.
 
 ## Secciones de la página
 
-Header (buscador + carrito + menú ☰ en móvil) → nav de categorías (barra en
-escritorio / menú deslizante en móvil) → banner principal (rotativo) →
-barra deslizante → colecciones destacadas → arma tu rutina → explora por
-tipo de piel → banner promocional → marcas → catálogo completo con
-filtros → beneficios → footer.
+Header (logo + carrito + menú ☰ en móvil) → menú de secciones (barra en
+escritorio / panel deslizante en móvil) → banner principal (rotativo) →
+barra deslizante → Best Seller (top 6 numerado) → explora por tipo de
+piel → banner promocional → marcas → beneficios → footer.
 
-Todas las secciones basadas en datos (colecciones, tipo de piel, marcas,
-categorías) se ocultan automáticamente si tu catálogo no tiene esa
-información — no se muestra contenido inventado.
+Todas las secciones basadas en datos (Best Seller, tipo de piel, marcas)
+se ocultan automáticamente si tu catálogo no tiene esa información — no
+se muestra contenido inventado.
 
 ### Menú (barra de escritorio + ☰ en móvil)
 
@@ -106,8 +101,7 @@ pantalla:
   con los mismos items.
 
 El listado (función `getMenuItems()` en `app.js`) combina:
-- Links reales a las secciones que existen (colecciones, arma tu rutina,
-  tipo de piel, marcas, cada categoría, catálogo completo).
+- Links reales a las secciones que existen (Best Seller, tipo de piel, marcas).
 - Accesos "próximamente" definidos en `CONFIG.MENU_COMING_SOON` (por
   defecto: Asesoría personalizada, Mayoreo, Rastrea tu pedido, Mi cuenta).
   Al tocarlos se muestra un aviso en vez de llevar a una página vacía —
@@ -116,6 +110,11 @@ El listado (función `getMenuItems()` en `app.js`) combina:
 
 ### Qué se dejó fuera a propósito
 
+- **Buscador, filtros de categoría y grid de "todos los productos"**: se
+  quitaron a pedido — el catálogo hoy se navega por las secciones curadas
+  (Best Seller, tipo de piel, marcas). Si más adelante quieres un grid
+  completo con filtros otra vez, se puede reconstruir sobre el mismo
+  `productCardHTML()` que ya usan esas secciones.
 - **Testimonios de clientes con fotos**: no se fabrican reseñas falsas.
   Cuando tengas reseñas reales, es fácil agregar una sección similar a
   "Marcas" que las lea desde el Sheet o un array en `CONFIG`.

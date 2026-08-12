@@ -38,7 +38,7 @@ const CONFIG = {
       title: "Bienvenido a Alpacca",
       subtitle: "Arma tu pedido y cotiza por WhatsApp — sin pagos en línea.",
       ctaText: "Ver catálogo",
-      ctaHref: "#product-grid",
+      ctaHref: "#featured-section",
     },
     {
       title: "Lo nuevo llegó a Alpacca",
@@ -48,15 +48,6 @@ const CONFIG = {
     },
   ],
 
-  // "Arma tu rutina": accesos rápidos que filtran el catálogo por categoría.
-  // "category" debe coincidir exactamente con un valor de la columna Categoria
-  // de tu Google Sheet; si no hay coincidencias ese acceso no se muestra.
-  ROUTINE_STEPS: [
-    { emoji: "🧴", label: "Skincare", category: "Skincare" },
-    { emoji: "💄", label: "Maquillaje", category: "Maquillaje" },
-    { emoji: "💇", label: "Cuidado Capilar", category: "Cuidado Capilar" },
-  ],
-
   // Emojis para las etiquetas de la columna opcional "TipoPiel" del Sheet.
   // Si una etiqueta no aparece aquí, se usa el emoji por defecto.
   SKIN_TYPE_EMOJI: {
@@ -64,12 +55,12 @@ const CONFIG = {
   },
   SKIN_TYPE_DEFAULT_EMOJI: "🏷️",
 
-  // Franja promocional ancha, entre las colecciones y el catálogo completo.
+  // Franja promocional ancha, entre las colecciones y las marcas.
   PROMO_BANNER: {
     title: "Lo mejor, al mejor precio",
     subtitle: "Calidad que se nota, sin pagar de más.",
     ctaText: "Ver catálogo",
-    ctaHref: "#product-grid",
+    ctaHref: "#featured-section",
   },
 
   // Beneficios (franja de 4 íconos antes del footer).
@@ -129,8 +120,6 @@ const DEMO_PRODUCTS = [
    Estado
    ====================================================================== */
 let products = [];
-let activeCategory = "Todos";
-let searchTerm = "";
 const CART_KEY = "kkul_cart_v1";
 let cart = loadCart();
 
@@ -355,15 +344,12 @@ function renderTicker() {
 /* ======================================================================
    Ítems del menú — se usan tanto en la barra horizontal de escritorio
    (siempre visible, debajo del header) como en el menú ☰ de móvil.
-   Mezcla links reales a secciones de la página, categorías del catálogo,
-   y accesos "próximamente" definidos en CONFIG.MENU_COMING_SOON.
+   Mezcla links reales a secciones de la página y accesos "próximamente"
+   definidos en CONFIG.MENU_COMING_SOON.
    ====================================================================== */
 function getMenuItems() {
-  const categories = [...new Set(products.map((p) => p.categoria))];
-
   const sectionLinks = [
     { label: "Best Seller", href: "#featured-section" },
-    { label: "Arma tu rutina", href: "#routine-section" },
     { label: "Explora por tipo de piel", href: "#skintype-section" },
     { label: "Marcas", href: "#brands-section" },
   ].filter((item) => {
@@ -373,8 +359,6 @@ function getMenuItems() {
 
   return [
     ...sectionLinks.map((s) => ({ type: "link", label: s.label, href: s.href })),
-    ...categories.map((cat) => ({ type: "category", label: cat, category: cat })),
-    { type: "link", label: "Todos los productos", href: "#product-grid" },
     ...(CONFIG.MENU_COMING_SOON || []).map((label) => ({ type: "soon", label })),
   ];
 }
@@ -389,20 +373,13 @@ function menuItemHTML(item, variant) {
     return `<button type="button" data-menu-soon="${escapeAttr(item.label)}"
       class="${base} text-ink/40 ${isHorizontal ? "" : "w-full text-left"}">${escapeHtml(item.label)}</button>`;
   }
-  const href = item.type === "category" ? "#product-grid" : item.href;
-  const catAttr = item.type === "category" ? ` data-menu-cat="${escapeAttr(item.category)}"` : "";
-  return `<a href="${escapeAttr(href)}" data-menu-link${catAttr}
+  return `<a href="${escapeAttr(item.href)}" data-menu-link
     class="${base} text-ink/80 hover:text-ink transition">${escapeHtml(item.label)}</a>`;
 }
 
 function wireMenuItems(container, onNavigate) {
   container.querySelectorAll("[data-menu-link]").forEach((link) => {
     link.addEventListener("click", () => {
-      if (link.dataset.menuCat) {
-        activeCategory = link.dataset.menuCat;
-        renderCategoryFilters();
-        renderProducts();
-      }
       if (onNavigate) onNavigate();
     });
   });
@@ -450,45 +427,8 @@ function closeMobileMenu() {
 }
 
 /* ======================================================================
-   Render: filtros de categoría
+   Tarjeta de producto — reutilizada por Best Seller y tipo de piel.
    ====================================================================== */
-function renderCategoryFilters() {
-  const wrap = document.getElementById("category-filters");
-  const categories = ["Todos", ...new Set(products.map((p) => p.categoria))];
-  wrap.innerHTML = categories
-    .map((cat) => {
-      const active = cat === activeCategory;
-      return `<button type="button" data-cat="${escapeAttr(cat)}"
-        class="rounded-full px-4 py-1.5 text-sm font-semibold border transition
-          ${active ? "bg-ink text-cream border-ink" : "bg-transparent text-ink/70 border-ink/20 hover:border-ink/40"}">
-        ${escapeHtml(cat)}
-      </button>`;
-    })
-    .join("");
-
-  wrap.querySelectorAll("[data-cat]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      activeCategory = btn.dataset.cat;
-      renderCategoryFilters();
-      renderProducts();
-    });
-  });
-}
-
-/* ======================================================================
-   Render: grid de productos
-   ====================================================================== */
-function getFilteredProducts() {
-  const term = searchTerm.trim().toLowerCase();
-  return products.filter((p) => {
-    const matchesCategory = activeCategory === "Todos" || p.categoria === activeCategory;
-    const matchesSearch =
-      !term ||
-      [p.nombre, p.marca, p.categoria, p.descripcion].join(" ").toLowerCase().includes(term);
-    return matchesCategory && matchesSearch;
-  });
-}
-
 function productCardHTML(p, { rank } = {}) {
   const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
   return `
@@ -517,21 +457,6 @@ function wireAddButtons(container) {
   container.querySelectorAll("[data-add]").forEach((btn) => {
     btn.addEventListener("click", () => addToCart(btn.dataset.add));
   });
-}
-
-function renderProducts() {
-  const grid = document.getElementById("product-grid");
-  const empty = document.getElementById("empty-state");
-  const list = getFilteredProducts();
-
-  if (!list.length) {
-    grid.innerHTML = "";
-    empty.classList.remove("hidden");
-    return;
-  }
-  empty.classList.add("hidden");
-  grid.innerHTML = list.map(productCardHTML).join("");
-  wireAddButtons(grid);
 }
 
 /* ======================================================================
@@ -617,40 +542,6 @@ const renderSkinTypes = makeTagSectionRenderer({
 });
 
 /* ======================================================================
-   "Arma tu rutina": accesos rápidos por categoría (CONFIG.ROUTINE_STEPS)
-   ====================================================================== */
-function renderRoutineSteps() {
-  const section = document.getElementById("routine-section");
-  const categories = new Set(products.map((p) => p.categoria));
-  const steps = (CONFIG.ROUTINE_STEPS || []).filter((s) => categories.has(s.category));
-
-  if (!steps.length) {
-    section.classList.add("hidden");
-    return;
-  }
-  section.classList.remove("hidden");
-
-  document.getElementById("routine-steps").innerHTML = steps
-    .map(
-      (s) => `<button type="button" data-routine-cat="${escapeAttr(s.category)}"
-        class="flex flex-col items-center gap-2 group">
-        <span class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blush/40 flex items-center justify-center text-2xl sm:text-3xl group-hover:bg-blush/70 transition">${s.emoji}</span>
-        <span class="text-xs sm:text-sm font-semibold text-ink/80">${escapeHtml(s.label)}</span>
-      </button>`
-    )
-    .join("");
-
-  document.getElementById("routine-steps").querySelectorAll("[data-routine-cat]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      activeCategory = btn.dataset.routineCat;
-      renderCategoryFilters();
-      renderProducts();
-      document.getElementById("product-grid").scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  });
-}
-
-/* ======================================================================
    Franja promocional ancha
    ====================================================================== */
 function renderPromoBanner() {
@@ -705,14 +596,11 @@ function renderBenefits() {
 function renderAll() {
   // El orden importa: renderCategoryNav/renderMobileMenu leen qué secciones
   // quedaron visibles, así que corren después de decidir esa visibilidad.
-  renderRoutineSteps();
   renderBestSellers();
   renderSkinTypes();
   renderBrands();
   renderCategoryNav();
   renderMobileMenu();
-  renderCategoryFilters();
-  renderProducts();
   renderCart();
 }
 
@@ -903,15 +791,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("menu-close").addEventListener("click", closeMobileMenu);
   document.getElementById("menu-overlay").addEventListener("click", closeMobileMenu);
   document.getElementById("quote-form").addEventListener("submit", sendQuote);
-
-  const syncSearch = (value) => {
-    searchTerm = value;
-    document.getElementById("search-input").value = value;
-    document.getElementById("search-input-mobile").value = value;
-    renderProducts();
-  };
-  document.getElementById("search-input").addEventListener("input", (e) => syncSearch(e.target.value));
-  document.getElementById("search-input-mobile").addEventListener("input", (e) => syncSearch(e.target.value));
 
   renderTopBar();
   renderHeroSlide();
