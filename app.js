@@ -340,7 +340,7 @@ function renderHeroSlide() {
       ${
         slide.ctaText
           ? `<a href="${escapeAttr(slide.ctaHref || "#")}"
-              class="inline-block mt-6 rounded-full bg-lilac text-ink font-semibold px-6 py-3 hover:bg-lilac/90 transition">
+              class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition">
               ${escapeHtml(slide.ctaText)}
             </a>`
           : ""
@@ -350,7 +350,7 @@ function renderHeroSlide() {
   document.getElementById("hero-dots").innerHTML = slides
     .map(
       (_, i) => `<button type="button" data-dot="${i}" aria-label="Ver slide ${i + 1}"
-        class="w-2.5 h-2.5 rounded-full transition ${i === heroIndex ? "bg-lilac" : "bg-ink/20"}"></button>`
+        class="w-2.5 h-2.5 rounded-full transition ${i === heroIndex ? "bg-rose" : "bg-ink/20"}"></button>`
     )
     .join("");
 
@@ -477,7 +477,7 @@ function productCardHTML(p, { rank } = {}) {
   return `
     <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full">
       <div class="aspect-square bg-blush/20 overflow-hidden relative">
-        ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-lilac text-ink font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
+        ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-rose text-cream font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
         <img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
           class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
         ${!p.disponible ? `<span class="absolute top-2 ${rank ? "right-2" : "left-2"} bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>` : ""}
@@ -488,7 +488,7 @@ function productCardHTML(p, { rank } = {}) {
         <div class="mt-auto pt-2 flex items-center justify-between gap-2">
           <span class="font-display text-ink">${formatPrice(p.precio)}</span>
           <button data-add="${escapeAttr(p.id)}" ${!p.disponible ? "disabled" : ""}
-            class="rounded-full bg-lilac text-ink text-xs font-semibold px-3 py-1.5 hover:bg-lilac/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
+            class="rounded-full bg-rose text-cream text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
             Agregar
           </button>
         </div>
@@ -562,7 +562,7 @@ function renderQuizQuestion() {
   const q = questions[quizIndex];
 
   document.getElementById("quiz-progress").innerHTML = questions
-    .map((_, i) => `<span class="w-6 h-1.5 rounded-full ${i <= quizIndex ? "bg-lilac" : "bg-ink/15"}"></span>`)
+    .map((_, i) => `<span class="w-6 h-1.5 rounded-full ${i <= quizIndex ? "bg-rose" : "bg-ink/15"}"></span>`)
     .join("");
 
   document.getElementById("quiz-question").textContent = q.question;

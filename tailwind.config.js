@@ -6,7 +6,8 @@ module.exports = {
       colors: {
         cream: "#fffcf4",
         ink: "#3d3a42",
-        lilac: "#b2a7be",
+        rose: "#d1587a",
+        lilac: "#8b84ac",
         blush: "#e9c3be",
       },
       fontFamily: {
