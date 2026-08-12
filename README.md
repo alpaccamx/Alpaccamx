@@ -19,6 +19,9 @@ reutiliza contenido, marcas ni fotografía de ningún negocio real.
 - `assets/logo-full.png` — logotipo completo con la mascota (footer).
 - `assets/favicon-32.png` / `assets/apple-touch-icon.png` — ícono de pestaña/celular.
 - `assets/mascot.png` — mascota sola, cuadrada y transparente, por si la quieres usar en otro lado.
+- `assets/products/` — fotos de producto (ej. catálogo SKIN1004), nombradas por SKU. Al
+  desplegar el sitio, estos archivos quedan disponibles en `assets/products/<archivo>`; usa esa
+  misma ruta relativa en la columna **Imagen** de tu Google Sheet para esos productos.
 - `fonts/ReadyToParty.ttf` — la tipografía de marca ("Ready to Party" de Misti's Fonts),
   cargada vía `@font-face` en `input.css` para los encabezados (`font-logo`).
 
