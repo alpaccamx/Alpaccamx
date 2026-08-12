@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KKUL — Catálogo y Cotización</title>
+<title>Alpacca — Catálogo y Cotización</title>
 <meta name="description" content="Catálogo de productos con sistema de cotización por WhatsApp.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +26,7 @@
 <!-- Header -->
 <header class="sticky top-0 z-40 bg-cream/95 backdrop-blur border-b border-ink/10">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-    <a href="#top" class="font-logo text-3xl sm:text-4xl text-ink">kkül</a>
+    <a href="#top" class="font-logo text-3xl sm:text-4xl text-ink">alpacca</a>
 
     <div class="hidden sm:flex flex-1 max-w-md relative">
       <input id="search-input" type="search" placeholder="Buscar por..."
@@ -93,6 +93,51 @@
   </div>
 </section>
 
+<!-- Arma tu rutina -->
+<section id="routine-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
+  <div class="text-center mb-6">
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Compra por categoría</p>
+    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Arma tu rutina</h2>
+  </div>
+  <div id="routine-steps" class="flex flex-wrap justify-center gap-6 sm:gap-10">
+    <!-- accesos rápidos injected by JS -->
+  </div>
+</section>
+
+<!-- Explora por tipo de piel -->
+<section id="skintype-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
+  <div class="text-center mb-6">
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Encuentra lo tuyo</p>
+    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Explora por tipo de piel</h2>
+  </div>
+  <div id="skintype-tabs" class="flex flex-wrap gap-2 justify-center mb-5">
+    <!-- pestañas injected by JS -->
+  </div>
+  <div id="skintype-row" class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+    <!-- product cards injected by JS -->
+  </div>
+</section>
+
+<!-- Banner promocional -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14">
+  <div class="rounded-3xl bg-ink text-cream px-6 sm:px-12 py-12 sm:py-16 text-center">
+    <h2 id="promo-title" class="font-logo text-2xl sm:text-4xl"></h2>
+    <p id="promo-subtitle" class="mt-2 text-cream/70 max-w-lg mx-auto"></p>
+    <a id="promo-cta" href="#" class="inline-block mt-6 rounded-full bg-cream text-ink font-semibold px-6 py-3 hover:bg-cream/90 transition"></a>
+  </div>
+</section>
+
+<!-- Marcas -->
+<section id="brands-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
+  <div class="text-center mb-6">
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Curado con cariño</p>
+    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Marcas en el catálogo</h2>
+  </div>
+  <div id="brands-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+    <!-- marcas injected by JS -->
+  </div>
+</section>
+
 <!-- Catálogo completo -->
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-3 text-center">
   <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Catálogo completo</p>
@@ -118,9 +163,57 @@
   <p id="empty-state" class="hidden text-center text-ink/50 py-16">No encontramos productos con esos filtros.</p>
 </main>
 
+<!-- Beneficios -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
+  <div id="benefits-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-6">
+    <!-- beneficios injected by JS -->
+  </div>
+</section>
+
+<!-- Newsletter -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
+  <div class="rounded-3xl bg-ink text-cream px-6 sm:px-12 py-10 sm:py-12 text-center">
+    <h2 class="font-logo text-xl sm:text-2xl">Regístrate para recibir novedades</h2>
+    <form id="newsletter-form" class="mt-5 flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+      <input type="email" required placeholder="tu@correo.com"
+        class="flex-1 rounded-full border border-cream/30 bg-cream/10 px-4 py-2.5 text-sm text-cream placeholder:text-cream/50 focus:outline-none focus:ring-2 focus:ring-blush" />
+      <button type="submit" class="rounded-full bg-cream text-ink font-semibold px-5 py-2.5 text-sm hover:bg-cream/90 transition">Suscribirse</button>
+    </form>
+  </div>
+</section>
+
 <!-- Footer -->
-<footer class="border-t border-ink/10 py-10 text-center text-sm text-ink/50">
-  <p>© <span id="year"></span> KKUL. Catálogo para cotización — no se procesan pagos en este sitio.</p>
+<footer class="border-t border-ink/10 mt-14 pt-10 pb-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 sm:grid-cols-4 gap-8 text-sm">
+    <div>
+      <p class="font-logo text-xl text-ink mb-3">alpacca</p>
+      <div id="footer-social" class="flex items-center gap-3 text-ink/60">
+        <!-- social icons injected by JS -->
+      </div>
+    </div>
+    <div>
+      <p class="font-semibold text-ink mb-3">Encuéntranos</p>
+      <ul class="space-y-2 text-ink/60">
+        <li><a href="#top" class="hover:text-ink transition">Inicio</a></li>
+        <li><a href="#product-grid" class="hover:text-ink transition">Catálogo</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="font-semibold text-ink mb-3">Ayuda</p>
+      <ul class="space-y-2 text-ink/60">
+        <li><a href="#" id="footer-contact-link" class="hover:text-ink transition">Contacto por WhatsApp</a></li>
+        <li><a href="#featured-section" class="hover:text-ink transition">Preguntas frecuentes</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="font-semibold text-ink mb-3">Cotizaciones</p>
+      <ul class="space-y-2 text-ink/60">
+        <li>Sin pasarela de pago</li>
+        <li>Cotización 100% por WhatsApp</li>
+      </ul>
+    </div>
+  </div>
+  <p class="text-center text-xs text-ink/40 mt-10">© <span id="year"></span> Alpacca. Catálogo para cotización — no se procesan pagos en este sitio.</p>
 </footer>
 
 <!-- Floating WhatsApp contact -->

@@ -13,10 +13,10 @@ const CONFIG = {
   // Ejemplo México: 5215512345678 (52 + 1 + 10 dígitos)
   WHATSAPP_NUMBER: "52XXXXXXXXXX",
 
-  BUSINESS_NAME: "KKUL",
+  BUSINESS_NAME: "Alpacca",
 
   // Mensaje de la barra superior.
-  SHIPPING_MESSAGE: "Envíos a todo México desde $189 MXN 🚚💨",
+  SHIPPING_MESSAGE: "Envíos a todo México 🚚💨",
 
   // Mensajes que se muestran en la barra deslizante debajo del banner.
   TICKER_MESSAGES: [
@@ -35,17 +35,49 @@ const CONFIG = {
   // Slides del banner principal. Agrega o quita objetos para más o menos slides.
   HERO_SLIDES: [
     {
-      title: "Skincare coreano, directo a tu puerta",
+      title: "Bienvenido a Alpacca",
       subtitle: "Arma tu pedido y cotiza por WhatsApp — sin pagos en línea.",
       ctaText: "Ver catálogo",
       ctaHref: "#product-grid",
     },
     {
-      title: "Lo nuevo llegó a KKUL",
-      subtitle: "Descubre las últimas novedades de skincare y maquillaje coreano.",
+      title: "Lo nuevo llegó a Alpacca",
+      subtitle: "Descubre las últimas novedades del catálogo.",
       ctaText: "Ver novedades",
       ctaHref: "#featured-section",
     },
+  ],
+
+  // "Arma tu rutina": accesos rápidos que filtran el catálogo por categoría.
+  // "category" debe coincidir exactamente con un valor de la columna Categoria
+  // de tu Google Sheet; si no hay coincidencias ese acceso no se muestra.
+  ROUTINE_STEPS: [
+    { emoji: "🧴", label: "Skincare", category: "Skincare" },
+    { emoji: "💄", label: "Maquillaje", category: "Maquillaje" },
+    { emoji: "💇", label: "Cuidado Capilar", category: "Cuidado Capilar" },
+  ],
+
+  // Emojis para las etiquetas de la columna opcional "TipoPiel" del Sheet.
+  // Si una etiqueta no aparece aquí, se usa el emoji por defecto.
+  SKIN_TYPE_EMOJI: {
+    Grasa: "✨", Seca: "💧", Mixta: "🌗", Sensible: "🌸", Normal: "🙂",
+  },
+  SKIN_TYPE_DEFAULT_EMOJI: "🏷️",
+
+  // Franja promocional ancha, entre las colecciones y el catálogo completo.
+  PROMO_BANNER: {
+    title: "Lo mejor, al mejor precio",
+    subtitle: "Calidad que se nota, sin pagar de más.",
+    ctaText: "Ver catálogo",
+    ctaHref: "#product-grid",
+  },
+
+  // Beneficios (franja de 4 íconos antes del footer).
+  BENEFITS: [
+    { emoji: "🚚", title: "Envíos", text: "A todo México" },
+    { emoji: "💬", title: "Atención por WhatsApp", text: "Resolvemos tus dudas" },
+    { emoji: "🔒", title: "Cotización sin compromiso", text: "Sin pagos en línea" },
+    { emoji: "✅", title: "Catálogo verificado", text: "Disponibilidad real" },
   ],
 };
 
@@ -73,14 +105,14 @@ function placeholderImg(label, bg) {
 }
 
 const DEMO_PRODUCTS = [
-  { id: "d1", nombre: "Espuma Limpiadora de Té Verde", categoria: "Skincare", marca: "Haruharu", precio: 320, imagen: placeholderImg("Limpiadora", "#e9c3be"), descripcion: "Limpieza suave diaria.", disponible: true, destacado: ["Nuevo"] },
-  { id: "d2", nombre: "Sérum de Niacinamida 10%", categoria: "Skincare", marca: "Round Lab", precio: 450, imagen: placeholderImg("Sérum", "#f3d9d0"), descripcion: "Ilumina y empareja el tono.", disponible: true, destacado: ["Nuevo", "Best Seller"] },
-  { id: "d3", nombre: "Crema Hidratante Cica", categoria: "Skincare", marca: "Dr.Althea", precio: 520, imagen: placeholderImg("Crema", "#e9c3be"), descripcion: "Calma e hidrata piel sensible.", disponible: true, destacado: ["Best Seller"] },
-  { id: "d4", nombre: "Protector Solar SPF50 PA++++", categoria: "Skincare", marca: "Beauty of Joseon", precio: 380, imagen: placeholderImg("Sunscreen", "#f3d9d0"), descripcion: "Ligero, sin dejar residuo blanco.", disponible: false, destacado: [] },
-  { id: "d5", nombre: "Base Cushion Glow", categoria: "Maquillaje", marca: "Missha", precio: 480, imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true, destacado: ["Nuevo"] },
-  { id: "d6", nombre: "Labial Tinta Frutal", categoria: "Maquillaje", marca: "Rom&nd", precio: 260, imagen: placeholderImg("Labial", "#fbe6c8"), descripcion: "Larga duración, tono jugoso.", disponible: true, destacado: ["Best Seller"] },
-  { id: "d7", nombre: "Mascarilla Capilar Reparadora", categoria: "Cuidado Capilar", marca: "Mise en Scene", precio: 300, imagen: placeholderImg("Cabello", "#d9e2df"), descripcion: "Repara puntas abiertas.", disponible: true, destacado: [] },
-  { id: "d8", nombre: "Mascarilla de Tela Hidratante (5pz)", categoria: "Skincare", marca: "Mediheal", precio: 210, imagen: placeholderImg("Mascarilla", "#e9c3be"), descripcion: "Hidratación profunda 20 min.", disponible: true, destacado: ["Recomendado"] },
+  { id: "d1", nombre: "Espuma Limpiadora de Té Verde", categoria: "Skincare", marca: "Haruharu", precio: 320, imagen: placeholderImg("Limpiadora", "#e9c3be"), descripcion: "Limpieza suave diaria.", disponible: true, destacado: ["Nuevo"], tipoPiel: ["Normal", "Mixta"] },
+  { id: "d2", nombre: "Sérum de Niacinamida 10%", categoria: "Skincare", marca: "Round Lab", precio: 450, imagen: placeholderImg("Sérum", "#f3d9d0"), descripcion: "Ilumina y empareja el tono.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: ["Grasa", "Mixta"] },
+  { id: "d3", nombre: "Crema Hidratante Cica", categoria: "Skincare", marca: "Dr.Althea", precio: 520, imagen: placeholderImg("Crema", "#e9c3be"), descripcion: "Calma e hidrata piel sensible.", disponible: true, destacado: ["Best Seller"], tipoPiel: ["Sensible", "Seca"] },
+  { id: "d4", nombre: "Protector Solar SPF50 PA++++", categoria: "Skincare", marca: "Beauty of Joseon", precio: 380, imagen: placeholderImg("Sunscreen", "#f3d9d0"), descripcion: "Ligero, sin dejar residuo blanco.", disponible: false, destacado: [], tipoPiel: ["Normal"] },
+  { id: "d5", nombre: "Base Cushion Glow", categoria: "Maquillaje", marca: "Missha", precio: 480, imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true, destacado: ["Nuevo"], tipoPiel: [] },
+  { id: "d6", nombre: "Labial Tinta Frutal", categoria: "Maquillaje", marca: "Rom&nd", precio: 260, imagen: placeholderImg("Labial", "#fbe6c8"), descripcion: "Larga duración, tono jugoso.", disponible: true, destacado: ["Best Seller"], tipoPiel: [] },
+  { id: "d7", nombre: "Mascarilla Capilar Reparadora", categoria: "Cuidado Capilar", marca: "Mise en Scene", precio: 300, imagen: placeholderImg("Cabello", "#d9e2df"), descripcion: "Repara puntas abiertas.", disponible: true, destacado: [], tipoPiel: [] },
+  { id: "d8", nombre: "Mascarilla de Tela Hidratante (5pz)", categoria: "Skincare", marca: "Mediheal", precio: 210, imagen: placeholderImg("Mascarilla", "#e9c3be"), descripcion: "Hidratación profunda 20 min.", disponible: true, destacado: ["Recomendado"], tipoPiel: ["Seca", "Sensible"] },
 ];
 
 /* ======================================================================
@@ -172,6 +204,7 @@ function csvToProducts(text) {
   const iSku = findCol(headers, ["sku", "codigo", "código"]);
   const iDisponible = findCol(headers, ["disponible", "stock", "available"]);
   const iDestacado = findCol(headers, ["destacado", "coleccion", "colección", "tag", "tags", "etiqueta", "etiquetas"]);
+  const iTipoPiel = findCol(headers, ["tipopiel", "tipo de piel", "piel", "skintype"]);
 
   return rows
     .slice(1)
@@ -183,10 +216,7 @@ function csvToProducts(text) {
           ? true
           : ["si", "sí", "yes", "true", "1", "disponible"].includes(disponibleRaw);
       const precioRaw = get(iPrecio).replace(/[^0-9.,]/g, "").replace(",", ".");
-      const destacado = get(iDestacado)
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const splitTags = (value) => value.split(",").map((s) => s.trim()).filter(Boolean);
       return {
         id: get(iSku) || `row${n}`,
         nombre: get(iNombre) || "Producto sin nombre",
@@ -196,7 +226,8 @@ function csvToProducts(text) {
         imagen: get(iImagen),
         descripcion: get(iDescripcion),
         disponible,
-        destacado,
+        destacado: splitTags(get(iDestacado)),
+        tipoPiel: splitTags(get(iTipoPiel)),
       };
     })
     .filter((p) => p.nombre && p.nombre !== "Producto sin nombre");
@@ -237,14 +268,16 @@ async function loadProducts() {
 function renderTopBar() {
   document.getElementById("shipping-message").textContent = CONFIG.SHIPPING_MESSAGE || "";
 
-  const wrap = document.getElementById("social-links");
   const links = (CONFIG.SOCIAL_LINKS || []).filter((s) => s.href);
-  wrap.innerHTML = links
+  const linksHTML = links
     .map(
       (s) => `<a href="${escapeAttr(s.href)}" target="_blank" rel="noopener" aria-label="${escapeAttr(s.name)}"
-        class="text-ink/70 hover:text-ink transition">${ICONS[s.icon] || ""}</a>`
+        class="hover:text-ink transition">${ICONS[s.icon] || ""}</a>`
     )
     .join("");
+
+  document.getElementById("social-links").innerHTML = linksHTML;
+  document.getElementById("footer-social").innerHTML = linksHTML;
 }
 
 /* ======================================================================
@@ -422,64 +455,166 @@ function renderProducts() {
 }
 
 /* ======================================================================
-   Colecciones destacadas (pestañas) — usa la columna opcional "Destacado"
-   del Google Sheet (ej. "Nuevo", "Best Seller"). Si ningún producto trae
-   esa columna, la sección se oculta automáticamente.
+   Secciones por pestañas basadas en etiquetas (colecciones / tipo de piel).
+   Usan columnas opcionales del Google Sheet ("Destacado", "TipoPiel"). Si
+   ningún producto trae esa columna, la sección se oculta automáticamente.
    ====================================================================== */
-let activeFeaturedTag = null;
+function makeTagSectionRenderer({ field, sectionId, tabsId, rowId, emojiFor }) {
+  let activeTag = null;
 
-function getFeaturedTagMap() {
-  const map = new Map();
-  products.forEach((p) => {
-    (p.destacado || []).forEach((tag) => {
-      if (!map.has(tag)) map.set(tag, []);
-      map.get(tag).push(p);
+  return function render() {
+    const section = document.getElementById(sectionId);
+    const tagMap = new Map();
+    products.forEach((p) => {
+      (p[field] || []).forEach((tag) => {
+        if (!tagMap.has(tag)) tagMap.set(tag, []);
+        tagMap.get(tag).push(p);
+      });
     });
-  });
-  return map;
+    const tags = [...tagMap.keys()];
+
+    if (!tags.length) {
+      section.classList.add("hidden");
+      return;
+    }
+    section.classList.remove("hidden");
+    if (!activeTag || !tagMap.has(activeTag)) activeTag = tags[0];
+
+    const tabsWrap = document.getElementById(tabsId);
+    tabsWrap.innerHTML = tags
+      .map((tag) => {
+        const active = tag === activeTag;
+        const emoji = emojiFor ? emojiFor(tag) : "";
+        return `<button type="button" data-tab="${escapeAttr(tag)}"
+          class="rounded-full px-3 py-1 text-xs font-semibold border transition
+            ${active ? "bg-ink text-cream border-ink" : "bg-transparent text-ink/70 border-ink/20 hover:border-ink/40"}">
+          ${emoji ? emoji + " " : ""}${escapeHtml(tag)}
+        </button>`;
+      })
+      .join("");
+    tabsWrap.querySelectorAll("[data-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeTag = btn.dataset.tab;
+        render();
+      });
+    });
+
+    const row = document.getElementById(rowId);
+    const items = tagMap.get(activeTag) || [];
+    row.innerHTML = items
+      .map((p) => `<div class="w-40 sm:w-48 flex-shrink-0 snap-start">${productCardHTML(p)}</div>`)
+      .join("");
+    wireAddButtons(row);
+  };
 }
 
-function renderFeatured() {
-  const section = document.getElementById("featured-section");
-  const tagMap = getFeaturedTagMap();
-  const tags = [...tagMap.keys()];
+const renderFeatured = makeTagSectionRenderer({
+  field: "destacado",
+  sectionId: "featured-section",
+  tabsId: "featured-tabs",
+  rowId: "featured-row",
+});
 
-  if (!tags.length) {
+const renderSkinTypes = makeTagSectionRenderer({
+  field: "tipoPiel",
+  sectionId: "skintype-section",
+  tabsId: "skintype-tabs",
+  rowId: "skintype-row",
+  emojiFor: (tag) => CONFIG.SKIN_TYPE_EMOJI[tag] || CONFIG.SKIN_TYPE_DEFAULT_EMOJI,
+});
+
+/* ======================================================================
+   "Arma tu rutina": accesos rápidos por categoría (CONFIG.ROUTINE_STEPS)
+   ====================================================================== */
+function renderRoutineSteps() {
+  const section = document.getElementById("routine-section");
+  const categories = new Set(products.map((p) => p.categoria));
+  const steps = (CONFIG.ROUTINE_STEPS || []).filter((s) => categories.has(s.category));
+
+  if (!steps.length) {
     section.classList.add("hidden");
     return;
   }
   section.classList.remove("hidden");
-  if (!activeFeaturedTag || !tagMap.has(activeFeaturedTag)) activeFeaturedTag = tags[0];
 
-  const tabsWrap = document.getElementById("featured-tabs");
-  tabsWrap.innerHTML = tags
-    .map((tag) => {
-      const active = tag === activeFeaturedTag;
-      return `<button type="button" data-tab="${escapeAttr(tag)}"
-        class="rounded-full px-3 py-1 text-xs font-semibold border transition
-          ${active ? "bg-ink text-cream border-ink" : "bg-transparent text-ink/70 border-ink/20 hover:border-ink/40"}">
-        ${escapeHtml(tag)}
-      </button>`;
-    })
+  document.getElementById("routine-steps").innerHTML = steps
+    .map(
+      (s) => `<button type="button" data-routine-cat="${escapeAttr(s.category)}"
+        class="flex flex-col items-center gap-2 group">
+        <span class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blush/40 flex items-center justify-center text-2xl sm:text-3xl group-hover:bg-blush/70 transition">${s.emoji}</span>
+        <span class="text-xs sm:text-sm font-semibold text-ink/80">${escapeHtml(s.label)}</span>
+      </button>`
+    )
     .join("");
-  tabsWrap.querySelectorAll("[data-tab]").forEach((btn) => {
+
+  document.getElementById("routine-steps").querySelectorAll("[data-routine-cat]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      activeFeaturedTag = btn.dataset.tab;
-      renderFeatured();
+      activeCategory = btn.dataset.routineCat;
+      renderCategoryFilters();
+      renderProducts();
+      document.getElementById("product-grid").scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
+}
 
-  const row = document.getElementById("featured-row");
-  const items = tagMap.get(activeFeaturedTag) || [];
-  row.innerHTML = items
-    .map((p) => `<div class="w-40 sm:w-48 flex-shrink-0 snap-start">${productCardHTML(p)}</div>`)
+/* ======================================================================
+   Franja promocional ancha
+   ====================================================================== */
+function renderPromoBanner() {
+  const promo = CONFIG.PROMO_BANNER;
+  if (!promo) return;
+  document.getElementById("promo-title").textContent = promo.title || "";
+  document.getElementById("promo-subtitle").textContent = promo.subtitle || "";
+  const cta = document.getElementById("promo-cta");
+  if (promo.ctaText) {
+    cta.textContent = promo.ctaText;
+    cta.href = promo.ctaHref || "#";
+    cta.classList.remove("hidden");
+  } else {
+    cta.classList.add("hidden");
+  }
+}
+
+/* ======================================================================
+   Marcas — derivadas de la columna Marca del catálogo (no logos externos)
+   ====================================================================== */
+function renderBrands() {
+  const section = document.getElementById("brands-section");
+  const brands = [...new Set(products.map((p) => p.marca).filter(Boolean))].sort();
+  if (!brands.length) {
+    section.classList.add("hidden");
+    return;
+  }
+  section.classList.remove("hidden");
+  document.getElementById("brands-grid").innerHTML = brands
+    .map(
+      (b) => `<div class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70">${escapeHtml(b)}</div>`
+    )
     .join("");
-  wireAddButtons(row);
+}
+
+/* ======================================================================
+   Beneficios
+   ====================================================================== */
+function renderBenefits() {
+  const items = CONFIG.BENEFITS || [];
+  document.getElementById("benefits-grid").innerHTML = items
+    .map(
+      (b) => `<div class="text-center">
+        <div class="text-3xl mb-2">${b.emoji || ""}</div>
+        <p class="font-semibold text-sm text-ink">${escapeHtml(b.title)}</p>
+        <p class="text-xs text-ink/50 mt-0.5">${escapeHtml(b.text)}</p>
+      </div>`
+    )
+    .join("");
 }
 
 function renderAll() {
   renderCategoryNav();
+  renderRoutineSteps();
   renderFeatured();
+  renderSkinTypes();
+  renderBrands();
   renderCategoryFilters();
   renderProducts();
   renderCart();
@@ -639,17 +774,38 @@ function escapeAttr(str) {
    Inicialización
    ====================================================================== */
 function initWhatsAppFloat() {
-  const btn = document.getElementById("whatsapp-float");
+  const buttons = [document.getElementById("whatsapp-float"), document.getElementById("footer-contact-link")];
   const numberIsPlaceholder = !CONFIG.WHATSAPP_NUMBER || CONFIG.WHATSAPP_NUMBER.includes("XXXX");
+
   if (numberIsPlaceholder) {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      setStatus("Falta configurar CONFIG.WHATSAPP_NUMBER en app.js con tu número real.");
-    });
+    buttons.forEach((btn) =>
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        setStatus("Falta configurar CONFIG.WHATSAPP_NUMBER en app.js con tu número real.");
+      })
+    );
     return;
   }
+
   const message = encodeURIComponent(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una pregunta.`);
-  btn.href = `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${message}`;
+  const href = `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${message}`;
+  buttons.forEach((btn) => {
+    btn.href = href;
+    btn.target = "_blank";
+    btn.rel = "noopener";
+  });
+}
+
+/* ======================================================================
+   Newsletter — sin backend propio. Muestra un aviso en vez de simular un
+   registro que en realidad no llega a ningún lado.
+   ====================================================================== */
+function initNewsletter() {
+  const form = document.getElementById("newsletter-form");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    setStatus("Para activar el registro por correo, conecta un servicio de email marketing (Mailchimp, Klaviyo, etc.) en initNewsletter() dentro de app.js.");
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -673,7 +829,10 @@ document.addEventListener("DOMContentLoaded", () => {
   renderHeroSlide();
   restartHeroTimer();
   renderTicker();
+  renderPromoBanner();
+  renderBenefits();
   initWhatsAppFloat();
+  initNewsletter();
 
   loadProducts();
   renderCart();
