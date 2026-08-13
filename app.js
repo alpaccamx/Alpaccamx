@@ -864,9 +864,35 @@ function renderBrands() {
   section.classList.remove("hidden");
   document.getElementById("brands-grid").innerHTML = brands
     .map(
-      (b) => `<div class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70">${escapeHtml(b)}</div>`
+      (b) => `<button type="button" data-brand="${escapeAttr(b)}"
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition">${escapeHtml(b)}</button>`
     )
     .join("");
+
+  document.querySelectorAll("[data-brand]").forEach((btn) => {
+    btn.addEventListener("click", () => showBrandProducts(btn.dataset.brand));
+  });
+}
+
+function showBrandProducts(marca) {
+  const items = products.filter((p) => p.marca === marca);
+  const wrap = document.getElementById("brand-products");
+  const grid = document.getElementById("brand-products-grid");
+  const empty = document.getElementById("brand-products-empty");
+
+  document.getElementById("brand-products-title").textContent = `Productos de ${marca}`;
+  wrap.classList.remove("hidden");
+
+  if (!items.length) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
+    wireAddButtons(grid);
+  }
+
+  wrap.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /* ======================================================================
@@ -1115,6 +1141,11 @@ document.addEventListener("DOMContentLoaded", () => {
     quizIndex = 0;
     quizAnswers = [];
     renderQuizQuestion();
+  });
+
+  document.getElementById("brand-products-clear").addEventListener("click", () => {
+    document.getElementById("brand-products").classList.add("hidden");
+    document.getElementById("brands-section").scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
   renderTopBar();

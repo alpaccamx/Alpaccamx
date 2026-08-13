@@ -81,6 +81,10 @@ variar ligeramente, el sitio los reconoce en español o inglés):
 - **Categoria**: además de agrupar productos, cada categoría distinta
   también se usa para armar el grid de "Marcas" (a través de la columna
   Marca) — no necesitas configurarla aparte.
+- **Marca**: cada marca distinta aparece como una tarjeta en la sección
+  "Marcas". Al hacer click en una, se muestran debajo todos los
+  productos de esa marca (disponibles y agotados, estos últimos con su
+  etiqueta "Agotado"), con su propio botón "Agregar" al carrito.
 
 Luego: `Archivo` → `Compartir` → `Publicar en la Web` → elige la hoja →
 formato **"Valores separados por comas (.csv)"** → **Publicar**, y copia el

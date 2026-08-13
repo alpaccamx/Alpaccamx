@@ -152,6 +152,15 @@
   <div id="brands-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
     <!-- marcas injected by JS -->
   </div>
+
+  <div id="brand-products" class="hidden mt-8">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-logo text-xl sm:text-2xl text-ink" id="brand-products-title"></h3>
+      <button id="brand-products-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Ver todas las marcas</button>
+    </div>
+    <div id="brand-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    <p id="brand-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles de esta marca por ahora.</p>
+  </div>
 </section>
 
 <!-- Status (loading / error) -->
