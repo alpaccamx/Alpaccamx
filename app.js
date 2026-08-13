@@ -531,6 +531,8 @@ function renderHeroSlide() {
   if (!slides.length) return;
   const slide = slides[heroIndex];
 
+  document.getElementById("top").classList.toggle("bg-blush", !slide.image);
+
   document.getElementById("hero-slides").innerHTML = slide.image
     ? `
     <div class="flex items-center justify-center">
