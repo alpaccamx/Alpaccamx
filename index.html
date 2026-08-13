@@ -94,11 +94,11 @@
 </aside>
 
 <!-- Hero -->
-<section id="top" class="relative bg-blush overflow-hidden">
-  <div id="hero-slides" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+<section id="top" class="relative bg-blush overflow-hidden h-[400px] sm:h-[480px]">
+  <div id="hero-slides" class="absolute inset-0 flex items-center justify-center">
     <!-- slide content injected by JS -->
   </div>
-  <div id="hero-dots" class="relative z-10 flex justify-center gap-2 pb-6"></div>
+  <div id="hero-dots" class="absolute bottom-4 sm:bottom-6 left-0 right-0 z-10 flex justify-center gap-2"></div>
 </section>
 
 <!-- Scrolling ticker -->
@@ -254,6 +254,7 @@
       <span id="cart-total">$0.00</span>
     </div>
     <p id="cart-min-order" class="hidden text-xs text-rose text-center"></p>
+    <p id="cart-shipping-korea" class="hidden text-xs text-ink/60 text-center"></p>
     <p class="text-[11px] text-ink/50 text-center leading-snug">
       ⚠️ Tu pedido podría estar sujeto a un arancel de importación de EE. UU. (aprox. 10–15%). No es seguro que aplique — si aplica, se cobrará por separado antes de hacer el envío nacional.
     </p>
@@ -270,9 +271,10 @@
           class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
       </div>
       <div>
-        <label for="customer-cp" class="block text-xs font-semibold text-ink/60 mb-1">Código postal (para calcular envío, opcional)</label>
-        <input id="customer-cp" type="text" inputmode="numeric" maxlength="5" placeholder="Ej. 06700"
+        <label for="customer-cp" class="block text-xs font-semibold text-ink/60 mb-1">Código postal (para calcular tu envío nacional) *</label>
+        <input id="customer-cp" required type="text" inputmode="numeric" maxlength="5" placeholder="Ej. 06700"
           class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+        <p id="cart-shipping-nacional" class="hidden mt-1 text-xs text-ink/60"></p>
       </div>
       <div>
         <label for="customer-notes" class="block text-xs font-semibold text-ink/60 mb-1">Notas (opcional)</label>

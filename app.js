@@ -455,6 +455,7 @@ async function loadShippingKoreaRates() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const text = await res.text();
     shippingKoreaRates = csvToKoreaShippingTiers(text);
+    renderCart();
   } catch (err) {
     console.warn("No se pudo cargar la tabla de tarifas Corea-EE.UU.:", err);
   }
@@ -468,6 +469,7 @@ async function loadShippingNacionalRates() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const text = await res.text();
     shippingNacionalRates = csvToNacionalRates(text);
+    renderCart();
   } catch (err) {
     console.warn("No se pudo cargar la tabla de envío nacional:", err);
   }
@@ -534,13 +536,10 @@ function renderHeroSlide() {
   document.getElementById("top").classList.toggle("bg-blush", !slide.image);
 
   document.getElementById("hero-slides").innerHTML = slide.image
-    ? `
-    <div class="flex items-center justify-center">
-      <img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}"
-        class="max-h-56 sm:max-h-72 w-auto max-w-full rounded-2xl shadow-lg object-contain" />
-    </div>`
+    ? `<img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}"
+        class="absolute inset-0 w-full h-full object-cover" />`
     : `
-    <div class="text-center">
+    <div class="text-center px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
       <h1 class="font-logo text-3xl sm:text-5xl text-ink text-balance">${escapeHtml(slide.title)}</h1>
       <p class="mt-3 text-ink/70 max-w-xl mx-auto">${escapeHtml(slide.subtitle || "")}</p>
       ${
@@ -1048,6 +1047,24 @@ function minOrderMXN() {
   return (CONFIG.MIN_ORDER_USD || 0) * rate;
 }
 
+function updateNacionalShippingUI() {
+  const msg = document.getElementById("cart-shipping-nacional");
+  const cp = document.getElementById("customer-cp").value.trim();
+
+  if (!Object.keys(cart).length || cp.length !== 5) {
+    msg.classList.add("hidden");
+    return;
+  }
+
+  const shipping = shippingEstimate(cartWeight(), cp);
+  if (shipping && shipping.hasNacional) {
+    msg.textContent = `🚚 Envío nacional a CP ${cp}: ${formatPrice(shipping.nacionalMXN)}`;
+  } else {
+    msg.textContent = "No encontramos una tarifa para ese código postal — se confirmará por WhatsApp.";
+  }
+  msg.classList.remove("hidden");
+}
+
 function renderCart() {
   const wrap = document.getElementById("cart-items");
   const emptyMsg = document.getElementById("cart-empty");
@@ -1068,6 +1085,16 @@ function renderCart() {
   } else {
     minMsg.classList.add("hidden");
   }
+
+  const koreaMsg = document.getElementById("cart-shipping-korea");
+  const shipping = shippingEstimate(cartWeight(), "");
+  if (items.length && shipping && shipping.hasKorea) {
+    koreaMsg.textContent = `🚚 Envío Corea→EE. UU. estimado (${formatWeight(cartWeight())}): ${formatPrice(shipping.coreaMXN)}`;
+    koreaMsg.classList.remove("hidden");
+  } else {
+    koreaMsg.classList.add("hidden");
+  }
+  updateNacionalShippingUI();
 
   const sendBtn = document.getElementById("send-quote");
   sendBtn.disabled = items.length === 0 || belowMin;
@@ -1235,6 +1262,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("menu-close").addEventListener("click", closeMobileMenu);
   document.getElementById("menu-overlay").addEventListener("click", closeMobileMenu);
   document.getElementById("quote-form").addEventListener("submit", sendQuote);
+  document.getElementById("customer-cp").addEventListener("input", updateNacionalShippingUI);
 
   document.getElementById("quiz-retake").addEventListener("click", () => {
     localStorage.removeItem(SKIN_QUIZ_KEY);
