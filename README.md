@@ -198,6 +198,8 @@ const CONFIG = {
   WHATSAPP_NUMBER: "52XXXXXXXXXX",              // tu número con código de país, sin "+" ni espacios
   BUSINESS_NAME: "Alpacca",
   SHIPPING_MESSAGE: "...",     // barra superior
+  MIN_ORDER_USD: 250,          // pedido mínimo para poder cotizar, en dólares
+  MIN_ORDER_EXCHANGE_RATE_FALLBACK: 18, // tipo de cambio de respaldo si no cargó el de Config
   TICKER_MESSAGES: [...],      // frases de la barra deslizante
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
   HERO_SLIDES: [...],          // slides del banner principal (título, subtítulo, botón)
@@ -297,3 +299,8 @@ El listado (función `getMenuItems()` en `app.js`) combina:
 - Si el Google Sheet no carga (sin internet, URL incorrecta, hoja no
   publicada), el sitio cae automáticamente al catálogo de ejemplo en lugar
   de mostrar una página en blanco.
+- **Pedido mínimo**: mientras el carrito no llegue a `CONFIG.MIN_ORDER_USD`
+  (250 USD, convertidos a pesos con el tipo de cambio de la pestaña
+  Config), el botón "Enviar cotización por WhatsApp" queda deshabilitado
+  y se muestra cuánto le falta al cliente. Cambia `MIN_ORDER_USD` en
+  `app.js` si el mínimo cambia.

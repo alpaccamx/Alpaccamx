@@ -34,7 +34,14 @@ const CONFIG = {
   BUSINESS_NAME: "Mae",
 
   // Mensaje de la barra superior.
-  SHIPPING_MESSAGE: "📦 Pedido mínimo por mayoreo: $4,500 MXN ✨",
+  SHIPPING_MESSAGE: "📦 Pedido mínimo de compra: $250 USD (o su equivalente en MXN) ✨",
+
+  // Pedido mínimo para poder enviar la cotización, en dólares. Se
+  // convierte a pesos usando el tipo de cambio de la pestaña Config
+  // (ver SHIPPING_CONFIG_CSV_URL); si ese tipo de cambio no está
+  // disponible, se usa MIN_ORDER_EXCHANGE_RATE_FALLBACK como respaldo.
+  MIN_ORDER_USD: 250,
+  MIN_ORDER_EXCHANGE_RATE_FALLBACK: 18,
 
   // Mensajes que se muestran en la barra deslizante debajo del banner.
   TICKER_MESSAGES: [
@@ -137,7 +144,6 @@ const CONFIG = {
   // Bórralos de esta lista en cuanto la función exista de verdad.
   MENU_COMING_SOON: [
     "Asesoría personalizada ⭐",
-    "Mayoreo",
     "Rastrea tu pedido 🚚",
     "Mi cuenta",
   ],
@@ -431,6 +437,7 @@ async function loadShippingSettings() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const text = await res.text();
     shippingSettings = csvToShippingSettings(text);
+    renderCart();
   } catch (err) {
     console.warn("No se pudo cargar la configuración de envíos:", err);
   }
@@ -965,17 +972,34 @@ function formatWeight(kg) {
   return `${(kg || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 })} kg`;
 }
 
+function minOrderMXN() {
+  const rate = shippingSettings.exchangeRate || CONFIG.MIN_ORDER_EXCHANGE_RATE_FALLBACK || 18;
+  return (CONFIG.MIN_ORDER_USD || 0) * rate;
+}
+
 function renderCart() {
   const wrap = document.getElementById("cart-items");
   const emptyMsg = document.getElementById("cart-empty");
   const items = Object.entries(cart);
 
+  const total = cartTotal();
+  const minMXN = minOrderMXN();
+  const belowMin = items.length > 0 && total < minMXN;
+
   document.getElementById("cart-count").textContent = cartCount();
-  document.getElementById("cart-total").textContent = formatPrice(cartTotal());
-  document.getElementById("cart-total-header").textContent = formatPrice(cartTotal());
+  document.getElementById("cart-total").textContent = formatPrice(total);
+  document.getElementById("cart-total-header").textContent = formatPrice(total);
+
+  const minMsg = document.getElementById("cart-min-order");
+  if (belowMin) {
+    minMsg.textContent = `Te faltan ${formatPrice(minMXN - total)} para tu pedido mínimo de $${CONFIG.MIN_ORDER_USD} USD (~${formatPrice(minMXN)} MXN).`;
+    minMsg.classList.remove("hidden");
+  } else {
+    minMsg.classList.add("hidden");
+  }
 
   const sendBtn = document.getElementById("send-quote");
-  sendBtn.disabled = items.length === 0;
+  sendBtn.disabled = items.length === 0 || belowMin;
 
   if (!items.length) {
     wrap.innerHTML = "";
@@ -1074,6 +1098,11 @@ function buildWhatsAppMessage() {
 function sendQuote(e) {
   e.preventDefault();
   if (!Object.keys(cart).length) return;
+
+  if (cartTotal() < minOrderMXN()) {
+    setStatus(`Tu pedido no alcanza el mínimo de compra ($${CONFIG.MIN_ORDER_USD} USD / ${formatPrice(minOrderMXN())} MXN).`);
+    return;
+  }
 
   const numberIsPlaceholder = !CONFIG.WHATSAPP_NUMBER || CONFIG.WHATSAPP_NUMBER.includes("XXXX");
   if (numberIsPlaceholder) {
