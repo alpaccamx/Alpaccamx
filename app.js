@@ -679,7 +679,9 @@ function productCardHTML(p, { rank } = {}) {
       <div class="p-3 flex flex-col flex-1">
         ${
           p.presentacion
-            ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blush/50 text-ink/70 mb-1">${escapeHtml(p.presentacion)}</span>`
+            ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1 ${
+                p.presentacion.startsWith("Caja") ? "bg-lilac/20 text-lilac" : "bg-blush/50 text-ink/70"
+              }">${escapeHtml(p.presentacion)}</span>`
             : ""
         }
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
