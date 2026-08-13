@@ -903,6 +903,50 @@ function showBrandProducts(marca) {
 }
 
 /* ======================================================================
+   Búsqueda — filtra por nombre, marca y categoría. Muestra resultados
+   en vivo mientras el cliente escribe; solo hace scroll al enviar
+   (Enter) para no saltar la página en cada tecla.
+   ====================================================================== */
+function normalizeForSearch(s) {
+  return (s || "")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+function renderSearchResults(query) {
+  const q = normalizeForSearch(query).trim();
+  const section = document.getElementById("search-results-section");
+
+  if (!q) {
+    section.classList.add("hidden");
+    return;
+  }
+
+  const items = products.filter(
+    (p) =>
+      normalizeForSearch(p.nombre).includes(q) ||
+      normalizeForSearch(p.marca).includes(q) ||
+      normalizeForSearch(p.categoria).includes(q)
+  );
+
+  document.getElementById("search-results-title").textContent = `Resultados para "${query.trim()}"`;
+  section.classList.remove("hidden");
+
+  const grid = document.getElementById("search-results-grid");
+  const empty = document.getElementById("search-results-empty");
+  if (!items.length) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
+    wireAddButtons(grid);
+  }
+}
+
+/* ======================================================================
    Beneficios
    ====================================================================== */
 function renderBenefits() {
@@ -1175,6 +1219,18 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("brand-products-clear").addEventListener("click", () => {
     document.getElementById("brand-products").classList.add("hidden");
     document.getElementById("brands-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  const searchInput = document.getElementById("search-input");
+  document.getElementById("search-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    renderSearchResults(searchInput.value);
+    document.getElementById("search-results-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  searchInput.addEventListener("input", () => renderSearchResults(searchInput.value));
+  document.getElementById("search-results-clear").addEventListener("click", () => {
+    searchInput.value = "";
+    document.getElementById("search-results-section").classList.add("hidden");
   });
 
   renderTopBar();

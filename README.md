@@ -224,14 +224,23 @@ de datos.
 
 ## Secciones de la página
 
-Header (logo + carrito + menú ☰ en móvil) → menú de secciones (barra en
-escritorio / panel deslizante en móvil) → banner principal (rotativo) →
-barra deslizante → Best Seller (top 6 numerado) → quiz de tipo de piel →
-banner promocional → marcas → beneficios → footer.
+Header (logo + buscador + carrito + menú ☰ en móvil) → menú de secciones
+(barra en escritorio / panel deslizante en móvil) → banner principal
+(rotativo) → barra deslizante → Best Seller (top 6 numerado) → quiz de
+tipo de piel → banner promocional → marcas → beneficios → footer.
 
 Todas las secciones basadas en datos (Best Seller, tipo de piel, marcas)
 se ocultan automáticamente si tu catálogo no tiene esa información — no
 se muestra contenido inventado.
+
+### Buscador
+
+El campo de búsqueda del header filtra por nombre, marca y categoría
+(sin distinguir mayúsculas/minúsculas ni acentos) mientras el cliente
+escribe, y muestra los resultados en una sección debajo del header —
+igual que al hacer click en una marca, cada resultado usa la misma
+tarjeta de producto con su botón "Agregar". Se cierra con el botón
+"Cerrar búsqueda" o vaciando el campo.
 
 ### Quiz "¿Cuál es tu tipo de piel?"
 
@@ -273,11 +282,11 @@ El listado (función `getMenuItems()` en `app.js`) combina:
 
 ### Qué se dejó fuera a propósito
 
-- **Buscador, filtros de categoría y grid de "todos los productos"**: se
-  quitaron a pedido — el catálogo hoy se navega por las secciones curadas
-  (Best Seller, tipo de piel, marcas). Si más adelante quieres un grid
-  completo con filtros otra vez, se puede reconstruir sobre el mismo
-  `productCardHTML()` que ya usan esas secciones.
+- **Filtros de categoría y grid de "todos los productos"**: se quitaron a
+  pedido — el catálogo se navega por las secciones curadas (Best Seller,
+  tipo de piel, marcas) más el buscador del header. Si más adelante
+  quieres un grid completo con filtros, se puede reconstruir sobre el
+  mismo `productCardHTML()` que ya usan esas secciones.
 - **Testimonios de clientes con fotos**: no se fabrican reseñas falsas.
   Cuando tengas reseñas reales, es fácil agregar una sección similar a
   "Marcas" que las lea desde el Sheet o un array en `CONFIG`.
