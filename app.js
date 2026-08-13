@@ -1048,21 +1048,38 @@ function minOrderMXN() {
 }
 
 function updateNacionalShippingUI() {
-  const msg = document.getElementById("cart-shipping-nacional");
+  const row = document.getElementById("cart-shipping-nacional-row");
+  const label = document.getElementById("cart-shipping-nacional-label");
+  const amount = document.getElementById("cart-shipping-nacional");
   const cp = document.getElementById("customer-cp").value.trim();
 
   if (!Object.keys(cart).length || cp.length !== 5) {
-    msg.classList.add("hidden");
+    row.classList.add("hidden");
+    renderGrandTotal();
     return;
   }
 
   const shipping = shippingEstimate(cartWeight(), cp);
   if (shipping && shipping.hasNacional) {
-    msg.textContent = `🚚 Envío nacional a CP ${cp}: ${formatPrice(shipping.nacionalMXN)}`;
+    label.textContent = `🚚 Envío nacional a CP ${cp}`;
+    amount.textContent = formatPrice(shipping.nacionalMXN);
   } else {
-    msg.textContent = "No encontramos una tarifa para ese código postal — se confirmará por WhatsApp.";
+    label.textContent = "🚚 Envío nacional";
+    amount.textContent = "Se confirmará por WhatsApp";
   }
-  msg.classList.remove("hidden");
+  row.classList.remove("hidden");
+  renderGrandTotal();
+}
+
+function renderGrandTotal() {
+  const cp = document.getElementById("customer-cp").value.trim();
+  const shipping = shippingEstimate(cartWeight(), cp);
+
+  let grandTotal = cartTotal();
+  if (shipping && shipping.hasKorea) grandTotal += shipping.coreaMXN;
+  if (shipping && shipping.hasNacional) grandTotal += shipping.nacionalMXN;
+
+  document.getElementById("cart-grand-total").textContent = formatPrice(grandTotal);
 }
 
 function renderCart() {
@@ -1075,6 +1092,7 @@ function renderCart() {
   const belowMin = items.length > 0 && total < minMXN;
 
   document.getElementById("cart-count").textContent = cartCount();
+  document.getElementById("cart-total-label").textContent = `Total productos (${cartCount()})`;
   document.getElementById("cart-total").textContent = formatPrice(total);
   document.getElementById("cart-total-header").textContent = formatPrice(total);
 
@@ -1086,13 +1104,13 @@ function renderCart() {
     minMsg.classList.add("hidden");
   }
 
-  const koreaMsg = document.getElementById("cart-shipping-korea");
+  const koreaRow = document.getElementById("cart-shipping-korea-row");
   const shipping = shippingEstimate(cartWeight(), "");
   if (items.length && shipping && shipping.hasKorea) {
-    koreaMsg.textContent = `🚚 Envío Corea→EE. UU. estimado (${formatWeight(cartWeight())}): ${formatPrice(shipping.coreaMXN)}`;
-    koreaMsg.classList.remove("hidden");
+    document.getElementById("cart-shipping-korea").textContent = formatPrice(shipping.coreaMXN);
+    koreaRow.classList.remove("hidden");
   } else {
-    koreaMsg.classList.add("hidden");
+    koreaRow.classList.add("hidden");
   }
   updateNacionalShippingUI();
 
