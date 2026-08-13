@@ -74,8 +74,6 @@ const CONFIG = {
     {
       image: "assets/hero/skincare-coreano-flowchart.jpg",
       imageAlt: "¿Necesitas skincare coreano? Si no, piénsalo otra vez.",
-      ctaText: "Ver catálogo",
-      ctaHref: "#featured-section",
     },
   ],
 
@@ -535,17 +533,9 @@ function renderHeroSlide() {
 
   document.getElementById("hero-slides").innerHTML = slide.image
     ? `
-    <div class="text-center">
+    <div class="flex items-center justify-center">
       <img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}"
-        class="mx-auto max-w-full rounded-2xl shadow-lg" />
-      ${
-        slide.ctaText
-          ? `<a href="${escapeAttr(slide.ctaHref || "#")}"
-              class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition">
-              ${escapeHtml(slide.ctaText)}
-            </a>`
-          : ""
-      }
+        class="max-h-56 sm:max-h-72 w-auto max-w-full rounded-2xl shadow-lg object-contain" />
     </div>`
     : `
     <div class="text-center">
@@ -707,7 +697,10 @@ function productCardHTML(p, { rank } = {}) {
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
         <h3 class="font-semibold text-sm text-ink leading-snug mt-0.5 line-clamp-2">${escapeHtml(p.nombre)}</h3>
         <div class="mt-auto pt-2 flex items-center justify-between gap-2">
-          <span class="font-display text-ink">${formatPrice(p.precio)}</span>
+          <div class="leading-tight">
+            <span class="font-display text-ink block">${formatPrice(p.precio)}</span>
+            ${boxUnitPriceHTML(p)}
+          </div>
           <button data-add="${escapeAttr(p.id)}" ${!p.disponible ? "disabled" : ""}
             class="rounded-full bg-rose text-cream text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
             Agregar
@@ -715,6 +708,16 @@ function productCardHTML(p, { rank } = {}) {
         </div>
       </div>
     </div>`;
+}
+
+/* Para presentaciones "Caja con N piezas", muestra el costo por pieza
+   individual para que el cliente no tenga que dividir el total. */
+function boxUnitPriceHTML(p) {
+  const match = /Caja con (\d+) piezas/i.exec(p.presentacion || "");
+  if (!match) return "";
+  const qty = Number(match[1]);
+  if (!qty) return "";
+  return `<span class="block text-[10px] text-ink/40">${formatPrice(p.precio / qty)} c/u</span>`;
 }
 
 function wireAddButtons(container) {
