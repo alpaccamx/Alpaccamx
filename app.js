@@ -71,6 +71,12 @@ const CONFIG = {
       ctaText: "Ver novedades",
       ctaHref: "#featured-section",
     },
+    {
+      image: "assets/hero/skincare-coreano-flowchart.jpg",
+      imageAlt: "¿Necesitas skincare coreano? Si no, piénsalo otra vez.",
+      ctaText: "Ver catálogo",
+      ctaHref: "#featured-section",
+    },
   ],
 
   // Emojis para las etiquetas de la columna opcional "TipoPiel" del Sheet.
@@ -527,7 +533,21 @@ function renderHeroSlide() {
   if (!slides.length) return;
   const slide = slides[heroIndex];
 
-  document.getElementById("hero-slides").innerHTML = `
+  document.getElementById("hero-slides").innerHTML = slide.image
+    ? `
+    <div class="text-center">
+      <img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}"
+        class="mx-auto max-w-full rounded-2xl shadow-lg" />
+      ${
+        slide.ctaText
+          ? `<a href="${escapeAttr(slide.ctaHref || "#")}"
+              class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition">
+              ${escapeHtml(slide.ctaText)}
+            </a>`
+          : ""
+      }
+    </div>`
+    : `
     <div class="text-center">
       <h1 class="font-logo text-3xl sm:text-5xl text-ink text-balance">${escapeHtml(slide.title)}</h1>
       <p class="mt-3 text-ink/70 max-w-xl mx-auto">${escapeHtml(slide.subtitle || "")}</p>
