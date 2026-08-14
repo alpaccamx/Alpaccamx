@@ -143,14 +143,6 @@ const CONFIG = {
     { emoji: "✅", title: "Catálogo verificado", text: "Disponibilidad real" },
   ],
 
-  // Links del menú móvil (☰) que todavía no tienen una función real detrás.
-  // Al tocarlos se muestra un aviso "próximamente" en vez de un link roto.
-  // Bórralos de esta lista en cuanto la función exista de verdad.
-  MENU_COMING_SOON: [
-    "Asesoría personalizada ⭐",
-    "Rastrea tu pedido 🚚",
-    "Mi cuenta",
-  ],
 };
 
 /* ======================================================================
@@ -601,23 +593,27 @@ function renderTicker() {
 /* ======================================================================
    Ítems del menú — se usan tanto en la barra horizontal de escritorio
    (siempre visible, debajo del header) como en el menú ☰ de móvil.
-   Mezcla links reales a secciones de la página y accesos "próximamente"
-   definidos en CONFIG.MENU_COMING_SOON.
+   "Marcas" es un caso especial: en vez de enlazar directo a la sección,
+   trae la lista de marcas para mostrarse como menú desplegable.
    ====================================================================== */
 function getMenuItems() {
   const sectionLinks = [
     { label: "Best Seller", href: "#featured-section" },
     { label: "Explora por tipo de piel", href: "#skintype-section" },
-    { label: "Marcas", href: "#brands-section" },
   ].filter((item) => {
     const el = document.querySelector(item.href);
     return el && !el.classList.contains("hidden");
   });
 
-  return [
-    ...sectionLinks.map((s) => ({ type: "link", label: s.label, href: s.href })),
-    ...(CONFIG.MENU_COMING_SOON || []).map((label) => ({ type: "soon", label })),
-  ];
+  const items = sectionLinks.map((s) => ({ type: "link", label: s.label, href: s.href }));
+
+  const brandsSection = document.getElementById("brands-section");
+  if (brandsSection && !brandsSection.classList.contains("hidden")) {
+    const brands = [...new Set(products.map((p) => p.marca).filter(Boolean))].sort();
+    items.push({ type: "brands", label: "Marcas", href: "#brands-section", brands });
+  }
+
+  return items;
 }
 
 function menuItemHTML(item, variant) {
@@ -626,9 +622,35 @@ function menuItemHTML(item, variant) {
     ? "text-sm font-semibold whitespace-nowrap"
     : "block px-5 py-4 border-b border-ink/10 font-semibold uppercase text-sm tracking-wide";
 
-  if (item.type === "soon") {
-    return `<button type="button" data-menu-soon="${escapeAttr(item.label)}"
-      class="${base} text-ink/40 ${isHorizontal ? "" : "w-full text-left"}">${escapeHtml(item.label)}</button>`;
+  if (item.type === "brands") {
+    const brandOptions = item.brands
+      .map(
+        (b) =>
+          `<button type="button" data-menu-brand="${escapeAttr(b)}"
+            class="block w-full text-left px-4 py-2 text-sm text-ink/70 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(b)}</button>`
+      )
+      .join("");
+    if (isHorizontal) {
+      return `<div class="relative" data-brands-dropdown>
+        <button type="button" data-brands-toggle
+          class="${base} text-ink/80 hover:text-ink transition inline-flex items-center gap-1">
+          ${escapeHtml(item.label)}
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div data-brands-panel
+          class="hidden fixed w-52 max-h-80 overflow-y-auto rounded-xl border border-ink/10 bg-cream shadow-lg py-2 z-50">
+          ${brandOptions}
+        </div>
+      </div>`;
+    }
+    return `<div data-brands-dropdown>
+      <button type="button" data-brands-toggle
+        class="${base} w-full text-left text-ink/80 hover:text-ink transition inline-flex items-center justify-between">
+        ${escapeHtml(item.label)}
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div data-brands-panel class="hidden bg-blush/10">${brandOptions}</div>
+    </div>`;
   }
   return `<a href="${escapeAttr(item.href)}" data-menu-link
     class="${base} text-ink/80 hover:text-ink transition">${escapeHtml(item.label)}</a>`;
@@ -640,13 +662,35 @@ function wireMenuItems(container, onNavigate) {
       if (onNavigate) onNavigate();
     });
   });
-  container.querySelectorAll("[data-menu-soon]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      if (onNavigate) onNavigate();
-      setStatus(`Muy pronto: "${btn.dataset.menuSoon}" — esta función todavía no está disponible.`);
+
+  container.querySelectorAll("[data-brands-dropdown]").forEach((wrap) => {
+    const toggle = wrap.querySelector("[data-brands-toggle]");
+    const panel = wrap.querySelector("[data-brands-panel]");
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (panel.classList.contains("fixed")) {
+        const rect = toggle.getBoundingClientRect();
+        panel.style.top = `${rect.bottom + 8}px`;
+        panel.style.left = `${rect.left}px`;
+      }
+      panel.classList.toggle("hidden");
+    });
+    wrap.querySelectorAll("[data-menu-brand]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        panel.classList.add("hidden");
+        if (onNavigate) onNavigate();
+        document.getElementById("brands-section").scrollIntoView({ behavior: "smooth" });
+        showBrandProducts(btn.dataset.menuBrand);
+      });
     });
   });
 }
+
+document.addEventListener("click", (e) => {
+  document.querySelectorAll("[data-brands-panel]").forEach((panel) => {
+    if (!panel.parentElement.contains(e.target)) panel.classList.add("hidden");
+  });
+});
 
 /* ======================================================================
    Navegación de escritorio (barra horizontal con flechas, siempre visible)
