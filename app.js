@@ -188,6 +188,13 @@ const DEMO_PRODUCTS = [
   { id: "d6", nombre: "Labial Tinta Frutal", categoria: "Maquillaje", marca: "Rom&nd", precio: 260, peso: 0.03, imagen: placeholderImg("Labial", "#fbe6c8"), descripcion: "Larga duración, tono jugoso.", disponible: true, destacado: ["Best Seller"], tipoPiel: [] },
   { id: "d7", nombre: "Mascarilla Capilar Reparadora", categoria: "Cuidado Capilar", marca: "Mise en Scene", precio: 300, peso: 0.2, imagen: placeholderImg("Cabello", "#d9e2df"), descripcion: "Repara puntas abiertas.", disponible: true, destacado: ["Best Seller"], tipoPiel: [] },
   { id: "d8", nombre: "Mascarilla de Tela Hidratante (5pz)", categoria: "Skincare", marca: "Mediheal", precio: 210, peso: 0.11, imagen: placeholderImg("Mascarilla", "#e9c3be"), descripcion: "Hidratación profunda 20 min.", disponible: true, destacado: ["Recomendado"], tipoPiel: ["Seca", "Sensible"] },
+  { id: "d9", nombre: "Mild Acidic pH Sheet Mask - 6 Types (Aqua Fit)", categoria: "Skincare", marca: "Abib", precio: 31, peso: 0.036, presentacion: "Pieza individual", imagen: placeholderImg("Sheet Mask", "#d9e2df"), descripcion: "Mascarilla en lámina de pH ligeramente ácido que equilibra e hidrata la piel.", disponible: true, destacado: ["Nuevo"], tipoPiel: ["Normal", "Seca", "Sensible", "Mixta"] },
+  { id: "d9b", nombre: "Mild Acidic pH Sheet Mask - 6 Types (Glutathiosome Fit)", categoria: "Skincare", marca: "Abib", precio: 31, peso: 0.036, presentacion: "Pieza individual", imagen: placeholderImg("Sheet Mask", "#d9e2df"), descripcion: "Con glutatión encapsulado que ilumina el tono.", disponible: true, destacado: [], tipoPiel: ["Normal", "Mixta", "Sensible"] },
+  { id: "d9c", nombre: "Mild Acidic pH Sheet Mask - 6 Types (Heartleaf Fit)", categoria: "Skincare", marca: "Abib", precio: 31, peso: 0.036, presentacion: "Pieza individual", imagen: placeholderImg("Sheet Mask", "#d9e2df"), descripcion: "Con Houttuynia cordata que calma la piel sensible.", disponible: true, destacado: [], tipoPiel: ["Sensible", "Seca", "Normal"] },
+  { id: "d9d", nombre: "Mild Acidic pH Sheet Mask - 6 Types (Aqua Fit)", categoria: "Skincare", marca: "Abib", precio: 207, peso: 0.36, presentacion: "Caja con 10 piezas", imagen: placeholderImg("Sheet Mask", "#d9e2df"), descripcion: "Mascarilla en lámina de pH ligeramente ácido que equilibra e hidrata la piel.", disponible: true, destacado: [], tipoPiel: ["Normal", "Seca", "Sensible", "Mixta"] },
+  { id: "d9e", nombre: "Mild Acidic pH Sheet Mask - 6 Types (Honey Fit)", categoria: "Skincare", marca: "Abib", precio: 207, peso: 0.36, presentacion: "Caja con 10 piezas", imagen: placeholderImg("Sheet Mask", "#d9e2df"), descripcion: "Con miel, propóleo y jalea real que nutre la piel seca.", disponible: true, destacado: [], tipoPiel: ["Seca", "Normal", "Sensible"] },
+  { id: "d10", nombre: "Mild Acidic pH Sheet Mask Set - 6 Types (Aqua Fit)", categoria: "Skincare", marca: "Abib", precio: 244, peso: 0.398, presentacion: "Pieza individual", imagen: placeholderImg("Sheet Mask Set", "#f3d9d0"), descripcion: "Mascarilla en lámina de pH ligeramente ácido que equilibra e hidrata la piel.", disponible: true, destacado: [], tipoPiel: ["Normal", "Seca", "Sensible", "Mixta"] },
+  { id: "d10b", nombre: "Mild Acidic pH Sheet Mask Set - 6 Types (Jericho Rose Fit)", categoria: "Skincare", marca: "Abib", precio: 244, peso: 0.398, presentacion: "Pieza individual", imagen: placeholderImg("Sheet Mask Set", "#f3d9d0"), descripcion: "Con Rosa de Jericó que reafirma e hidrata sin irritar.", disponible: true, destacado: [], tipoPiel: ["Normal", "Seca", "Mixta"] },
 ];
 
 /* ======================================================================
@@ -731,17 +738,24 @@ function agotadoBadgeHTML() {
   return `<span class="bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>`;
 }
 
-/* Agrupa variantes de tono/color (nombres que terminan en "(#13 Neutral
-   Ivory)", etc.) de la misma marca y presentación en una sola tarjeta con
-   selector, para que el catálogo no se vea saturado del mismo producto
-   repetido por cada tono. */
+/* Agrupa variantes (tono/color o tipo/aroma) de la misma marca y
+   presentación en una sola tarjeta con selector, para que el catálogo no
+   se vea saturado del mismo producto repetido por cada variante. Cubre dos
+   convenciones de nombre usadas en la hoja:
+     - "... (#13 Neutral Ivory)"       → tono/color con código numérico
+     - "... - 6 Types (Aqua Fit)"      → variante de tipo/aroma, señalada
+                                          por "- N Types/Colors/..." antes
+                                          del paréntesis final, para no
+                                          agrupar paréntesis sueltos como
+                                          "(5pz)" en productos sin variantes */
 const SHADE_VARIANT_RE = /^(.*)\s\((#\d+[^)]*)\)$/;
+const TYPE_VARIANT_RE = /^(.*-\s*\d+\s+[A-Za-zÀ-ÿ]+)\s\(([^)]+)\)$/;
 
 function groupVariants(list) {
   const order = [];
   const groups = new Map();
   for (const p of list) {
-    const m = SHADE_VARIANT_RE.exec(p.nombre || "");
+    const m = SHADE_VARIANT_RE.exec(p.nombre || "") || TYPE_VARIANT_RE.exec(p.nombre || "");
     if (!m) {
       order.push(p);
       continue;
