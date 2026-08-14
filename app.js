@@ -182,7 +182,9 @@ const DEMO_PRODUCTS = [
   { id: "d2", nombre: "Sérum de Niacinamida 10%", categoria: "Skincare", marca: "Round Lab", precio: 450, peso: 0.09, presentacion: "Pieza individual", imagen: placeholderImg("Sérum", "#f3d9d0"), descripcion: "Ilumina y empareja el tono.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: ["Grasa", "Mixta"] },
   { id: "d3", nombre: "Crema Hidratante Cica", categoria: "Skincare", marca: "Dr.Althea", precio: 520, peso: 0.15, imagen: placeholderImg("Crema", "#e9c3be"), descripcion: "Calma e hidrata piel sensible.", disponible: true, destacado: ["Best Seller"], tipoPiel: ["Sensible", "Seca"] },
   { id: "d4", nombre: "Protector Solar SPF50 PA++++", categoria: "Skincare", marca: "Beauty of Joseon", precio: 380, peso: 0.06, imagen: placeholderImg("Sunscreen", "#f3d9d0"), descripcion: "Ligero, sin dejar residuo blanco.", disponible: false, destacado: [], tipoPiel: ["Normal"] },
-  { id: "d5", nombre: "Base Cushion Glow", categoria: "Maquillaje", marca: "Missha", precio: 480, peso: 0.12, imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: [] },
+  { id: "d5", nombre: "Base Cushion Glow - 3 Colors (#21 Light Beige)", categoria: "Maquillaje", marca: "Missha", precio: 480, peso: 0.12, presentacion: "Pieza individual", imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true, destacado: ["Nuevo", "Best Seller"], tipoPiel: [] },
+  { id: "d5b", nombre: "Base Cushion Glow - 3 Colors (#23 Natural Beige)", categoria: "Maquillaje", marca: "Missha", precio: 480, peso: 0.12, presentacion: "Pieza individual", imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true, destacado: [], tipoPiel: [] },
+  { id: "d5c", nombre: "Base Cushion Glow - 3 Colors (#27 Sand Beige)", categoria: "Maquillaje", marca: "Missha", precio: 480, peso: 0.12, presentacion: "Pieza individual", imagen: placeholderImg("Cushion", "#fbe6c8"), descripcion: "Cobertura media, acabado luminoso.", disponible: true, destacado: [], tipoPiel: [] },
   { id: "d6", nombre: "Labial Tinta Frutal", categoria: "Maquillaje", marca: "Rom&nd", precio: 260, peso: 0.03, imagen: placeholderImg("Labial", "#fbe6c8"), descripcion: "Larga duración, tono jugoso.", disponible: true, destacado: ["Best Seller"], tipoPiel: [] },
   { id: "d7", nombre: "Mascarilla Capilar Reparadora", categoria: "Cuidado Capilar", marca: "Mise en Scene", precio: 300, peso: 0.2, imagen: placeholderImg("Cabello", "#d9e2df"), descripcion: "Repara puntas abiertas.", disponible: true, destacado: ["Best Seller"], tipoPiel: [] },
   { id: "d8", nombre: "Mascarilla de Tela Hidratante (5pz)", categoria: "Skincare", marca: "Mediheal", precio: 210, peso: 0.11, imagen: placeholderImg("Mascarilla", "#e9c3be"), descripcion: "Hidratación profunda 20 min.", disponible: true, destacado: ["Recomendado"], tipoPiel: ["Seca", "Sensible"] },
@@ -679,13 +681,14 @@ function closeMobileMenu() {
    ====================================================================== */
 function productCardHTML(p, { rank } = {}) {
   const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
+  const hasVariants = p.variants && p.variants.length > 1;
   return `
     <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full">
       <div class="aspect-square bg-blush/20 overflow-hidden relative">
         ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-rose text-cream font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
-        <img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
+        <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
           class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-        ${!p.disponible ? `<span class="absolute top-2 ${rank ? "right-2" : "left-2"} bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>` : ""}
+        <div data-card-badge class="absolute top-2 ${rank ? "right-2" : "left-2"}">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
       </div>
       <div class="p-3 flex flex-col flex-1">
         ${
@@ -697,10 +700,23 @@ function productCardHTML(p, { rank } = {}) {
         }
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
         <h3 class="font-semibold text-sm text-ink leading-snug mt-0.5 line-clamp-2">${escapeHtml(p.nombre)}</h3>
+        ${
+          hasVariants
+            ? `<select data-variant-select
+                class="mt-1 text-xs border border-ink/15 rounded-md px-1.5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-blush">
+                ${p.variants
+                  .map(
+                    (v) =>
+                      `<option value="${escapeAttr(v.product.id)}" ${v.product.id === p.id ? "selected" : ""}>${escapeHtml(v.label)}</option>`
+                  )
+                  .join("")}
+              </select>`
+            : ""
+        }
         <div class="mt-auto pt-2 flex items-center justify-between gap-2">
           <div class="leading-tight">
-            <span class="font-display text-ink block">${formatPrice(p.precio)}</span>
-            ${boxUnitPriceHTML(p)}
+            <span data-card-price class="font-display text-ink block">${formatPrice(p.precio)}</span>
+            <span data-card-unit>${boxUnitPriceHTML(p)}</span>
           </div>
           <button data-add="${escapeAttr(p.id)}" ${!p.disponible ? "disabled" : ""}
             class="rounded-full bg-rose text-cream text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
@@ -709,6 +725,64 @@ function productCardHTML(p, { rank } = {}) {
         </div>
       </div>
     </div>`;
+}
+
+function agotadoBadgeHTML() {
+  return `<span class="bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>`;
+}
+
+/* Agrupa variantes de tono/color (nombres que terminan en "(#13 Neutral
+   Ivory)", etc.) de la misma marca y presentación en una sola tarjeta con
+   selector, para que el catálogo no se vea saturado del mismo producto
+   repetido por cada tono. */
+const SHADE_VARIANT_RE = /^(.*)\s\((#\d+[^)]*)\)$/;
+
+function groupVariants(list) {
+  const order = [];
+  const groups = new Map();
+  for (const p of list) {
+    const m = SHADE_VARIANT_RE.exec(p.nombre || "");
+    if (!m) {
+      order.push(p);
+      continue;
+    }
+    const [, baseName, label] = m;
+    const key = `${p.marca}||${baseName}||${p.presentacion || ""}`;
+    let entry = groups.get(key);
+    if (!entry) {
+      entry = { ...p, nombre: baseName, variants: [] };
+      groups.set(key, entry);
+      order.push(entry);
+    }
+    entry.variants.push({ label, product: p });
+  }
+  return order;
+}
+
+function wireVariantSelectors(container) {
+  container.querySelectorAll("[data-variant-select]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const variant = products.find((p) => p.id === select.value);
+      const card = select.closest(".group");
+      if (!variant || !card) return;
+
+      const addBtn = card.querySelector("[data-add]");
+      addBtn.dataset.add = variant.id;
+      addBtn.disabled = !variant.disponible;
+
+      const priceEl = card.querySelector("[data-card-price]");
+      if (priceEl) priceEl.textContent = formatPrice(variant.precio);
+
+      const unitEl = card.querySelector("[data-card-unit]");
+      if (unitEl) unitEl.innerHTML = boxUnitPriceHTML(variant);
+
+      const badgeEl = card.querySelector("[data-card-badge]");
+      if (badgeEl) badgeEl.innerHTML = variant.disponible ? "" : agotadoBadgeHTML();
+
+      const imgEl = card.querySelector("[data-card-img]");
+      if (imgEl && variant.imagen) imgEl.src = variant.imagen;
+    });
+  });
 }
 
 /* Para presentaciones "Caja con N piezas", muestra el costo por pieza
@@ -734,7 +808,7 @@ function wireAddButtons(container) {
    ====================================================================== */
 function renderBestSellers() {
   const section = document.getElementById("featured-section");
-  const items = products.filter((p) => (p.destacado || []).includes("Best Seller")).slice(0, 6);
+  const items = groupVariants(products.filter((p) => (p.destacado || []).includes("Best Seller"))).slice(0, 6);
 
   if (!items.length) {
     section.classList.add("hidden");
@@ -745,6 +819,7 @@ function renderBestSellers() {
   const grid = document.getElementById("featured-top");
   grid.innerHTML = items.map((p, i) => productCardHTML(p, { rank: i + 1 })).join("");
   wireAddButtons(grid);
+  wireVariantSelectors(grid);
 }
 
 /* ======================================================================
@@ -850,7 +925,7 @@ function showQuizResult(type) {
   document.getElementById("quiz-result-emoji").textContent = CONFIG.SKIN_TYPE_EMOJI[type] || CONFIG.SKIN_TYPE_DEFAULT_EMOJI;
   document.getElementById("quiz-result-label").textContent = type;
 
-  const items = products.filter((p) => (p.tipoPiel || []).includes(type));
+  const items = groupVariants(products.filter((p) => (p.tipoPiel || []).includes(type)));
   const row = document.getElementById("skintype-row");
   const empty = document.getElementById("skintype-empty");
 
@@ -863,6 +938,7 @@ function showQuizResult(type) {
       .map((p) => `<div class="w-40 sm:w-48 flex-shrink-0 snap-start">${productCardHTML(p)}</div>`)
       .join("");
     wireAddButtons(row);
+    wireVariantSelectors(row);
   }
 }
 
@@ -908,7 +984,7 @@ function renderBrands() {
 }
 
 function showBrandProducts(marca) {
-  const items = products.filter((p) => p.marca === marca);
+  const items = groupVariants(products.filter((p) => p.marca === marca));
   const wrap = document.getElementById("brand-products");
   const grid = document.getElementById("brand-products-grid");
   const empty = document.getElementById("brand-products-empty");
@@ -923,6 +999,7 @@ function showBrandProducts(marca) {
     empty.classList.add("hidden");
     grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
     wireAddButtons(grid);
+    wireVariantSelectors(grid);
   }
 
   wrap.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -950,11 +1027,13 @@ function renderSearchResults(query) {
     return;
   }
 
-  const items = products.filter(
-    (p) =>
-      normalizeForSearch(p.nombre).includes(q) ||
-      normalizeForSearch(p.marca).includes(q) ||
-      normalizeForSearch(p.categoria).includes(q)
+  const items = groupVariants(
+    products.filter(
+      (p) =>
+        normalizeForSearch(p.nombre).includes(q) ||
+        normalizeForSearch(p.marca).includes(q) ||
+        normalizeForSearch(p.categoria).includes(q)
+    )
   );
 
   document.getElementById("search-results-title").textContent = `Resultados para "${query.trim()}"`;
@@ -969,6 +1048,7 @@ function renderSearchResults(query) {
     empty.classList.add("hidden");
     grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
     wireAddButtons(grid);
+    wireVariantSelectors(grid);
   }
 }
 
