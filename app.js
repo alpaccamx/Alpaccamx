@@ -710,12 +710,10 @@ function productCardHTML(p, { rank } = {}) {
         ${
           hasVariants
             ? `<select data-variant-select
-                class="mt-1 text-xs border border-ink/15 rounded-md px-1.5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-blush">
+                class="mt-1 w-full truncate text-xs border border-ink/15 rounded-md pl-1.5 pr-5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-blush">
+                <option value="" selected disabled>Selecciona una versión</option>
                 ${p.variants
-                  .map(
-                    (v) =>
-                      `<option value="${escapeAttr(v.product.id)}" ${v.product.id === p.id ? "selected" : ""}>${escapeHtml(v.label)}</option>`
-                  )
+                  .map((v) => `<option value="${escapeAttr(v.product.id)}">${escapeHtml(v.label)}</option>`)
                   .join("")}
               </select>`
             : ""
@@ -725,7 +723,7 @@ function productCardHTML(p, { rank } = {}) {
             <span data-card-price class="font-display text-ink block">${formatPrice(p.precio)}</span>
             <span data-card-unit>${boxUnitPriceHTML(p)}</span>
           </div>
-          <button data-add="${escapeAttr(p.id)}" ${!p.disponible ? "disabled" : ""}
+          <button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
             class="rounded-full bg-rose text-cream text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
             Agregar
           </button>
@@ -778,9 +776,14 @@ function wireVariantSelectors(container) {
     select.addEventListener("change", () => {
       const variant = products.find((p) => p.id === select.value);
       const card = select.closest(".group");
-      if (!variant || !card) return;
+      if (!card) return;
 
       const addBtn = card.querySelector("[data-add]");
+      if (!variant) {
+        addBtn.dataset.add = "";
+        addBtn.disabled = true;
+        return;
+      }
       addBtn.dataset.add = variant.id;
       addBtn.disabled = !variant.disponible;
 
