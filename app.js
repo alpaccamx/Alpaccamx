@@ -666,16 +666,23 @@ function wireMenuItems(container, onNavigate) {
   container.querySelectorAll("[data-brands-dropdown]").forEach((wrap) => {
     const toggle = wrap.querySelector("[data-brands-toggle]");
     const panel = wrap.querySelector("[data-brands-panel]");
+    // El panel fixed se saca al <body> para que no quede atrapado por el
+    // "contenedor" que crea el backdrop-blur del header en elementos fixed
+    // (si no, "top"/"left" quedan relativos al header en vez de la ventana).
+    if (panel.classList.contains("fixed")) {
+      document.body.appendChild(panel);
+      panel.__trigger = wrap;
+    }
     toggle.addEventListener("click", (e) => {
       e.stopPropagation();
       if (panel.classList.contains("fixed")) {
         const rect = toggle.getBoundingClientRect();
-        panel.style.top = `${rect.bottom + 8}px`;
+        panel.style.top = `${rect.bottom + 2}px`;
         panel.style.left = `${rect.left}px`;
       }
       panel.classList.toggle("hidden");
     });
-    wrap.querySelectorAll("[data-menu-brand]").forEach((btn) => {
+    panel.querySelectorAll("[data-menu-brand]").forEach((btn) => {
       btn.addEventListener("click", () => {
         panel.classList.add("hidden");
         if (onNavigate) onNavigate();
@@ -688,7 +695,8 @@ function wireMenuItems(container, onNavigate) {
 
 document.addEventListener("click", (e) => {
   document.querySelectorAll("[data-brands-panel]").forEach((panel) => {
-    if (!panel.parentElement.contains(e.target)) panel.classList.add("hidden");
+    const owner = panel.__trigger || panel.parentElement;
+    if (!panel.contains(e.target) && !owner.contains(e.target)) panel.classList.add("hidden");
   });
 });
 
