@@ -1327,30 +1327,34 @@ function buildWhatsAppMessage() {
 
   const lines = items.map((it, i) => {
     const nombre = it.product.presentacion ? `${it.product.nombre} (${it.product.presentacion})` : it.product.nombre;
-    return `${i + 1}. ${nombre} x${it.qty} — ${formatPrice(it.product.precio * it.qty)}`;
+    const marca = it.product.marca ? `${it.product.marca} — ` : "";
+    return `${i + 1}. ${marca}${nombre} x${it.qty} — ${formatPrice(it.product.precio * it.qty)}`;
   });
 
   const weight = cartWeight();
   const shipping = shippingEstimate(weight, cp);
+  const grandTotal = cartTotal() + (shipping ? shipping.totalMXN : 0);
 
   const parts = [
     `Hola ${CONFIG.BUSINESS_NAME}! Quiero cotizar lo siguiente:`,
     "",
     ...lines,
     "",
-    `*Total estimado: ${formatPrice(cartTotal())}*`,
+    `Subtotal productos: ${formatPrice(cartTotal())}`,
     `📦 Peso total estimado: ${formatWeight(weight)}`,
   ];
 
   if (shipping) {
     parts.push(`🚚 Envío estimado (referencia, sujeto a confirmación): ${formatPrice(shipping.totalMXN)}`);
     if (shipping.hasKorea) {
-      parts.push(`   • Corea→EE.UU.: ${formatPrice(shipping.coreaMXN)} (≈ $${shipping.coreaUSD.toFixed(2)} USD)`);
+      parts.push(`   • Corea→EE.UU.: ${formatPrice(shipping.coreaMXN)}`);
     }
     if (shipping.hasNacional) {
       parts.push(`   • Nacional MX (Estafeta, CP ${cp}): ${formatPrice(shipping.nacionalMXN)}`);
     }
   }
+
+  parts.push("", `*Total a pagar: ${formatPrice(grandTotal)}*`);
 
   parts.push("", `Nombre: ${name}`);
   if (phone) parts.push(`Teléfono: ${phone}`);
