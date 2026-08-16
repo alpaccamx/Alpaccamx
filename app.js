@@ -68,14 +68,8 @@ const CONFIG = {
       ctaSecondaryText: "Hablar con Mae",
     },
     {
-      title: "Lo nuevo llegó a Alpacca",
-      subtitle: "Descubre las últimas novedades del catálogo.",
-      ctaText: "Ver novedades",
-      ctaHref: "#featured-section",
-    },
-    {
-      image: "assets/hero/skincare-coreano-flowchart.jpg",
-      imageAlt: "¿Necesitas skincare coreano? Si no, piénsalo otra vez.",
+      image: "assets/hero/skincare-mayoreo-banner.jpg",
+      imageAlt: "Skincare coreano para tu negocio - venta por mayoreo Alpacca, marcas reales, resultados reales.",
     },
   ],
 
@@ -536,13 +530,11 @@ function renderHeroSlide() {
   if (!slides.length) return;
   const slide = slides[heroIndex];
 
-  document.getElementById("top").classList.toggle("bg-blush", !slide.image);
-
   const secondaryHref = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una pregunta.`);
 
   document.getElementById("hero-slides").innerHTML = slide.image
     ? `<img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}"
-        class="absolute inset-0 w-full h-full object-cover" />`
+        class="absolute inset-0 w-full h-full object-contain" />`
     : `
     <div class="text-center px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
       ${
