@@ -131,9 +131,9 @@ const CONFIG = {
 
   // Franja promocional ancha, entre las colecciones y las marcas.
   PROMO_BANNER: {
-    title: "Lo mejor, al mejor precio",
-    subtitle: "Calidad que se nota, sin pagar de más.",
-    ctaText: "Ver catálogo",
+    title: "Skincare asiático que tus clientes van a querer",
+    subtitle: "Productos coreanos seleccionados para tu negocio.",
+    ctaText: "Explorar catálogo",
     ctaHref: "#featured-section",
   },
 

@@ -18,3 +18,15 @@
     overflow: hidden;
   }
 }
+
+/* El header es "sticky", así que al saltar a una sección por ancla (menú,
+   footer) el header tapaba el inicio de esa sección. scroll-padding-top
+   deja el espacio exacto para que nada quede oculto detrás. */
+html {
+  scroll-padding-top: 4.5rem;
+}
+@media (min-width: 640px) {
+  html {
+    scroll-padding-top: 7.5rem;
+  }
+}
