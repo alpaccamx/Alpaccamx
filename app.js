@@ -60,10 +60,12 @@ const CONFIG = {
   // Slides del banner principal. Agrega o quita objetos para más o menos slides.
   HERO_SLIDES: [
     {
-      title: "Bienvenido a Alpacca",
-      subtitle: "Arma tu pedido y cotiza por WhatsApp — sin pagos en línea.",
-      ctaText: "Ver catálogo",
+      eyebrow: "Alpacca",
+      title: "Skincare asiático al mayoreo, sin complicaciones",
+      subtitle: "Explora nuestro catálogo curado, arma tu pedido y recibe atención personalizada en cada cotización.",
+      ctaText: "Explorar catálogo",
       ctaHref: "#featured-section",
+      ctaSecondaryText: "Hablar con Mae",
     },
     {
       title: "Lo nuevo llegó a Alpacca",
@@ -536,21 +538,38 @@ function renderHeroSlide() {
 
   document.getElementById("top").classList.toggle("bg-blush", !slide.image);
 
+  const secondaryHref = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una pregunta.`);
+
   document.getElementById("hero-slides").innerHTML = slide.image
     ? `<img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}"
         class="absolute inset-0 w-full h-full object-cover" />`
     : `
     <div class="text-center px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
-      <h1 class="font-logo text-3xl sm:text-5xl text-ink text-balance">${escapeHtml(slide.title)}</h1>
-      <p class="mt-3 text-ink/70 max-w-xl mx-auto">${escapeHtml(slide.subtitle || "")}</p>
       ${
-        slide.ctaText
-          ? `<a href="${escapeAttr(slide.ctaHref || "#")}"
-              class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition">
-              ${escapeHtml(slide.ctaText)}
-            </a>`
+        slide.eyebrow
+          ? `<p class="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-rose mb-2">${escapeHtml(slide.eyebrow)}</p>`
           : ""
       }
+      <h1 class="font-logo text-3xl sm:text-5xl text-ink text-balance">${escapeHtml(slide.title)}</h1>
+      <p class="mt-3 text-ink/70 max-w-xl mx-auto">${escapeHtml(slide.subtitle || "")}</p>
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+        ${
+          slide.ctaText
+            ? `<a href="${escapeAttr(slide.ctaHref || "#")}"
+                class="inline-block rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition">
+                ${escapeHtml(slide.ctaText)}
+              </a>`
+            : ""
+        }
+        ${
+          slide.ctaSecondaryText && secondaryHref
+            ? `<a href="${escapeAttr(secondaryHref)}" target="_blank" rel="noopener"
+                class="inline-block rounded-full border border-ink/20 text-ink font-semibold px-6 py-3 hover:border-rose hover:text-rose transition">
+                ${escapeHtml(slide.ctaSecondaryText)}
+              </a>`
+            : ""
+        }
+      </div>
     </div>`;
 
   document.getElementById("hero-dots").innerHTML = slides
@@ -742,7 +761,7 @@ function productCardHTML(p, { rank } = {}) {
   const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
   const hasVariants = p.variants && p.variants.length > 1;
   return `
-    <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full">
+    <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full transition duration-300 hover:shadow-lg hover:border-rose/30">
       <div class="aspect-square bg-blush/20 overflow-hidden relative">
         ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-rose text-cream font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
@@ -1210,7 +1229,7 @@ function updateNacionalShippingUI() {
 
   const shipping = shippingEstimate(cartWeight(), cp);
   if (shipping && shipping.hasNacional) {
-    label.textContent = `🚚 Envío nacional a CP ${cp}`;
+    label.textContent = `🚚 Envío nacional (estimado) a CP ${cp}`;
     amount.textContent = formatPrice(shipping.nacionalMXN);
   } else {
     label.textContent = "🚚 Envío nacional";
@@ -1399,11 +1418,26 @@ function escapeAttr(str) {
 /* ======================================================================
    Inicialización
    ====================================================================== */
-function initWhatsAppFloat() {
-  const buttons = [document.getElementById("whatsapp-float"), document.getElementById("footer-contact-link")];
+/* Construye el link de WhatsApp con un mensaje dado, o null si todavía
+   falta configurar CONFIG.WHATSAPP_NUMBER. Se usa en todos los botones
+   "Hablar con Mae" del sitio (flotante, footer, hero, sección de
+   confianza) para que ninguno quede con un link roto o desactualizado. */
+function whatsappHref(message) {
   const numberIsPlaceholder = !CONFIG.WHATSAPP_NUMBER || CONFIG.WHATSAPP_NUMBER.includes("XXXX");
+  if (numberIsPlaceholder) return null;
+  return `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
 
-  if (numberIsPlaceholder) {
+function initWhatsAppFloat() {
+  const buttons = [
+    document.getElementById("whatsapp-float"),
+    document.getElementById("footer-contact-link"),
+    document.getElementById("why-alpacca-whatsapp"),
+  ].filter(Boolean);
+
+  const href = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una pregunta.`);
+
+  if (!href) {
     buttons.forEach((btn) =>
       btn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -1413,8 +1447,6 @@ function initWhatsAppFloat() {
     return;
   }
 
-  const message = encodeURIComponent(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una pregunta.`);
-  const href = `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${message}`;
   buttons.forEach((btn) => {
     btn.href = href;
     btn.target = "_blank";
@@ -1446,6 +1478,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("brand-products").classList.add("hidden");
     document.getElementById("brands-section").scrollIntoView({ behavior: "smooth", block: "start" });
   });
+
+  document.getElementById("footer-shipping-link").addEventListener("click", openCart);
+
+  const faqMinOrder = document.getElementById("faq-min-order");
+  if (faqMinOrder && CONFIG.MIN_ORDER_USD) {
+    faqMinOrder.textContent = `Es de $${CONFIG.MIN_ORDER_USD} USD (o su equivalente en MXN).`;
+  }
 
   const searchInput = document.getElementById("search-input");
   document.getElementById("search-form").addEventListener("submit", (e) => {

@@ -1,10 +1,20 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-MX">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alpacca — Catálogo y Cotización</title>
-<meta name="description" content="Catálogo de productos con sistema de cotización por WhatsApp.">
+<title>Alpacca — Skincare Coreano y Asiático al Mayoreo</title>
+<meta name="description" content="Catálogo de skincare coreano y asiático al mayoreo. Cotiza tus productos favoritos por WhatsApp con atención personalizada, sin pagos en línea.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Alpacca">
+<meta property="og:title" content="Alpacca — Skincare Coreano y Asiático al Mayoreo">
+<meta property="og:description" content="Catálogo de skincare coreano y asiático al mayoreo. Cotiza tus productos favoritos por WhatsApp con atención personalizada, sin pagos en línea.">
+<meta property="og:image" content="./assets/logo-full.png">
+<meta property="og:locale" content="es_MX">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Alpacca — Skincare Coreano y Asiático al Mayoreo">
+<meta name="twitter:description" content="Catálogo de skincare coreano y asiático al mayoreo. Cotiza tus productos favoritos por WhatsApp con atención personalizada, sin pagos en línea.">
+<meta name="twitter:image" content="./assets/logo-full.png">
 <link rel="icon" href="./assets/favicon-32.png" type="image/png">
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -70,6 +80,7 @@
   </div>
 </header>
 
+<main>
 <!-- Resultados de búsqueda -->
 <section id="search-results-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
@@ -108,8 +119,38 @@
   </div>
 </div>
 
+<!-- Cómo comprar -->
+<section id="how-to-buy" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
+  <div class="text-center mb-8">
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Así de sencillo</p>
+    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Comprar en Alpacca es fácil</h2>
+  </div>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+    <div>
+      <span class="font-logo text-3xl sm:text-4xl text-rose">01</span>
+      <p class="font-semibold text-ink mt-1">Elige tus productos</p>
+      <p class="text-sm text-ink/60 mt-1">Explora el catálogo y agrega los productos que te interesan.</p>
+    </div>
+    <div>
+      <span class="font-logo text-3xl sm:text-4xl text-rose">02</span>
+      <p class="font-semibold text-ink mt-1">Arma tu pedido</p>
+      <p class="text-sm text-ink/60 mt-1">Selecciona cantidades y presentaciones.</p>
+    </div>
+    <div>
+      <span class="font-logo text-3xl sm:text-4xl text-rose">03</span>
+      <p class="font-semibold text-ink mt-1">Recibe tu cotización</p>
+      <p class="text-sm text-ink/60 mt-1">Revisamos tu pedido y te enviamos el total por WhatsApp.</p>
+    </div>
+    <div>
+      <span class="font-logo text-3xl sm:text-4xl text-rose">04</span>
+      <p class="font-semibold text-ink mt-1">Confirmamos tu pedido</p>
+      <p class="text-sm text-ink/60 mt-1">Coordinamos contigo el pago y envío.</p>
+    </div>
+  </div>
+</section>
+
 <!-- Featured collections (tabs) -->
-<section id="featured-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">
+<section id="featured-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="text-center mb-6">
     <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Elegidos por nuestros clientes</p>
     <div class="flex items-center justify-center gap-2 flex-wrap mt-1">
@@ -121,32 +162,47 @@
   </div>
 </section>
 
-<!-- Explora por tipo de piel -->
-<section id="skintype-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
-  <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Solo toma un minuto</p>
-    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">¿Cuál es tu tipo de piel?</h2>
+<!-- Por qué elegir Alpacca -->
+<section id="why-alpacca" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
+  <div class="text-center mb-8">
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Por qué Alpacca</p>
+    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">¿Por qué elegir Alpacca?</h2>
   </div>
-
-  <!-- Quiz -->
-  <div id="skin-quiz" class="max-w-xl mx-auto">
-    <div class="flex justify-center gap-1.5 mb-5" id="quiz-progress"></div>
-    <p id="quiz-question" class="text-center font-semibold text-ink text-lg mb-5"></p>
-    <div id="quiz-options" class="grid sm:grid-cols-2 gap-3"></div>
-    <button id="quiz-back" type="button"
-      class="hidden mx-auto mt-5 block text-xs text-ink/50 hover:text-ink underline">&larr; Pregunta anterior</button>
-  </div>
-
-  <!-- Resultado -->
-  <div id="skin-quiz-result" class="hidden">
-    <div class="text-center mb-8">
-      <span id="quiz-result-emoji" class="text-4xl block mb-2"></span>
-      <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Tu tipo de piel es</p>
-      <h3 class="font-logo text-2xl sm:text-3xl text-ink mt-1" id="quiz-result-label"></h3>
-      <button id="quiz-retake" type="button" class="mt-3 text-xs text-ink/50 hover:text-ink underline">Repetir el quiz</button>
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
+    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
+      <span class="text-2xl" aria-hidden="true">🌏</span>
+      <p class="font-semibold text-ink mt-2">Skincare asiático</p>
+      <p class="text-sm text-ink/60 mt-1">Selección curada de marcas de Corea y Asia.</p>
     </div>
-    <div id="skintype-row" class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"></div>
-    <p id="skintype-empty" class="hidden text-center text-ink/50 py-6">Pronto agregaremos productos para tu tipo de piel.</p>
+    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
+      <span class="text-2xl" aria-hidden="true">💬</span>
+      <p class="font-semibold text-ink mt-2">Atención personalizada</p>
+      <p class="text-sm text-ink/60 mt-1">Mae te acompaña en cada cotización, paso a paso.</p>
+      <a href="#" id="why-alpacca-whatsapp" target="_blank" rel="noopener"
+        class="inline-block mt-2 text-xs font-semibold text-rose hover:underline">Habla con Mae →</a>
+    </div>
+    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
+      <span class="text-2xl" aria-hidden="true">📦</span>
+      <p class="font-semibold text-ink mt-2">Opciones de mayoreo</p>
+      <p class="text-sm text-ink/60 mt-1">Compra por volumen con precios pensados para tu negocio.</p>
+    </div>
+    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
+      <span class="text-2xl" aria-hidden="true">✈️</span>
+      <p class="font-semibold text-ink mt-2">Logística internacional</p>
+      <p class="text-sm text-ink/60 mt-1">Coordinamos el envío desde Corea hasta tu puerta.</p>
+    </div>
+    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
+      <span class="text-2xl" aria-hidden="true">🧴</span>
+      <p class="font-semibold text-ink mt-2">Productos seleccionados</p>
+      <p class="text-sm text-ink/60 mt-1">Elegimos cada producto con atención al detalle.</p>
+    </div>
+    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5 flex items-start gap-3">
+      <img src="./assets/mascot.png" alt="" aria-hidden="true" class="w-8 h-8 object-contain flex-shrink-0" />
+      <div>
+        <p class="font-semibold text-ink">+4 años de experiencia</p>
+        <p class="text-sm text-ink/60 mt-1">Más de 4 años ayudando a nuestros clientes a encontrar lo mejor.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -179,6 +235,57 @@
   </div>
 </section>
 
+<!-- Explora por tipo de piel (herramienta de ayuda, no es el foco principal) -->
+<section id="skintype-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
+  <div class="text-center mb-6">
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Solo toma un minuto</p>
+    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">¿Cuál es tu tipo de piel?</h2>
+  </div>
+
+  <!-- Quiz -->
+  <div id="skin-quiz" class="max-w-xl mx-auto">
+    <div class="flex justify-center gap-1.5 mb-5" id="quiz-progress"></div>
+    <p id="quiz-question" class="text-center font-semibold text-ink text-lg mb-5"></p>
+    <div id="quiz-options" class="grid sm:grid-cols-2 gap-3"></div>
+    <button id="quiz-back" type="button"
+      class="hidden mx-auto mt-5 block text-xs text-ink/50 hover:text-ink underline">&larr; Pregunta anterior</button>
+  </div>
+
+  <!-- Resultado -->
+  <div id="skin-quiz-result" class="hidden">
+    <div class="text-center mb-8">
+      <span id="quiz-result-emoji" class="text-4xl block mb-2"></span>
+      <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Tu tipo de piel es</p>
+      <h3 class="font-logo text-2xl sm:text-3xl text-ink mt-1" id="quiz-result-label"></h3>
+      <button id="quiz-retake" type="button" class="mt-3 text-xs text-ink/50 hover:text-ink underline">Repetir el quiz</button>
+    </div>
+    <div id="skintype-row" class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"></div>
+    <p id="skintype-empty" class="hidden text-center text-ink/50 py-6">Pronto agregaremos productos para tu tipo de piel.</p>
+  </div>
+</section>
+
+<!-- Preguntas frecuentes -->
+<section id="faq" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
+  <div class="text-center mb-8">
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Antes de comprar</p>
+    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Preguntas frecuentes</h2>
+  </div>
+  <div class="max-w-2xl mx-auto space-y-5">
+    <div>
+      <p class="font-semibold text-ink">¿Necesito pagar en línea?</p>
+      <p class="text-sm text-ink/60 mt-1">No. Todo se cotiza y confirma por WhatsApp — este sitio no procesa pagos.</p>
+    </div>
+    <div>
+      <p class="font-semibold text-ink">¿Hacen envíos internacionales?</p>
+      <p class="text-sm text-ink/60 mt-1">Sí, coordinamos la logística desde Corea hasta tu domicilio en México.</p>
+    </div>
+    <div>
+      <p class="font-semibold text-ink">¿Cuál es el pedido mínimo?</p>
+      <p class="text-sm text-ink/60 mt-1" id="faq-min-order">Consulta el pedido mínimo vigente en la barra superior del sitio.</p>
+    </div>
+  </div>
+</section>
+
 <!-- Status (loading / error) -->
 <div id="status-banner" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="rounded-xl border border-ink/15 bg-white/60 px-4 py-3 text-sm text-ink/70" id="status-text"></div>
@@ -190,36 +297,38 @@
     <!-- beneficios injected by JS -->
   </div>
 </section>
+</main>
 
 <!-- Footer -->
 <footer class="border-t border-ink/10 mt-14 pt-10 pb-8">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 sm:grid-cols-4 gap-8 text-sm">
-    <div class="flex flex-col items-center text-center">
+    <div class="flex flex-col items-center text-center sm:items-start sm:text-left">
       <img src="./assets/logo-full.png" alt="Alpacca" class="h-24 w-auto mb-3" />
-      <div id="footer-social" class="flex items-center justify-center gap-3 text-ink/60">
-        <!-- social icons injected by JS -->
-      </div>
     </div>
     <div>
-      <p class="font-semibold text-ink mb-3">Encuéntranos</p>
+      <p class="font-semibold text-ink mb-3">Comprar</p>
       <ul class="space-y-2 text-ink/60">
-        <li><a href="#top" class="hover:text-ink transition">Inicio</a></li>
-        <li><a href="#featured-section" class="hover:text-ink transition">Productos</a></li>
+        <li><a href="#featured-section" class="hover:text-ink transition">Catálogo</a></li>
+        <li><a href="#featured-section" class="hover:text-ink transition">Best Sellers</a></li>
+        <li><a href="#brands-section" class="hover:text-ink transition">Marcas</a></li>
       </ul>
     </div>
     <div>
       <p class="font-semibold text-ink mb-3">Ayuda</p>
       <ul class="space-y-2 text-ink/60">
-        <li><a href="#" id="footer-contact-link" class="hover:text-ink transition">Contacto por WhatsApp</a></li>
-        <li><a href="#featured-section" class="hover:text-ink transition">Preguntas frecuentes</a></li>
+        <li><a href="#how-to-buy" class="hover:text-ink transition">Cómo comprar</a></li>
+        <li><button type="button" id="footer-shipping-link" class="hover:text-ink transition text-left">Envíos</button></li>
+        <li><a href="#faq" class="hover:text-ink transition">Preguntas frecuentes</a></li>
       </ul>
     </div>
     <div>
-      <p class="font-semibold text-ink mb-3">Cotizaciones</p>
+      <p class="font-semibold text-ink mb-3">Contacto</p>
       <ul class="space-y-2 text-ink/60">
-        <li>Sin pasarela de pago</li>
-        <li>Cotización 100% por WhatsApp</li>
+        <li><a href="#" id="footer-contact-link" class="hover:text-ink transition">Hablar con Mae (WhatsApp)</a></li>
       </ul>
+      <div id="footer-social" class="flex items-center gap-3 text-ink/60 mt-3">
+        <!-- social icons injected by JS -->
+      </div>
     </div>
   </div>
   <p class="text-center text-xs text-ink/40 mt-10">© <span id="year"></span> Alpacca. Catálogo para cotización — no se procesan pagos en este sitio.</p>
@@ -246,20 +355,24 @@
   <div id="cart-items" class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
     <!-- cart line items injected by JS -->
   </div>
-  <p id="cart-empty" class="hidden text-center text-ink/50 px-5 py-10">Tu carrito está vacío. Agrega productos del catálogo.</p>
+  <div id="cart-empty" class="hidden text-center text-ink/50 px-5 py-10">
+    <img src="./assets/mascot.png" alt="" aria-hidden="true" class="w-16 h-16 object-contain mx-auto mb-3 opacity-80" />
+    <p>Tu carrito está vacío. Agrega productos del catálogo.</p>
+  </div>
 
   <div class="border-t border-ink/10 px-5 py-4 space-y-4">
+    <p class="text-[11px] text-ink/50 text-center leading-snug">El precio de tus productos es fijo. El envío se calcula según peso y destino, y el monto es estimado hasta confirmarlo por WhatsApp.</p>
     <div class="space-y-1.5">
       <div class="flex items-center justify-between font-semibold text-ink">
         <span id="cart-total-label">Total productos</span>
         <span id="cart-total">$0.00</span>
       </div>
       <div id="cart-shipping-korea-row" class="hidden flex items-center justify-between font-semibold text-ink">
-        <span>✈️ Envío Corea→EE. UU. estimado</span>
+        <span>✈️ Envío Corea→EE. UU. (estimado)</span>
         <span id="cart-shipping-korea">$0.00</span>
       </div>
       <div id="cart-shipping-nacional-row" class="hidden flex items-center justify-between font-semibold text-ink">
-        <span id="cart-shipping-nacional-label">🚚 Envío nacional</span>
+        <span id="cart-shipping-nacional-label">🚚 Envío nacional (estimado)</span>
         <span id="cart-shipping-nacional">$0.00</span>
       </div>
       <div class="flex items-center justify-between font-semibold text-ink pt-1.5 border-t border-ink/10">
