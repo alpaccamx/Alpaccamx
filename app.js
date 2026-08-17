@@ -60,14 +60,6 @@ const CONFIG = {
   // Slides del banner principal. Agrega o quita objetos para más o menos slides.
   HERO_SLIDES: [
     {
-      eyebrow: "Alpacca",
-      title: "Skincare asiático al mayoreo, sin complicaciones",
-      subtitle: "Explora nuestro catálogo curado, arma tu pedido y recibe atención personalizada en cada cotización.",
-      ctaText: "Explorar catálogo",
-      ctaHref: "#featured-section",
-      ctaSecondaryText: "Hablar con Mae",
-    },
-    {
       image: "assets/hero/skincare-mayoreo-banner.jpg",
       imageAlt: "Skincare coreano para tu negocio - venta por mayoreo Alpacca, marcas reales, resultados reales.",
     },
@@ -564,12 +556,15 @@ function renderHeroSlide() {
       </div>
     </div>`;
 
-  document.getElementById("hero-dots").innerHTML = slides
-    .map(
-      (_, i) => `<button type="button" data-dot="${i}" aria-label="Ver slide ${i + 1}"
+  document.getElementById("hero-dots").innerHTML =
+    slides.length < 2
+      ? ""
+      : slides
+          .map(
+            (_, i) => `<button type="button" data-dot="${i}" aria-label="Ver slide ${i + 1}"
         class="w-2.5 h-2.5 rounded-full transition ${i === heroIndex ? "bg-rose" : "bg-ink/20"}"></button>`
-    )
-    .join("");
+          )
+          .join("");
 
   document.querySelectorAll("[data-dot]").forEach((dot) => {
     dot.addEventListener("click", () => {
