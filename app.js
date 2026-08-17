@@ -1104,6 +1104,7 @@ function renderSearchResults(query) {
 
   if (!q) {
     section.classList.add("hidden");
+    document.getElementById("homepage-sections").classList.remove("hidden");
     return;
   }
 
@@ -1118,6 +1119,7 @@ function renderSearchResults(query) {
 
   document.getElementById("search-results-title").textContent = `Resultados para "${query.trim()}"`;
   section.classList.remove("hidden");
+  document.getElementById("homepage-sections").classList.add("hidden");
 
   const grid = document.getElementById("search-results-grid");
   const empty = document.getElementById("search-results-empty");
@@ -1478,6 +1480,22 @@ document.addEventListener("DOMContentLoaded", () => {
     faqMinOrder.textContent = `Es de $${CONFIG.MIN_ORDER_USD} USD (o su equivalente en MXN).`;
   }
 
+  // Si el usuario hace clic en un enlace ancla (menú, footer, CTAs) mientras
+  // la búsqueda está activa, primero hay que volver a mostrar las secciones
+  // normales -- si no, el navegador intenta saltar a una sección que sigue
+  // oculta y no pasa nada.
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest('a[href^="#"]');
+    if (!link) return;
+    const target = document.getElementById(link.getAttribute("href").slice(1));
+    const homepageSections = document.getElementById("homepage-sections");
+    if (target && homepageSections.contains(target) && homepageSections.classList.contains("hidden")) {
+      document.getElementById("search-results-section").classList.add("hidden");
+      homepageSections.classList.remove("hidden");
+      document.getElementById("search-input").value = "";
+    }
+  });
+
   const searchInput = document.getElementById("search-input");
   document.getElementById("search-form").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -1488,6 +1506,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("search-results-clear").addEventListener("click", () => {
     searchInput.value = "";
     document.getElementById("search-results-section").classList.add("hidden");
+    document.getElementById("homepage-sections").classList.remove("hidden");
   });
 
   renderTopBar();
