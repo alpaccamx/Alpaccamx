@@ -91,6 +91,16 @@
   <p id="search-results-empty" class="hidden text-center text-ink/50 py-6">No encontramos productos que coincidan con tu búsqueda.</p>
 </section>
 
+<!-- Catálogo completo -->
+<section id="catalog-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-logo text-xl sm:text-2xl text-ink">Catálogo completo</h2>
+    <button id="catalog-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar catálogo</button>
+  </div>
+  <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <p id="catalog-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles por el momento.</p>
+</section>
+
 <!-- Mobile menu overlay + drawer -->
 <div id="menu-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 sm:hidden"></div>
 <aside id="mobile-menu" aria-label="Menú"
@@ -310,7 +320,7 @@
     <div>
       <p class="font-semibold text-ink mb-3">Comprar</p>
       <ul class="space-y-2 text-ink/60">
-        <li><a href="#featured-section" class="hover:text-ink transition">Catálogo</a></li>
+        <li><a href="#catalog-section" class="hover:text-ink transition">Catálogo</a></li>
         <li><a href="#featured-section" class="hover:text-ink transition">Best Sellers</a></li>
         <li><a href="#brands-section" class="hover:text-ink transition">Marcas</a></li>
       </ul>
