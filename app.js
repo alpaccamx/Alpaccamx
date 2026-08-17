@@ -120,7 +120,7 @@ const CONFIG = {
     title: "Skincare asiático que tus clientes van a querer",
     subtitle: "Productos coreanos seleccionados para tu negocio.",
     ctaText: "Explorar catálogo",
-    ctaHref: "#featured-section",
+    ctaHref: "#catalog-section",
   },
 
   // Beneficios (franja de 4 íconos antes del footer).
@@ -1093,13 +1093,20 @@ function normalizeForSearch(s) {
     .replace(/[̀-ͯ]/g, "");
 }
 
+/* Solo una de estas tres vistas está visible a la vez: el home normal,
+   los resultados de búsqueda, o el catálogo completo. Header, barra de
+   categorías y footer siempre se quedan visibles. */
+function showHomeView(view) {
+  document.getElementById("homepage-sections").classList.toggle("hidden", view !== "home");
+  document.getElementById("search-results-section").classList.toggle("hidden", view !== "search");
+  document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
+}
+
 function renderSearchResults(query) {
   const q = normalizeForSearch(query).trim();
-  const section = document.getElementById("search-results-section");
 
   if (!q) {
-    section.classList.add("hidden");
-    document.getElementById("homepage-sections").classList.remove("hidden");
+    showHomeView("home");
     return;
   }
 
@@ -1113,8 +1120,7 @@ function renderSearchResults(query) {
   );
 
   document.getElementById("search-results-title").textContent = `Resultados para "${query.trim()}"`;
-  section.classList.remove("hidden");
-  document.getElementById("homepage-sections").classList.add("hidden");
+  showHomeView("search");
 
   const grid = document.getElementById("search-results-grid");
   const empty = document.getElementById("search-results-empty");
@@ -1127,6 +1133,28 @@ function renderSearchResults(query) {
     wireAddButtons(grid);
     wireVariantSelectors(grid);
   }
+}
+
+/* ======================================================================
+   Catálogo completo -- todos los productos del Sheet, sin filtrar.
+   ====================================================================== */
+function openFullCatalog() {
+  document.getElementById("search-input").value = "";
+
+  const items = groupVariants(products);
+  const grid = document.getElementById("catalog-grid");
+  const empty = document.getElementById("catalog-empty");
+  if (!items.length) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
+    wireAddButtons(grid);
+    wireVariantSelectors(grid);
+  }
+
+  showHomeView("catalog");
 }
 
 /* ======================================================================
@@ -1482,12 +1510,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("click", (e) => {
     const link = e.target.closest('a[href^="#"]');
     if (!link) return;
-    const target = document.getElementById(link.getAttribute("href").slice(1));
+    const href = link.getAttribute("href").slice(1);
+    if (href === "catalog-section") {
+      openFullCatalog();
+      return;
+    }
+    const target = document.getElementById(href);
     const homepageSections = document.getElementById("homepage-sections");
     if (target && homepageSections.contains(target) && homepageSections.classList.contains("hidden")) {
-      document.getElementById("search-results-section").classList.add("hidden");
-      homepageSections.classList.remove("hidden");
-      document.getElementById("search-input").value = "";
+      showHomeView("home");
     }
   });
 
@@ -1500,9 +1531,9 @@ document.addEventListener("DOMContentLoaded", () => {
   searchInput.addEventListener("input", () => renderSearchResults(searchInput.value));
   document.getElementById("search-results-clear").addEventListener("click", () => {
     searchInput.value = "";
-    document.getElementById("search-results-section").classList.add("hidden");
-    document.getElementById("homepage-sections").classList.remove("hidden");
+    showHomeView("home");
   });
+  document.getElementById("catalog-clear").addEventListener("click", () => showHomeView("home"));
 
   renderTopBar();
   renderHeroSlide();
