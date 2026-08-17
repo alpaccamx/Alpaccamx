@@ -611,7 +611,8 @@ function getMenuItems() {
     return el && !el.classList.contains("hidden");
   });
 
-  const items = sectionLinks.map((s) => ({ type: "link", label: s.label, href: s.href }));
+  const items = [{ type: "link", label: "Catálogo", href: "#catalog-section" }];
+  items.push(...sectionLinks.map((s) => ({ type: "link", label: s.label, href: s.href })));
 
   const brandsSection = document.getElementById("brands-section");
   if (brandsSection && !brandsSection.classList.contains("hidden")) {
@@ -692,7 +693,6 @@ function wireMenuItems(container, onNavigate) {
       btn.addEventListener("click", () => {
         panel.classList.add("hidden");
         if (onNavigate) onNavigate();
-        document.getElementById("brands-section").scrollIntoView({ behavior: "smooth" });
         showBrandProducts(btn.dataset.menuBrand);
       });
     });
@@ -1060,12 +1060,10 @@ function renderBrands() {
 
 function showBrandProducts(marca) {
   const items = groupVariants(products.filter((p) => p.marca === marca));
-  const wrap = document.getElementById("brand-products");
   const grid = document.getElementById("brand-products-grid");
   const empty = document.getElementById("brand-products-empty");
 
   document.getElementById("brand-products-title").textContent = `Productos de ${marca}`;
-  wrap.classList.remove("hidden");
 
   if (!items.length) {
     grid.innerHTML = "";
@@ -1077,7 +1075,8 @@ function showBrandProducts(marca) {
     wireVariantSelectors(grid);
   }
 
-  wrap.scrollIntoView({ behavior: "smooth", block: "start" });
+  showHomeView("brands");
+  document.getElementById("brand-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /* ======================================================================
@@ -1093,13 +1092,14 @@ function normalizeForSearch(s) {
     .replace(/[̀-ͯ]/g, "");
 }
 
-/* Solo una de estas tres vistas está visible a la vez: el home normal,
-   los resultados de búsqueda, o el catálogo completo. Header, barra de
-   categorías y footer siempre se quedan visibles. */
+/* Solo una de estas vistas está visible a la vez: el home normal, los
+   resultados de búsqueda, el catálogo completo, o los productos de una
+   marca. Header, barra de categorías y footer siempre se quedan visibles. */
 function showHomeView(view) {
   document.getElementById("homepage-sections").classList.toggle("hidden", view !== "home");
   document.getElementById("search-results-section").classList.toggle("hidden", view !== "search");
   document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
+  document.getElementById("brand-products-section").classList.toggle("hidden", view !== "brands");
 }
 
 function renderSearchResults(query) {
@@ -1492,7 +1492,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("brand-products-clear").addEventListener("click", () => {
-    document.getElementById("brand-products").classList.add("hidden");
+    showHomeView("home");
     document.getElementById("brands-section").scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
