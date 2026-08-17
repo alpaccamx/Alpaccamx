@@ -534,7 +534,7 @@ function renderHeroSlide() {
 
   document.getElementById("hero-slides").innerHTML = slide.image
     ? `<img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}"
-        class="w-full h-full sm:max-w-[1400px] sm:mx-auto object-contain sm:object-cover sm:object-bottom" />`
+        class="w-full h-full sm:max-w-[1200px] sm:mx-auto object-contain sm:object-cover sm:object-bottom" />`
     : `
     <div class="text-center px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
       ${
