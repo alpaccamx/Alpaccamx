@@ -111,6 +111,16 @@
   <p id="brand-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles de esta marca por ahora.</p>
 </section>
 
+<!-- Productos de una categoría -->
+<section id="category-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-logo text-xl sm:text-2xl text-ink" id="category-products-title"></h2>
+    <button id="category-products-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar categoría</button>
+  </div>
+  <div id="category-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <p id="category-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles en esta categoría por ahora.</p>
+</section>
+
 <!-- Mobile menu overlay + drawer -->
 <div id="menu-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 sm:hidden"></div>
 <aside id="mobile-menu" aria-label="Menú"

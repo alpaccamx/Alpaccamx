@@ -602,22 +602,22 @@ function renderTicker() {
    "Marcas" es un caso especial: en vez de enlazar directo a la sección,
    trae la lista de marcas para mostrarse como menú desplegable.
    ====================================================================== */
-function getMenuItems() {
-  const sectionLinks = [
-    { label: "Best Seller", href: "#featured-section" },
-    { label: "Explora por tipo de piel", href: "#skintype-section" },
-  ].filter((item) => {
-    const el = document.querySelector(item.href);
-    return el && !el.classList.contains("hidden");
-  });
+const CATEGORY_MENU_OPTIONS = ["Skincare", "Suplementos"];
 
+function getMenuItems() {
   const items = [{ type: "link", label: "Catálogo", href: "#catalog-section" }];
-  items.push(...sectionLinks.map((s) => ({ type: "link", label: s.label, href: s.href })));
 
   const brandsSection = document.getElementById("brands-section");
   if (brandsSection && !brandsSection.classList.contains("hidden")) {
     const brands = [...new Set(products.map((p) => p.marca).filter(Boolean))].sort();
-    items.push({ type: "brands", label: "Marcas", href: "#brands-section", brands });
+    items.push({ type: "brands", label: "Marcas", options: brands });
+  }
+
+  const availableCategories = CATEGORY_MENU_OPTIONS.filter((cat) =>
+    products.some((p) => p.categoria === cat)
+  );
+  if (availableCategories.length) {
+    items.push({ type: "categories", label: "Categorías", options: availableCategories });
   }
 
   return items;
@@ -629,34 +629,36 @@ function menuItemHTML(item, variant) {
     ? "text-sm font-semibold whitespace-nowrap"
     : "block px-5 py-4 border-b border-ink/10 font-semibold uppercase text-sm tracking-wide";
 
-  if (item.type === "brands") {
-    const brandOptions = item.brands
+  if (item.type === "brands" || item.type === "categories") {
+    const key = item.type === "brands" ? "brands" : "categories";
+    const optionAttr = item.type === "brands" ? "data-menu-brand" : "data-menu-category";
+    const dropdownOptions = item.options
       .map(
-        (b) =>
-          `<button type="button" data-menu-brand="${escapeAttr(b)}"
-            class="block w-full text-left px-4 py-2 text-sm text-ink/70 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(b)}</button>`
+        (v) =>
+          `<button type="button" ${optionAttr}="${escapeAttr(v)}"
+            class="block w-full text-left px-4 py-2 text-sm text-ink/70 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(v)}</button>`
       )
       .join("");
     if (isHorizontal) {
-      return `<div class="relative" data-brands-dropdown>
-        <button type="button" data-brands-toggle
+      return `<div class="relative" data-${key}-dropdown>
+        <button type="button" data-${key}-toggle
           class="${base} text-ink/80 hover:text-ink transition inline-flex items-center gap-1">
           ${escapeHtml(item.label)}
           <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-        <div data-brands-panel
+        <div data-${key}-panel
           class="hidden fixed w-52 max-h-80 overflow-y-auto rounded-xl border border-ink/10 bg-cream shadow-lg py-2 z-50">
-          ${brandOptions}
+          ${dropdownOptions}
         </div>
       </div>`;
     }
-    return `<div data-brands-dropdown>
-      <button type="button" data-brands-toggle
+    return `<div data-${key}-dropdown>
+      <button type="button" data-${key}-toggle
         class="${base} w-full text-left text-ink/80 hover:text-ink transition inline-flex items-center justify-between">
         ${escapeHtml(item.label)}
         <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <div data-brands-panel class="hidden bg-blush/10">${brandOptions}</div>
+      <div data-${key}-panel class="hidden bg-blush/10">${dropdownOptions}</div>
     </div>`;
   }
   return `<a href="${escapeAttr(item.href)}" data-menu-link
@@ -670,9 +672,9 @@ function wireMenuItems(container, onNavigate) {
     });
   });
 
-  container.querySelectorAll("[data-brands-dropdown]").forEach((wrap) => {
-    const toggle = wrap.querySelector("[data-brands-toggle]");
-    const panel = wrap.querySelector("[data-brands-panel]");
+  container.querySelectorAll("[data-brands-dropdown], [data-categories-dropdown]").forEach((wrap) => {
+    const toggle = wrap.querySelector("[data-brands-toggle], [data-categories-toggle]");
+    const panel = wrap.querySelector("[data-brands-panel], [data-categories-panel]");
     // El panel fixed se saca al <body> para que no quede atrapado por el
     // "contenedor" que crea el backdrop-blur del header en elementos fixed
     // (si no, "top"/"left" quedan relativos al header en vez de la ventana).
@@ -696,11 +698,18 @@ function wireMenuItems(container, onNavigate) {
         showBrandProducts(btn.dataset.menuBrand);
       });
     });
+    panel.querySelectorAll("[data-menu-category]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        panel.classList.add("hidden");
+        if (onNavigate) onNavigate();
+        showCategoryProducts(btn.dataset.menuCategory);
+      });
+    });
   });
 }
 
 document.addEventListener("click", (e) => {
-  document.querySelectorAll("[data-brands-panel]").forEach((panel) => {
+  document.querySelectorAll("[data-brands-panel], [data-categories-panel]").forEach((panel) => {
     const owner = panel.__trigger || panel.parentElement;
     if (!panel.contains(e.target) && !owner.contains(e.target)) panel.classList.add("hidden");
   });
@@ -1079,6 +1088,27 @@ function showBrandProducts(marca) {
   document.getElementById("brand-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function showCategoryProducts(categoria) {
+  const items = groupVariants(products.filter((p) => p.categoria === categoria));
+  const grid = document.getElementById("category-products-grid");
+  const empty = document.getElementById("category-products-empty");
+
+  document.getElementById("category-products-title").textContent = `Categoría: ${categoria}`;
+
+  if (!items.length) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
+    wireAddButtons(grid);
+    wireVariantSelectors(grid);
+  }
+
+  showHomeView("categories");
+  document.getElementById("category-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 /* ======================================================================
    Búsqueda — filtra por nombre, marca y categoría. Muestra resultados
    en vivo mientras el cliente escribe; solo hace scroll al enviar
@@ -1100,6 +1130,7 @@ function showHomeView(view) {
   document.getElementById("search-results-section").classList.toggle("hidden", view !== "search");
   document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
   document.getElementById("brand-products-section").classList.toggle("hidden", view !== "brands");
+  document.getElementById("category-products-section").classList.toggle("hidden", view !== "categories");
 }
 
 function renderSearchResults(query) {
@@ -1494,6 +1525,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("brand-products-clear").addEventListener("click", () => {
     showHomeView("home");
     document.getElementById("brands-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  document.getElementById("category-products-clear").addEventListener("click", () => {
+    showHomeView("home");
   });
 
   document.getElementById("footer-shipping-link").addEventListener("click", openCart);
