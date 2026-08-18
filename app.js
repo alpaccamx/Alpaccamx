@@ -709,7 +709,7 @@ function wireMenuItems(container, onNavigate) {
 }
 
 document.addEventListener("click", (e) => {
-  document.querySelectorAll("[data-brands-panel], [data-categories-panel]").forEach((panel) => {
+  document.querySelectorAll("[data-brands-panel], [data-categories-panel], [data-country-panel]").forEach((panel) => {
     const owner = panel.__trigger || panel.parentElement;
     if (!panel.contains(e.target) && !owner.contains(e.target)) panel.classList.add("hidden");
   });
@@ -1088,6 +1088,95 @@ function showBrandProducts(marca) {
   document.getElementById("brand-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+/* ======================================================================
+   País -- las marcas se agrupan por país de origen. Solo Shiseido es
+   japonesa; el resto del catálogo es surcoreano.
+   ====================================================================== */
+const COUNTRY_BRAND_OVERRIDES = { Japón: ["Shiseido"] };
+const COUNTRY_ORDER = ["Corea del Sur", "Japón"];
+
+function brandCountry(marca) {
+  for (const [country, brands] of Object.entries(COUNTRY_BRAND_OVERRIDES)) {
+    if (brands.includes(marca)) return country;
+  }
+  return "Corea del Sur";
+}
+
+function getCountryOptions() {
+  const present = new Set(products.map((p) => brandCountry(p.marca)).filter(Boolean));
+  const ordered = COUNTRY_ORDER.filter((c) => present.has(c));
+  const rest = [...present].filter((c) => !COUNTRY_ORDER.includes(c)).sort();
+  return [...ordered, ...rest];
+}
+
+function showCountryProducts(pais) {
+  const items = groupVariants(products.filter((p) => brandCountry(p.marca) === pais));
+  const grid = document.getElementById("country-products-grid");
+  const empty = document.getElementById("country-products-empty");
+
+  document.getElementById("country-products-title").textContent = `Marcas de ${pais}`;
+
+  if (!items.length) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
+    wireAddButtons(grid);
+    wireVariantSelectors(grid);
+  }
+
+  showHomeView("country");
+  document.getElementById("country-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderCountryDropdown() {
+  const wrap = document.querySelector("[data-country-dropdown]");
+  if (!wrap) return;
+  const options = getCountryOptions();
+  if (options.length < 2) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+
+  const panel = wrap.querySelector("[data-country-panel]");
+  panel.innerHTML = options
+    .map(
+      (c) =>
+        `<button type="button" data-country-option="${escapeAttr(c)}"
+          class="block w-full text-left px-4 py-2 text-ink/70 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(c)}</button>`
+    )
+    .join("");
+
+  // El panel fixed se saca al <body> por la misma razón que los dropdowns
+  // de Marcas/Categorías: si no, "top"/"left" quedan relativos al header.
+  if (panel.classList.contains("fixed") && !panel.__moved) {
+    document.body.appendChild(panel);
+    panel.__trigger = wrap;
+    panel.__moved = true;
+  }
+
+  const toggle = wrap.querySelector("[data-country-toggle]");
+  if (!toggle.__wired) {
+    toggle.__wired = true;
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const rect = toggle.getBoundingClientRect();
+      panel.style.top = `${rect.bottom + 2}px`;
+      panel.style.left = `${rect.left}px`;
+      panel.classList.toggle("hidden");
+    });
+  }
+
+  panel.querySelectorAll("[data-country-option]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      panel.classList.add("hidden");
+      showCountryProducts(btn.dataset.countryOption);
+    });
+  });
+}
+
 function showCategoryProducts(categoria) {
   const items = groupVariants(products.filter((p) => p.categoria === categoria));
   const grid = document.getElementById("category-products-grid");
@@ -1131,6 +1220,7 @@ function showHomeView(view) {
   document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
   document.getElementById("brand-products-section").classList.toggle("hidden", view !== "brands");
   document.getElementById("category-products-section").classList.toggle("hidden", view !== "categories");
+  document.getElementById("country-products-section").classList.toggle("hidden", view !== "country");
 }
 
 function renderSearchResults(query) {
@@ -1212,6 +1302,7 @@ function renderAll() {
   renderBrands();
   renderCategoryNav();
   renderMobileMenu();
+  renderCountryDropdown();
   renderCart();
 }
 
@@ -1528,6 +1619,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("category-products-clear").addEventListener("click", () => {
+    showHomeView("home");
+  });
+
+  document.getElementById("country-products-clear").addEventListener("click", () => {
     showHomeView("home");
   });
 

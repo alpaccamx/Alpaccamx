@@ -31,7 +31,20 @@
       <!-- social icons injected by JS -->
     </div>
     <p class="flex-1 sm:flex-none text-center font-semibold truncate" id="shipping-message"></p>
-    <span class="hidden sm:inline text-ink/60 font-semibold">MXN $</span>
+    <div class="hidden sm:flex items-center gap-4">
+      <div class="relative" data-country-dropdown>
+        <button type="button" data-country-toggle
+          class="inline-flex items-center gap-1 font-semibold text-ink/70 hover:text-ink transition">
+          País
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div data-country-panel
+          class="hidden fixed w-48 rounded-xl border border-ink/10 bg-cream shadow-lg py-2 z-50 text-sm text-left">
+          <!-- opciones de país inyectadas por JS -->
+        </div>
+      </div>
+      <span class="text-ink/60 font-semibold">MXN $</span>
+    </div>
   </div>
 </div>
 
@@ -119,6 +132,16 @@
   </div>
   <div id="category-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   <p id="category-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles en esta categoría por ahora.</p>
+</section>
+
+<!-- Productos de un país -->
+<section id="country-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-logo text-xl sm:text-2xl text-ink" id="country-products-title"></h2>
+    <button id="country-products-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar país</button>
+  </div>
+  <div id="country-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <p id="country-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles de este país por ahora.</p>
 </section>
 
 <!-- Mobile menu overlay + drawer -->
