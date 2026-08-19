@@ -1092,7 +1092,7 @@ function showBrandProducts(marca) {
    País -- las marcas se agrupan por país de origen. Solo Shiseido es
    japonesa; el resto del catálogo es surcoreano.
    ====================================================================== */
-const COUNTRY_BRAND_OVERRIDES = { Japón: ["Shiseido"] };
+const COUNTRY_BRAND_OVERRIDES = { Japón: ["Shiseido", "SK-II"] };
 const COUNTRY_ORDER = ["Corea del Sur", "Japón"];
 
 function brandCountry(marca) {
