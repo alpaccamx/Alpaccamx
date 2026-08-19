@@ -616,6 +616,11 @@ function getMenuItems() {
     items.push({ type: "categories", label: "Categorías", options: availableCategories });
   }
 
+  const countries = getCountryOptions();
+  if (countries.length >= 2) {
+    items.push({ type: "country", label: "País", options: countries });
+  }
+
   return items;
 }
 
@@ -625,9 +630,10 @@ function menuItemHTML(item, variant) {
     ? "text-sm font-semibold whitespace-nowrap"
     : "block px-5 py-4 border-b border-ink/10 font-semibold uppercase text-sm tracking-wide";
 
-  if (item.type === "brands" || item.type === "categories") {
-    const key = item.type === "brands" ? "brands" : "categories";
-    const optionAttr = item.type === "brands" ? "data-menu-brand" : "data-menu-category";
+  if (item.type === "brands" || item.type === "categories" || item.type === "country") {
+    const key = item.type;
+    const optionAttr =
+      item.type === "brands" ? "data-menu-brand" : item.type === "categories" ? "data-menu-category" : "data-menu-country";
     const dropdownOptions = item.options
       .map(
         (v) =>
@@ -668,9 +674,9 @@ function wireMenuItems(container, onNavigate) {
     });
   });
 
-  container.querySelectorAll("[data-brands-dropdown], [data-categories-dropdown]").forEach((wrap) => {
-    const toggle = wrap.querySelector("[data-brands-toggle], [data-categories-toggle]");
-    const panel = wrap.querySelector("[data-brands-panel], [data-categories-panel]");
+  container.querySelectorAll("[data-brands-dropdown], [data-categories-dropdown], [data-country-dropdown]").forEach((wrap) => {
+    const toggle = wrap.querySelector("[data-brands-toggle], [data-categories-toggle], [data-country-toggle]");
+    const panel = wrap.querySelector("[data-brands-panel], [data-categories-panel], [data-country-panel]");
     // El panel fixed se saca al <body> para que no quede atrapado por el
     // "contenedor" que crea el backdrop-blur del header en elementos fixed
     // (si no, "top"/"left" quedan relativos al header en vez de la ventana).
@@ -699,6 +705,13 @@ function wireMenuItems(container, onNavigate) {
         panel.classList.add("hidden");
         if (onNavigate) onNavigate();
         showCategoryProducts(btn.dataset.menuCategory);
+      });
+    });
+    panel.querySelectorAll("[data-menu-country]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        panel.classList.add("hidden");
+        if (onNavigate) onNavigate();
+        showCountryProducts(btn.dataset.menuCountry);
       });
     });
   });
@@ -1126,53 +1139,6 @@ function showCountryProducts(pais) {
   document.getElementById("country-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function renderCountryDropdown() {
-  const wrap = document.querySelector("[data-country-dropdown]");
-  if (!wrap) return;
-  const options = getCountryOptions();
-  if (options.length < 2) {
-    wrap.classList.add("hidden");
-    return;
-  }
-  wrap.classList.remove("hidden");
-
-  const panel = wrap.querySelector("[data-country-panel]");
-  panel.innerHTML = options
-    .map(
-      (c) =>
-        `<button type="button" data-country-option="${escapeAttr(c)}"
-          class="block w-full text-left px-4 py-2 text-ink/70 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(c)}</button>`
-    )
-    .join("");
-
-  // El panel fixed se saca al <body> por la misma razón que los dropdowns
-  // de Marcas/Categorías: si no, "top"/"left" quedan relativos al header.
-  if (panel.classList.contains("fixed") && !panel.__moved) {
-    document.body.appendChild(panel);
-    panel.__trigger = wrap;
-    panel.__moved = true;
-  }
-
-  const toggle = wrap.querySelector("[data-country-toggle]");
-  if (!toggle.__wired) {
-    toggle.__wired = true;
-    toggle.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const rect = toggle.getBoundingClientRect();
-      panel.style.top = `${rect.bottom + 2}px`;
-      panel.style.left = `${rect.left}px`;
-      panel.classList.toggle("hidden");
-    });
-  }
-
-  panel.querySelectorAll("[data-country-option]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      panel.classList.add("hidden");
-      showCountryProducts(btn.dataset.countryOption);
-    });
-  });
-}
-
 function showCategoryProducts(categoria) {
   const items = groupVariants(products.filter((p) => p.categoria === categoria));
   const grid = document.getElementById("category-products-grid");
@@ -1298,7 +1264,6 @@ function renderAll() {
   renderBrands();
   renderCategoryNav();
   renderMobileMenu();
-  renderCountryDropdown();
   renderCart();
 }
 
