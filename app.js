@@ -59,7 +59,7 @@ const CONFIG = {
   // (tablet/escritorio). Si lo dejas vacío, se usa "image" en ambas.
   HERO_SLIDES: [
     {
-      image: "assets/hero/skincare-mayoreo-banner.jpg",
+      image: "assets/hero/skincare-mayoreo-banner-pc.png",
       // imageMobile: "assets/hero/skincare-mayoreo-banner-mobile.jpg",
       imageAlt: "Skincare coreano para tu negocio - venta por mayoreo Alpacca, marcas reales, resultados reales.",
     },
