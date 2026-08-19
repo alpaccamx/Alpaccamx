@@ -205,7 +205,7 @@ const CONFIG = {
   MIN_ORDER_MXN: 5200,          // pedido mínimo para poder cotizar, en pesos (monto fijo)
   TICKER_MESSAGES: [...],      // frases de la barra deslizante
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
-  HERO_SLIDES: [...],          // slides del banner principal (título, subtítulo, botón)
+  HERO_SLIDES: [...],          // slides del banner principal (imagen, o título/subtítulo/botón); cada slide admite "imageMobile" para usar una imagen distinta en celular
   SKIN_TYPE_EMOJI: {...},      // emoji por etiqueta de TipoPiel
   SKIN_QUIZ: [...],            // preguntas y opciones del quiz de tipo de piel
   PROMO_BANNER: {...},         // franja ancha promocional
