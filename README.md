@@ -45,17 +45,18 @@ variar ligeramente, el sitio los reconoce en español o inglés):
   En **Precio** pon la fórmula:
 
   ```
-  =CEILING(IF(PrecioUSD<>"", PrecioUSD*Config!$B$2, CostoMXN) * (1+Config!$B$3/100), 1)
+  =CEILING(IF(PrecioUSD<>"", PrecioUSD*Config!$B$2, CostoMXN) * (1+Config!$B$3/100) * (1+Config!$B$4/100), 1)
   ```
 
   Eso toma tu costo (convertido de dólares si aplica), le suma tu
-  **comisión** (celda `Config!B3`, ver sección 1.1) para llegar al precio
-  de venta, y redondea **hacia arriba** al siguiente peso entero (ej.
-  $56.32 → $57 — nunca hacia abajo). Cambia el tipo de cambio o el % de
-  comisión en un solo lugar (la pestaña Config) y **todos** los precios
-  se recalculan solos — la comisión solo afecta productos, nunca las
-  tarifas de envío. La plantilla que te compartí ya trae esta fórmula
-  armada, solo cópiala por fila.
+  **comisión** (celda `Config!B3`) y tu **arancel EE.UU.** (celda
+  `Config!B4`, ver sección 1.1) para llegar al precio de venta, y
+  redondea **hacia arriba** al siguiente peso entero (ej. $56.32 → $57 —
+  nunca hacia abajo). Cambia el tipo de cambio, la comisión o el arancel
+  en un solo lugar (la pestaña Config) y **todos** los precios se
+  recalculan solos — ninguno de los dos afecta las tarifas de envío,
+  solo el precio de los productos. La plantilla que te compartí ya trae
+  esta fórmula armada, solo cópiala por fila.
 - **Peso**: opcional. Peso del producto en kilogramos (ej. `0.25`). Se
   usa para calcular el peso total del carrito, que se incluye en el
   mensaje de WhatsApp de la cotización (`📦 Peso total estimado: X kg`)
@@ -100,14 +101,21 @@ publícala como CSV aparte (mismos pasos de arriba, eligiendo esa pestaña):
 |-------|-------|
 | Tipo de cambio | 18.00 |
 | Comisión (%) | 15 |
+| Arancel EE.UU. (%) | 15 |
 
 - **Tipo de cambio** (celda `B2`): cuántos pesos vale 1 dólar. La usa la
   fórmula de la columna Precio en Productos (sección 1 arriba) para
   convertir tus costos en dólares, y también la cotización de envío
   Corea-EE.UU. más abajo.
-- **Comisión (%)** (celda `B3`): tu comisión, en porcentaje. La usa esa
-  misma fórmula de Precio para llegar al precio de venta final — **no
-  se aplica a los envíos**, solo a los productos.
+- **Comisión (%)** (celda `B3`) y **Arancel EE.UU. (%)** (celda `B4`): tu
+  comisión y el arancel de importación a EE.UU., en porcentaje. Las usa
+  esa misma fórmula de Precio para llegar al precio de venta final —
+  **no se aplican a los envíos**, solo a los productos. También se usan
+  para calcular el pedido mínimo real (ver `MIN_ORDER_USD` abajo): si tu
+  proveedor pide $250 USD *antes* de estos cargos, el sitio calcula
+  cuánto es eso en pesos ya con comisión y arancel incluidos, para que
+  el mínimo que se le pide al cliente sí cubra los $250 reales del
+  proveedor.
 
 Si además quieres que el mensaje de WhatsApp incluya una **referencia de
 costo de envío** (Corea→EE.UU. y/o nacional en México) junto al peso,
@@ -199,8 +207,10 @@ const CONFIG = {
   WHATSAPP_NUMBER: "52XXXXXXXXXX",              // tu número con código de país, sin "+" ni espacios
   BUSINESS_NAME: "Alpacca",
   SHIPPING_MESSAGE: "...",     // barra superior
-  MIN_ORDER_USD: 250,          // pedido mínimo para poder cotizar, en dólares
+  MIN_ORDER_USD: 250,          // pedido mínimo que pide tu proveedor, en dólares, ANTES de comisión/arancel
   MIN_ORDER_EXCHANGE_RATE_FALLBACK: 18, // tipo de cambio de respaldo si no cargó el de Config
+  MIN_ORDER_COMISION_FALLBACK: 15,      // comisión (%) de respaldo si no cargó el de Config
+  MIN_ORDER_ARANCEL_FALLBACK: 15,       // arancel EE.UU. (%) de respaldo si no cargó el de Config
   TICKER_MESSAGES: [...],      // frases de la barra deslizante
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
   HERO_SLIDES: [...],          // slides del banner principal (título, subtítulo, botón)
