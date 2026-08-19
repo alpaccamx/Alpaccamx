@@ -54,9 +54,13 @@ const CONFIG = {
   ],
 
   // Slides del banner principal. Agrega o quita objetos para más o menos slides.
+  // "imageMobile" es opcional: si lo pones, esa imagen se usa en pantallas
+  // angostas (celular) y "image" se usa en pantallas sm y más grandes
+  // (tablet/escritorio). Si lo dejas vacío, se usa "image" en ambas.
   HERO_SLIDES: [
     {
       image: "assets/hero/skincare-mayoreo-banner.jpg",
+      // imageMobile: "assets/hero/skincare-mayoreo-banner-mobile.jpg",
       imageAlt: "Skincare coreano para tu negocio - venta por mayoreo Alpacca, marcas reales, resultados reales.",
     },
   ],
@@ -521,8 +525,15 @@ function renderHeroSlide() {
   const secondaryHref = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una pregunta.`);
 
   document.getElementById("hero-slides").innerHTML = slide.image
-    ? `<img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}"
-        class="w-full h-full sm:max-w-[1200px] sm:mx-auto object-contain sm:object-cover sm:object-bottom" />`
+    ? `<picture>
+        ${
+          slide.imageMobile
+            ? `<source media="(max-width: 639px)" srcset="${escapeAttr(slide.imageMobile)}">`
+            : ""
+        }
+        <img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}"
+          class="w-full h-full sm:max-w-[1200px] sm:mx-auto object-contain sm:object-cover sm:object-bottom" />
+      </picture>`
     : `
     <div class="text-center px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
       ${
