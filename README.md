@@ -110,12 +110,7 @@ publícala como CSV aparte (mismos pasos de arriba, eligiendo esa pestaña):
 - **Comisión (%)** (celda `B3`) y **Arancel EE.UU. (%)** (celda `B4`): tu
   comisión y el arancel de importación a EE.UU., en porcentaje. Las usa
   esa misma fórmula de Precio para llegar al precio de venta final —
-  **no se aplican a los envíos**, solo a los productos. También se usan
-  para calcular el pedido mínimo real (ver `MIN_ORDER_USD` abajo): si tu
-  proveedor pide $250 USD *antes* de estos cargos, el sitio calcula
-  cuánto es eso en pesos ya con comisión y arancel incluidos, para que
-  el mínimo que se le pide al cliente sí cubra los $250 reales del
-  proveedor.
+  **no se aplican a los envíos**, solo a los productos.
 
 Si además quieres que el mensaje de WhatsApp incluya una **referencia de
 costo de envío** (Corea→EE.UU. y/o nacional en México) junto al peso,
@@ -207,10 +202,7 @@ const CONFIG = {
   WHATSAPP_NUMBER: "52XXXXXXXXXX",              // tu número con código de país, sin "+" ni espacios
   BUSINESS_NAME: "Alpacca",
   SHIPPING_MESSAGE: "...",     // barra superior
-  MIN_ORDER_USD: 250,          // pedido mínimo que pide tu proveedor, en dólares, ANTES de comisión/arancel
-  MIN_ORDER_EXCHANGE_RATE_FALLBACK: 18, // tipo de cambio de respaldo si no cargó el de Config
-  MIN_ORDER_COMISION_FALLBACK: 15,      // comisión (%) de respaldo si no cargó el de Config
-  MIN_ORDER_ARANCEL_FALLBACK: 15,       // arancel EE.UU. (%) de respaldo si no cargó el de Config
+  MIN_ORDER_MXN: 5200,          // pedido mínimo para poder cotizar, en pesos (monto fijo)
   TICKER_MESSAGES: [...],      // frases de la barra deslizante
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
   HERO_SLIDES: [...],          // slides del banner principal (título, subtítulo, botón)
@@ -319,8 +311,9 @@ El listado (función `getMenuItems()` en `app.js`) combina:
 - Si el Google Sheet no carga (sin internet, URL incorrecta, hoja no
   publicada), el sitio cae automáticamente al catálogo de ejemplo en lugar
   de mostrar una página en blanco.
-- **Pedido mínimo**: mientras el carrito no llegue a `CONFIG.MIN_ORDER_USD`
-  (250 USD, convertidos a pesos con el tipo de cambio de la pestaña
-  Config), el botón "Enviar cotización por WhatsApp" queda deshabilitado
-  y se muestra cuánto le falta al cliente. Cambia `MIN_ORDER_USD` en
-  `app.js` si el mínimo cambia.
+- **Pedido mínimo**: mientras el carrito no llegue a `CONFIG.MIN_ORDER_MXN`
+  (un monto fijo en pesos), el botón "Enviar cotización por WhatsApp"
+  queda deshabilitado y se muestra cuánto le falta al cliente. Cambia
+  `MIN_ORDER_MXN` en `app.js` si el mínimo cambia (recuerda también
+  actualizar `SHIPPING_MESSAGE`, que muestra el monto en la barra
+  superior).

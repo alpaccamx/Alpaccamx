@@ -34,18 +34,10 @@ const CONFIG = {
   BUSINESS_NAME: "Mae",
 
   // Mensaje de la barra superior.
-  SHIPPING_MESSAGE: "📦 Pedido mínimo de compra: $250 USD (o su equivalente en MXN) ✨",
+  SHIPPING_MESSAGE: "📦 Pedido mínimo de compra: $5,200 MXN ✨",
 
-  // Pedido mínimo para poder enviar la cotización, en dólares. Este es el
-  // mínimo que pide el proveedor ANTES de comisión y arancel, así que se
-  // convierte al equivalente en pesos usando el tipo de cambio, comisión
-  // y arancel de la pestaña Config (ver SHIPPING_CONFIG_CSV_URL) — los
-  // mismos que se usan para calcular el precio final de cada producto.
-  // Si esos valores no están disponibles, se usan los *_FALLBACK como respaldo.
-  MIN_ORDER_USD: 250,
-  MIN_ORDER_EXCHANGE_RATE_FALLBACK: 18,
-  MIN_ORDER_COMISION_FALLBACK: 15,
-  MIN_ORDER_ARANCEL_FALLBACK: 15,
+  // Pedido mínimo para poder enviar la cotización, en pesos mexicanos (monto fijo).
+  MIN_ORDER_MXN: 5200,
 
   // Mensajes que se muestran en la barra deslizante debajo del banner.
   TICKER_MESSAGES: [
@@ -317,19 +309,17 @@ function normalizeKey(s) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-let shippingSettings = { exchangeRate: 0, comisionPct: 0, arancelPct: 0 };
+let shippingSettings = { exchangeRate: 0 };
 let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0 };
 let shippingNacionalRates = [];
 
 const SHIPPING_SETTING_ALIASES = {
   exchangeRate: ["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"],
-  comisionPct: ["comision", "comisionpct"],
-  arancelPct: ["aranceleeuu", "arancel", "arancelpct"],
 };
 
 function csvToShippingSettings(text) {
   const rows = parseCSV(text);
-  const settings = { exchangeRate: 0, comisionPct: 0, arancelPct: 0 };
+  const settings = { exchangeRate: 0 };
   rows.forEach((r) => {
     const key = normalizeKey(r[0]);
     const value = parseFloat((r[1] || "").replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0;
@@ -1356,10 +1346,7 @@ function formatWeight(kg) {
 }
 
 function minOrderMXN() {
-  const rate = shippingSettings.exchangeRate || CONFIG.MIN_ORDER_EXCHANGE_RATE_FALLBACK || 18;
-  const comisionPct = shippingSettings.comisionPct || CONFIG.MIN_ORDER_COMISION_FALLBACK || 0;
-  const arancelPct = shippingSettings.arancelPct || CONFIG.MIN_ORDER_ARANCEL_FALLBACK || 0;
-  return (CONFIG.MIN_ORDER_USD || 0) * rate * (1 + comisionPct / 100) * (1 + arancelPct / 100);
+  return CONFIG.MIN_ORDER_MXN || 0;
 }
 
 function updateNacionalShippingUI() {
@@ -1413,7 +1400,7 @@ function renderCart() {
 
   const minMsg = document.getElementById("cart-min-order");
   if (belowMin) {
-    minMsg.textContent = `Te faltan ${formatPrice(minMXN - total)} para tu pedido mínimo de $${CONFIG.MIN_ORDER_USD} USD (~${formatPrice(minMXN)} MXN).`;
+    minMsg.textContent = `Te faltan ${formatPrice(minMXN - total)} para tu pedido mínimo de ${formatPrice(minMXN)}.`;
     minMsg.classList.remove("hidden");
   } else {
     minMsg.classList.add("hidden");
@@ -1535,7 +1522,7 @@ function sendQuote(e) {
   if (!Object.keys(cart).length) return;
 
   if (cartTotal() < minOrderMXN()) {
-    setStatus(`Tu pedido no alcanza el mínimo de compra ($${CONFIG.MIN_ORDER_USD} USD / ${formatPrice(minOrderMXN())} MXN).`);
+    setStatus(`Tu pedido no alcanza el mínimo de compra (${formatPrice(minOrderMXN())}).`);
     return;
   }
 
@@ -1637,8 +1624,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("footer-shipping-link").addEventListener("click", openCart);
 
   const faqMinOrder = document.getElementById("faq-min-order");
-  if (faqMinOrder && CONFIG.MIN_ORDER_USD) {
-    faqMinOrder.textContent = `Es de $${CONFIG.MIN_ORDER_USD} USD (o su equivalente en MXN).`;
+  if (faqMinOrder && CONFIG.MIN_ORDER_MXN) {
+    faqMinOrder.textContent = `Es de ${formatPrice(CONFIG.MIN_ORDER_MXN)}.`;
   }
 
   // Si el usuario hace clic en un enlace ancla (menú, footer, CTAs) mientras
