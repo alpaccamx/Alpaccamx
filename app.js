@@ -36,12 +36,16 @@ const CONFIG = {
   // Mensaje de la barra superior.
   SHIPPING_MESSAGE: "📦 Pedido mínimo de compra: $250 USD (o su equivalente en MXN) ✨",
 
-  // Pedido mínimo para poder enviar la cotización, en dólares. Se
-  // convierte a pesos usando el tipo de cambio de la pestaña Config
-  // (ver SHIPPING_CONFIG_CSV_URL); si ese tipo de cambio no está
-  // disponible, se usa MIN_ORDER_EXCHANGE_RATE_FALLBACK como respaldo.
+  // Pedido mínimo para poder enviar la cotización, en dólares. Este es el
+  // mínimo que pide el proveedor ANTES de comisión y arancel, así que se
+  // convierte al equivalente en pesos usando el tipo de cambio, comisión
+  // y arancel de la pestaña Config (ver SHIPPING_CONFIG_CSV_URL) — los
+  // mismos que se usan para calcular el precio final de cada producto.
+  // Si esos valores no están disponibles, se usan los *_FALLBACK como respaldo.
   MIN_ORDER_USD: 250,
   MIN_ORDER_EXCHANGE_RATE_FALLBACK: 18,
+  MIN_ORDER_COMISION_FALLBACK: 15,
+  MIN_ORDER_ARANCEL_FALLBACK: 15,
 
   // Mensajes que se muestran en la barra deslizante debajo del banner.
   TICKER_MESSAGES: [
@@ -313,17 +317,19 @@ function normalizeKey(s) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-let shippingSettings = { exchangeRate: 0 };
+let shippingSettings = { exchangeRate: 0, comisionPct: 0, arancelPct: 0 };
 let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0 };
 let shippingNacionalRates = [];
 
 const SHIPPING_SETTING_ALIASES = {
   exchangeRate: ["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"],
+  comisionPct: ["comision", "comisionpct"],
+  arancelPct: ["aranceleeuu", "arancel", "arancelpct"],
 };
 
 function csvToShippingSettings(text) {
   const rows = parseCSV(text);
-  const settings = { exchangeRate: 0 };
+  const settings = { exchangeRate: 0, comisionPct: 0, arancelPct: 0 };
   rows.forEach((r) => {
     const key = normalizeKey(r[0]);
     const value = parseFloat((r[1] || "").replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0;
@@ -1351,7 +1357,9 @@ function formatWeight(kg) {
 
 function minOrderMXN() {
   const rate = shippingSettings.exchangeRate || CONFIG.MIN_ORDER_EXCHANGE_RATE_FALLBACK || 18;
-  return (CONFIG.MIN_ORDER_USD || 0) * rate;
+  const comisionPct = shippingSettings.comisionPct || CONFIG.MIN_ORDER_COMISION_FALLBACK || 0;
+  const arancelPct = shippingSettings.arancelPct || CONFIG.MIN_ORDER_ARANCEL_FALLBACK || 0;
+  return (CONFIG.MIN_ORDER_USD || 0) * rate * (1 + comisionPct / 100) * (1 + arancelPct / 100);
 }
 
 function updateNacionalShippingUI() {
