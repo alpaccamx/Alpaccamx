@@ -1510,7 +1510,17 @@ function sendQuote(e) {
 
   const message = buildWhatsAppMessage();
   const url = `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-  window.open(url, "_blank", "noopener");
+  const opened = window.open(url, "_blank", "noopener");
+  // Algunos navegadores integrados (ej. el de WhatsApp) bloquean la
+  // ventana emergente en vez de abrirla; en ese caso navegamos en la
+  // misma pestaña para que el link sí funcione.
+  if (!opened) window.location.href = url;
+
+  cart = {};
+  saveCart();
+  renderCart();
+  document.getElementById("quote-form").reset();
+  closeCart();
 }
 
 /* ======================================================================
