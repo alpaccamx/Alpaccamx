@@ -1067,7 +1067,9 @@ function renderPromoBanner() {
 /* ======================================================================
    Marcas — derivadas de la columna Marca del catálogo (no logos externos)
    ====================================================================== */
-function renderBrands() {
+const BRANDS_PREVIEW_COUNT = 5;
+
+function renderBrands(showAll = false) {
   const section = document.getElementById("brands-section");
   const brands = [...new Set(products.map((p) => p.marca).filter(Boolean))].sort();
   if (!brands.length) {
@@ -1075,16 +1077,28 @@ function renderBrands() {
     return;
   }
   section.classList.remove("hidden");
-  document.getElementById("brands-grid").innerHTML = brands
-    .map(
-      (b) => `<button type="button" data-brand="${escapeAttr(b)}"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition">${escapeHtml(b)}</button>`
-    )
-    .join("");
+
+  const brandButton = (b) => `<button type="button" data-brand="${escapeAttr(b)}"
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition">${escapeHtml(b)}</button>`;
+
+  const hasMore = !showAll && brands.length > BRANDS_PREVIEW_COUNT;
+  const visibleBrands = hasMore ? brands.slice(0, BRANDS_PREVIEW_COUNT) : brands;
+
+  const moreTile = hasMore
+    ? `<button type="button" id="brands-show-more"
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition">Y más</button>`
+    : "";
+
+  document.getElementById("brands-grid").innerHTML = visibleBrands.map(brandButton).join("") + moreTile;
 
   document.querySelectorAll("[data-brand]").forEach((btn) => {
     btn.addEventListener("click", () => showBrandProducts(btn.dataset.brand));
   });
+
+  const showMoreBtn = document.getElementById("brands-show-more");
+  if (showMoreBtn) {
+    showMoreBtn.addEventListener("click", () => renderBrands(true));
+  }
 }
 
 function showBrandProducts(marca) {
