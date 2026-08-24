@@ -823,23 +823,24 @@ function agotadoBadgeHTML() {
   return `<span class="bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>`;
 }
 
-/* Agrupa variantes (tono/color o tipo/aroma) y presentaciones (pieza vs.
-   caja) del mismo producto en una sola tarjeta con selector, para que el
-   catálogo no se vea saturado del mismo producto repetido por cada
-   combinación de tono/presentación. El mismo tono nunca debe mostrarse en
-   recuadros distintos solo por venir en pieza individual o en caja: ambas
-   opciones van juntas, en la lista del selector. Cubre tres casos:
+/* Agrupa variantes de tono/color o tipo/aroma del mismo producto en una
+   sola tarjeta con selector, para que el catálogo no se vea saturado del
+   mismo producto repetido por cada tono. Pieza individual y caja con N
+   piezas se tratan como productos distintos e independientes: NUNCA se
+   agrupan entre sí, cada una se muestra en su propia tarjeta (con su
+   propio selector de tono si aplica). Cubre dos casos:
      - "... (#13 Neutral Ivory)"       → tono/color con código numérico
      - "... - 6 Types (Aqua Fit)"      → variante de tipo/aroma, señalada
                                           por "- N Types/Colors/..." antes
                                           del paréntesis final, para no
                                           agrupar paréntesis sueltos como
-                                          "(5pz)" en productos sin variantes
-     - incluso sin tono/tipo en el nombre, si el mismo producto (marca +
-       nombre) aparece en varias presentaciones (pieza / caja), se agrupan
-       igual bajo un solo nombre base. */
+                                          "(5pz)" en productos sin variantes */
 const SHADE_VARIANT_RE = /^(.*)\s\((#\d+[^)]*)\)$/;
 const TYPE_VARIANT_RE = /^(.*-\s*\d+\s+[A-Za-zÀ-ÿ]+)\s\(([^)]+)\)$/;
+
+function presentacionKind(presentacion) {
+  return (presentacion || "").startsWith("Caja") ? "caja" : "pieza";
+}
 
 function groupVariants(list) {
   const parsed = list.map((p) => {
@@ -849,9 +850,11 @@ function groupVariants(list) {
     return { p, baseName, shadeLabel };
   });
 
+  // Dentro de una misma presentación (pieza o caja), si el tamaño de caja
+  // varía entre tonos, se distingue en la etiqueta del selector.
   const presentacionesPorFamilia = new Map();
   for (const { p, baseName } of parsed) {
-    const key = `${p.marca}||${baseName}`;
+    const key = `${p.marca}||${baseName}||${presentacionKind(p.presentacion)}`;
     if (!presentacionesPorFamilia.has(key)) presentacionesPorFamilia.set(key, new Set());
     presentacionesPorFamilia.get(key).add(p.presentacion || "");
   }
@@ -859,7 +862,7 @@ function groupVariants(list) {
   const order = [];
   const groups = new Map();
   for (const { p, baseName, shadeLabel } of parsed) {
-    const key = `${p.marca}||${baseName}`;
+    const key = `${p.marca}||${baseName}||${presentacionKind(p.presentacion)}`;
     const multiPresentacion = presentacionesPorFamilia.get(key).size > 1;
     const label = shadeLabel && multiPresentacion
       ? `${shadeLabel} — ${p.presentacion || "Pieza individual"}`
@@ -873,7 +876,7 @@ function groupVariants(list) {
       order.push(entry);
     }
     // Solo se agrupa en un selector si hay más de una variante real
-    // (tono distinto o más de una presentación); un producto con un solo
+    // (tono distinto o más de un tamaño de caja); un producto con un solo
     // tono y una sola presentación se muestra tal cual, sin lista.
     if (shadeLabel || multiPresentacion) {
       entry.variants.push({ label, product: p });
