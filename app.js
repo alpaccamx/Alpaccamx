@@ -825,10 +825,11 @@ function agotadoBadgeHTML() {
 
 /* Agrupa variantes de tono/color o tipo/aroma del mismo producto en una
    sola tarjeta con selector, para que el catálogo no se vea saturado del
-   mismo producto repetido por cada tono. Pieza individual y caja con N
-   piezas se tratan como productos distintos e independientes: NUNCA se
-   agrupan entre sí, cada una se muestra en su propia tarjeta (con su
-   propio selector de tono si aplica). Cubre dos casos:
+   mismo producto repetido por cada tono. Cada presentación (Pieza
+   individual, Caja con 20 piezas, Caja con 160 piezas, etc.) se trata
+   como un producto distinto e independiente: NUNCA se agrupan entre sí,
+   cada una se muestra en su propia tarjeta (con su propio selector de
+   tono si aplica). Cubre dos casos:
      - "... (#13 Neutral Ivory)"       → tono/color con código numérico
      - "... - 6 Types (Aqua Fit)"      → variante de tipo/aroma, señalada
                                           por "- N Types/Colors/..." antes
@@ -838,10 +839,6 @@ function agotadoBadgeHTML() {
 const SHADE_VARIANT_RE = /^(.*)\s\((#\d+[^)]*)\)$/;
 const TYPE_VARIANT_RE = /^(.*-\s*\d+\s+[A-Za-zÀ-ÿ]+)\s\(([^)]+)\)$/;
 
-function presentacionKind(presentacion) {
-  return (presentacion || "").startsWith("Caja") ? "caja" : "pieza";
-}
-
 function groupVariants(list) {
   const parsed = list.map((p) => {
     const m = SHADE_VARIANT_RE.exec(p.nombre || "") || TYPE_VARIANT_RE.exec(p.nombre || "");
@@ -850,23 +847,10 @@ function groupVariants(list) {
     return { p, baseName, shadeLabel };
   });
 
-  // Dentro de una misma presentación (pieza o caja), si el tamaño de caja
-  // varía entre tonos, se distingue en la etiqueta del selector.
-  const presentacionesPorFamilia = new Map();
-  for (const { p, baseName } of parsed) {
-    const key = `${p.marca}||${baseName}||${presentacionKind(p.presentacion)}`;
-    if (!presentacionesPorFamilia.has(key)) presentacionesPorFamilia.set(key, new Set());
-    presentacionesPorFamilia.get(key).add(p.presentacion || "");
-  }
-
   const order = [];
   const groups = new Map();
   for (const { p, baseName, shadeLabel } of parsed) {
-    const key = `${p.marca}||${baseName}||${presentacionKind(p.presentacion)}`;
-    const multiPresentacion = presentacionesPorFamilia.get(key).size > 1;
-    const label = shadeLabel && multiPresentacion
-      ? `${shadeLabel} — ${p.presentacion || "Pieza individual"}`
-      : shadeLabel || p.presentacion || "";
+    const key = `${p.marca}||${baseName}||${p.presentacion || ""}`;
 
     let entry = groups.get(key);
     const isNewFamily = !entry;
@@ -875,11 +859,11 @@ function groupVariants(list) {
       groups.set(key, entry);
       order.push(entry);
     }
-    // Solo se agrupa en un selector si hay más de una variante real
-    // (tono distinto o más de un tamaño de caja); un producto con un solo
-    // tono y una sola presentación se muestra tal cual, sin lista.
-    if (shadeLabel || multiPresentacion) {
-      entry.variants.push({ label, product: p });
+    // Solo se agrupa en un selector si hay más de un tono dentro de la
+    // misma presentación exacta; un producto con un solo tono se muestra
+    // tal cual, sin lista.
+    if (shadeLabel) {
+      entry.variants.push({ label: shadeLabel, product: p });
     } else if (isNewFamily) {
       order[order.length - 1] = p;
       groups.set(key, p);
