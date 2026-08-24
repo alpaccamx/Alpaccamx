@@ -823,37 +823,67 @@ function agotadoBadgeHTML() {
   return `<span class="bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>`;
 }
 
-/* Agrupa variantes (tono/color o tipo/aroma) de la misma marca y
-   presentación en una sola tarjeta con selector, para que el catálogo no
-   se vea saturado del mismo producto repetido por cada variante. Cubre dos
-   convenciones de nombre usadas en la hoja:
+/* Agrupa variantes (tono/color o tipo/aroma) y presentaciones (pieza vs.
+   caja) del mismo producto en una sola tarjeta con selector, para que el
+   catálogo no se vea saturado del mismo producto repetido por cada
+   combinación de tono/presentación. El mismo tono nunca debe mostrarse en
+   recuadros distintos solo por venir en pieza individual o en caja: ambas
+   opciones van juntas, en la lista del selector. Cubre tres casos:
      - "... (#13 Neutral Ivory)"       → tono/color con código numérico
      - "... - 6 Types (Aqua Fit)"      → variante de tipo/aroma, señalada
                                           por "- N Types/Colors/..." antes
                                           del paréntesis final, para no
                                           agrupar paréntesis sueltos como
-                                          "(5pz)" en productos sin variantes */
+                                          "(5pz)" en productos sin variantes
+     - incluso sin tono/tipo en el nombre, si el mismo producto (marca +
+       nombre) aparece en varias presentaciones (pieza / caja), se agrupan
+       igual bajo un solo nombre base. */
 const SHADE_VARIANT_RE = /^(.*)\s\((#\d+[^)]*)\)$/;
 const TYPE_VARIANT_RE = /^(.*-\s*\d+\s+[A-Za-zÀ-ÿ]+)\s\(([^)]+)\)$/;
 
 function groupVariants(list) {
+  const parsed = list.map((p) => {
+    const m = SHADE_VARIANT_RE.exec(p.nombre || "") || TYPE_VARIANT_RE.exec(p.nombre || "");
+    const baseName = m ? m[1] : p.nombre || "";
+    const shadeLabel = m ? m[2] : null;
+    return { p, baseName, shadeLabel };
+  });
+
+  const presentacionesPorFamilia = new Map();
+  for (const { p, baseName } of parsed) {
+    const key = `${p.marca}||${baseName}`;
+    if (!presentacionesPorFamilia.has(key)) presentacionesPorFamilia.set(key, new Set());
+    presentacionesPorFamilia.get(key).add(p.presentacion || "");
+  }
+
   const order = [];
   const groups = new Map();
-  for (const p of list) {
-    const m = SHADE_VARIANT_RE.exec(p.nombre || "") || TYPE_VARIANT_RE.exec(p.nombre || "");
-    if (!m) {
-      order.push(p);
-      continue;
-    }
-    const [, baseName, label] = m;
-    const key = `${p.marca}||${baseName}||${p.presentacion || ""}`;
+  for (const { p, baseName, shadeLabel } of parsed) {
+    const key = `${p.marca}||${baseName}`;
+    const multiPresentacion = presentacionesPorFamilia.get(key).size > 1;
+    const label = shadeLabel && multiPresentacion
+      ? `${shadeLabel} — ${p.presentacion || "Pieza individual"}`
+      : shadeLabel || p.presentacion || "";
+
     let entry = groups.get(key);
-    if (!entry) {
+    const isNewFamily = !entry;
+    if (isNewFamily) {
       entry = { ...p, nombre: baseName, variants: [] };
       groups.set(key, entry);
       order.push(entry);
     }
-    entry.variants.push({ label, product: p });
+    // Solo se agrupa en un selector si hay más de una variante real
+    // (tono distinto o más de una presentación); un producto con un solo
+    // tono y una sola presentación se muestra tal cual, sin lista.
+    if (shadeLabel || multiPresentacion) {
+      entry.variants.push({ label, product: p });
+    } else if (isNewFamily) {
+      order[order.length - 1] = p;
+      groups.set(key, p);
+    }
+  }
+  for (const entry of order) {
+    if (entry.variants && entry.variants.length <= 1) delete entry.variants;
   }
   return order;
 }
