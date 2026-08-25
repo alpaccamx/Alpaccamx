@@ -1507,7 +1507,7 @@ function buildWhatsAppMessage() {
   if (shipping) {
     parts.push(`🚚 Envío estimado (referencia, sujeto a confirmación): ${formatPrice(shipping.totalMXN)}`);
     if (shipping.hasKorea) {
-      parts.push(`   • Corea→EE.UU.: ${formatPrice(shipping.coreaMXN)}`);
+      parts.push(`   • Corea→México: ${formatPrice(shipping.coreaMXN)}`);
     }
     if (shipping.hasNacional) {
       parts.push(`   • Nacional MX (Estafeta, CP ${cp}): ${formatPrice(shipping.nacionalMXN)}`);
