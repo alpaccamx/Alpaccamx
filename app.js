@@ -34,10 +34,10 @@ const CONFIG = {
   BUSINESS_NAME: "Mae",
 
   // Mensaje de la barra superior.
-  SHIPPING_MESSAGE: "📦 Pedido mínimo de compra: $5,100 MXN ✨",
+  SHIPPING_MESSAGE: "📦 Pedido mínimo de compra: $5,700 MXN ✨",
 
   // Pedido mínimo para poder enviar la cotización, en pesos mexicanos (monto fijo).
-  MIN_ORDER_MXN: 5100,
+  MIN_ORDER_MXN: 5700,
 
   // Mensajes que se muestran en la barra deslizante debajo del banner.
   TICKER_MESSAGES: [
