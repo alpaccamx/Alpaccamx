@@ -131,6 +131,32 @@ const CONFIG = {
     { emoji: "✅", title: "Catálogo verificado", text: "Disponibilidad real" },
   ],
 
+  // ------------------------------------------------------------------
+  // Rachel Beauty — colección aparte con su propio catálogo, carrito y
+  // reglas de compra (precios en USD, MOQ por color/tono, pedido mínimo
+  // propio). No comparte carrito ni pedido mínimo con el resto del sitio.
+  // ------------------------------------------------------------------
+  RACHEL: {
+    // Google Sheet publicado como CSV (mismo procedimiento que el catálogo
+    // principal, ver README) con columnas: Nombre, Marca, Precio USD,
+    // PrecioOriginal USD (opcional, para mostrar el % de descuento), MOQ
+    // (mínimo de unidades por color/tono), Imagen, Descripcion, Disponible,
+    // Presentacion (opcional), SKU (opcional).
+    SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV",
+
+    // Número de WhatsApp para pedidos de esta colección (puede ser el
+    // mismo que CONFIG.WHATSAPP_NUMBER o uno distinto).
+    WHATSAPP_NUMBER: "5216571920559",
+
+    BUSINESS_NAME: "Mae",
+
+    TITLE: "Rachel Beauty",
+    SUBTITLE: "Maquillaje y belleza de marca, directo de proveedor — precios en USD, MOQ por color/tono. Envío e importación se cotizan aparte.",
+
+    // Pedido mínimo para poder enviar el pedido, en dólares (monto fijo).
+    MIN_ORDER_USD: 1000,
+  },
+
 };
 
 /* ======================================================================
@@ -184,6 +210,10 @@ let products = [];
 const CART_KEY = "alpacca_cart_v1";
 let cart = loadCart();
 
+let rachelProducts = [];
+const RACHEL_CART_KEY = "alpacca_rachel_cart_v1";
+let rachelCart = loadRachelCart();
+
 /* ======================================================================
    Utilidades
    ====================================================================== */
@@ -201,6 +231,22 @@ function loadCart() {
 
 function saveCart() {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
+}
+
+function formatUSD(n) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
+}
+
+function loadRachelCart() {
+  try {
+    return JSON.parse(localStorage.getItem(RACHEL_CART_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRachelCart() {
+  localStorage.setItem(RACHEL_CART_KEY, JSON.stringify(rachelCart));
 }
 
 function setStatus(text) {
@@ -293,6 +339,56 @@ function csvToProducts(text) {
         disponible,
         destacado: splitTags(get(iDestacado)),
         tipoPiel: splitTags(get(iTipoPiel)),
+      };
+    })
+    .filter((p) => p.nombre && p.nombre !== "Producto sin nombre");
+}
+
+/* ======================================================================
+   Rachel Beauty — parser de su propio Sheet (columnas propias: Precio en
+   USD, PrecioOriginal opcional para mostrar descuento, y MOQ por fila —
+   cada fila es un color/tono/versión con su propio mínimo de unidades).
+   ====================================================================== */
+function csvToRachelProducts(text) {
+  const rows = parseCSV(text);
+  if (!rows.length) return [];
+  const headers = rows[0].map((h) => h.trim().toLowerCase());
+
+  const iNombre = findCol(headers, ["nombre", "producto", "name"]);
+  const iMarca = findCol(headers, ["marca", "brand"]);
+  const iPrecio = findCol(headers, ["precio", "precio usd", "price"]);
+  const iPrecioOriginal = findCol(headers, ["preciooriginal", "precio original", "precio original usd", "original price"]);
+  const iMoq = findCol(headers, ["moq", "minimo", "mínimo", "cantidad minima", "cantidad mínima"]);
+  const iImagen = findCol(headers, ["imagen", "image", "foto", "imagen url"]);
+  const iDescripcion = findCol(headers, ["descripcion", "descripción", "description"]);
+  const iSku = findCol(headers, ["sku", "codigo", "código"]);
+  const iDisponible = findCol(headers, ["disponible", "stock", "available"]);
+  const iPresentacion = findCol(headers, ["presentacion", "presentación", "empaque", "variante", "unidad"]);
+
+  return rows
+    .slice(1)
+    .map((r, n) => {
+      const get = (i) => (i >= 0 && r[i] != null ? r[i].trim() : "");
+      const disponibleRaw = get(iDisponible).toLowerCase();
+      const disponible =
+        disponibleRaw === ""
+          ? true
+          : ["si", "sí", "yes", "true", "1", "disponible"].includes(disponibleRaw);
+      const precioRaw = get(iPrecio).replace(/[^0-9.,]/g, "").replace(",", ".");
+      const precioOriginalRaw = get(iPrecioOriginal).replace(/[^0-9.,]/g, "").replace(",", ".");
+      const moqRaw = get(iMoq).replace(/[^0-9.,]/g, "").replace(",", ".");
+      const moq = Math.max(1, Math.round(parseFloat(moqRaw)) || 1);
+      return {
+        id: get(iSku) || `rachel${n}`,
+        nombre: get(iNombre) || "Producto sin nombre",
+        marca: get(iMarca),
+        precio: parseFloat(precioRaw) || 0,
+        precioOriginal: parseFloat(precioOriginalRaw) || 0,
+        moq,
+        presentacion: get(iPresentacion),
+        imagen: get(iImagen),
+        descripcion: get(iDescripcion),
+        disponible,
       };
     })
     .filter((p) => p.nombre && p.nombre !== "Producto sin nombre");
@@ -494,6 +590,30 @@ async function loadProducts() {
 }
 
 /* ======================================================================
+   Carga de productos — Rachel Beauty (Sheet aparte, opcional). Si no se
+   configuró CONFIG.RACHEL.SHEET_CSV_URL, la sección completa se oculta.
+   ====================================================================== */
+async function loadRachelProducts() {
+  const url = CONFIG.RACHEL.SHEET_CSV_URL;
+  const isPlaceholder = !url || url.includes("PEGA_AQUI");
+  if (isPlaceholder) return;
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    rachelProducts = csvToRachelProducts(text);
+  } catch (err) {
+    console.warn("No se pudo cargar el catálogo de Rachel Beauty:", err);
+    rachelProducts = [];
+  }
+  renderRachelSection();
+  renderRachelCart();
+  renderCategoryNav();
+  renderMobileMenu();
+}
+
+/* ======================================================================
    Barra superior: redes sociales + mensaje de envíos
    ====================================================================== */
 function renderTopBar() {
@@ -613,6 +733,10 @@ const CATEGORY_MENU_OPTIONS = ["Skincare", "Suplementos"];
 
 function getMenuItems() {
   const items = [{ type: "link", label: "Catálogo", href: "#catalog-section" }];
+
+  if (rachelProducts.length) {
+    items.push({ type: "link", label: CONFIG.RACHEL.TITLE || "Rachel Beauty", href: "#rachel-section" });
+  }
 
   const brandsSection = document.getElementById("brands-section");
   if (brandsSection && !brandsSection.classList.contains("hidden")) {
@@ -920,6 +1044,122 @@ function wireAddButtons(container) {
   container.querySelectorAll("[data-add]").forEach((btn) => {
     btn.addEventListener("click", () => addToCart(btn.dataset.add));
   });
+}
+
+/* ======================================================================
+   Rachel Beauty — tarjeta de producto propia (precio en USD, precio
+   original tachado si aplica, y MOQ por color/tono en vez de la etiqueta
+   de presentación normal).
+   ====================================================================== */
+function rachelProductCardHTML(p) {
+  const img = p.imagen || placeholderImg(p.marca || "Rachel Beauty", "#e9c3be");
+  const hasVariants = p.variants && p.variants.length > 1;
+  const hasDiscount = p.precioOriginal > p.precio;
+  return `
+    <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full transition duration-300 hover:shadow-lg hover:border-rose/30">
+      <div class="aspect-square bg-blush/20 overflow-hidden relative">
+        <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
+          class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+        <div data-card-badge class="absolute top-2 left-2">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
+      </div>
+      <div class="p-3 flex flex-col flex-1">
+        <span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1 bg-ink/10 text-ink/70" data-card-moq>MOQ: ${p.moq}</span>
+        <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca)}</span>
+        <h3 class="font-semibold text-sm text-ink leading-snug mt-0.5 line-clamp-2">${escapeHtml(p.nombre)}</h3>
+        ${
+          hasVariants
+            ? `<select data-variant-select
+                class="mt-1 w-full truncate text-xs border border-ink/15 rounded-md pl-1.5 pr-5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-blush">
+                <option value="" selected disabled>Selecciona una versión</option>
+                ${p.variants
+                  .map((v) => `<option value="${escapeAttr(v.product.id)}">${escapeHtml(v.label)}</option>`)
+                  .join("")}
+              </select>`
+            : ""
+        }
+        <div class="mt-auto pt-2 flex items-center justify-between gap-2">
+          <div class="leading-tight">
+            <span data-card-price class="font-display text-ink block">${formatUSD(p.precio)}</span>
+            ${hasDiscount ? `<span data-card-original class="block text-[10px] text-ink/40 line-through">${formatUSD(p.precioOriginal)}</span>` : `<span data-card-original class="hidden"></span>`}
+          </div>
+          <button data-rachel-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
+            class="rounded-full bg-ink text-cream text-xs font-semibold px-3 py-1.5 hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
+            Agregar
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function wireRachelAddButtons(container) {
+  container.querySelectorAll("[data-rachel-add]").forEach((btn) => {
+    btn.addEventListener("click", () => addToRachelCart(btn.dataset.rachelAdd));
+  });
+}
+
+function wireRachelVariantSelectors(container) {
+  container.querySelectorAll("[data-variant-select]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const variant = rachelProducts.find((p) => p.id === select.value);
+      const card = select.closest(".group");
+      if (!card) return;
+
+      const addBtn = card.querySelector("[data-rachel-add]");
+      if (!variant) {
+        addBtn.dataset.rachelAdd = "";
+        addBtn.disabled = true;
+        return;
+      }
+      addBtn.dataset.rachelAdd = variant.id;
+      addBtn.disabled = !variant.disponible;
+
+      const priceEl = card.querySelector("[data-card-price]");
+      if (priceEl) priceEl.textContent = formatUSD(variant.precio);
+
+      const originalEl = card.querySelector("[data-card-original]");
+      if (originalEl) {
+        const hasDiscount = variant.precioOriginal > variant.precio;
+        originalEl.textContent = hasDiscount ? formatUSD(variant.precioOriginal) : "";
+        originalEl.classList.toggle("hidden", !hasDiscount);
+      }
+
+      const moqEl = card.querySelector("[data-card-moq]");
+      if (moqEl) moqEl.textContent = `MOQ: ${variant.moq}`;
+
+      const badgeEl = card.querySelector("[data-card-badge]");
+      if (badgeEl) badgeEl.innerHTML = variant.disponible ? "" : agotadoBadgeHTML();
+
+      const imgEl = card.querySelector("[data-card-img]");
+      if (imgEl && variant.imagen) imgEl.src = variant.imagen;
+    });
+  });
+}
+
+function renderRachelSection() {
+  const section = document.getElementById("rachel-section");
+  if (!rachelProducts.length) {
+    section.classList.add("hidden");
+    return;
+  }
+  section.classList.remove("hidden");
+
+  document.getElementById("rachel-section-title").textContent = CONFIG.RACHEL.TITLE || "Rachel Beauty";
+  document.getElementById("rachel-section-subtitle").textContent = CONFIG.RACHEL.SUBTITLE || "";
+  document.getElementById("rachel-min-order-note").textContent =
+    `Pedido mínimo: ${formatUSD(CONFIG.RACHEL.MIN_ORDER_USD)} · MOQ por color/tono`;
+
+  const items = groupVariants(rachelProducts);
+  const grid = document.getElementById("rachel-grid");
+  const empty = document.getElementById("rachel-empty");
+  if (!items.length) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    grid.innerHTML = items.map((p) => rachelProductCardHTML(p)).join("");
+    wireRachelAddButtons(grid);
+    wireRachelVariantSelectors(grid);
+  }
 }
 
 /* ======================================================================
@@ -1310,6 +1550,172 @@ function renderAll() {
 }
 
 /* ======================================================================
+   Rachel Beauty — carrito propio (independiente del carrito principal:
+   estado, localStorage, mínimo de pedido y mensaje de WhatsApp separados).
+   El MOQ es por variante (color/tono): al agregar un producto por primera
+   vez se agrega la cantidad mínima completa, y no se puede bajar de ahí
+   sin quitar la línea del carrito.
+   ====================================================================== */
+function addToRachelCart(id) {
+  const product = rachelProducts.find((p) => p.id === id);
+  if (!product || !product.disponible) return;
+  if (rachelCart[id]) rachelCart[id].qty += 1;
+  else rachelCart[id] = { product, qty: Math.max(1, product.moq || 1) };
+  saveRachelCart();
+  renderRachelCart();
+  openRachelCart();
+}
+
+function changeRachelQty(id, delta) {
+  const item = rachelCart[id];
+  if (!item) return;
+  const newQty = item.qty + delta;
+  const moq = Math.max(1, item.product.moq || 1);
+  if (newQty < moq) delete rachelCart[id];
+  else item.qty = newQty;
+  saveRachelCart();
+  renderRachelCart();
+}
+
+function removeFromRachelCart(id) {
+  delete rachelCart[id];
+  saveRachelCart();
+  renderRachelCart();
+}
+
+function rachelCartTotal() {
+  return Object.values(rachelCart).reduce((sum, it) => sum + it.product.precio * it.qty, 0);
+}
+
+function rachelCartCount() {
+  return Object.values(rachelCart).reduce((sum, it) => sum + it.qty, 0);
+}
+
+function renderRachelCart() {
+  const wrap = document.getElementById("rachel-cart-items");
+  const emptyMsg = document.getElementById("rachel-cart-empty");
+  const items = Object.entries(rachelCart);
+
+  const total = rachelCartTotal();
+  const minUSD = CONFIG.RACHEL.MIN_ORDER_USD || 0;
+  const belowMin = items.length > 0 && total < minUSD;
+
+  document.getElementById("rachel-cart-count").textContent = rachelCartCount();
+  document.getElementById("rachel-cart-total-label").textContent = `Total productos (${rachelCartCount()})`;
+  document.getElementById("rachel-cart-total").textContent = formatUSD(total);
+  document.getElementById("rachel-cart-total-header").textContent = formatUSD(total);
+
+  const minMsg = document.getElementById("rachel-cart-min-order");
+  if (belowMin) {
+    minMsg.textContent = `Te faltan ${formatUSD(minUSD - total)} para tu pedido mínimo de ${formatUSD(minUSD)}.`;
+    minMsg.classList.remove("hidden");
+  } else {
+    minMsg.classList.add("hidden");
+  }
+
+  const sendBtn = document.getElementById("rachel-send-quote");
+  sendBtn.disabled = items.length === 0 || belowMin;
+
+  if (!items.length) {
+    wrap.innerHTML = "";
+    emptyMsg.classList.remove("hidden");
+    return;
+  }
+  emptyMsg.classList.add("hidden");
+
+  wrap.innerHTML = items
+    .map(([id, it]) => {
+      const img = it.product.imagen || placeholderImg(it.product.marca || "Rachel Beauty", "#e9c3be");
+      const moq = Math.max(1, it.product.moq || 1);
+      return `
+      <div class="flex gap-3 items-center">
+        <img src="${escapeAttr(img)}" alt="${escapeAttr(it.product.nombre)}" class="w-16 h-16 rounded-lg object-cover border border-ink/10" />
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-ink truncate">${escapeHtml(it.product.nombre)}</p>
+          <p class="text-xs text-ink/50">${formatUSD(it.product.precio)} c/u · MOQ ${moq}</p>
+          <div class="mt-1 flex items-center gap-2">
+            <button data-rachel-dec="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">−</button>
+            <span class="text-sm w-5 text-center">${it.qty}</span>
+            <button data-rachel-inc="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">+</button>
+            <button data-rachel-remove="${escapeAttr(id)}" class="ml-2 text-xs text-ink/40 hover:text-ink/70 underline">quitar</button>
+          </div>
+        </div>
+        <span class="text-sm font-semibold text-ink whitespace-nowrap">${formatUSD(it.product.precio * it.qty)}</span>
+      </div>`;
+    })
+    .join("");
+
+  wrap.querySelectorAll("[data-rachel-inc]").forEach((b) => b.addEventListener("click", () => changeRachelQty(b.dataset.rachelInc, 1)));
+  wrap.querySelectorAll("[data-rachel-dec]").forEach((b) => b.addEventListener("click", () => changeRachelQty(b.dataset.rachelDec, -1)));
+  wrap.querySelectorAll("[data-rachel-remove]").forEach((b) => b.addEventListener("click", () => removeFromRachelCart(b.dataset.rachelRemove)));
+}
+
+function openRachelCart() {
+  document.getElementById("rachel-cart-drawer").classList.remove("translate-x-full");
+  document.getElementById("rachel-cart-overlay").classList.remove("opacity-0", "pointer-events-none");
+}
+
+function closeRachelCart() {
+  document.getElementById("rachel-cart-drawer").classList.add("translate-x-full");
+  document.getElementById("rachel-cart-overlay").classList.add("opacity-0", "pointer-events-none");
+}
+
+function buildRachelWhatsAppMessage() {
+  const items = Object.values(rachelCart);
+  const name = document.getElementById("rachel-customer-name").value.trim();
+  const phone = document.getElementById("rachel-customer-phone").value.trim();
+  const notes = document.getElementById("rachel-customer-notes").value.trim();
+
+  const lines = items.map((it, i) => {
+    const marca = it.product.marca ? `${it.product.marca} — ` : "";
+    return `${i + 1}. ${marca}${it.product.nombre} x${it.qty} (MOQ ${it.product.moq}) — ${formatUSD(it.product.precio * it.qty)}`;
+  });
+
+  const parts = [
+    `Hola ${CONFIG.RACHEL.BUSINESS_NAME}! Quiero pedir esto de Rachel Beauty:`,
+    "",
+    ...lines,
+    "",
+    `*Total: ${formatUSD(rachelCartTotal())}*`,
+    "Envío e importación se cotizan aparte.",
+    "",
+    `Nombre: ${name}`,
+  ];
+  if (phone) parts.push(`Teléfono: ${phone}`);
+  if (notes) parts.push(`Notas: ${notes}`);
+
+  return parts.join("\n");
+}
+
+function sendRachelQuote(e) {
+  e.preventDefault();
+  if (!Object.keys(rachelCart).length) return;
+
+  const minUSD = CONFIG.RACHEL.MIN_ORDER_USD || 0;
+  if (rachelCartTotal() < minUSD) {
+    setStatus(`Tu pedido de Rachel Beauty no alcanza el mínimo de compra (${formatUSD(minUSD)}).`);
+    return;
+  }
+
+  const numberIsPlaceholder = !CONFIG.RACHEL.WHATSAPP_NUMBER || CONFIG.RACHEL.WHATSAPP_NUMBER.includes("XXXX");
+  if (numberIsPlaceholder) {
+    setStatus("Falta configurar CONFIG.RACHEL.WHATSAPP_NUMBER en app.js con tu número real.");
+    return;
+  }
+
+  const message = buildRachelWhatsAppMessage();
+  const url = `https://wa.me/${CONFIG.RACHEL.WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const opened = window.open(url, "_blank", "noopener");
+  if (!opened) window.location.href = url;
+
+  rachelCart = {};
+  saveRachelCart();
+  renderRachelCart();
+  document.getElementById("rachel-quote-form").reset();
+  closeRachelCart();
+}
+
+/* ======================================================================
    Carrito
    ====================================================================== */
 function addToCart(id) {
@@ -1612,6 +2018,11 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("cart-close").addEventListener("click", closeCart);
   document.getElementById("cart-overlay").addEventListener("click", closeCart);
 
+  document.getElementById("rachel-cart-toggle").addEventListener("click", openRachelCart);
+  document.getElementById("rachel-cart-close").addEventListener("click", closeRachelCart);
+  document.getElementById("rachel-cart-overlay").addEventListener("click", closeRachelCart);
+  document.getElementById("rachel-quote-form").addEventListener("submit", sendRachelQuote);
+
   document.getElementById("menu-toggle").addEventListener("click", openMobileMenu);
   document.getElementById("menu-close").addEventListener("click", closeMobileMenu);
   document.getElementById("menu-overlay").addEventListener("click", closeMobileMenu);
@@ -1690,4 +2101,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadShippingKoreaRates();
   loadShippingNacionalRates();
   renderCart();
+
+  loadRachelProducts();
+  renderRachelCart();
 });

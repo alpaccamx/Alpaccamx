@@ -189,6 +189,61 @@ WhatsApp se ve así:
 Es una **referencia para ti** (no se suma al "Total estimado" que ve el
 cliente) — tú confirmas el costo real de envío antes de cerrar el pedido.
 
+## 1.2 (opcional) Colección Rachel Beauty — catálogo y carrito aparte
+
+Además del catálogo principal, el sitio puede mostrar una segunda
+colección completamente independiente (pensada para el proveedor "Rachel
+Beauty" u otro con reglas de compra distintas): su propio Google Sheet,
+su propio carrito (no se mezcla con el carrito principal), precios en
+**dólares (USD)**, **MOQ por color/tono** (cantidad mínima por variante)
+y su propio **pedido mínimo total**.
+
+Crea una hoja aparte (o una pestaña nueva en el mismo archivo) con estas
+columnas:
+
+| Nombre | Marca | Precio USD | PrecioOriginal USD | MOQ | Imagen | Descripcion | Disponible | Presentacion | SKU |
+|--------|-------|------------|---------------------|-----|--------|-------------|------------|---------------|-----|
+
+- **Precio USD**: precio de venta final en dólares (ya con tu margen
+  incluido) — es el que se muestra y se usa para el pedido mínimo.
+- **PrecioOriginal USD**: opcional. Si lo llenas y es mayor a **Precio**,
+  la tarjeta muestra ese precio tachado arriba del precio de venta.
+- **MOQ**: cantidad mínima de unidades para esa fila (ese color/tono/
+  versión específico). Al agregar el producto al carrito por primera vez
+  se agrega esa cantidad completa de una vez; el cliente puede subir de
+  ahí de uno en uno, pero si baja por debajo del MOQ la línea se quita
+  del carrito (no puede quedar una cantidad menor al MOQ).
+- **Imagen**, **Disponible**, **SKU**: igual que en el catálogo principal.
+- **Presentacion**: opcional, mismo uso que en el catálogo principal.
+- Para colores/tonos del mismo producto, nombra las filas igual que en
+  el catálogo principal: `Nombre (#código)`, ej. `Ysl blush (#44)`,
+  `Ysl blush (#06)` — el sitio los agrupa automáticamente en una sola
+  tarjeta con un selector de versión.
+
+Publícala igual que el Sheet principal (`Archivo` → `Compartir` →
+`Publicar en la Web` → formato CSV) y pega el link en `app.js`, dentro
+del bloque `CONFIG.RACHEL`:
+
+```js
+RACHEL: {
+  SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV",
+  WHATSAPP_NUMBER: "52XXXXXXXXXX",  // puede ser el mismo número u otro
+  BUSINESS_NAME: "Mae",
+  TITLE: "Rachel Beauty",
+  SUBTITLE: "...",
+  MIN_ORDER_USD: 1000,              // pedido mínimo TOTAL de esta colección, en USD
+},
+```
+
+Mientras `RACHEL.SHEET_CSV_URL` tenga el placeholder de ejemplo
+(`PEGA_AQUI`), toda la sección se oculta del sitio (no aparece en el
+menú ni en la página) — no muestra nada hasta que la conectes. Una vez
+conectada, aparece como una sección propia (con su enlace en el menú),
+con su botón de carrito, su drawer y su formulario de WhatsApp
+independientes del catálogo principal — el envío/importación de estos
+productos se cotiza aparte, ya que no usa las tablas de envío
+Corea→México ni la nacional del catálogo principal.
+
 ## 2. Configurar el sitio
 
 Abre `app.js` y edita el bloque `CONFIG` al inicio:
@@ -211,6 +266,7 @@ const CONFIG = {
   PROMO_BANNER: {...},         // franja ancha promocional
   BENEFITS: [...],             // franja de 4 beneficios antes del footer
   MENU_COMING_SOON: [...],     // accesos del menú que aún no tienen función real
+  RACHEL: {...},               // opcional — colección Rachel Beauty aparte (ver sección 1.2)
 };
 ```
 
