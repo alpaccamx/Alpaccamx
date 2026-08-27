@@ -147,6 +147,24 @@
   <p id="country-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles de este país por ahora.</p>
 </section>
 
+<!-- Cosmético Americano — catálogo y carrito totalmente aparte (marcas de lujo,
+     precios en pesos, MOQ por color/tono, pedido mínimo propio). Oculta por
+     defecto igual que las demás secciones de arriba: solo se muestra cuando
+     alguien le da clic en el menú (ver showHomeView). -->
+<section id="americano-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
+  <div class="relative rounded-3xl border border-ink/10 bg-white/40 p-4 sm:p-8">
+    <button id="americano-close" type="button" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-xs text-ink/50 hover:text-ink underline">Cerrar</button>
+    <div class="mb-2 pr-14">
+      <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Mayoreo</p>
+      <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1" id="americano-section-title">Cosmético Americano</h2>
+      <p class="text-sm text-ink/60 mt-1 max-w-xl" id="americano-min-order-note"></p>
+      <p class="text-sm text-ink/60 mt-1 max-w-xl mb-6" id="americano-section-subtitle"></p>
+    </div>
+    <div id="americano-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    <p id="americano-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles en esta colección por el momento.</p>
+  </div>
+</section>
+
 <!-- Mobile menu overlay + drawer -->
 <div id="menu-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 sm:hidden"></div>
 <aside id="mobile-menu" aria-label="Menú"
@@ -175,22 +193,6 @@
     <!-- ticker items injected by JS (duplicated for seamless loop) -->
   </div>
 </div>
-
-<!-- Cosmético Americano — catálogo y carrito totalmente aparte (marcas de lujo,
-     precios en pesos, MOQ por color/tono, pedido mínimo propio). -->
-<section id="americano-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
-  <div class="relative rounded-3xl border border-ink/10 bg-white/40 p-4 sm:p-8">
-    <button id="americano-close" type="button" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-xs text-ink/50 hover:text-ink underline">Cerrar</button>
-    <div class="mb-2 pr-14">
-      <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Mayoreo</p>
-      <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1" id="americano-section-title">Cosmético Americano</h2>
-      <p class="text-sm text-ink/60 mt-1 max-w-xl" id="americano-min-order-note"></p>
-      <p class="text-sm text-ink/60 mt-1 max-w-xl mb-6" id="americano-section-subtitle"></p>
-    </div>
-    <div id="americano-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-    <p id="americano-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles en esta colección por el momento.</p>
-  </div>
-</section>
 
 <!-- Featured collections (tabs) -->
 <section id="featured-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">

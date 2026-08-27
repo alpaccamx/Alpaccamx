@@ -1143,12 +1143,11 @@ function wireAmericanoVariantSelectors(container) {
 }
 
 function renderAmericanoSection() {
-  const section = document.getElementById("americano-section");
-  if (!americanoProducts.length) {
-    section.classList.add("hidden");
-    return;
-  }
-  section.classList.remove("hidden");
+  // La visibilidad de #americano-section la controla showHomeView (está
+  // oculta por defecto, igual que Catálogo/Marcas/Categorías/País -- solo
+  // se muestra cuando alguien le da clic en el menú). Esta función solo
+  // rellena su contenido, para que ya esté listo en cuanto se abra.
+  if (!americanoProducts.length) return;
 
   document.getElementById("americano-section-title").textContent = CONFIG.AMERICANO.TITLE || "Cosmético Americano";
   document.getElementById("americano-section-subtitle").textContent = CONFIG.AMERICANO.SUBTITLE || "";
@@ -1472,6 +1471,7 @@ function showHomeView(view) {
   document.getElementById("brand-products-section").classList.toggle("hidden", view !== "brands");
   document.getElementById("category-products-section").classList.toggle("hidden", view !== "categories");
   document.getElementById("country-products-section").classList.toggle("hidden", view !== "country");
+  document.getElementById("americano-section").classList.toggle("hidden", view !== "americano");
 }
 
 function renderSearchResults(query) {
@@ -2070,10 +2070,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("americano-cart-close").addEventListener("click", closeAmericanoCart);
   document.getElementById("americano-cart-overlay").addEventListener("click", closeAmericanoCart);
   document.getElementById("americano-quote-form").addEventListener("submit", sendAmericanoQuote);
-  document.getElementById("americano-close").addEventListener("click", () => {
-    document.getElementById("americano-section").classList.add("hidden");
-    document.getElementById("top").scrollIntoView({ behavior: "smooth", block: "start" });
-  });
+  document.getElementById("americano-close").addEventListener("click", () => showHomeView("home"));
 
   document.getElementById("menu-toggle").addEventListener("click", openMobileMenu);
   document.getElementById("menu-close").addEventListener("click", closeMobileMenu);
@@ -2121,8 +2118,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     if (href === "americano-section" && americanoProducts.length) {
-      showHomeView("home");
-      document.getElementById("americano-section").classList.remove("hidden");
+      showHomeView("americano");
       return;
     }
     const target = document.getElementById(href);
