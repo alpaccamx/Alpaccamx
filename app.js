@@ -155,7 +155,7 @@ const CONFIG = {
     BUSINESS_NAME: "Mae",
 
     TITLE: "Cosmético Americano",
-    SUBTITLE: "Maquillaje y belleza de marca, directo de proveedor — MOQ por color/tono. Envío e importación se cotizan aparte.",
+    SUBTITLE: "Maquillaje y belleza de marca, directo de proveedor — Mínimo de orden por color/tono. Envío se cotiza aparte.",
 
     // Pedido mínimo para poder enviar el pedido, en pesos (monto fijo,
     // igual que CONFIG.MIN_ORDER_MXN del catálogo principal). Ajústalo
@@ -1085,7 +1085,7 @@ function americanoProductCardHTML(p) {
         <div class="mt-auto pt-2 flex items-center justify-between gap-2">
           <div class="leading-tight">
             <span data-card-price class="font-display text-ink block">${formatPrice(p.precio)}</span>
-            ${hasDiscount ? `<span data-card-original class="block text-[10px] text-ink/40 line-through">${formatPrice(p.precioOriginal)}</span>` : `<span data-card-original class="hidden"></span>`}
+            ${hasDiscount ? `<span data-card-original class="block text-[10px] text-red-500 line-through">${formatPrice(p.precioOriginal)}</span>` : `<span data-card-original class="hidden"></span>`}
           </div>
           <button data-americano-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
             class="rounded-full bg-ink text-cream text-xs font-semibold px-3 py-1.5 hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
@@ -2027,6 +2027,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("americano-cart-close").addEventListener("click", closeAmericanoCart);
   document.getElementById("americano-cart-overlay").addEventListener("click", closeAmericanoCart);
   document.getElementById("americano-quote-form").addEventListener("submit", sendAmericanoQuote);
+  document.getElementById("americano-close").addEventListener("click", () => {
+    document.getElementById("americano-section").classList.add("hidden");
+    document.getElementById("top").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 
   document.getElementById("menu-toggle").addEventListener("click", openMobileMenu);
   document.getElementById("menu-close").addEventListener("click", closeMobileMenu);
@@ -2071,6 +2075,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const href = link.getAttribute("href").slice(1);
     if (href === "catalog-section") {
       openFullCatalog();
+      return;
+    }
+    if (href === "americano-section" && americanoProducts.length) {
+      document.getElementById("americano-section").classList.remove("hidden");
       return;
     }
     const target = document.getElementById(href);
