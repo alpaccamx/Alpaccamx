@@ -1085,7 +1085,7 @@ function americanoProductCardHTML(p) {
         <div class="mt-auto pt-2 flex items-center justify-between gap-2">
           <div class="leading-tight">
             <span data-card-price class="font-display text-ink block">${formatPrice(p.precio)}</span>
-            ${hasDiscount ? `<span data-card-original class="block text-[10px] text-red-500 line-through">${formatPrice(p.precioOriginal)}</span>` : `<span data-card-original class="hidden"></span>`}
+            ${hasDiscount ? `<span data-card-original class="flex items-center gap-1 text-[10px]"><span class="text-ink/40">Precio Sephora</span><span class="text-red-500 line-through">${formatPrice(p.precioOriginal)}</span></span>` : `<span data-card-original class="hidden"></span>`}
           </div>
           <button data-americano-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
             class="rounded-full bg-ink text-cream text-xs font-semibold px-3 py-1.5 hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
@@ -1124,8 +1124,10 @@ function wireAmericanoVariantSelectors(container) {
       const originalEl = card.querySelector("[data-card-original]");
       if (originalEl) {
         const hasDiscount = variant.precioOriginal > variant.precio;
-        originalEl.textContent = hasDiscount ? formatPrice(variant.precioOriginal) : "";
-        originalEl.classList.toggle("hidden", !hasDiscount);
+        originalEl.className = hasDiscount ? "flex items-center gap-1 text-[10px]" : "hidden";
+        originalEl.innerHTML = hasDiscount
+          ? `<span class="text-ink/40">Precio Sephora</span><span class="text-red-500 line-through">${formatPrice(variant.precioOriginal)}</span>`
+          : "";
       }
 
       const moqEl = card.querySelector("[data-card-moq]");
