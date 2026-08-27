@@ -1153,7 +1153,7 @@ function renderAmericanoSection() {
   document.getElementById("americano-section-title").textContent = CONFIG.AMERICANO.TITLE || "Cosmético Americano";
   document.getElementById("americano-section-subtitle").textContent = CONFIG.AMERICANO.SUBTITLE || "";
   document.getElementById("americano-min-order-note").textContent =
-    `Pedido mínimo: ${formatPrice(CONFIG.AMERICANO.MIN_ORDER_MXN)} · MOQ por color/tono`;
+    `Pedido mínimo: ${formatPrice(CONFIG.AMERICANO.MIN_ORDER_MXN)} · Mínimo de orden de compra por color/tono`;
 
   const items = groupVariants(americanoProducts);
   const grid = document.getElementById("americano-grid");
