@@ -197,9 +197,8 @@ compra distintas): su propio Google Sheet, su propio carrito (no se
 mezcla con el carrito principal), **MOQ por color/tono** (cantidad
 mínima por variante) y su propio **pedido mínimo total**. Los precios
 se muestran **en pesos**, igual que el catálogo principal — se calculan
-con una fórmula dentro del Sheet que convierte tu costo en dólares al
-tipo de cambio y le suma **tu propia comisión** (distinta a la del
-catálogo coreano).
+con fórmulas dentro del Sheet que usan el tipo de cambio y **tu propia
+comisión** (distinta a la del catálogo coreano).
 
 Crea una hoja aparte (o una pestaña nueva en el mismo archivo, como
 "Productos USA") con estas columnas:
@@ -207,22 +206,27 @@ Crea una hoja aparte (o una pestaña nueva en el mismo archivo, como
 | Nombre | Marca | Precio USD | PrecioOriginal USD | Precio | PrecioOriginal | MOQ | Imagen | Descripcion | Disponible | Presentacion | SKU |
 |--------|-------|------------|---------------------|--------|-----------------|-----|--------|-------------|------------|---------------|-----|
 
-- **Precio USD** / **PrecioOriginal USD**: tu costo en dólares (el
-  segundo es opcional, solo para calcular el % de descuento). Son
-  insumos de la fórmula — el sitio no los lee directamente.
+- **Precio USD**: tu costo **de mayoreo** en dólares (lo que te cuesta
+  a ti comprarlo). Es el insumo de la fórmula de **Precio** — el sitio
+  no lee esta columna directamente.
+- **PrecioOriginal USD**: opcional — el precio **de tienda/menudeo** en
+  Estados Unidos (Sephora, Ulta, etc.), no tu costo. Es solo una
+  referencia para que el cliente vea "en tienda cuesta esto" tachado
+  arriba de tu precio. Es el insumo de la fórmula de **PrecioOriginal**.
 - **Precio** / **PrecioOriginal**: el precio final **en pesos**, el que
   de verdad se muestra en la tarjeta y se usa para el pedido mínimo. No
-  los escribas a mano: usa esta fórmula (cópiala en la primera fila y
-  arrástrala hacia abajo) para que se recalculen solos cuando cambies el
-  tipo de cambio o tu comisión en la pestaña **Config**:
+  los escribas a mano — usa una fórmula distinta para cada una (cópialas
+  en la primera fila y arrástralas hacia abajo), porque **a tu costo de
+  mayoreo sí le sumas tu comisión, pero al precio de tienda no** (ya es
+  un precio final, no un costo tuyo):
 
   ```
-  =CEILING(PrecioUSD * Config!$B$2 * (1 + Config!$B$5/100), 1)
+  Precio         = CEILING(PrecioUSD * Config!$B$2 * (1 + Config!$B$5/100), 1)
+  PrecioOriginal = IF(PrecioOriginalUSD="", "", CEILING(PrecioOriginalUSD * Config!$B$2, 1))
   ```
 
-  Usa la misma fórmula para **PrecioOriginal** pero tomando la columna
-  **PrecioOriginal USD** (déjala vacía si no aplica descuento en esa
-  fila).
+  Dejar **PrecioOriginal USD** vacía en una fila deja **PrecioOriginal**
+  vacía también (la tarjeta no muestra precio tachado en esa fila).
 - En la pestaña **Config** (la misma del catálogo principal, sección
   1.1) agrega una fila nueva para la comisión de esta colección —
   **no reutilices `Config!B3`**, esa es la comisión del catálogo
