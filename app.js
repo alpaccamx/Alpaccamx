@@ -133,15 +133,18 @@ const CONFIG = {
 
   // ------------------------------------------------------------------
   // Cosmético Americano — colección aparte con su propio catálogo, carrito y
-  // reglas de compra (precios en USD, MOQ por color/tono, pedido mínimo
+  // reglas de compra (precios en pesos, MOQ por color/tono, pedido mínimo
   // propio). No comparte carrito ni pedido mínimo con el resto del sitio.
   // ------------------------------------------------------------------
   AMERICANO: {
     // Google Sheet publicado como CSV (mismo procedimiento que el catálogo
     // principal, ver README) con columnas: Nombre, Marca, Precio USD,
-    // PrecioOriginal USD (opcional, para mostrar el % de descuento), MOQ
-    // (mínimo de unidades por color/tono), Imagen, Descripcion, Disponible,
-    // Presentacion (opcional), SKU (opcional).
+    // PrecioOriginal USD, Precio, PrecioOriginal, MOQ (mínimo de unidades
+    // por color/tono), Imagen, Descripcion, Disponible, Presentacion
+    // (opcional), SKU (opcional). Igual que el catálogo principal, las
+    // columnas Precio/PrecioOriginal ya vienen en pesos (fórmula en el
+    // Sheet que convierte Precio USD con el tipo de cambio de Config y le
+    // suma SU PROPIA comisión — no la misma que la del catálogo coreano).
     SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV",
 
     // Número de WhatsApp para pedidos de esta colección (puede ser el
@@ -151,10 +154,12 @@ const CONFIG = {
     BUSINESS_NAME: "Mae",
 
     TITLE: "Cosmético Americano",
-    SUBTITLE: "Maquillaje y belleza de marca, directo de proveedor — precios en USD, MOQ por color/tono. Envío e importación se cotizan aparte.",
+    SUBTITLE: "Maquillaje y belleza de marca, directo de proveedor — MOQ por color/tono. Envío e importación se cotizan aparte.",
 
-    // Pedido mínimo para poder enviar el pedido, en dólares (monto fijo).
-    MIN_ORDER_USD: 1000,
+    // Pedido mínimo para poder enviar el pedido, en pesos (monto fijo,
+    // igual que CONFIG.MIN_ORDER_MXN del catálogo principal). Ajústalo
+    // cuando cambies el tipo de cambio o tu comisión en el Sheet.
+    MIN_ORDER_MXN: 18000,
   },
 
 };
@@ -231,10 +236,6 @@ function loadCart() {
 
 function saveCart() {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
-}
-
-function formatUSD(n) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
 }
 
 function loadAmericanoCart() {
@@ -345,9 +346,12 @@ function csvToProducts(text) {
 }
 
 /* ======================================================================
-   Cosmético Americano — parser de su propio Sheet (columnas propias: Precio en
-   USD, PrecioOriginal opcional para mostrar descuento, y MOQ por fila —
-   cada fila es un color/tono/versión con su propio mínimo de unidades).
+   Cosmético Americano — parser de su propio Sheet. Igual que el catálogo
+   principal, lee el precio final YA EN PESOS desde las columnas
+   Precio / PrecioOriginal (la conversión de Precio USD con el tipo de
+   cambio y la comisión propia de esta colección se hace con una fórmula
+   dentro del Sheet, ver README). MOQ es por fila — cada fila es un
+   color/tono/versión con su propio mínimo de unidades.
    ====================================================================== */
 function csvToAmericanoProducts(text) {
   const rows = parseCSV(text);
@@ -356,8 +360,8 @@ function csvToAmericanoProducts(text) {
 
   const iNombre = findCol(headers, ["nombre", "producto", "name"]);
   const iMarca = findCol(headers, ["marca", "brand"]);
-  const iPrecio = findCol(headers, ["precio", "precio usd", "price"]);
-  const iPrecioOriginal = findCol(headers, ["preciooriginal", "precio original", "precio original usd", "original price"]);
+  const iPrecio = findCol(headers, ["precio", "price"]);
+  const iPrecioOriginal = findCol(headers, ["preciooriginal", "precio original", "original price"]);
   const iMoq = findCol(headers, ["moq", "minimo", "mínimo", "cantidad minima", "cantidad mínima"]);
   const iImagen = findCol(headers, ["imagen", "image", "foto", "imagen url"]);
   const iDescripcion = findCol(headers, ["descripcion", "descripción", "description"]);
@@ -1047,7 +1051,7 @@ function wireAddButtons(container) {
 }
 
 /* ======================================================================
-   Cosmético Americano — tarjeta de producto propia (precio en USD, precio
+   Cosmético Americano — tarjeta de producto propia (precio en pesos, precio
    original tachado si aplica, y MOQ por color/tono en vez de la etiqueta
    de presentación normal).
    ====================================================================== */
@@ -1079,8 +1083,8 @@ function americanoProductCardHTML(p) {
         }
         <div class="mt-auto pt-2 flex items-center justify-between gap-2">
           <div class="leading-tight">
-            <span data-card-price class="font-display text-ink block">${formatUSD(p.precio)}</span>
-            ${hasDiscount ? `<span data-card-original class="block text-[10px] text-ink/40 line-through">${formatUSD(p.precioOriginal)}</span>` : `<span data-card-original class="hidden"></span>`}
+            <span data-card-price class="font-display text-ink block">${formatPrice(p.precio)}</span>
+            ${hasDiscount ? `<span data-card-original class="block text-[10px] text-ink/40 line-through">${formatPrice(p.precioOriginal)}</span>` : `<span data-card-original class="hidden"></span>`}
           </div>
           <button data-americano-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
             class="rounded-full bg-ink text-cream text-xs font-semibold px-3 py-1.5 hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
@@ -1114,12 +1118,12 @@ function wireAmericanoVariantSelectors(container) {
       addBtn.disabled = !variant.disponible;
 
       const priceEl = card.querySelector("[data-card-price]");
-      if (priceEl) priceEl.textContent = formatUSD(variant.precio);
+      if (priceEl) priceEl.textContent = formatPrice(variant.precio);
 
       const originalEl = card.querySelector("[data-card-original]");
       if (originalEl) {
         const hasDiscount = variant.precioOriginal > variant.precio;
-        originalEl.textContent = hasDiscount ? formatUSD(variant.precioOriginal) : "";
+        originalEl.textContent = hasDiscount ? formatPrice(variant.precioOriginal) : "";
         originalEl.classList.toggle("hidden", !hasDiscount);
       }
 
@@ -1146,7 +1150,7 @@ function renderAmericanoSection() {
   document.getElementById("americano-section-title").textContent = CONFIG.AMERICANO.TITLE || "Cosmético Americano";
   document.getElementById("americano-section-subtitle").textContent = CONFIG.AMERICANO.SUBTITLE || "";
   document.getElementById("americano-min-order-note").textContent =
-    `Pedido mínimo: ${formatUSD(CONFIG.AMERICANO.MIN_ORDER_USD)} · MOQ por color/tono`;
+    `Pedido mínimo: ${formatPrice(CONFIG.AMERICANO.MIN_ORDER_MXN)} · MOQ por color/tono`;
 
   const items = groupVariants(americanoProducts);
   const grid = document.getElementById("americano-grid");
@@ -1597,17 +1601,17 @@ function renderAmericanoCart() {
   const items = Object.entries(americanoCart);
 
   const total = americanoCartTotal();
-  const minUSD = CONFIG.AMERICANO.MIN_ORDER_USD || 0;
-  const belowMin = items.length > 0 && total < minUSD;
+  const minMXN = CONFIG.AMERICANO.MIN_ORDER_MXN || 0;
+  const belowMin = items.length > 0 && total < minMXN;
 
   document.getElementById("americano-cart-count").textContent = americanoCartCount();
   document.getElementById("americano-cart-total-label").textContent = `Total productos (${americanoCartCount()})`;
-  document.getElementById("americano-cart-total").textContent = formatUSD(total);
-  document.getElementById("americano-cart-total-header").textContent = formatUSD(total);
+  document.getElementById("americano-cart-total").textContent = formatPrice(total);
+  document.getElementById("americano-cart-total-header").textContent = formatPrice(total);
 
   const minMsg = document.getElementById("americano-cart-min-order");
   if (belowMin) {
-    minMsg.textContent = `Te faltan ${formatUSD(minUSD - total)} para tu pedido mínimo de ${formatUSD(minUSD)}.`;
+    minMsg.textContent = `Te faltan ${formatPrice(minMXN - total)} para tu pedido mínimo de ${formatPrice(minMXN)}.`;
     minMsg.classList.remove("hidden");
   } else {
     minMsg.classList.add("hidden");
@@ -1632,7 +1636,7 @@ function renderAmericanoCart() {
         <img src="${escapeAttr(img)}" alt="${escapeAttr(it.product.nombre)}" class="w-16 h-16 rounded-lg object-cover border border-ink/10" />
         <div class="flex-1 min-w-0">
           <p class="text-sm font-semibold text-ink truncate">${escapeHtml(it.product.nombre)}</p>
-          <p class="text-xs text-ink/50">${formatUSD(it.product.precio)} c/u · MOQ ${moq}</p>
+          <p class="text-xs text-ink/50">${formatPrice(it.product.precio)} c/u · MOQ ${moq}</p>
           <div class="mt-1 flex items-center gap-2">
             <button data-americano-dec="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">−</button>
             <span class="text-sm w-5 text-center">${it.qty}</span>
@@ -1640,7 +1644,7 @@ function renderAmericanoCart() {
             <button data-americano-remove="${escapeAttr(id)}" class="ml-2 text-xs text-ink/40 hover:text-ink/70 underline">quitar</button>
           </div>
         </div>
-        <span class="text-sm font-semibold text-ink whitespace-nowrap">${formatUSD(it.product.precio * it.qty)}</span>
+        <span class="text-sm font-semibold text-ink whitespace-nowrap">${formatPrice(it.product.precio * it.qty)}</span>
       </div>`;
     })
     .join("");
@@ -1668,7 +1672,7 @@ function buildAmericanoWhatsAppMessage() {
 
   const lines = items.map((it, i) => {
     const marca = it.product.marca ? `${it.product.marca} — ` : "";
-    return `${i + 1}. ${marca}${it.product.nombre} x${it.qty} (MOQ ${it.product.moq}) — ${formatUSD(it.product.precio * it.qty)}`;
+    return `${i + 1}. ${marca}${it.product.nombre} x${it.qty} (MOQ ${it.product.moq}) — ${formatPrice(it.product.precio * it.qty)}`;
   });
 
   const parts = [
@@ -1676,7 +1680,7 @@ function buildAmericanoWhatsAppMessage() {
     "",
     ...lines,
     "",
-    `*Total: ${formatUSD(americanoCartTotal())}*`,
+    `*Total: ${formatPrice(americanoCartTotal())}*`,
     "Envío e importación se cotizan aparte.",
     "",
     `Nombre: ${name}`,
@@ -1691,9 +1695,9 @@ function sendAmericanoQuote(e) {
   e.preventDefault();
   if (!Object.keys(americanoCart).length) return;
 
-  const minUSD = CONFIG.AMERICANO.MIN_ORDER_USD || 0;
-  if (americanoCartTotal() < minUSD) {
-    setStatus(`Tu pedido de ${CONFIG.AMERICANO.TITLE || "Cosmético Americano"} no alcanza el mínimo de compra (${formatUSD(minUSD)}).`);
+  const minMXN = CONFIG.AMERICANO.MIN_ORDER_MXN || 0;
+  if (americanoCartTotal() < minMXN) {
+    setStatus(`Tu pedido de ${CONFIG.AMERICANO.TITLE || "Cosmético Americano"} no alcanza el mínimo de compra (${formatPrice(minMXN)}).`);
     return;
   }
 

@@ -193,21 +193,49 @@ cliente) — tú confirmas el costo real de envío antes de cerrar el pedido.
 
 Además del catálogo principal, el sitio puede mostrar una segunda
 colección completamente independiente (para un proveedor con reglas de
-compra distintas): su propio Google Sheet,
-su propio carrito (no se mezcla con el carrito principal), precios en
-**dólares (USD)**, **MOQ por color/tono** (cantidad mínima por variante)
-y su propio **pedido mínimo total**.
+compra distintas): su propio Google Sheet, su propio carrito (no se
+mezcla con el carrito principal), **MOQ por color/tono** (cantidad
+mínima por variante) y su propio **pedido mínimo total**. Los precios
+se muestran **en pesos**, igual que el catálogo principal — se calculan
+con una fórmula dentro del Sheet que convierte tu costo en dólares al
+tipo de cambio y le suma **tu propia comisión** (distinta a la del
+catálogo coreano).
 
-Crea una hoja aparte (o una pestaña nueva en el mismo archivo) con estas
-columnas:
+Crea una hoja aparte (o una pestaña nueva en el mismo archivo, como
+"Productos USA") con estas columnas:
 
-| Nombre | Marca | Precio USD | PrecioOriginal USD | MOQ | Imagen | Descripcion | Disponible | Presentacion | SKU |
-|--------|-------|------------|---------------------|-----|--------|-------------|------------|---------------|-----|
+| Nombre | Marca | Precio USD | PrecioOriginal USD | Precio | PrecioOriginal | MOQ | Imagen | Descripcion | Disponible | Presentacion | SKU |
+|--------|-------|------------|---------------------|--------|-----------------|-----|--------|-------------|------------|---------------|-----|
 
-- **Precio USD**: precio de venta final en dólares (ya con tu margen
-  incluido) — es el que se muestra y se usa para el pedido mínimo.
-- **PrecioOriginal USD**: opcional. Si lo llenas y es mayor a **Precio**,
-  la tarjeta muestra ese precio tachado arriba del precio de venta.
+- **Precio USD** / **PrecioOriginal USD**: tu costo en dólares (el
+  segundo es opcional, solo para calcular el % de descuento). Son
+  insumos de la fórmula — el sitio no los lee directamente.
+- **Precio** / **PrecioOriginal**: el precio final **en pesos**, el que
+  de verdad se muestra en la tarjeta y se usa para el pedido mínimo. No
+  los escribas a mano: usa esta fórmula (cópiala en la primera fila y
+  arrástrala hacia abajo) para que se recalculen solos cuando cambies el
+  tipo de cambio o tu comisión en la pestaña **Config**:
+
+  ```
+  =CEILING(PrecioUSD * Config!$B$2 * (1 + Config!$B$5/100), 1)
+  ```
+
+  Usa la misma fórmula para **PrecioOriginal** pero tomando la columna
+  **PrecioOriginal USD** (déjala vacía si no aplica descuento en esa
+  fila).
+- En la pestaña **Config** (la misma del catálogo principal, sección
+  1.1) agrega una fila nueva para la comisión de esta colección —
+  **no reutilices `Config!B3`**, esa es la comisión del catálogo
+  coreano:
+
+  | Clave | Valor |
+  |-------|-------|
+  | Comisión Cosmético Americano (%) | 20 |
+
+  Esa celda queda en `B5` (la fila que sigue a las 4 que ya existen) —
+  ajusta la referencia `Config!$B$5` de la fórmula de arriba si la
+  agregas en otra fila. El tipo de cambio (`Config!$B$2`) sí es el
+  mismo que usa el catálogo coreano, ya que ambos compran en dólares.
 - **MOQ**: cantidad mínima de unidades para esa fila (ese color/tono/
   versión específico). Al agregar el producto al carrito por primera vez
   se agrega esa cantidad completa de una vez; el cliente puede subir de
@@ -221,8 +249,8 @@ columnas:
   tarjeta con un selector de versión.
 
 Publícala igual que el Sheet principal (`Archivo` → `Compartir` →
-`Publicar en la Web` → formato CSV) y pega el link en `app.js`, dentro
-del bloque `CONFIG.AMERICANO`:
+`Publicar en la Web` → elige esa pestaña → formato CSV) y pega el link
+en `app.js`, dentro del bloque `CONFIG.AMERICANO`:
 
 ```js
 AMERICANO: {
@@ -231,9 +259,14 @@ AMERICANO: {
   BUSINESS_NAME: "Mae",
   TITLE: "Cosmético Americano",
   SUBTITLE: "...",
-  MIN_ORDER_USD: 1000,              // pedido mínimo TOTAL de esta colección, en USD
+  MIN_ORDER_MXN: 18000,             // pedido mínimo TOTAL de esta colección, en pesos
 },
 ```
+
+`MIN_ORDER_MXN` es un monto fijo en pesos (igual que `CONFIG.MIN_ORDER_MXN`
+del catálogo principal) — no se recalcula solo con el tipo de cambio,
+así que actualízalo a mano si cambias mucho el tipo de cambio o tu
+comisión y quieres que el mínimo siga representando lo mismo en dólares.
 
 Mientras `AMERICANO.SHEET_CSV_URL` tenga el placeholder de ejemplo
 (`PEGA_AQUI`), toda la sección se oculta del sitio (no aparece en el
