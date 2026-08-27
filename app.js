@@ -1068,7 +1068,7 @@ function americanoProductCardHTML(p) {
         <div data-card-badge class="absolute top-2 left-2">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
       </div>
       <div class="p-3 flex flex-col flex-1">
-        <span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1 bg-ink/10 text-ink/70" data-card-moq>MOQ: ${p.moq}</span>
+        <span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1 bg-ink/10 text-ink/70" data-card-moq>Mínimo de compra: ${p.moq}</span>
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca)}</span>
         <h3 class="font-semibold text-sm text-ink leading-snug mt-0.5 line-clamp-2">${escapeHtml(p.nombre)}</h3>
         ${
@@ -1131,7 +1131,7 @@ function wireAmericanoVariantSelectors(container) {
       }
 
       const moqEl = card.querySelector("[data-card-moq]");
-      if (moqEl) moqEl.textContent = `MOQ: ${variant.moq}`;
+      if (moqEl) moqEl.textContent = `Mínimo de compra: ${variant.moq}`;
 
       const badgeEl = card.querySelector("[data-card-badge]");
       if (badgeEl) badgeEl.innerHTML = variant.disponible ? "" : agotadoBadgeHTML();
