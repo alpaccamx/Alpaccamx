@@ -136,7 +136,7 @@ const CONFIG = {
   // reglas de compra (precios en USD, MOQ por color/tono, pedido mínimo
   // propio). No comparte carrito ni pedido mínimo con el resto del sitio.
   // ------------------------------------------------------------------
-  RACHEL: {
+  AMERICANO: {
     // Google Sheet publicado como CSV (mismo procedimiento que el catálogo
     // principal, ver README) con columnas: Nombre, Marca, Precio USD,
     // PrecioOriginal USD (opcional, para mostrar el % de descuento), MOQ
@@ -210,9 +210,9 @@ let products = [];
 const CART_KEY = "alpacca_cart_v1";
 let cart = loadCart();
 
-let rachelProducts = [];
-const RACHEL_CART_KEY = "alpacca_rachel_cart_v1";
-let rachelCart = loadRachelCart();
+let americanoProducts = [];
+const AMERICANO_CART_KEY = "alpacca_americano_cart_v1";
+let americanoCart = loadAmericanoCart();
 
 /* ======================================================================
    Utilidades
@@ -237,16 +237,16 @@ function formatUSD(n) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
 }
 
-function loadRachelCart() {
+function loadAmericanoCart() {
   try {
-    return JSON.parse(localStorage.getItem(RACHEL_CART_KEY)) || {};
+    return JSON.parse(localStorage.getItem(AMERICANO_CART_KEY)) || {};
   } catch {
     return {};
   }
 }
 
-function saveRachelCart() {
-  localStorage.setItem(RACHEL_CART_KEY, JSON.stringify(rachelCart));
+function saveAmericanoCart() {
+  localStorage.setItem(AMERICANO_CART_KEY, JSON.stringify(americanoCart));
 }
 
 function setStatus(text) {
@@ -349,7 +349,7 @@ function csvToProducts(text) {
    USD, PrecioOriginal opcional para mostrar descuento, y MOQ por fila —
    cada fila es un color/tono/versión con su propio mínimo de unidades).
    ====================================================================== */
-function csvToRachelProducts(text) {
+function csvToAmericanoProducts(text) {
   const rows = parseCSV(text);
   if (!rows.length) return [];
   const headers = rows[0].map((h) => h.trim().toLowerCase());
@@ -379,7 +379,7 @@ function csvToRachelProducts(text) {
       const moqRaw = get(iMoq).replace(/[^0-9.,]/g, "").replace(",", ".");
       const moq = Math.max(1, Math.round(parseFloat(moqRaw)) || 1);
       return {
-        id: get(iSku) || `rachel${n}`,
+        id: get(iSku) || `americano${n}`,
         nombre: get(iNombre) || "Producto sin nombre",
         marca: get(iMarca),
         precio: parseFloat(precioRaw) || 0,
@@ -591,10 +591,10 @@ async function loadProducts() {
 
 /* ======================================================================
    Carga de productos — Cosmético Americano (Sheet aparte, opcional). Si no se
-   configuró CONFIG.RACHEL.SHEET_CSV_URL, la sección completa se oculta.
+   configuró CONFIG.AMERICANO.SHEET_CSV_URL, la sección completa se oculta.
    ====================================================================== */
-async function loadRachelProducts() {
-  const url = CONFIG.RACHEL.SHEET_CSV_URL;
+async function loadAmericanoProducts() {
+  const url = CONFIG.AMERICANO.SHEET_CSV_URL;
   const isPlaceholder = !url || url.includes("PEGA_AQUI");
   if (isPlaceholder) return;
 
@@ -602,13 +602,13 @@ async function loadRachelProducts() {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const text = await res.text();
-    rachelProducts = csvToRachelProducts(text);
+    americanoProducts = csvToAmericanoProducts(text);
   } catch (err) {
     console.warn("No se pudo cargar el catálogo de Cosmético Americano:", err);
-    rachelProducts = [];
+    americanoProducts = [];
   }
-  renderRachelSection();
-  renderRachelCart();
+  renderAmericanoSection();
+  renderAmericanoCart();
   renderCategoryNav();
   renderMobileMenu();
 }
@@ -734,8 +734,8 @@ const CATEGORY_MENU_OPTIONS = ["Skincare", "Suplementos"];
 function getMenuItems() {
   const items = [{ type: "link", label: "Catálogo", href: "#catalog-section" }];
 
-  if (rachelProducts.length) {
-    items.push({ type: "link", label: CONFIG.RACHEL.TITLE || "Cosmético Americano", href: "#rachel-section" });
+  if (americanoProducts.length) {
+    items.push({ type: "link", label: CONFIG.AMERICANO.TITLE || "Cosmético Americano", href: "#americano-section" });
   }
 
   const brandsSection = document.getElementById("brands-section");
@@ -1051,7 +1051,7 @@ function wireAddButtons(container) {
    original tachado si aplica, y MOQ por color/tono en vez de la etiqueta
    de presentación normal).
    ====================================================================== */
-function rachelProductCardHTML(p) {
+function americanoProductCardHTML(p) {
   const img = p.imagen || placeholderImg(p.marca || "Cosmético Americano", "#e9c3be");
   const hasVariants = p.variants && p.variants.length > 1;
   const hasDiscount = p.precioOriginal > p.precio;
@@ -1082,7 +1082,7 @@ function rachelProductCardHTML(p) {
             <span data-card-price class="font-display text-ink block">${formatUSD(p.precio)}</span>
             ${hasDiscount ? `<span data-card-original class="block text-[10px] text-ink/40 line-through">${formatUSD(p.precioOriginal)}</span>` : `<span data-card-original class="hidden"></span>`}
           </div>
-          <button data-rachel-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
+          <button data-americano-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
             class="rounded-full bg-ink text-cream text-xs font-semibold px-3 py-1.5 hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
             Agregar
           </button>
@@ -1091,26 +1091,26 @@ function rachelProductCardHTML(p) {
     </div>`;
 }
 
-function wireRachelAddButtons(container) {
-  container.querySelectorAll("[data-rachel-add]").forEach((btn) => {
-    btn.addEventListener("click", () => addToRachelCart(btn.dataset.rachelAdd));
+function wireAmericanoAddButtons(container) {
+  container.querySelectorAll("[data-americano-add]").forEach((btn) => {
+    btn.addEventListener("click", () => addToAmericanoCart(btn.dataset.americanoAdd));
   });
 }
 
-function wireRachelVariantSelectors(container) {
+function wireAmericanoVariantSelectors(container) {
   container.querySelectorAll("[data-variant-select]").forEach((select) => {
     select.addEventListener("change", () => {
-      const variant = rachelProducts.find((p) => p.id === select.value);
+      const variant = americanoProducts.find((p) => p.id === select.value);
       const card = select.closest(".group");
       if (!card) return;
 
-      const addBtn = card.querySelector("[data-rachel-add]");
+      const addBtn = card.querySelector("[data-americano-add]");
       if (!variant) {
-        addBtn.dataset.rachelAdd = "";
+        addBtn.dataset.americanoAdd = "";
         addBtn.disabled = true;
         return;
       }
-      addBtn.dataset.rachelAdd = variant.id;
+      addBtn.dataset.americanoAdd = variant.id;
       addBtn.disabled = !variant.disponible;
 
       const priceEl = card.querySelector("[data-card-price]");
@@ -1135,30 +1135,30 @@ function wireRachelVariantSelectors(container) {
   });
 }
 
-function renderRachelSection() {
-  const section = document.getElementById("rachel-section");
-  if (!rachelProducts.length) {
+function renderAmericanoSection() {
+  const section = document.getElementById("americano-section");
+  if (!americanoProducts.length) {
     section.classList.add("hidden");
     return;
   }
   section.classList.remove("hidden");
 
-  document.getElementById("rachel-section-title").textContent = CONFIG.RACHEL.TITLE || "Cosmético Americano";
-  document.getElementById("rachel-section-subtitle").textContent = CONFIG.RACHEL.SUBTITLE || "";
-  document.getElementById("rachel-min-order-note").textContent =
-    `Pedido mínimo: ${formatUSD(CONFIG.RACHEL.MIN_ORDER_USD)} · MOQ por color/tono`;
+  document.getElementById("americano-section-title").textContent = CONFIG.AMERICANO.TITLE || "Cosmético Americano";
+  document.getElementById("americano-section-subtitle").textContent = CONFIG.AMERICANO.SUBTITLE || "";
+  document.getElementById("americano-min-order-note").textContent =
+    `Pedido mínimo: ${formatUSD(CONFIG.AMERICANO.MIN_ORDER_USD)} · MOQ por color/tono`;
 
-  const items = groupVariants(rachelProducts);
-  const grid = document.getElementById("rachel-grid");
-  const empty = document.getElementById("rachel-empty");
+  const items = groupVariants(americanoProducts);
+  const grid = document.getElementById("americano-grid");
+  const empty = document.getElementById("americano-empty");
   if (!items.length) {
     grid.innerHTML = "";
     empty.classList.remove("hidden");
   } else {
     empty.classList.add("hidden");
-    grid.innerHTML = items.map((p) => rachelProductCardHTML(p)).join("");
-    wireRachelAddButtons(grid);
-    wireRachelVariantSelectors(grid);
+    grid.innerHTML = items.map((p) => americanoProductCardHTML(p)).join("");
+    wireAmericanoAddButtons(grid);
+    wireAmericanoVariantSelectors(grid);
   }
 }
 
@@ -1556,56 +1556,56 @@ function renderAll() {
    vez se agrega la cantidad mínima completa, y no se puede bajar de ahí
    sin quitar la línea del carrito.
    ====================================================================== */
-function addToRachelCart(id) {
-  const product = rachelProducts.find((p) => p.id === id);
+function addToAmericanoCart(id) {
+  const product = americanoProducts.find((p) => p.id === id);
   if (!product || !product.disponible) return;
-  if (rachelCart[id]) rachelCart[id].qty += 1;
-  else rachelCart[id] = { product, qty: Math.max(1, product.moq || 1) };
-  saveRachelCart();
-  renderRachelCart();
-  openRachelCart();
+  if (americanoCart[id]) americanoCart[id].qty += 1;
+  else americanoCart[id] = { product, qty: Math.max(1, product.moq || 1) };
+  saveAmericanoCart();
+  renderAmericanoCart();
+  openAmericanoCart();
 }
 
-function changeRachelQty(id, delta) {
-  const item = rachelCart[id];
+function changeAmericanoQty(id, delta) {
+  const item = americanoCart[id];
   if (!item) return;
   const newQty = item.qty + delta;
   const moq = Math.max(1, item.product.moq || 1);
-  if (newQty < moq) delete rachelCart[id];
+  if (newQty < moq) delete americanoCart[id];
   else item.qty = newQty;
-  saveRachelCart();
-  renderRachelCart();
+  saveAmericanoCart();
+  renderAmericanoCart();
 }
 
-function removeFromRachelCart(id) {
-  delete rachelCart[id];
-  saveRachelCart();
-  renderRachelCart();
+function removeFromAmericanoCart(id) {
+  delete americanoCart[id];
+  saveAmericanoCart();
+  renderAmericanoCart();
 }
 
-function rachelCartTotal() {
-  return Object.values(rachelCart).reduce((sum, it) => sum + it.product.precio * it.qty, 0);
+function americanoCartTotal() {
+  return Object.values(americanoCart).reduce((sum, it) => sum + it.product.precio * it.qty, 0);
 }
 
-function rachelCartCount() {
-  return Object.values(rachelCart).reduce((sum, it) => sum + it.qty, 0);
+function americanoCartCount() {
+  return Object.values(americanoCart).reduce((sum, it) => sum + it.qty, 0);
 }
 
-function renderRachelCart() {
-  const wrap = document.getElementById("rachel-cart-items");
-  const emptyMsg = document.getElementById("rachel-cart-empty");
-  const items = Object.entries(rachelCart);
+function renderAmericanoCart() {
+  const wrap = document.getElementById("americano-cart-items");
+  const emptyMsg = document.getElementById("americano-cart-empty");
+  const items = Object.entries(americanoCart);
 
-  const total = rachelCartTotal();
-  const minUSD = CONFIG.RACHEL.MIN_ORDER_USD || 0;
+  const total = americanoCartTotal();
+  const minUSD = CONFIG.AMERICANO.MIN_ORDER_USD || 0;
   const belowMin = items.length > 0 && total < minUSD;
 
-  document.getElementById("rachel-cart-count").textContent = rachelCartCount();
-  document.getElementById("rachel-cart-total-label").textContent = `Total productos (${rachelCartCount()})`;
-  document.getElementById("rachel-cart-total").textContent = formatUSD(total);
-  document.getElementById("rachel-cart-total-header").textContent = formatUSD(total);
+  document.getElementById("americano-cart-count").textContent = americanoCartCount();
+  document.getElementById("americano-cart-total-label").textContent = `Total productos (${americanoCartCount()})`;
+  document.getElementById("americano-cart-total").textContent = formatUSD(total);
+  document.getElementById("americano-cart-total-header").textContent = formatUSD(total);
 
-  const minMsg = document.getElementById("rachel-cart-min-order");
+  const minMsg = document.getElementById("americano-cart-min-order");
   if (belowMin) {
     minMsg.textContent = `Te faltan ${formatUSD(minUSD - total)} para tu pedido mínimo de ${formatUSD(minUSD)}.`;
     minMsg.classList.remove("hidden");
@@ -1613,7 +1613,7 @@ function renderRachelCart() {
     minMsg.classList.add("hidden");
   }
 
-  const sendBtn = document.getElementById("rachel-send-quote");
+  const sendBtn = document.getElementById("americano-send-quote");
   sendBtn.disabled = items.length === 0 || belowMin;
 
   if (!items.length) {
@@ -1634,10 +1634,10 @@ function renderRachelCart() {
           <p class="text-sm font-semibold text-ink truncate">${escapeHtml(it.product.nombre)}</p>
           <p class="text-xs text-ink/50">${formatUSD(it.product.precio)} c/u · MOQ ${moq}</p>
           <div class="mt-1 flex items-center gap-2">
-            <button data-rachel-dec="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">−</button>
+            <button data-americano-dec="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">−</button>
             <span class="text-sm w-5 text-center">${it.qty}</span>
-            <button data-rachel-inc="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">+</button>
-            <button data-rachel-remove="${escapeAttr(id)}" class="ml-2 text-xs text-ink/40 hover:text-ink/70 underline">quitar</button>
+            <button data-americano-inc="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">+</button>
+            <button data-americano-remove="${escapeAttr(id)}" class="ml-2 text-xs text-ink/40 hover:text-ink/70 underline">quitar</button>
           </div>
         </div>
         <span class="text-sm font-semibold text-ink whitespace-nowrap">${formatUSD(it.product.precio * it.qty)}</span>
@@ -1645,26 +1645,26 @@ function renderRachelCart() {
     })
     .join("");
 
-  wrap.querySelectorAll("[data-rachel-inc]").forEach((b) => b.addEventListener("click", () => changeRachelQty(b.dataset.rachelInc, 1)));
-  wrap.querySelectorAll("[data-rachel-dec]").forEach((b) => b.addEventListener("click", () => changeRachelQty(b.dataset.rachelDec, -1)));
-  wrap.querySelectorAll("[data-rachel-remove]").forEach((b) => b.addEventListener("click", () => removeFromRachelCart(b.dataset.rachelRemove)));
+  wrap.querySelectorAll("[data-americano-inc]").forEach((b) => b.addEventListener("click", () => changeAmericanoQty(b.dataset.americanoInc, 1)));
+  wrap.querySelectorAll("[data-americano-dec]").forEach((b) => b.addEventListener("click", () => changeAmericanoQty(b.dataset.americanoDec, -1)));
+  wrap.querySelectorAll("[data-americano-remove]").forEach((b) => b.addEventListener("click", () => removeFromAmericanoCart(b.dataset.americanoRemove)));
 }
 
-function openRachelCart() {
-  document.getElementById("rachel-cart-drawer").classList.remove("translate-x-full");
-  document.getElementById("rachel-cart-overlay").classList.remove("opacity-0", "pointer-events-none");
+function openAmericanoCart() {
+  document.getElementById("americano-cart-drawer").classList.remove("translate-x-full");
+  document.getElementById("americano-cart-overlay").classList.remove("opacity-0", "pointer-events-none");
 }
 
-function closeRachelCart() {
-  document.getElementById("rachel-cart-drawer").classList.add("translate-x-full");
-  document.getElementById("rachel-cart-overlay").classList.add("opacity-0", "pointer-events-none");
+function closeAmericanoCart() {
+  document.getElementById("americano-cart-drawer").classList.add("translate-x-full");
+  document.getElementById("americano-cart-overlay").classList.add("opacity-0", "pointer-events-none");
 }
 
-function buildRachelWhatsAppMessage() {
-  const items = Object.values(rachelCart);
-  const name = document.getElementById("rachel-customer-name").value.trim();
-  const phone = document.getElementById("rachel-customer-phone").value.trim();
-  const notes = document.getElementById("rachel-customer-notes").value.trim();
+function buildAmericanoWhatsAppMessage() {
+  const items = Object.values(americanoCart);
+  const name = document.getElementById("americano-customer-name").value.trim();
+  const phone = document.getElementById("americano-customer-phone").value.trim();
+  const notes = document.getElementById("americano-customer-notes").value.trim();
 
   const lines = items.map((it, i) => {
     const marca = it.product.marca ? `${it.product.marca} — ` : "";
@@ -1672,11 +1672,11 @@ function buildRachelWhatsAppMessage() {
   });
 
   const parts = [
-    `Hola ${CONFIG.RACHEL.BUSINESS_NAME}! Quiero pedir esto de ${CONFIG.RACHEL.TITLE || "Cosmético Americano"}:`,
+    `Hola ${CONFIG.AMERICANO.BUSINESS_NAME}! Quiero pedir esto de ${CONFIG.AMERICANO.TITLE || "Cosmético Americano"}:`,
     "",
     ...lines,
     "",
-    `*Total: ${formatUSD(rachelCartTotal())}*`,
+    `*Total: ${formatUSD(americanoCartTotal())}*`,
     "Envío e importación se cotizan aparte.",
     "",
     `Nombre: ${name}`,
@@ -1687,32 +1687,32 @@ function buildRachelWhatsAppMessage() {
   return parts.join("\n");
 }
 
-function sendRachelQuote(e) {
+function sendAmericanoQuote(e) {
   e.preventDefault();
-  if (!Object.keys(rachelCart).length) return;
+  if (!Object.keys(americanoCart).length) return;
 
-  const minUSD = CONFIG.RACHEL.MIN_ORDER_USD || 0;
-  if (rachelCartTotal() < minUSD) {
-    setStatus(`Tu pedido de ${CONFIG.RACHEL.TITLE || "Cosmético Americano"} no alcanza el mínimo de compra (${formatUSD(minUSD)}).`);
+  const minUSD = CONFIG.AMERICANO.MIN_ORDER_USD || 0;
+  if (americanoCartTotal() < minUSD) {
+    setStatus(`Tu pedido de ${CONFIG.AMERICANO.TITLE || "Cosmético Americano"} no alcanza el mínimo de compra (${formatUSD(minUSD)}).`);
     return;
   }
 
-  const numberIsPlaceholder = !CONFIG.RACHEL.WHATSAPP_NUMBER || CONFIG.RACHEL.WHATSAPP_NUMBER.includes("XXXX");
+  const numberIsPlaceholder = !CONFIG.AMERICANO.WHATSAPP_NUMBER || CONFIG.AMERICANO.WHATSAPP_NUMBER.includes("XXXX");
   if (numberIsPlaceholder) {
-    setStatus("Falta configurar CONFIG.RACHEL.WHATSAPP_NUMBER en app.js con tu número real.");
+    setStatus("Falta configurar CONFIG.AMERICANO.WHATSAPP_NUMBER en app.js con tu número real.");
     return;
   }
 
-  const message = buildRachelWhatsAppMessage();
-  const url = `https://wa.me/${CONFIG.RACHEL.WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const message = buildAmericanoWhatsAppMessage();
+  const url = `https://wa.me/${CONFIG.AMERICANO.WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
   const opened = window.open(url, "_blank", "noopener");
   if (!opened) window.location.href = url;
 
-  rachelCart = {};
-  saveRachelCart();
-  renderRachelCart();
-  document.getElementById("rachel-quote-form").reset();
-  closeRachelCart();
+  americanoCart = {};
+  saveAmericanoCart();
+  renderAmericanoCart();
+  document.getElementById("americano-quote-form").reset();
+  closeAmericanoCart();
 }
 
 /* ======================================================================
@@ -2018,10 +2018,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("cart-close").addEventListener("click", closeCart);
   document.getElementById("cart-overlay").addEventListener("click", closeCart);
 
-  document.getElementById("rachel-cart-toggle").addEventListener("click", openRachelCart);
-  document.getElementById("rachel-cart-close").addEventListener("click", closeRachelCart);
-  document.getElementById("rachel-cart-overlay").addEventListener("click", closeRachelCart);
-  document.getElementById("rachel-quote-form").addEventListener("submit", sendRachelQuote);
+  document.getElementById("americano-cart-toggle").addEventListener("click", openAmericanoCart);
+  document.getElementById("americano-cart-close").addEventListener("click", closeAmericanoCart);
+  document.getElementById("americano-cart-overlay").addEventListener("click", closeAmericanoCart);
+  document.getElementById("americano-quote-form").addEventListener("submit", sendAmericanoQuote);
 
   document.getElementById("menu-toggle").addEventListener("click", openMobileMenu);
   document.getElementById("menu-close").addEventListener("click", closeMobileMenu);
@@ -2102,6 +2102,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadShippingNacionalRates();
   renderCart();
 
-  loadRachelProducts();
-  renderRachelCart();
+  loadAmericanoProducts();
+  renderAmericanoCart();
 });

@@ -222,10 +222,10 @@ columnas:
 
 Publícala igual que el Sheet principal (`Archivo` → `Compartir` →
 `Publicar en la Web` → formato CSV) y pega el link en `app.js`, dentro
-del bloque `CONFIG.RACHEL`:
+del bloque `CONFIG.AMERICANO`:
 
 ```js
-RACHEL: {
+AMERICANO: {
   SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV",
   WHATSAPP_NUMBER: "52XXXXXXXXXX",  // puede ser el mismo número u otro
   BUSINESS_NAME: "Mae",
@@ -235,7 +235,7 @@ RACHEL: {
 },
 ```
 
-Mientras `RACHEL.SHEET_CSV_URL` tenga el placeholder de ejemplo
+Mientras `AMERICANO.SHEET_CSV_URL` tenga el placeholder de ejemplo
 (`PEGA_AQUI`), toda la sección se oculta del sitio (no aparece en el
 menú ni en la página) — no muestra nada hasta que la conectes. Una vez
 conectada, aparece como una sección propia (con su enlace en el menú),
@@ -266,7 +266,7 @@ const CONFIG = {
   PROMO_BANNER: {...},         // franja ancha promocional
   BENEFITS: [...],             // franja de 4 beneficios antes del footer
   MENU_COMING_SOON: [...],     // accesos del menú que aún no tienen función real
-  RACHEL: {...},               // opcional — colección Cosmético Americano aparte (ver sección 1.2)
+  AMERICANO: {...},               // opcional — colección Cosmético Americano aparte (ver sección 1.2)
 };
 ```
 
