@@ -2081,6 +2081,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     if (href === "americano-section" && americanoProducts.length) {
+      showHomeView("home");
       document.getElementById("americano-section").classList.remove("hidden");
       return;
     }

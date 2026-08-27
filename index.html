@@ -147,32 +147,6 @@
   <p id="country-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles de este país por ahora.</p>
 </section>
 
-<!-- Cosmético Americano — catálogo y carrito totalmente aparte (marcas de lujo,
-     precios en pesos, MOQ por color/tono, pedido mínimo propio). -->
-<section id="americano-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
-  <div class="rounded-3xl border border-ink/10 bg-white/40 p-4 sm:p-8">
-    <div class="flex items-start justify-between gap-4 flex-wrap mb-2">
-      <div>
-        <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Mayoreo</p>
-        <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1" id="americano-section-title">Cosmético Americano</h2>
-        <p class="text-sm text-ink/60 mt-1 max-w-xl" id="americano-min-order-note"></p>
-        <p class="text-sm text-ink/60 mt-1 max-w-xl mb-6" id="americano-section-subtitle"></p>
-      </div>
-      <div class="flex flex-col items-end gap-1.5">
-        <button id="americano-cart-toggle" type="button"
-          class="relative inline-flex items-center gap-2 rounded-full bg-ink text-cream px-4 py-2 min-h-[44px] text-sm font-semibold hover:bg-ink/90 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-          <span id="americano-cart-total-header">$0.00</span>
-          <span id="americano-cart-count" class="absolute -top-2 -right-2 bg-rose text-cream text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
-        </button>
-        <button id="americano-close" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar</button>
-      </div>
-    </div>
-    <div id="americano-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-    <p id="americano-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles en esta colección por el momento.</p>
-  </div>
-</section>
-
 <!-- Mobile menu overlay + drawer -->
 <div id="menu-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 sm:hidden"></div>
 <aside id="mobile-menu" aria-label="Menú"
@@ -201,6 +175,32 @@
     <!-- ticker items injected by JS (duplicated for seamless loop) -->
   </div>
 </div>
+
+<!-- Cosmético Americano — catálogo y carrito totalmente aparte (marcas de lujo,
+     precios en pesos, MOQ por color/tono, pedido mínimo propio). -->
+<section id="americano-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
+  <div class="rounded-3xl border border-ink/10 bg-white/40 p-4 sm:p-8">
+    <div class="flex items-start justify-between gap-4 flex-wrap mb-2">
+      <div>
+        <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Mayoreo</p>
+        <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1" id="americano-section-title">Cosmético Americano</h2>
+        <p class="text-sm text-ink/60 mt-1 max-w-xl" id="americano-min-order-note"></p>
+        <p class="text-sm text-ink/60 mt-1 max-w-xl mb-6" id="americano-section-subtitle"></p>
+      </div>
+      <div class="flex flex-col items-end gap-1.5">
+        <button id="americano-cart-toggle" type="button"
+          class="relative inline-flex items-center gap-2 rounded-full bg-ink text-cream px-4 py-2 min-h-[44px] text-sm font-semibold hover:bg-ink/90 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span id="americano-cart-total-header">$0.00</span>
+          <span id="americano-cart-count" class="absolute -top-2 -right-2 bg-rose text-cream text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
+        </button>
+        <button id="americano-close" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar</button>
+      </div>
+    </div>
+    <div id="americano-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    <p id="americano-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles en esta colección por el momento.</p>
+  </div>
+</section>
 
 <!-- Featured collections (tabs) -->
 <section id="featured-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">
