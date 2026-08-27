@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="es-MX">
 <head>
+<script>
+  // Evita que el navegador salte automáticamente a una sección (ej. si
+  // la URL trae un #ancla guardado de una visita anterior) al recargar
+  // o abrir el sitio -- siempre debe abrir arriba, en la página principal.
+  if (window.location.hash) {
+    history.replaceState(null, document.title, window.location.pathname + window.location.search);
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Alpacca — Skincare Coreano y Asiático al Mayoreo</title>
