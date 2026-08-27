@@ -922,7 +922,7 @@ function productCardHTML(p, { rank } = {}) {
             : ""
         }
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
-        <h3 class="font-semibold text-sm text-ink leading-snug mt-0.5 line-clamp-2">${escapeHtml(p.nombre)}</h3>
+        <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5">${escapeHtml(p.nombre)}</h3>
         ${
           hasVariants
             ? `<select data-variant-select
@@ -1070,7 +1070,7 @@ function americanoProductCardHTML(p) {
       <div class="p-3 flex flex-col flex-1">
         <span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1 bg-ink/10 text-ink/70" data-card-moq>Mínimo de compra: ${p.moq}</span>
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca)}</span>
-        <h3 class="font-semibold text-sm text-ink leading-snug mt-0.5 line-clamp-2">${escapeHtml(p.nombre)}</h3>
+        <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5">${escapeHtml(p.nombre)}</h3>
         ${
           hasVariants
             ? `<select data-variant-select
@@ -2015,6 +2015,17 @@ function escapeHtml(str) {
 }
 function escapeAttr(str) {
   return escapeHtml(str);
+}
+
+/* Nombres largos se ven bien en pantallas anchas pero se cortan con "..."
+   en tarjetas angostas de celular (2 columnas). En vez de truncar, se
+   reduce el tamaño de letra (y se permite una línea más en los muy
+   largos) para que el nombre completo quepa. */
+function productNameSizeClass(name) {
+  const len = (name || "").length;
+  if (len > 46) return "text-[11px] line-clamp-3";
+  if (len > 32) return "text-xs line-clamp-2";
+  return "text-sm line-clamp-2";
 }
 
 /* ======================================================================
