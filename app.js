@@ -960,7 +960,7 @@ function agotadoBadgeHTML() {
                                           del paréntesis final, para no
                                           agrupar paréntesis sueltos como
                                           "(5pz)" en productos sin variantes */
-const SHADE_VARIANT_RE = /^(.*)\s\((#\d+[^)]*)\)$/;
+const SHADE_VARIANT_RE = /^(.*)\s\((#[^)]*)\)$/;
 const TYPE_VARIANT_RE = /^(.*-\s*\d+\s+[A-Za-zÀ-ÿ]+)\s\(([^)]+)\)$/;
 
 function groupVariants(list) {
