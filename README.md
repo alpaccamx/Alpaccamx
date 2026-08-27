@@ -189,11 +189,11 @@ WhatsApp se ve así:
 Es una **referencia para ti** (no se suma al "Total estimado" que ve el
 cliente) — tú confirmas el costo real de envío antes de cerrar el pedido.
 
-## 1.2 (opcional) Colección Rachel Beauty — catálogo y carrito aparte
+## 1.2 (opcional) Colección Cosmético Americano — catálogo y carrito aparte
 
 Además del catálogo principal, el sitio puede mostrar una segunda
-colección completamente independiente (pensada para el proveedor "Rachel
-Beauty" u otro con reglas de compra distintas): su propio Google Sheet,
+colección completamente independiente (para un proveedor con reglas de
+compra distintas): su propio Google Sheet,
 su propio carrito (no se mezcla con el carrito principal), precios en
 **dólares (USD)**, **MOQ por color/tono** (cantidad mínima por variante)
 y su propio **pedido mínimo total**.
@@ -229,7 +229,7 @@ RACHEL: {
   SHEET_CSV_URL: "PEGA_AQUI_TU_URL_CSV",
   WHATSAPP_NUMBER: "52XXXXXXXXXX",  // puede ser el mismo número u otro
   BUSINESS_NAME: "Mae",
-  TITLE: "Rachel Beauty",
+  TITLE: "Cosmético Americano",
   SUBTITLE: "...",
   MIN_ORDER_USD: 1000,              // pedido mínimo TOTAL de esta colección, en USD
 },
@@ -266,7 +266,7 @@ const CONFIG = {
   PROMO_BANNER: {...},         // franja ancha promocional
   BENEFITS: [...],             // franja de 4 beneficios antes del footer
   MENU_COMING_SOON: [...],     // accesos del menú que aún no tienen función real
-  RACHEL: {...},               // opcional — colección Rachel Beauty aparte (ver sección 1.2)
+  RACHEL: {...},               // opcional — colección Cosmético Americano aparte (ver sección 1.2)
 };
 ```
 

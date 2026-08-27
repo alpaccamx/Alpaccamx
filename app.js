@@ -132,7 +132,7 @@ const CONFIG = {
   ],
 
   // ------------------------------------------------------------------
-  // Rachel Beauty — colección aparte con su propio catálogo, carrito y
+  // Cosmético Americano — colección aparte con su propio catálogo, carrito y
   // reglas de compra (precios en USD, MOQ por color/tono, pedido mínimo
   // propio). No comparte carrito ni pedido mínimo con el resto del sitio.
   // ------------------------------------------------------------------
@@ -150,7 +150,7 @@ const CONFIG = {
 
     BUSINESS_NAME: "Mae",
 
-    TITLE: "Rachel Beauty",
+    TITLE: "Cosmético Americano",
     SUBTITLE: "Maquillaje y belleza de marca, directo de proveedor — precios en USD, MOQ por color/tono. Envío e importación se cotizan aparte.",
 
     // Pedido mínimo para poder enviar el pedido, en dólares (monto fijo).
@@ -345,7 +345,7 @@ function csvToProducts(text) {
 }
 
 /* ======================================================================
-   Rachel Beauty — parser de su propio Sheet (columnas propias: Precio en
+   Cosmético Americano — parser de su propio Sheet (columnas propias: Precio en
    USD, PrecioOriginal opcional para mostrar descuento, y MOQ por fila —
    cada fila es un color/tono/versión con su propio mínimo de unidades).
    ====================================================================== */
@@ -590,7 +590,7 @@ async function loadProducts() {
 }
 
 /* ======================================================================
-   Carga de productos — Rachel Beauty (Sheet aparte, opcional). Si no se
+   Carga de productos — Cosmético Americano (Sheet aparte, opcional). Si no se
    configuró CONFIG.RACHEL.SHEET_CSV_URL, la sección completa se oculta.
    ====================================================================== */
 async function loadRachelProducts() {
@@ -604,7 +604,7 @@ async function loadRachelProducts() {
     const text = await res.text();
     rachelProducts = csvToRachelProducts(text);
   } catch (err) {
-    console.warn("No se pudo cargar el catálogo de Rachel Beauty:", err);
+    console.warn("No se pudo cargar el catálogo de Cosmético Americano:", err);
     rachelProducts = [];
   }
   renderRachelSection();
@@ -735,7 +735,7 @@ function getMenuItems() {
   const items = [{ type: "link", label: "Catálogo", href: "#catalog-section" }];
 
   if (rachelProducts.length) {
-    items.push({ type: "link", label: CONFIG.RACHEL.TITLE || "Rachel Beauty", href: "#rachel-section" });
+    items.push({ type: "link", label: CONFIG.RACHEL.TITLE || "Cosmético Americano", href: "#rachel-section" });
   }
 
   const brandsSection = document.getElementById("brands-section");
@@ -1047,12 +1047,12 @@ function wireAddButtons(container) {
 }
 
 /* ======================================================================
-   Rachel Beauty — tarjeta de producto propia (precio en USD, precio
+   Cosmético Americano — tarjeta de producto propia (precio en USD, precio
    original tachado si aplica, y MOQ por color/tono en vez de la etiqueta
    de presentación normal).
    ====================================================================== */
 function rachelProductCardHTML(p) {
-  const img = p.imagen || placeholderImg(p.marca || "Rachel Beauty", "#e9c3be");
+  const img = p.imagen || placeholderImg(p.marca || "Cosmético Americano", "#e9c3be");
   const hasVariants = p.variants && p.variants.length > 1;
   const hasDiscount = p.precioOriginal > p.precio;
   return `
@@ -1143,7 +1143,7 @@ function renderRachelSection() {
   }
   section.classList.remove("hidden");
 
-  document.getElementById("rachel-section-title").textContent = CONFIG.RACHEL.TITLE || "Rachel Beauty";
+  document.getElementById("rachel-section-title").textContent = CONFIG.RACHEL.TITLE || "Cosmético Americano";
   document.getElementById("rachel-section-subtitle").textContent = CONFIG.RACHEL.SUBTITLE || "";
   document.getElementById("rachel-min-order-note").textContent =
     `Pedido mínimo: ${formatUSD(CONFIG.RACHEL.MIN_ORDER_USD)} · MOQ por color/tono`;
@@ -1550,7 +1550,7 @@ function renderAll() {
 }
 
 /* ======================================================================
-   Rachel Beauty — carrito propio (independiente del carrito principal:
+   Cosmético Americano — carrito propio (independiente del carrito principal:
    estado, localStorage, mínimo de pedido y mensaje de WhatsApp separados).
    El MOQ es por variante (color/tono): al agregar un producto por primera
    vez se agrega la cantidad mínima completa, y no se puede bajar de ahí
@@ -1625,7 +1625,7 @@ function renderRachelCart() {
 
   wrap.innerHTML = items
     .map(([id, it]) => {
-      const img = it.product.imagen || placeholderImg(it.product.marca || "Rachel Beauty", "#e9c3be");
+      const img = it.product.imagen || placeholderImg(it.product.marca || "Cosmético Americano", "#e9c3be");
       const moq = Math.max(1, it.product.moq || 1);
       return `
       <div class="flex gap-3 items-center">
@@ -1672,7 +1672,7 @@ function buildRachelWhatsAppMessage() {
   });
 
   const parts = [
-    `Hola ${CONFIG.RACHEL.BUSINESS_NAME}! Quiero pedir esto de Rachel Beauty:`,
+    `Hola ${CONFIG.RACHEL.BUSINESS_NAME}! Quiero pedir esto de ${CONFIG.RACHEL.TITLE || "Cosmético Americano"}:`,
     "",
     ...lines,
     "",
@@ -1693,7 +1693,7 @@ function sendRachelQuote(e) {
 
   const minUSD = CONFIG.RACHEL.MIN_ORDER_USD || 0;
   if (rachelCartTotal() < minUSD) {
-    setStatus(`Tu pedido de Rachel Beauty no alcanza el mínimo de compra (${formatUSD(minUSD)}).`);
+    setStatus(`Tu pedido de ${CONFIG.RACHEL.TITLE || "Cosmético Americano"} no alcanza el mínimo de compra (${formatUSD(minUSD)}).`);
     return;
   }
 
