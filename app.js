@@ -155,7 +155,7 @@ const CONFIG = {
     BUSINESS_NAME: "Mae",
 
     TITLE: "Cosmético Americano",
-    SUBTITLE: "Maquillaje y belleza de marca, directo de proveedor — Mínimo de orden por color/tono. Envío se cotiza aparte.",
+    SUBTITLE: "Envío se cotiza aparte.",
 
     // Pedido mínimo para poder enviar el pedido, en pesos (monto fijo,
     // igual que CONFIG.MIN_ORDER_MXN del catálogo principal). Ajústalo
