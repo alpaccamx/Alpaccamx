@@ -1057,7 +1057,7 @@ function wireAddButtons(container) {
    de presentación normal).
    ====================================================================== */
 function americanoProductCardHTML(p) {
-  const img = p.imagen || placeholderImg(p.marca || "Cosmético Americano", "#e9c3be");
+  const img = p.imagen || "./assets/americano-coming-soon.jpg";
   const hasVariants = p.variants && p.variants.length > 1;
   const hasDiscount = p.precioOriginal > p.precio;
   return `
@@ -1632,7 +1632,7 @@ function renderAmericanoCart() {
 
   wrap.innerHTML = items
     .map(([id, it]) => {
-      const img = it.product.imagen || placeholderImg(it.product.marca || "Cosmético Americano", "#e9c3be");
+      const img = it.product.imagen || "./assets/americano-coming-soon.jpg";
       const moq = Math.max(1, it.product.moq || 1);
       return `
       <div class="flex gap-3 items-center">
