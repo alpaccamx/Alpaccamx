@@ -1566,6 +1566,18 @@ function renderAll() {
 function addToAmericanoCart(id) {
   const product = americanoProducts.find((p) => p.id === id);
   if (!product || !product.disponible) return;
+
+  const switchNotice = document.getElementById("americano-cart-switch-notice");
+  if (Object.keys(cart).length) {
+    cart = {};
+    saveCart();
+    renderCart();
+    switchNotice.textContent = "Se vació tu carrito de Skincare Coreano al agregar un producto de Cosmético Americano.";
+    switchNotice.classList.remove("hidden");
+  } else {
+    switchNotice.classList.add("hidden");
+  }
+
   if (americanoCart[id]) americanoCart[id].qty += 1;
   else americanoCart[id] = { product, qty: Math.max(1, product.moq || 1) };
   saveAmericanoCart();
@@ -1598,6 +1610,22 @@ function americanoCartCount() {
   return Object.values(americanoCart).reduce((sum, it) => sum + it.qty, 0);
 }
 
+/* ======================================================================
+   Un solo carrito visible arriba (icono/globito del header): muestra el
+   total de la colección que tenga productos. Como agregar de una
+   colección vacía la otra (ver addToCart/addToAmericanoCart), como
+   mucho una de las dos tiene artículos a la vez.
+   ====================================================================== */
+function activeCartIsAmericano() {
+  return Object.keys(americanoCart).length > 0;
+}
+
+function updateHeaderCartBadge() {
+  const useAmericano = activeCartIsAmericano();
+  document.getElementById("cart-count").textContent = useAmericano ? americanoCartCount() : cartCount();
+  document.getElementById("cart-total-header").textContent = formatPrice(useAmericano ? americanoCartTotal() : cartTotal());
+}
+
 function renderAmericanoCart() {
   const wrap = document.getElementById("americano-cart-items");
   const emptyMsg = document.getElementById("americano-cart-empty");
@@ -1607,10 +1635,9 @@ function renderAmericanoCart() {
   const minMXN = CONFIG.AMERICANO.MIN_ORDER_MXN || 0;
   const belowMin = items.length > 0 && total < minMXN;
 
-  document.getElementById("americano-cart-count").textContent = americanoCartCount();
   document.getElementById("americano-cart-total-label").textContent = `Total productos (${americanoCartCount()})`;
   document.getElementById("americano-cart-total").textContent = formatPrice(total);
-  document.getElementById("americano-cart-total-header").textContent = formatPrice(total);
+  updateHeaderCartBadge();
 
   const minMsg = document.getElementById("americano-cart-min-order");
   if (belowMin) {
@@ -1728,6 +1755,18 @@ function sendAmericanoQuote(e) {
 function addToCart(id) {
   const product = products.find((p) => p.id === id);
   if (!product || !product.disponible) return;
+
+  const switchNotice = document.getElementById("cart-switch-notice");
+  if (Object.keys(americanoCart).length) {
+    americanoCart = {};
+    saveAmericanoCart();
+    renderAmericanoCart();
+    switchNotice.textContent = "Se vació tu carrito de Cosmético Americano al agregar un producto de Skincare Coreano.";
+    switchNotice.classList.remove("hidden");
+  } else {
+    switchNotice.classList.add("hidden");
+  }
+
   if (cart[id]) cart[id].qty += 1;
   else cart[id] = { product, qty: 1 };
   saveCart();
@@ -1813,10 +1852,9 @@ function renderCart() {
   const minMXN = minOrderMXN();
   const belowMin = items.length > 0 && total < minMXN;
 
-  document.getElementById("cart-count").textContent = cartCount();
   document.getElementById("cart-total-label").textContent = `Total productos (${cartCount()})`;
   document.getElementById("cart-total").textContent = formatPrice(total);
-  document.getElementById("cart-total-header").textContent = formatPrice(total);
+  updateHeaderCartBadge();
 
   const minMsg = document.getElementById("cart-min-order");
   if (belowMin) {
@@ -2022,11 +2060,13 @@ document.addEventListener("DOMContentLoaded", () => {
   window.scrollTo(0, 0);
   document.getElementById("year").textContent = new Date().getFullYear();
 
-  document.getElementById("cart-toggle").addEventListener("click", openCart);
+  document.getElementById("cart-toggle").addEventListener("click", () => {
+    if (activeCartIsAmericano()) openAmericanoCart();
+    else openCart();
+  });
   document.getElementById("cart-close").addEventListener("click", closeCart);
   document.getElementById("cart-overlay").addEventListener("click", closeCart);
 
-  document.getElementById("americano-cart-toggle").addEventListener("click", openAmericanoCart);
   document.getElementById("americano-cart-close").addEventListener("click", closeAmericanoCart);
   document.getElementById("americano-cart-overlay").addEventListener("click", closeAmericanoCart);
   document.getElementById("americano-quote-form").addEventListener("submit", sendAmericanoQuote);
@@ -2112,6 +2152,13 @@ document.addEventListener("DOMContentLoaded", () => {
   renderPromoBanner();
   renderBenefits();
   initWhatsAppFloat();
+
+  // Por si alguien traía carritos de ambas colecciones guardados de antes
+  // de que el carrito fuera uno solo: se queda el de Skincare Coreano.
+  if (Object.keys(cart).length && Object.keys(americanoCart).length) {
+    americanoCart = {};
+    saveAmericanoCart();
+  }
 
   loadProducts();
   loadShippingSettings();
