@@ -2019,6 +2019,7 @@ function initWhatsAppFloat() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  window.scrollTo(0, 0);
   document.getElementById("year").textContent = new Date().getFullYear();
 
   document.getElementById("cart-toggle").addEventListener("click", openCart);
