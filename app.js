@@ -593,22 +593,46 @@ function csvToStockData(text) {
   const iSku = findCol(headers, ["sku", "codigo", "código"]);
   const iPiezas = findCol(headers, ["piezas disponibles", "piezas", "cantidad", "stock"]);
   const iPrecio = findCol(headers, ["precio mxn", "precio", "price"]);
+  // Columnas opcionales -- solo se necesitan para productos que NO existen
+  // todavía en el catálogo principal (para crearlos desde cero aquí mismo).
+  const iNombre = findCol(headers, ["nombre", "producto", "name"]);
+  const iMarca = findCol(headers, ["marca", "brand"]);
+  const iImagen = findCol(headers, ["imagen", "image", "foto", "imagen url"]);
+  const iDescripcion = findCol(headers, ["descripcion", "descripción", "description"]);
+  const iCategoria = findCol(headers, ["categoria", "categoría", "category"]);
+  const iPeso = findCol(headers, ["peso", "peso (kg)", "peso kg", "weight", "pesokg"]);
   if (iSku < 0) return map;
 
   rows.slice(1).forEach((r) => {
     const sku = (r[iSku] || "").trim();
     if (!sku) return;
-    const piezas = parseInt((r[iPiezas] || "").replace(/[^0-9]/g, ""), 10) || 0;
-    const precioMXN = parseFloat((r[iPrecio] || "").replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
-    if (piezas > 0) map.set(sku, { piezas, precioMXN });
+    const get = (i) => (i >= 0 && r[i] != null ? r[i].trim() : "");
+    const piezas = parseInt(get(iPiezas).replace(/[^0-9]/g, ""), 10) || 0;
+    const precioMXN = parseFloat(get(iPrecio).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
+    const pesoKg = parseFloat(get(iPeso).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
+    if (piezas > 0) {
+      map.set(sku, {
+        piezas,
+        precioMXN,
+        nombre: get(iNombre),
+        marca: get(iMarca),
+        imagen: get(iImagen),
+        descripcion: get(iDescripcion),
+        categoria: get(iCategoria),
+        pesoKg,
+      });
+    }
   });
   return map;
 }
 
 function applyStockData() {
+  const matchedSkus = new Set();
+
   products.forEach((p) => {
     const entry = stockData.get(p.id);
     if (entry) {
+      matchedSkus.add(p.id);
       p.enStock = true;
       p.stockPiezas = entry.piezas;
       p.precio = entry.precioMXN || p.precio;
@@ -616,6 +640,33 @@ function applyStockData() {
       p.enStock = false;
       p.stockPiezas = 0;
     }
+  });
+
+  // SKUs de la hoja de Stock que no existen en el catálogo principal: son
+  // productos nuevos que solo vas a vender en stock, así que se crean
+  // directamente a partir de las columnas opcionales (Nombre, Marca,
+  // Imagen, Descripcion, Categoria, Peso). Si ya se habían agregado en una
+  // carga anterior, no se duplican.
+  const existingIds = new Set(products.map((p) => p.id));
+  stockData.forEach((entry, sku) => {
+    if (matchedSkus.has(sku) || existingIds.has(sku)) return;
+    if (!entry.nombre) return; // sin nombre no se puede mostrar el producto
+    products.push({
+      id: sku,
+      nombre: entry.nombre,
+      categoria: entry.categoria || "General",
+      marca: entry.marca || "",
+      precio: entry.precioMXN,
+      peso: entry.pesoKg,
+      presentacion: "",
+      imagen: entry.imagen,
+      descripcion: entry.descripcion,
+      disponible: true,
+      destacado: [],
+      tipoPiel: [],
+      enStock: true,
+      stockPiezas: entry.piezas,
+    });
   });
 }
 
