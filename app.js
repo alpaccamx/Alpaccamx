@@ -27,6 +27,16 @@ const CONFIG = {
   // nacional simplemente no aparece en la cotización.
   SHIPPING_NACIONAL_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=117332024&single=true&output=csv",
 
+  // Opcional: URL CSV publicada de una pestaña "Stock" con los productos
+  // que tienes listos para entrega inmediata (columnas: SKU | Piezas
+  // Disponibles | Precio MXN). El SKU debe coincidir exactamente con la
+  // columna SKU de tu catálogo principal. El precio de esta pestaña
+  // reemplaza al precio normal del producto (para que puedas fijar tu
+  // propio precio de venta inmediata), y a esos productos no se les
+  // cobra el envío Corea→México (ya están en México), solo el nacional.
+  // Si se deja el placeholder, no aparece la sección "En stock".
+  STOCK_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=PEGA_AQUI_EL_GID&single=true&output=csv",
+
   // Número de WhatsApp con código de país, solo dígitos, sin "+" ni espacios.
   // Ejemplo México: 5215512345678 (52 + 1 + 10 dígitos)
   WHATSAPP_NUMBER: "5216571920559",
@@ -417,6 +427,7 @@ function normalizeKey(s) {
 let shippingSettings = { exchangeRate: 0 };
 let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0 };
 let shippingNacionalRates = [];
+let stockData = new Map(); // SKU -> { piezas, precioMXN }
 
 const SHIPPING_SETTING_ALIASES = {
   exchangeRate: ["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"],
@@ -510,14 +521,17 @@ function koreaShippingUSD(pesoKg) {
   return last.costoUSD + extraKg * extraPerKgUSD;
 }
 
-function shippingEstimate(pesoKg, cp) {
+/* koreaPesoKg: peso de solo los productos que SÍ vienen de Corea (todos,
+   salvo los marcados "en stock" -- esos ya están en México y no pagan
+   este tramo). Si no se pasa, se asume igual a pesoKg (compatibilidad). */
+function shippingEstimate(pesoKg, cp, koreaPesoKg = pesoKg) {
   if (pesoKg <= 0) return null;
-  const hasKorea = shippingKoreaRates.tiers.length > 0 && shippingSettings.exchangeRate > 0;
+  const hasKorea = koreaPesoKg > 0 && shippingKoreaRates.tiers.length > 0 && shippingSettings.exchangeRate > 0;
   const nacionalMXN = nacionalShippingMXN(cp, pesoKg);
   const hasNacional = nacionalMXN !== null;
   if (!hasKorea && !hasNacional) return null;
 
-  const coreaUSD = hasKorea ? koreaShippingUSD(pesoKg) : 0;
+  const coreaUSD = hasKorea ? koreaShippingUSD(koreaPesoKg) : 0;
   const coreaMXN = coreaUSD * (shippingSettings.exchangeRate || 0);
 
   return { hasKorea, hasNacional, coreaUSD, coreaMXN, nacionalMXN: nacionalMXN || 0, totalMXN: coreaMXN + (nacionalMXN || 0) };
@@ -566,6 +580,61 @@ async function loadShippingNacionalRates() {
 }
 
 /* ======================================================================
+   Stock (entrega inmediata) — cruza por SKU con el catálogo principal.
+   Los productos con Piezas Disponibles > 0 se marcan p.enStock = true,
+   toman el precio de esta pestaña (no el calculado del catálogo) y no
+   pagan envío Corea→México, solo el nacional.
+   ====================================================================== */
+function csvToStockData(text) {
+  const rows = parseCSV(text);
+  const map = new Map();
+  if (!rows.length) return map;
+  const headers = rows[0].map((h) => h.trim().toLowerCase());
+  const iSku = findCol(headers, ["sku", "codigo", "código"]);
+  const iPiezas = findCol(headers, ["piezas disponibles", "piezas", "cantidad", "stock"]);
+  const iPrecio = findCol(headers, ["precio mxn", "precio", "price"]);
+  if (iSku < 0) return map;
+
+  rows.slice(1).forEach((r) => {
+    const sku = (r[iSku] || "").trim();
+    if (!sku) return;
+    const piezas = parseInt((r[iPiezas] || "").replace(/[^0-9]/g, ""), 10) || 0;
+    const precioMXN = parseFloat((r[iPrecio] || "").replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
+    if (piezas > 0) map.set(sku, { piezas, precioMXN });
+  });
+  return map;
+}
+
+function applyStockData() {
+  products.forEach((p) => {
+    const entry = stockData.get(p.id);
+    if (entry) {
+      p.enStock = true;
+      p.stockPiezas = entry.piezas;
+      p.precio = entry.precioMXN || p.precio;
+    } else {
+      p.enStock = false;
+      p.stockPiezas = 0;
+    }
+  });
+}
+
+async function loadStockData() {
+  const isPlaceholder = !CONFIG.STOCK_CSV_URL || CONFIG.STOCK_CSV_URL.includes("PEGA_AQUI");
+  if (isPlaceholder) return;
+  try {
+    const res = await fetch(CONFIG.STOCK_CSV_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    stockData = csvToStockData(text);
+    applyStockData();
+    renderAll();
+  } catch (err) {
+    console.warn("No se pudo cargar la tabla de stock:", err);
+  }
+}
+
+/* ======================================================================
    Carga de productos
    ====================================================================== */
 async function loadProducts() {
@@ -574,6 +643,7 @@ async function loadProducts() {
   if (isPlaceholder) {
     products = DEMO_PRODUCTS;
     setStatus("Mostrando catálogo de ejemplo. Conecta tu Google Sheet: edita CONFIG.GOOGLE_SHEET_CSV_URL en app.js.");
+    applyStockData();
     renderAll();
     return;
   }
@@ -591,6 +661,7 @@ async function loadProducts() {
     products = DEMO_PRODUCTS;
     setStatus("No se pudo conectar con Google Sheets en este momento — mostrando catálogo de ejemplo.");
   }
+  applyStockData();
   renderAll();
 }
 
@@ -741,6 +812,10 @@ function getMenuItems() {
 
   if (americanoProducts.length) {
     items.push({ type: "link", label: CONFIG.AMERICANO.TITLE || "Cosmético Americano", href: "#americano-section" });
+  }
+
+  if (products.some((p) => p.enStock)) {
+    items.push({ type: "link", label: "✅ En stock", href: "#stock-section" });
   }
 
   const brandsSection = document.getElementById("brands-section");
@@ -914,13 +989,20 @@ function productCardHTML(p, { rank } = {}) {
         <div data-card-badge class="absolute top-2 ${rank ? "right-2" : "left-2"}">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
       </div>
       <div class="p-3 flex flex-col flex-1">
-        ${
-          p.presentacion
-            ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1 ${
-                p.presentacion.startsWith("Caja") ? "bg-lilac/20 text-lilac" : "bg-blush/50 text-ink/70"
-              }">${escapeHtml(p.presentacion)}</span>`
-            : ""
-        }
+        <div class="flex flex-wrap gap-1 mb-1">
+          ${
+            p.enStock
+              ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata</span>`
+              : ""
+          }
+          ${
+            p.presentacion
+              ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  p.presentacion.startsWith("Caja") ? "bg-lilac/20 text-lilac" : "bg-blush/50 text-ink/70"
+                }">${escapeHtml(p.presentacion)}</span>`
+              : ""
+          }
+        </div>
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
         <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5">${escapeHtml(p.nombre)}</h3>
         ${
@@ -1468,6 +1550,7 @@ function showHomeView(view) {
   document.getElementById("homepage-sections").classList.toggle("hidden", view !== "home");
   document.getElementById("search-results-section").classList.toggle("hidden", view !== "search");
   document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
+  document.getElementById("stock-section").classList.toggle("hidden", view !== "stock");
   document.getElementById("brand-products-section").classList.toggle("hidden", view !== "brands");
   document.getElementById("category-products-section").classList.toggle("hidden", view !== "categories");
   document.getElementById("country-products-section").classList.toggle("hidden", view !== "country");
@@ -1527,6 +1610,28 @@ function openFullCatalog() {
   }
 
   showHomeView("catalog");
+}
+
+/* ======================================================================
+   En stock -- solo los productos marcados como entrega inmediata.
+   ====================================================================== */
+function openStockSection() {
+  document.getElementById("search-input").value = "";
+
+  const items = groupVariants(products.filter((p) => p.enStock));
+  const grid = document.getElementById("stock-grid");
+  const empty = document.getElementById("stock-empty");
+  if (!items.length) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
+    wireAddButtons(grid);
+    wireVariantSelectors(grid);
+  }
+
+  showHomeView("stock");
 }
 
 /* ======================================================================
@@ -1755,6 +1860,8 @@ function sendAmericanoQuote(e) {
 function addToCart(id) {
   const product = products.find((p) => p.id === id);
   if (!product || !product.disponible) return;
+  const currentQty = cart[id] ? cart[id].qty : 0;
+  if (product.enStock && currentQty + 1 > product.stockPiezas) return;
 
   const switchNotice = document.getElementById("cart-switch-notice");
   if (Object.keys(americanoCart).length) {
@@ -1776,7 +1883,10 @@ function addToCart(id) {
 
 function changeQty(id, delta) {
   if (!cart[id]) return;
-  cart[id].qty += delta;
+  const product = cart[id].product;
+  const nextQty = cart[id].qty + delta;
+  if (product.enStock && delta > 0 && nextQty > product.stockPiezas) return;
+  cart[id].qty = nextQty;
   if (cart[id].qty <= 0) delete cart[id];
   saveCart();
   renderCart();
@@ -1800,6 +1910,15 @@ function cartWeight() {
   return Object.values(cart).reduce((sum, it) => sum + (it.product.peso || 0) * it.qty, 0);
 }
 
+/* Peso de solo los productos que NO están en stock (los que sí vienen de
+   Corea y pagan ese tramo de envío). */
+function cartWeightNonStock() {
+  return Object.values(cart).reduce(
+    (sum, it) => sum + (it.product.enStock ? 0 : (it.product.peso || 0) * it.qty),
+    0
+  );
+}
+
 function formatWeight(kg) {
   return `${(kg || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 })} kg`;
 }
@@ -1820,7 +1939,7 @@ function updateNacionalShippingUI() {
     return;
   }
 
-  const shipping = shippingEstimate(cartWeight(), cp);
+  const shipping = shippingEstimate(cartWeight(), cp, cartWeightNonStock());
   if (shipping && shipping.hasNacional) {
     label.textContent = `🚚 Envío nacional (estimado) a CP ${cp}`;
     amount.textContent = formatPrice(shipping.nacionalMXN);
@@ -1834,7 +1953,7 @@ function updateNacionalShippingUI() {
 
 function renderGrandTotal() {
   const cp = document.getElementById("customer-cp").value.trim();
-  const shipping = shippingEstimate(cartWeight(), cp);
+  const shipping = shippingEstimate(cartWeight(), cp, cartWeightNonStock());
 
   let grandTotal = cartTotal();
   if (shipping && shipping.hasKorea) grandTotal += shipping.coreaMXN;
@@ -1865,7 +1984,7 @@ function renderCart() {
   }
 
   const koreaRow = document.getElementById("cart-shipping-korea-row");
-  const shipping = shippingEstimate(cartWeight(), "");
+  const shipping = shippingEstimate(cartWeight(), "", cartWeightNonStock());
   if (items.length && shipping && shipping.hasKorea) {
     document.getElementById("cart-shipping-korea").textContent = formatPrice(shipping.coreaMXN);
     koreaRow.classList.remove("hidden");
@@ -1943,7 +2062,7 @@ function buildWhatsAppMessage() {
   });
 
   const weight = cartWeight();
-  const shipping = shippingEstimate(weight, cp);
+  const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
   const grandTotal = cartTotal() + (shipping ? shipping.totalMXN : 0);
 
   const parts = [
@@ -2132,6 +2251,10 @@ document.addEventListener("DOMContentLoaded", () => {
       showHomeView("americano");
       return;
     }
+    if (href === "stock-section") {
+      openStockSection();
+      return;
+    }
     const target = document.getElementById(href);
     const homepageSections = document.getElementById("homepage-sections");
     if (target && homepageSections.contains(target) && homepageSections.classList.contains("hidden")) {
@@ -2151,6 +2274,7 @@ document.addEventListener("DOMContentLoaded", () => {
     showHomeView("home");
   });
   document.getElementById("catalog-clear").addEventListener("click", () => showHomeView("home"));
+  document.getElementById("stock-clear").addEventListener("click", () => showHomeView("home"));
 
   renderTopBar();
   renderHeroSlide();
@@ -2171,6 +2295,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadShippingSettings();
   loadShippingKoreaRates();
   loadShippingNacionalRates();
+  loadStockData();
   renderCart();
 
   loadAmericanoProducts();
