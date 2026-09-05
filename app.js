@@ -35,7 +35,7 @@ const CONFIG = {
   // propio precio de venta inmediata), y a esos productos no se les
   // cobra el envío Corea→México (ya están en México), solo el nacional.
   // Si se deja el placeholder, no aparece la sección "En stock".
-  STOCK_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=PEGA_AQUI_EL_GID&single=true&output=csv",
+  STOCK_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=1208388065&single=true&output=csv",
 
   // Número de WhatsApp con código de país, solo dígitos, sin "+" ni espacios.
   // Ejemplo México: 5215512345678 (52 + 1 + 10 dígitos)
