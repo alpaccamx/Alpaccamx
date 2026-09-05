@@ -25,6 +25,11 @@ contenido, marcas ni fotografía de ningún negocio real.
   productos.
 - `fonts/ReadyToParty.ttf` — la tipografía de marca ("Ready to Party" de Misti's Fonts),
   cargada vía `@font-face` en `input.css` para los encabezados (`font-logo`).
+- `admin.html` — panel privado (protegido con contraseña) para confirmar o
+  cancelar pedidos por transferencia; ver sección 4.
+- `netlify/functions/` — funciones que corren en el servidor (Mercado Pago,
+  el panel de admin, y el chatbot de Instagram); no necesitan que edites
+  nada salvo las variables de entorno que se explican en sección 4.
 
 ## 1. Configurar el Google Sheet
 
@@ -295,6 +300,7 @@ const CONFIG = {
   BUSINESS_NAME: "Alpacca",
   SHIPPING_MESSAGE: "...",     // barra superior
   MIN_ORDER_MXN: 5200,          // pedido mínimo para poder cotizar, en pesos (monto fijo)
+  TRANSFER_DISCOUNT_PCT: 6,     // % de descuento al pagar por transferencia en vez de Mercado Pago (ver sección 4)
   TICKER_MESSAGES: [...],      // frases de la barra deslizante
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
   HERO_SLIDES: [...],          // slides del banner principal (imagen, o título/subtítulo/botón); cada slide admite "imageMobile" para usar una imagen distinta en celular
@@ -317,6 +323,66 @@ vez de intentar abrir algo roto.
 Como es HTML/CSS/JS estático, puedes subir estos archivos a GitHub Pages,
 Netlify, Vercel o cualquier hosting estático — no necesita servidor ni base
 de datos.
+
+## 4. Pagos con Mercado Pago y panel de pedidos (opcional)
+
+El carrito tiene dos formas de cerrar un pedido:
+
+- **"💳 Pagar con Mercado Pago"** — el cliente paga en línea con tarjeta al
+  precio normal de catálogo.
+- **"Enviar cotización por WhatsApp"** — pensado para pago por
+  transferencia. Como evita la comisión de la terminal digital, el sitio
+  le ofrece automáticamente un **6% de descuento** (ajustable en
+  `CONFIG.TRANSFER_DISCOUNT_PCT` en `app.js`; ponlo en `0` para
+  desactivarlo).
+
+### Configurar Mercado Pago
+
+1. Entra a https://www.mercadopago.com.mx/developers/panel, crea una
+   aplicación (modelo "Pagos online" / "Checkout Pro") y copia el
+   **Access Token** de la pestaña de credenciales (usa el que empieza con
+   `TEST-` para probar sin cobrar de verdad, y el de `APP_USR-` cuando ya
+   quieras cobrar en serio).
+2. En Netlify: **Site settings → Environment variables**, agrega
+   `MP_ACCESS_TOKEN` con ese valor. No hace falta tocar código ni pegarlo
+   en ningún archivo del repositorio.
+3. Netlify vuelve a desplegar el sitio solo (o dispara un "Trigger
+   deploy" manual) y el botón de Mercado Pago queda funcionando.
+
+Si `MP_ACCESS_TOKEN` no está configurado, el botón sigue visible pero le
+muestra al cliente un aviso de que el pago en línea no está listo todavía
+(no rompe el resto del sitio).
+
+### Cómo se evita sobrevender el stock
+
+El pedido mínimo (`CONFIG.MIN_ORDER_MXN`) y el descuento por transferencia
+funcionan como antes; lo nuevo es que las **piezas disponibles de la
+sección "En stock"** ahora se descuentan solas cuando un pedido se
+confirma como pagado:
+
+- Con Mercado Pago, esto pasa automáticamente: cuando el pago queda
+  aprobado, un webhook (`netlify/functions/mp-webhook.js`) resta las
+  piezas vendidas.
+- Con transferencia (WhatsApp) no hay forma de saber automáticamente si
+  el cliente ya pagó, así que ese pedido queda "pendiente" hasta que tú lo
+  confirmes a mano en el panel **`/admin.html`** de tu sitio (ej.
+  `https://alpacca.mx/admin.html`) — ahí ves los pedidos por transferencia
+  esperando confirmación y le das "✅ Confirmar pago" (resta el stock) o
+  "✕ Cancelar" (lo descarta sin tocar el stock).
+
+Para entrar a `/admin.html` necesitas configurar en Netlify una variable
+`ADMIN_KEY` con una contraseña que tú inventes; es la clave que pide esa
+página antes de mostrar los pedidos. No compartas esa página ni la
+contraseña públicamente — no está enlazada desde el menú del sitio a
+propósito.
+
+**Limitación a tener en cuenta**: el número de "Piezas Disponibles" que
+ven los clientes en el catálogo es el de tu hoja de Stock menos lo ya
+confirmado como pagado; un pedido por transferencia que todavía no
+confirmas en `/admin.html` no se resta todavía. Para un negocio de bajo
+volumen como mayoreo esto es normalmente suficiente, pero si notas que se
+te juntan varios pedidos sin confirmar al mismo tiempo, confirma o cancela
+seguido para que el conteo se mantenga al día.
 
 ## Secciones de la página
 
@@ -386,8 +452,10 @@ El listado (función `getMenuItems()` en `app.js`) combina:
 - **Testimonios de clientes con fotos**: no se fabrican reseñas falsas.
   Cuando tengas reseñas reales, es fácil agregar una sección similar a
   "Marcas" que las lea desde el Sheet o un array en `CONFIG`.
-- **Íconos de métodos de pago**: el sitio no procesa pagos, así que
-  mostrar íconos de tarjetas sería contradictorio.
+- **Íconos genéricos de métodos de pago**: no se agregó una franja de logos
+  de tarjetas tipo "aceptamos Visa/Mastercard/Amex" porque el único método
+  con tarjeta es Mercado Pago (ver sección 4), que ya trae su propia marca
+  en el botón de pago.
 - **Selector de moneda funcional / login de cuenta**: el sitio solo maneja
   MXN y no tiene sistema de usuarios, así que no se agregaron controles que
   no hacen nada.

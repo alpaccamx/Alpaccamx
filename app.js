@@ -49,6 +49,12 @@ const CONFIG = {
   // Pedido mínimo para poder enviar la cotización, en pesos mexicanos (monto fijo).
   MIN_ORDER_MXN: 5700,
 
+  // % de descuento que se ofrece cuando el cliente paga por transferencia
+  // (cotización por WhatsApp) en vez de con tarjeta vía Mercado Pago. Cubre
+  // la comisión que cobra la terminal digital, que ya está incluida en el
+  // precio normal de catálogo. Ponlo en 0 para desactivar el descuento.
+  TRANSFER_DISCOUNT_PCT: 6,
+
   // Mensajes que se muestran en la barra deslizante debajo del banner.
   TICKER_MESSAGES: [
     "Envíos a todo México 🇲🇽",
@@ -428,6 +434,7 @@ let shippingSettings = { exchangeRate: 0 };
 let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0 };
 let shippingNacionalRates = [];
 let stockData = new Map(); // SKU -> { piezas, precioMXN }
+let soldStock = new Map(); // SKU -> piezas ya vendidas y pagadas (se resta de stockData)
 
 const SHIPPING_SETTING_ALIASES = {
   exchangeRate: ["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"],
@@ -633,8 +640,9 @@ function applyStockData() {
     const entry = stockData.get(p.id);
     if (entry) {
       matchedSkus.add(p.id);
+      const vendidas = soldStock.get(p.id) || 0;
       p.enStock = true;
-      p.stockPiezas = entry.piezas;
+      p.stockPiezas = Math.max(0, entry.piezas - vendidas);
       p.precio = entry.precioMXN || p.precio;
     } else {
       p.enStock = false;
@@ -651,6 +659,7 @@ function applyStockData() {
   stockData.forEach((entry, sku) => {
     if (matchedSkus.has(sku) || existingIds.has(sku)) return;
     if (!entry.nombre) return; // sin nombre no se puede mostrar el producto
+    const vendidas = soldStock.get(sku) || 0;
     products.push({
       id: sku,
       nombre: entry.nombre,
@@ -665,9 +674,23 @@ function applyStockData() {
       destacado: [],
       tipoPiel: [],
       enStock: true,
-      stockPiezas: entry.piezas,
+      stockPiezas: Math.max(0, entry.piezas - vendidas),
     });
   });
+}
+
+/* Trae cuántas piezas de cada SKU en stock ya se vendieron (pagos ya
+   confirmados por Mercado Pago o marcados manualmente en /admin.html),
+   para restarlas de las "Piezas Disponibles" y no sobrevender. */
+async function loadSoldStock() {
+  try {
+    const res = await fetch("/.netlify/functions/stock-sold", { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    soldStock = new Map(Object.entries(data.sold || {}));
+  } catch (err) {
+    console.warn("No se pudo cargar el stock ya vendido:", err);
+  }
 }
 
 async function loadStockData() {
@@ -677,6 +700,7 @@ async function loadStockData() {
     const res = await fetch(CONFIG.STOCK_CSV_URL, { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const text = await res.text();
+    await loadSoldStock();
     stockData = csvToStockData(text);
     applyStockData();
     renderAll();
@@ -2056,7 +2080,20 @@ function renderCart() {
   updateNacionalShippingUI();
 
   const sendBtn = document.getElementById("send-quote");
+  const payBtn = document.getElementById("pay-mercadopago");
   sendBtn.disabled = items.length === 0 || belowMin;
+  if (payBtn) payBtn.disabled = items.length === 0 || belowMin;
+
+  const discountNote = document.getElementById("cart-transfer-discount-note");
+  const discountPct = CONFIG.TRANSFER_DISCOUNT_PCT || 0;
+  if (discountNote) {
+    if (items.length && discountPct > 0) {
+      discountNote.textContent = `💸 Pagando por transferencia (WhatsApp) obtienes ${discountPct}% de descuento: -${formatPrice(total * (discountPct / 100))}`;
+      discountNote.classList.remove("hidden");
+    } else {
+      discountNote.classList.add("hidden");
+    }
+  }
 
   if (!items.length) {
     wrap.innerHTML = "";
@@ -2123,18 +2160,29 @@ function buildWhatsAppMessage() {
     return `${i + 1}. ${marca}${nombre} x${it.qty} — ${formatPrice(it.product.precio * it.qty)}`;
   });
 
+  const subtotal = cartTotal();
+  const discountPct = CONFIG.TRANSFER_DISCOUNT_PCT || 0;
+  const discount = subtotal * (discountPct / 100);
+  const subtotalConDescuento = subtotal - discount;
+
   const weight = cartWeight();
   const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
-  const grandTotal = cartTotal() + (shipping ? shipping.totalMXN : 0);
+  const grandTotal = subtotalConDescuento + (shipping ? shipping.totalMXN : 0);
 
   const parts = [
-    `Hola ${CONFIG.BUSINESS_NAME}! Quiero cotizar lo siguiente:`,
+    `Hola ${CONFIG.BUSINESS_NAME}! Quiero cotizar lo siguiente (pago por transferencia):`,
     "",
     ...lines,
     "",
-    `Subtotal productos: ${formatPrice(cartTotal())}`,
-    `📦 Peso total estimado: ${formatWeight(weight)}`,
+    `Subtotal productos: ${formatPrice(subtotal)}`,
   ];
+
+  if (discountPct > 0) {
+    parts.push(`💸 Descuento por transferencia (${discountPct}%): -${formatPrice(discount)}`);
+    parts.push(`Subtotal con descuento: ${formatPrice(subtotalConDescuento)}`);
+  }
+
+  parts.push(`📦 Peso total estimado: ${formatWeight(weight)}`);
 
   if (shipping) {
     parts.push(`🚚 Envío estimado (referencia, sujeto a confirmación): ${formatPrice(shipping.totalMXN)}`);
@@ -2177,14 +2225,125 @@ function sendQuote(e) {
   const opened = window.open(url, "_blank", "noopener");
   // Algunos navegadores integrados (ej. el de WhatsApp) bloquean la
   // ventana emergente en vez de abrirla; en ese caso navegamos en la
-  // misma pestaña para que el link sí funcione.
+  // misma pestaña para que el link sí funcione. Nota: por eso el registro
+  // del pedido (recordWhatsAppOrder) se hace SIN esperar la respuesta del
+  // servidor -- si se esperara con "await" antes de abrir WhatsApp, la
+  // mayoría de navegadores bloquearían la ventana por no ser ya parte del
+  // mismo "click" del usuario.
   if (!opened) window.location.href = url;
+
+  recordWhatsAppOrder();
 
   cart = {};
   saveCart();
   renderCart();
   document.getElementById("quote-form").reset();
   closeCart();
+}
+
+/* Registra el pedido en segundo plano (no bloquea el envío del WhatsApp)
+   para que aparezca en /admin.html y, cuando confirmes el pago recibido,
+   se descuenten las piezas vendidas del stock. Si falla, no pasa nada
+   grave: el pedido se sigue mandando por WhatsApp igual. */
+function recordWhatsAppOrder() {
+  try {
+    const name = document.getElementById("customer-name").value.trim();
+    const phone = document.getElementById("customer-phone").value.trim();
+    const cp = document.getElementById("customer-cp").value.trim();
+    const notes = document.getElementById("customer-notes").value.trim();
+    const items = cartItemsForOrder();
+    const subtotal = cartTotal();
+    const discountPct = CONFIG.TRANSFER_DISCOUNT_PCT || 0;
+    const discount = subtotal * (discountPct / 100);
+    const weight = cartWeight();
+    const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
+    const shippingMXN = shipping ? shipping.totalMXN : 0;
+
+    fetch("/.netlify/functions/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source: "whatsapp",
+        customer: { name, phone, cp, notes },
+        items,
+        subtotal,
+        discount,
+        shippingMXN,
+        grandTotal: subtotal - discount + shippingMXN,
+      }),
+    }).catch((err) => console.warn("No se pudo registrar el pedido para /admin.html:", err));
+  } catch (err) {
+    console.warn("No se pudo registrar el pedido para /admin.html:", err);
+  }
+}
+
+function cartItemsForOrder() {
+  return Object.values(cart).map((it) => ({
+    sku: it.product.id,
+    nombre: it.product.presentacion ? `${it.product.nombre} (${it.product.presentacion})` : it.product.nombre,
+    qty: it.qty,
+    precio: it.product.precio,
+    enStock: !!it.product.enStock,
+  }));
+}
+
+/* ======================================================================
+   Pago con Mercado Pago
+   ====================================================================== */
+async function payWithMercadoPago() {
+  if (!Object.keys(cart).length) return;
+
+  const name = document.getElementById("customer-name").value.trim();
+  const cp = document.getElementById("customer-cp").value.trim();
+  if (!name || cp.length !== 5) {
+    setStatus("Completa tu nombre y código postal antes de pagar con Mercado Pago.");
+    return;
+  }
+
+  const hasNonStockItems = Object.values(cart).some((it) => !it.product.enStock);
+  if (hasNonStockItems && cartTotalNonStock() < minOrderMXN()) {
+    setStatus(`Tu pedido no alcanza el mínimo de compra (${formatPrice(minOrderMXN())}).`);
+    return;
+  }
+
+  const payBtn = document.getElementById("pay-mercadopago");
+  const originalLabel = payBtn.innerHTML;
+  payBtn.disabled = true;
+  payBtn.innerHTML = "<span>Redirigiendo…</span>";
+
+  try {
+    const phone = document.getElementById("customer-phone").value.trim();
+    const notes = document.getElementById("customer-notes").value.trim();
+    const weight = cartWeight();
+    const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
+    const shippingMXN = shipping ? shipping.totalMXN : 0;
+    const subtotal = cartTotal();
+
+    const res = await fetch("/.netlify/functions/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source: "mercadopago",
+        customer: { name, phone, cp, notes },
+        items: cartItemsForOrder(),
+        subtotal,
+        shippingMXN,
+        grandTotal: subtotal + shippingMXN,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.redirectUrl) {
+      throw new Error(data.error || "Mercado Pago no está configurado todavía.");
+    }
+
+    window.location.href = data.redirectUrl;
+  } catch (err) {
+    console.error(err);
+    setStatus(err.message || "No se pudo iniciar el pago con Mercado Pago. Intenta de nuevo o usa el botón de WhatsApp.");
+    payBtn.disabled = false;
+    payBtn.innerHTML = originalLabel;
+  }
 }
 
 /* ======================================================================
@@ -2269,6 +2428,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("menu-close").addEventListener("click", closeMobileMenu);
   document.getElementById("menu-overlay").addEventListener("click", closeMobileMenu);
   document.getElementById("quote-form").addEventListener("submit", sendQuote);
+  document.getElementById("pay-mercadopago").addEventListener("click", payWithMercadoPago);
   document.getElementById("customer-cp").addEventListener("input", updateNacionalShippingUI);
 
   document.getElementById("quiz-retake").addEventListener("click", () => {
