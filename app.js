@@ -1970,6 +1970,15 @@ function cartWeightNonStock() {
   );
 }
 
+/* Total de solo los productos que NO están en stock -- el pedido mínimo
+   no aplica a los productos en stock (entrega inmediata). */
+function cartTotalNonStock() {
+  return Object.values(cart).reduce(
+    (sum, it) => sum + (it.product.enStock ? 0 : it.product.precio * it.qty),
+    0
+  );
+}
+
 function formatWeight(kg) {
   return `${(kg || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 })} kg`;
 }
@@ -2019,8 +2028,10 @@ function renderCart() {
   const items = Object.entries(cart);
 
   const total = cartTotal();
+  const nonStockTotal = cartTotalNonStock();
+  const hasNonStockItems = Object.values(cart).some((it) => !it.product.enStock);
   const minMXN = minOrderMXN();
-  const belowMin = items.length > 0 && total < minMXN;
+  const belowMin = hasNonStockItems && nonStockTotal < minMXN;
 
   document.getElementById("cart-total-label").textContent = `Total productos (${cartCount()})`;
   document.getElementById("cart-total").textContent = formatPrice(total);
@@ -2028,7 +2039,7 @@ function renderCart() {
 
   const minMsg = document.getElementById("cart-min-order");
   if (belowMin) {
-    minMsg.textContent = `Te faltan ${formatPrice(minMXN - total)} para tu pedido mínimo de ${formatPrice(minMXN)}.`;
+    minMsg.textContent = `Te faltan ${formatPrice(minMXN - nonStockTotal)} para tu pedido mínimo de ${formatPrice(minMXN)} (no aplica a productos en stock).`;
     minMsg.classList.remove("hidden");
   } else {
     minMsg.classList.add("hidden");
@@ -2149,7 +2160,8 @@ function sendQuote(e) {
   e.preventDefault();
   if (!Object.keys(cart).length) return;
 
-  if (cartTotal() < minOrderMXN()) {
+  const hasNonStockItems = Object.values(cart).some((it) => !it.product.enStock);
+  if (hasNonStockItems && cartTotalNonStock() < minOrderMXN()) {
     setStatus(`Tu pedido no alcanza el mínimo de compra (${formatPrice(minOrderMXN())}).`);
     return;
   }
