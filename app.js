@@ -1043,7 +1043,7 @@ function productCardHTML(p, { rank } = {}) {
         <div class="flex flex-wrap gap-1 mb-1">
           ${
             p.enStock
-              ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata</span>`
+              ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza" : "piezas"}</span>`
               : ""
           }
           ${
