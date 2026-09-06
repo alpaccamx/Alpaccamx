@@ -311,8 +311,16 @@ function parseCSV(text) {
   return rows.filter((r) => r.some((f) => f.trim() !== ""));
 }
 
+/* Además del match exacto, prueba el encabezado sin su explicación entre
+   paréntesis al final (ej. "Precio Tarjeta MXN (opcional)" -> "precio
+   tarjeta mxn"). Así funcionan tal cual los encabezados de las plantillas
+   que se entregan, sin que el usuario tenga que dejarlos exactamente
+   igual a los alias internos. */
 function findCol(headers, aliases) {
-  return headers.findIndex((h) => aliases.includes(h));
+  const exact = headers.findIndex((h) => aliases.includes(h));
+  if (exact >= 0) return exact;
+  const stripParens = (h) => h.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  return headers.findIndex((h) => aliases.includes(stripParens(h)));
 }
 
 function csvToProducts(text) {
