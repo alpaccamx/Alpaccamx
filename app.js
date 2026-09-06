@@ -436,7 +436,7 @@ function normalizeKey(s) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-let shippingSettings = { exchangeRate: 0 };
+let shippingSettings = { exchangeRate: 0, transferDiscountPct: 0 };
 let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0 };
 let shippingNacionalRates = [];
 let stockData = new Map(); // SKU -> { piezas, precioMXN }
@@ -444,11 +444,15 @@ let soldStock = new Map(); // SKU -> piezas ya vendidas y pagadas (se resta de s
 
 const SHIPPING_SETTING_ALIASES = {
   exchangeRate: ["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"],
+  // Mismo % que "Descuento por transferencia (%)" usa Productos para
+  // calcular "Precio Tarjeta" -- aquí se usa para que el envío también
+  // tenga su precio de referencia con tarjeta (ver README sección 4).
+  transferDiscountPct: ["descuentoportransferencia", "descuentotransferencia", "descuentoportransferenciaporciento"],
 };
 
 function csvToShippingSettings(text) {
   const rows = parseCSV(text);
-  const settings = { exchangeRate: 0 };
+  const settings = { exchangeRate: 0, transferDiscountPct: 0 };
   rows.forEach((r) => {
     const key = normalizeKey(r[0]);
     const value = parseFloat((r[1] || "").replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0;
@@ -546,8 +550,22 @@ function shippingEstimate(pesoKg, cp, koreaPesoKg = pesoKg) {
 
   const coreaUSD = hasKorea ? koreaShippingUSD(koreaPesoKg) : 0;
   const coreaMXN = coreaUSD * (shippingSettings.exchangeRate || 0);
+  const totalMXN = coreaMXN + (nacionalMXN || 0);
 
-  return { hasKorea, hasNacional, coreaUSD, coreaMXN, nacionalMXN: nacionalMXN || 0, totalMXN: coreaMXN + (nacionalMXN || 0) };
+  // Precio de envío de referencia al pagar con tarjeta (Mercado Pago),
+  // con el mismo % de "Descuento por transferencia" que usan los
+  // productos -- el envío también se cobra a través de la terminal, así
+  // que le aplica la misma diferencia entre ambos métodos de pago.
+  const tarjetaPct = shippingSettings.transferDiscountPct || 0;
+  const coreaMXNTarjeta = coreaMXN * (1 + tarjetaPct / 100);
+  const nacionalMXNTarjeta = (nacionalMXN || 0) * (1 + tarjetaPct / 100);
+  const totalMXNTarjeta = totalMXN * (1 + tarjetaPct / 100);
+
+  return {
+    hasKorea, hasNacional, coreaUSD,
+    coreaMXN, nacionalMXN: nacionalMXN || 0, totalMXN,
+    coreaMXNTarjeta, nacionalMXNTarjeta, totalMXNTarjeta,
+  };
 }
 
 async function loadShippingSettings() {
@@ -2114,9 +2132,12 @@ function renderCart() {
 
   const transferNote = document.getElementById("cart-mp-surcharge-note");
   if (transferNote) {
-    const tarjetaTotal = cartTotalTarjeta();
-    if (items.length && tarjetaTotal > total + 0.5) {
-      transferNote.textContent = `🏦 Pagando por transferencia (WhatsApp) ahorras ${formatPrice(tarjetaTotal - total)} (precio con tarjeta: ${formatPrice(tarjetaTotal)})`;
+    const cp = document.getElementById("customer-cp").value.trim();
+    const shippingForNote = shippingEstimate(cartWeight(), cp, cartWeightNonStock());
+    const totalConEnvio = total + (shippingForNote ? shippingForNote.totalMXN : 0);
+    const tarjetaTotalConEnvio = cartTotalTarjeta() + (shippingForNote ? shippingForNote.totalMXNTarjeta : 0);
+    if (items.length && tarjetaTotalConEnvio > totalConEnvio + 0.5) {
+      transferNote.textContent = `🏦 Pagando por transferencia (WhatsApp) ahorras ${formatPrice(tarjetaTotalConEnvio - totalConEnvio)} (precio con tarjeta, incluyendo envío: ${formatPrice(tarjetaTotalConEnvio)})`;
       transferNote.classList.remove("hidden");
     } else {
       transferNote.classList.add("hidden");
@@ -2330,7 +2351,7 @@ async function payWithMercadoPago() {
     const notes = document.getElementById("customer-notes").value.trim();
     const weight = cartWeight();
     const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
-    const shippingMXN = shipping ? shipping.totalMXN : 0;
+    const shippingMXN = shipping ? shipping.totalMXNTarjeta : 0;
     const subtotal = cartTotalTarjeta();
 
     const res = await fetch("/.netlify/functions/create-order", {
