@@ -437,7 +437,7 @@ function normalizeKey(s) {
 }
 
 let shippingSettings = { exchangeRate: 0, transferDiscountPct: 0 };
-let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0 };
+let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0, extraPerKgTarjetaUSD: null };
 let shippingNacionalRates = [];
 let stockData = new Map(); // SKU -> { piezas, precioMXN }
 let soldStock = new Map(); // SKU -> piezas ya vendidas y pagadas (se resta de stockData)
@@ -471,6 +471,15 @@ function csvToNacionalRates(text) {
   const iCp = findCol(headers, ["cp destino", "codigo postal", "cp"]);
   const iPeso = findCol(headers, ["peso (kg)", "peso"]);
   const iCosto = findCol(headers, ["costo estafeta terrestre (mxn)", "costo estafeta terrestre", "costo estafeta", "costo"]);
+  // Opcional: costo con tarjeta (Mercado Pago) por fila. Si se deja vacío
+  // o no se agrega la columna, se calcula con el % de "Descuento por
+  // transferencia" de Config (ver shippingEstimate).
+  const iCostoTarjeta = findCol(headers, [
+    "costo estafeta terrestre tarjeta (mxn)",
+    "costo estafeta terrestre tarjeta",
+    "costo tarjeta (mxn)",
+    "costo tarjeta",
+  ]);
 
   const rates = [];
   rows.slice(1).forEach((r) => {
@@ -478,14 +487,23 @@ function csvToNacionalRates(text) {
     const cpRange = (r[iCp] || "").trim();
     const peso = parseFloat((r[iPeso] || "").replace(",", "."));
     const costo = parseFloat((r[iCosto] || "").replace(/[^0-9.,]/g, "").replace(",", "."));
+    const costoTarjetaRaw = iCostoTarjeta >= 0 ? (r[iCostoTarjeta] || "").replace(/[^0-9.,]/g, "").replace(",", ".") : "";
+    const costoTarjetaParsed = parseFloat(costoTarjetaRaw);
     const m = cpRange.match(/(\d{4,5})\s*-\s*(\d{4,5})/);
     if (!estado || !m || isNaN(peso) || isNaN(costo)) return;
-    rates.push({ estado, cpMin: parseInt(m[1], 10), cpMax: parseInt(m[2], 10), pesoKg: peso, costoMXN: costo });
+    rates.push({
+      estado,
+      cpMin: parseInt(m[1], 10),
+      cpMax: parseInt(m[2], 10),
+      pesoKg: peso,
+      costoMXN: costo,
+      costoTarjetaMXN: isNaN(costoTarjetaParsed) ? null : costoTarjetaParsed,
+    });
   });
   return rates;
 }
 
-function nacionalShippingMXN(cp, pesoKg) {
+function nacionalShippingMXN(cp, pesoKg, useTarjeta = false) {
   const cpNum = parseInt((cp || "").trim(), 10);
   if (isNaN(cpNum) || pesoKg <= 0 || !shippingNacionalRates.length) return null;
 
@@ -499,43 +517,67 @@ function nacionalShippingMXN(cp, pesoKg) {
 
   const sorted = zoneRows.slice().sort((a, b) => a.pesoKg - b.pesoKg);
   const tier = sorted.find((r) => pesoKg <= r.pesoKg);
-  return tier ? tier.costoMXN : null;
+  if (!tier) return null;
+  if (!useTarjeta) return tier.costoMXN;
+  if (tier.costoTarjetaMXN != null) return tier.costoTarjetaMXN;
+  const pct = shippingSettings.transferDiscountPct || 0;
+  return tier.costoMXN * (1 + pct / 100);
 }
 
 function csvToKoreaShippingTiers(text) {
   const rows = parseCSV(text);
-  if (!rows.length) return { tiers: [], extraPerKgUSD: 0 };
+  if (!rows.length) return { tiers: [], extraPerKgUSD: 0, extraPerKgTarjetaUSD: null };
   const headers = rows[0].map((h) => h.trim().toLowerCase());
   const iPeso = findCol(headers, ["peso total de la unidad", "peso hasta", "peso hasta (kg)", "peso (kg)", "peso"]);
   const iCosto = findCol(headers, ["costo (usd)", "costo usd", "costo"]);
+  // Opcional: costo con tarjeta (Mercado Pago) por fila (incluye la fila
+  // de "cada 1 kg adicional"). Si se deja vacío o no se agrega la
+  // columna, se calcula con el % de "Descuento por transferencia" de
+  // Config (ver shippingEstimate).
+  const iCostoTarjeta = findCol(headers, ["costo tarjeta (usd)", "costo tarjeta usd", "costo tarjeta"]);
 
   const tiers = [];
   let extraPerKgUSD = 0;
+  let extraPerKgTarjetaUSD = null;
 
   rows.slice(1).forEach((r) => {
     const pesoRaw = (r[iPeso] || "").trim().toLowerCase();
     const costo = parseFloat((r[iCosto] || "").replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
+    const costoTarjetaRaw = iCostoTarjeta >= 0 ? (r[iCostoTarjeta] || "").replace(/[^0-9.,]/g, "").replace(",", ".") : "";
+    const costoTarjetaParsed = parseFloat(costoTarjetaRaw);
+    const costoTarjetaUSD = isNaN(costoTarjetaParsed) ? null : costoTarjetaParsed;
 
     if (pesoRaw.includes("adicional") || pesoRaw.includes("extra")) {
       extraPerKgUSD = costo;
+      extraPerKgTarjetaUSD = costoTarjetaUSD;
       return;
     }
     const maxKg = parseFloat(pesoRaw.replace(/[^0-9.,]/g, "").replace(",", "."));
-    if (!isNaN(maxKg)) tiers.push({ maxKg, costoUSD: costo });
+    if (!isNaN(maxKg)) tiers.push({ maxKg, costoUSD: costo, costoTarjetaUSD });
   });
 
   tiers.sort((a, b) => a.maxKg - b.maxKg);
-  return { tiers, extraPerKgUSD };
+  return { tiers, extraPerKgUSD, extraPerKgTarjetaUSD };
 }
 
-function koreaShippingUSD(pesoKg) {
-  const { tiers, extraPerKgUSD } = shippingKoreaRates;
+function koreaShippingUSD(pesoKg, useTarjeta = false) {
+  const { tiers, extraPerKgUSD, extraPerKgTarjetaUSD } = shippingKoreaRates;
   if (!tiers.length || pesoKg <= 0) return 0;
+  const pct = shippingSettings.transferDiscountPct || 0;
+
   const inRange = tiers.find((t) => pesoKg <= t.maxKg);
-  if (inRange) return inRange.costoUSD;
+  if (inRange) {
+    if (!useTarjeta) return inRange.costoUSD;
+    return inRange.costoTarjetaUSD != null ? inRange.costoTarjetaUSD : inRange.costoUSD * (1 + pct / 100);
+  }
+
   const last = tiers[tiers.length - 1];
   const extraKg = Math.ceil(pesoKg - last.maxKg);
-  return last.costoUSD + extraKg * extraPerKgUSD;
+  if (!useTarjeta) return last.costoUSD + extraKg * extraPerKgUSD;
+
+  const baseTarjeta = last.costoTarjetaUSD != null ? last.costoTarjetaUSD : last.costoUSD * (1 + pct / 100);
+  const extraTarjeta = extraPerKgTarjetaUSD != null ? extraPerKgTarjetaUSD : extraPerKgUSD * (1 + pct / 100);
+  return baseTarjeta + extraKg * extraTarjeta;
 }
 
 /* koreaPesoKg: peso de solo los productos que SÍ vienen de Corea (todos,
@@ -552,14 +594,16 @@ function shippingEstimate(pesoKg, cp, koreaPesoKg = pesoKg) {
   const coreaMXN = coreaUSD * (shippingSettings.exchangeRate || 0);
   const totalMXN = coreaMXN + (nacionalMXN || 0);
 
-  // Precio de envío de referencia al pagar con tarjeta (Mercado Pago),
-  // con el mismo % de "Descuento por transferencia" que usan los
-  // productos -- el envío también se cobra a través de la terminal, así
-  // que le aplica la misma diferencia entre ambos métodos de pago.
-  const tarjetaPct = shippingSettings.transferDiscountPct || 0;
-  const coreaMXNTarjeta = coreaMXN * (1 + tarjetaPct / 100);
-  const nacionalMXNTarjeta = (nacionalMXN || 0) * (1 + tarjetaPct / 100);
-  const totalMXNTarjeta = totalMXN * (1 + tarjetaPct / 100);
+  // Precio de envío de referencia al pagar con tarjeta (Mercado Pago):
+  // usa la columna "Costo Tarjeta" de tus tablas de tarifas si la
+  // agregaste (ver README sección 1.1), y si no, cae al mismo % de
+  // "Descuento por transferencia" que usan los productos -- el envío
+  // también se cobra a través de la terminal, así que le aplica la misma
+  // diferencia entre ambos métodos de pago.
+  const nacionalMXNTarjeta = hasNacional ? nacionalShippingMXN(cp, pesoKg, true) || 0 : 0;
+  const coreaUSDTarjeta = hasKorea ? koreaShippingUSD(koreaPesoKg, true) : 0;
+  const coreaMXNTarjeta = coreaUSDTarjeta * (shippingSettings.exchangeRate || 0);
+  const totalMXNTarjeta = coreaMXNTarjeta + nacionalMXNTarjeta;
 
   return {
     hasKorea, hasNacional, coreaUSD,

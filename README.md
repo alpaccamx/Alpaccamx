@@ -140,6 +140,11 @@ maneja tu proveedor, con dos columnas: `Peso Total de la Unidad` y
   escalón, como hace el paquetero).
 - La última fila, **"Cada 1 kg adicional"**, es el costo por cada kg que
   se pase del último escalón de la tabla (ej. arriba de 10 kg).
+- Opcional: agrega una columna `Costo Tarjeta (USD)` con el costo de este
+  tramo de envío al pagar con Mercado Pago (ver sección 4). Si la dejas
+  vacía o no la agregas, se calcula sola con el % de `Descuento por
+  transferencia` de `Config` (`=ROUND(B2*(1+Config!$B$6/100),2)`, ya
+  incluida en el Excel que te mandé).
 
 **Pestaña "TarifasNacional"** — tabla de envío nacional en México por
 **zona (estado + rango de código postal) y peso**, con cuatro columnas:
@@ -166,6 +171,10 @@ maneja tu proveedor, con dos columnas: `Peso Total de la Unidad` y
   aunque tu tabla original las traiga.
 - Si dos rangos de CP se traslapan en tu tabla, el sitio usa el rango
   más angosto (más específico) de los dos.
+- Opcional: agrega una columna `Costo Estafeta Terrestre Tarjeta (MXN)`
+  con el costo al pagar con Mercado Pago (ver sección 4). Si la dejas
+  vacía o no la agregas, se calcula sola con el % de `Descuento por
+  transferencia` de `Config`, igual que en TarifasCorea.
 
 Pega los links CSV en `app.js`:
 
@@ -371,11 +380,13 @@ Para los productos de la sección "En stock", el equivalente es la columna
 opcional `Precio Tarjeta MXN` en tu hoja de Stock (junto a `Precio MXN`);
 si la dejas vacía, se cobra igual que por transferencia.
 
-Esa misma clave `Descuento por transferencia (%)` de `Config` la vuelve a
-leer el sitio para el costo de envío (`SHIPPING_CONFIG_CSV_URL`, ver
-sección 1.1 — es la misma pestaña `Config`), así que no hay que
-configurar nada aparte: cuando el pedido se paga con Mercado Pago, el
-envío Corea→México y el nacional también se cobran con ese % de más.
+Para el envío pasa lo mismo que con los productos: puedes agregar
+columnas opcionales `Costo Tarjeta (USD)` en `TarifasCorea` y `Costo
+Estafeta Terrestre Tarjeta (MXN)` en `TarifasNacional` (ver sección 1.1)
+con el costo exacto que quieras cobrar por tramo al pagar con Mercado
+Pago. Si no las agregas, el sitio calcula solo ese costo con la misma
+clave `Descuento por transferencia (%)` de `Config` que usan los
+productos — no hay que configurar nada aparte.
 
 Cuando algún producto tiene un `Precio Tarjeta` distinto de su `Precio`,
 el catálogo lo muestra de una vez en la tarjeta del producto ("🏦 Precio
