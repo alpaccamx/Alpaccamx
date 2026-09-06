@@ -34,7 +34,12 @@ const CONFIG = {
   // reemplaza al precio normal del producto (para que puedas fijar tu
   // propio precio de venta inmediata), y a esos productos no se les
   // cobra el envío Corea→México (ya están en México), solo el nacional.
-  // Si se deja el placeholder, no aparece la sección "En stock".
+  // Si un SKU también existe en tu catálogo principal, se crea una
+  // TARJETA APARTE para la entrega inmediata -- el producto normal se
+  // sigue mostrando igual (encargado desde Corea) en Best Seller, marcas,
+  // categorías, búsqueda y el catálogo completo; la versión en stock solo
+  // aparece en la sección "✅ En stock". Si se deja el placeholder, no
+  // aparece esa sección.
   STOCK_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=1208388065&single=true&output=csv",
 
   // Número de WhatsApp con código de país, solo dígitos, sin "+" ni espacios.
@@ -714,34 +719,53 @@ function csvToStockData(text) {
   return map;
 }
 
+/* Sufijo del id que se le da a la tarjeta de "entrega inmediata" cuando el
+   SKU YA existe en el catálogo principal. No se reusa el mismo producto
+   (como se hacía antes) porque eso hacía que, en cuanto tenía stock,
+   apareciera con el sello "En stock" en TODOS lados (Best Seller, marcas,
+   categorías, catálogo completo...) en vez de seguir mostrándose ahí como
+   el producto normal que se puede encargar. Con la tarjeta aparte, el
+   producto original se queda intacto y solo la copia con este sufijo se
+   filtra para que aparezca únicamente en la sección "En stock" (ver los
+   `!p.enStock` en renderBestSellers, showBrandProducts, etc.). */
+const STOCK_CLONE_ID_SUFFIX = "__stock";
+
 function applyStockData() {
-  const matchedSkus = new Set();
-
-  products.forEach((p) => {
-    const entry = stockData.get(p.id);
-    if (entry) {
-      matchedSkus.add(p.id);
-      const vendidas = soldStock.get(p.id) || 0;
-      p.enStock = true;
-      p.stockPiezas = Math.max(0, entry.piezas - vendidas);
-      p.precio = entry.precioMXN || p.precio;
-      p.precioTarjeta = entry.precioTarjetaMXN || p.precio;
-    } else {
-      p.enStock = false;
-      p.stockPiezas = 0;
-    }
-  });
-
-  // SKUs de la hoja de Stock que no existen en el catálogo principal: son
-  // productos nuevos que solo vas a vender en stock, así que se crean
-  // directamente a partir de las columnas opcionales (Nombre, Marca,
-  // Imagen, Descripcion, Categoria, Peso). Si ya se habían agregado en una
-  // carga anterior, no se duplican.
-  const existingIds = new Set(products.map((p) => p.id));
   stockData.forEach((entry, sku) => {
-    if (matchedSkus.has(sku) || existingIds.has(sku)) return;
-    if (!entry.nombre) return; // sin nombre no se puede mostrar el producto
     const vendidas = soldStock.get(sku) || 0;
+    const stockPiezas = Math.max(0, entry.piezas - vendidas);
+
+    const original = products.find((p) => p.id === sku);
+    if (original) {
+      const stockId = `${sku}${STOCK_CLONE_ID_SUFFIX}`;
+      let clone = products.find((p) => p.id === stockId);
+      if (!clone) {
+        // "stockSku" guarda el SKU real (sin el sufijo) para que el pedido
+        // se registre y se descuente del stock con la clave correcta.
+        clone = { ...original, id: stockId, stockSku: sku, destacado: [] };
+        products.push(clone);
+      }
+      clone.enStock = true;
+      clone.stockPiezas = stockPiezas;
+      clone.precio = entry.precioMXN || original.precio;
+      clone.precioTarjeta = entry.precioTarjetaMXN || clone.precio;
+      if (entry.pesoKg) clone.peso = entry.pesoKg;
+      return;
+    }
+
+    // SKU que no existe en el catálogo principal: es un producto que solo
+    // vendes en stock. Si ya se había creado en una carga anterior, se
+    // actualiza in place; si no, se crea desde las columnas opcionales
+    // (Nombre, Marca, Imagen, Descripcion, Categoria, Peso).
+    const existingStockOnly = products.find((p) => p.id === sku && p.enStock);
+    if (existingStockOnly) {
+      existingStockOnly.stockPiezas = stockPiezas;
+      existingStockOnly.precio = entry.precioMXN || existingStockOnly.precio;
+      existingStockOnly.precioTarjeta = entry.precioTarjetaMXN || existingStockOnly.precio;
+      return;
+    }
+
+    if (!entry.nombre) return; // sin nombre no se puede mostrar el producto
     products.push({
       id: sku,
       nombre: entry.nombre,
@@ -757,7 +781,7 @@ function applyStockData() {
       destacado: [],
       tipoPiel: [],
       enStock: true,
-      stockPiezas: Math.max(0, entry.piezas - vendidas),
+      stockPiezas,
     });
   });
 }
@@ -1420,7 +1444,7 @@ function renderAmericanoSection() {
    ====================================================================== */
 function renderBestSellers() {
   const section = document.getElementById("featured-section");
-  const items = groupVariants(products.filter((p) => (p.destacado || []).includes("Best Seller"))).slice(0, 6);
+  const items = groupVariants(products.filter((p) => !p.enStock && (p.destacado || []).includes("Best Seller"))).slice(0, 6);
 
   if (!items.length) {
     section.classList.add("hidden");
@@ -1537,7 +1561,7 @@ function showQuizResult(type) {
   document.getElementById("quiz-result-emoji").textContent = CONFIG.SKIN_TYPE_EMOJI[type] || CONFIG.SKIN_TYPE_DEFAULT_EMOJI;
   document.getElementById("quiz-result-label").textContent = type;
 
-  const items = groupVariants(products.filter((p) => (p.tipoPiel || []).includes(type)));
+  const items = groupVariants(products.filter((p) => !p.enStock && (p.tipoPiel || []).includes(type)));
   const row = document.getElementById("skintype-row");
   const empty = document.getElementById("skintype-empty");
 
@@ -1610,7 +1634,7 @@ function renderBrands(showAll = false) {
 }
 
 function showBrandProducts(marca) {
-  const items = groupVariants(products.filter((p) => p.marca === marca));
+  const items = groupVariants(products.filter((p) => !p.enStock && p.marca === marca));
   const grid = document.getElementById("brand-products-grid");
   const empty = document.getElementById("brand-products-empty");
 
@@ -1652,7 +1676,7 @@ function getCountryOptions() {
 }
 
 function showCountryProducts(pais) {
-  const items = groupVariants(products.filter((p) => brandCountry(p.marca) === pais));
+  const items = groupVariants(products.filter((p) => !p.enStock && brandCountry(p.marca) === pais));
   const grid = document.getElementById("country-products-grid");
   const empty = document.getElementById("country-products-empty");
 
@@ -1673,7 +1697,7 @@ function showCountryProducts(pais) {
 }
 
 function showCategoryProducts(categoria) {
-  const items = groupVariants(products.filter((p) => p.categoria === categoria));
+  const items = groupVariants(products.filter((p) => !p.enStock && p.categoria === categoria));
   const grid = document.getElementById("category-products-grid");
   const empty = document.getElementById("category-products-empty");
 
@@ -1731,9 +1755,10 @@ function renderSearchResults(query) {
   const items = groupVariants(
     products.filter(
       (p) =>
-        normalizeForSearch(p.nombre).includes(q) ||
-        normalizeForSearch(p.marca).includes(q) ||
-        normalizeForSearch(p.categoria).includes(q)
+        !p.enStock &&
+        (normalizeForSearch(p.nombre).includes(q) ||
+          normalizeForSearch(p.marca).includes(q) ||
+          normalizeForSearch(p.categoria).includes(q))
     )
   );
 
@@ -1759,7 +1784,7 @@ function renderSearchResults(query) {
 function openFullCatalog() {
   document.getElementById("search-input").value = "";
 
-  const items = groupVariants(products);
+  const items = groupVariants(products.filter((p) => !p.enStock));
   const grid = document.getElementById("catalog-grid");
   const empty = document.getElementById("catalog-empty");
   if (!items.length) {
@@ -2366,7 +2391,11 @@ function recordWhatsAppOrder() {
 
 function cartItemsForOrder({ useTarjetaPrice = false } = {}) {
   return Object.values(cart).map((it) => ({
-    sku: it.product.id,
+    // "stockSku" es el SKU real de la hoja de Stock (sin el sufijo
+    // "__stock" que se usa solo como id de la tarjeta en el sitio); hace
+    // falta para que el descuento de piezas vendidas afecte la fila
+    // correcta de tu Google Sheet.
+    sku: it.product.stockSku || it.product.id,
     nombre: it.product.presentacion ? `${it.product.nombre} (${it.product.presentacion})` : it.product.nombre,
     qty: it.qty,
     precio: useTarjetaPrice ? (it.product.precioTarjeta ?? it.product.precio) : it.product.precio,
