@@ -338,7 +338,10 @@ lo es):
 - **"💳 Pagar con Mercado Pago"** — pago en línea con tarjeta, al precio de
   una columna nueva y opcional: **"Precio Tarjeta"**, que sirve como precio
   de referencia. La diferencia entre ambos es el descuento que le ofreces
-  al cliente por pagar por transferencia (tú decides cuánto).
+  al cliente por pagar por transferencia (tú decides cuánto). Ese mismo %
+  también se le aplica al costo de envío (Corea→México y nacional) cuando
+  el pedido se paga con Mercado Pago, ya que el envío también se cobra a
+  través de la terminal.
 
 ### Agregar la columna "Precio Tarjeta"
 
@@ -368,11 +371,17 @@ Para los productos de la sección "En stock", el equivalente es la columna
 opcional `Precio Tarjeta MXN` en tu hoja de Stock (junto a `Precio MXN`);
 si la dejas vacía, se cobra igual que por transferencia.
 
+Esa misma clave `Descuento por transferencia (%)` de `Config` la vuelve a
+leer el sitio para el costo de envío (`SHIPPING_CONFIG_CSV_URL`, ver
+sección 1.1 — es la misma pestaña `Config`), así que no hay que
+configurar nada aparte: cuando el pedido se paga con Mercado Pago, el
+envío Corea→México y el nacional también se cobran con ese % de más.
+
 Cuando algún producto tiene un `Precio Tarjeta` distinto de su `Precio`,
 el catálogo lo muestra de una vez en la tarjeta del producto ("🏦 Precio
 por transferencia, con tarjeta: $X") y el carrito muestra cuánto ahorra el
-cliente pagando por transferencia, para que vea ambos precios antes de
-elegir cómo pagar.
+cliente pagando por transferencia (productos + envío juntos), para que
+vea ambos precios antes de elegir cómo pagar.
 
 ### Configurar Mercado Pago
 
