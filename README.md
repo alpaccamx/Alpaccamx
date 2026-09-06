@@ -300,7 +300,6 @@ const CONFIG = {
   BUSINESS_NAME: "Alpacca",
   SHIPPING_MESSAGE: "...",     // barra superior
   MIN_ORDER_MXN: 5200,          // pedido mínimo para poder cotizar, en pesos (monto fijo)
-  MP_SURCHARGE_PCT: 6,          // % de cargo que se agrega SOLO al pagar con Mercado Pago (ver sección 4)
   TICKER_MESSAGES: [...],      // frases de la barra deslizante
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
   HERO_SLIDES: [...],          // slides del banner principal (imagen, o título/subtítulo/botón); cada slide admite "imageMobile" para usar una imagen distinta en celular
@@ -326,18 +325,50 @@ de datos.
 
 ## 4. Pagos con Mercado Pago y panel de pedidos (opcional)
 
-El carrito tiene dos formas de cerrar un pedido:
+El carrito tiene dos formas de cerrar un pedido, cada una a su propio
+precio **ya anunciado de antemano en el catálogo** (no se le suma nada al
+cliente en el momento de pagar — en México sumar un cargo por pagar con
+tarjeta en el momento del cobro no es legal; publicar dos precios fijos y
+distintos por adelantado sí lo es):
 
-- **"Enviar cotización por WhatsApp"** — pensado para pago por
-  transferencia, al precio normal de catálogo (ese precio ya es el precio
-  "de transferencia", sin ningún cargo).
-- **"💳 Pagar con Mercado Pago"** — el cliente paga en línea con tarjeta.
-  Como Mercado Pago le cobra una comisión al negocio por procesar el pago,
-  el sitio le agrega automáticamente un **6% de cargo** solo a este método
-  (ajustable en `CONFIG.MP_SURCHARGE_PCT` en `app.js` **y** en
-  `MP_SURCHARGE_PCT` al inicio de `netlify/functions/create-order.js` —
-  ambos deben coincidir; ponlos en `0` para que Mercado Pago cobre el
-  mismo precio de catálogo).
+- **"Enviar cotización por WhatsApp"** — pago por transferencia, al precio
+  de la columna **"Precio"** de tu Google Sheet (el precio normal de
+  catálogo).
+- **"💳 Pagar con Mercado Pago"** — pago en línea con tarjeta, al precio de
+  una columna nueva y opcional: **"Precio Tarjeta"**. Como Mercado Pago le
+  cobra una comisión al negocio, normalmente aquí pones un precio un poco
+  más alto que el de transferencia (tú decides cuánto).
+
+### Agregar la columna "Precio Tarjeta"
+
+En la pestaña **Productos** de tu Google Sheet, agrega una columna con el
+encabezado exacto `Precio Tarjeta`. Como ya tienes una fórmula en la
+columna `Precio` que calcula el precio a partir de `Precio USD`/`Costo
+MXN` + tu comisión + el arancel (ver sección 1), lo más simple es agregar
+en el `Config` una nueva clave `Comisión tarjeta (%)` (por ejemplo `6`,
+ajústalo al % real que te cobra Mercado Pago) y en `Precio Tarjeta` una
+fórmula que tome el `Precio` ya calculado y le sume ese %:
+
+```
+=CEILING(F2*(1+Config!$B$5/100),1)
+```
+
+(cambia `F2` por la columna donde tengas `Precio` y `Config!$B$5` por la
+celda donde pongas `Comisión tarjeta (%)`, y arrástrala a todas las filas).
+Te mandé un Excel con esta columna y la clave de Config ya agregadas — solo
+cópialas a tu Sheet real.
+
+Si dejas esta columna vacía o no la agregas, Mercado Pago simplemente
+cobra el mismo precio que por transferencia — el sitio no se rompe.
+
+Para los productos de la sección "En stock", el equivalente es la columna
+opcional `Precio Tarjeta MXN` en tu hoja de Stock (junto a `Precio MXN`);
+si la dejas vacía, se cobra igual que por transferencia.
+
+Cuando algún producto tiene un `Precio Tarjeta` distinto de su `Precio`,
+el catálogo lo muestra de una vez en la tarjeta del producto ("💳 Con
+tarjeta: $X") y también junto al botón de Mercado Pago en el carrito, para
+que el cliente vea ambos precios antes de elegir cómo pagar.
 
 ### Configurar Mercado Pago
 
