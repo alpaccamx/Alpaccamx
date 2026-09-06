@@ -49,11 +49,12 @@ const CONFIG = {
   // Pedido mínimo para poder enviar la cotización, en pesos mexicanos (monto fijo).
   MIN_ORDER_MXN: 5700,
 
-  // % de descuento que se ofrece cuando el cliente paga por transferencia
-  // (cotización por WhatsApp) en vez de con tarjeta vía Mercado Pago. Cubre
-  // la comisión que cobra la terminal digital, que ya está incluida en el
-  // precio normal de catálogo. Ponlo en 0 para desactivar el descuento.
-  TRANSFER_DISCOUNT_PCT: 6,
+  // % de cargo que se agrega SOLO al pagar con tarjeta vía Mercado Pago
+  // (el precio normal de catálogo es el precio de transferencia, sin
+  // cargo). Cubre la comisión que cobra la terminal digital. Ponlo en 0
+  // para que Mercado Pago cobre el mismo precio de catálogo. Debe
+  // coincidir con MP_SURCHARGE_PCT en netlify/functions/create-order.js.
+  MP_SURCHARGE_PCT: 6,
 
   // Mensajes que se muestran en la barra deslizante debajo del banner.
   TICKER_MESSAGES: [
@@ -2084,14 +2085,15 @@ function renderCart() {
   sendBtn.disabled = items.length === 0 || belowMin;
   if (payBtn) payBtn.disabled = items.length === 0 || belowMin;
 
-  const discountNote = document.getElementById("cart-transfer-discount-note");
-  const discountPct = CONFIG.TRANSFER_DISCOUNT_PCT || 0;
-  if (discountNote) {
-    if (items.length && discountPct > 0) {
-      discountNote.textContent = `💸 Pagando por transferencia (WhatsApp) obtienes ${discountPct}% de descuento: -${formatPrice(total * (discountPct / 100))}`;
-      discountNote.classList.remove("hidden");
+  const surchargeNote = document.getElementById("cart-mp-surcharge-note");
+  const surchargePct = CONFIG.MP_SURCHARGE_PCT || 0;
+  if (surchargeNote) {
+    if (items.length && surchargePct > 0) {
+      const surcharge = total * (surchargePct / 100);
+      surchargeNote.textContent = `💳 Pagando con Mercado Pago se aplica ${surchargePct}% por el cargo de la terminal digital: +${formatPrice(surcharge)} (total con MP: ${formatPrice(total + surcharge)})`;
+      surchargeNote.classList.remove("hidden");
     } else {
-      discountNote.classList.add("hidden");
+      surchargeNote.classList.add("hidden");
     }
   }
 
@@ -2160,29 +2162,18 @@ function buildWhatsAppMessage() {
     return `${i + 1}. ${marca}${nombre} x${it.qty} — ${formatPrice(it.product.precio * it.qty)}`;
   });
 
-  const subtotal = cartTotal();
-  const discountPct = CONFIG.TRANSFER_DISCOUNT_PCT || 0;
-  const discount = subtotal * (discountPct / 100);
-  const subtotalConDescuento = subtotal - discount;
-
   const weight = cartWeight();
   const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
-  const grandTotal = subtotalConDescuento + (shipping ? shipping.totalMXN : 0);
+  const grandTotal = cartTotal() + (shipping ? shipping.totalMXN : 0);
 
   const parts = [
     `Hola ${CONFIG.BUSINESS_NAME}! Quiero cotizar lo siguiente (pago por transferencia):`,
     "",
     ...lines,
     "",
-    `Subtotal productos: ${formatPrice(subtotal)}`,
+    `Subtotal productos: ${formatPrice(cartTotal())}`,
+    `📦 Peso total estimado: ${formatWeight(weight)}`,
   ];
-
-  if (discountPct > 0) {
-    parts.push(`💸 Descuento por transferencia (${discountPct}%): -${formatPrice(discount)}`);
-    parts.push(`Subtotal con descuento: ${formatPrice(subtotalConDescuento)}`);
-  }
-
-  parts.push(`📦 Peso total estimado: ${formatWeight(weight)}`);
 
   if (shipping) {
     parts.push(`🚚 Envío estimado (referencia, sujeto a confirmación): ${formatPrice(shipping.totalMXN)}`);
@@ -2253,8 +2244,6 @@ function recordWhatsAppOrder() {
     const notes = document.getElementById("customer-notes").value.trim();
     const items = cartItemsForOrder();
     const subtotal = cartTotal();
-    const discountPct = CONFIG.TRANSFER_DISCOUNT_PCT || 0;
-    const discount = subtotal * (discountPct / 100);
     const weight = cartWeight();
     const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
     const shippingMXN = shipping ? shipping.totalMXN : 0;
@@ -2267,9 +2256,8 @@ function recordWhatsAppOrder() {
         customer: { name, phone, cp, notes },
         items,
         subtotal,
-        discount,
         shippingMXN,
-        grandTotal: subtotal - discount + shippingMXN,
+        grandTotal: subtotal + shippingMXN,
       }),
     }).catch((err) => console.warn("No se pudo registrar el pedido para /admin.html:", err));
   } catch (err) {

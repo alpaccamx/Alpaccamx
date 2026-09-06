@@ -300,7 +300,7 @@ const CONFIG = {
   BUSINESS_NAME: "Alpacca",
   SHIPPING_MESSAGE: "...",     // barra superior
   MIN_ORDER_MXN: 5200,          // pedido mínimo para poder cotizar, en pesos (monto fijo)
-  TRANSFER_DISCOUNT_PCT: 6,     // % de descuento al pagar por transferencia en vez de Mercado Pago (ver sección 4)
+  MP_SURCHARGE_PCT: 6,          // % de cargo que se agrega SOLO al pagar con Mercado Pago (ver sección 4)
   TICKER_MESSAGES: [...],      // frases de la barra deslizante
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
   HERO_SLIDES: [...],          // slides del banner principal (imagen, o título/subtítulo/botón); cada slide admite "imageMobile" para usar una imagen distinta en celular
@@ -328,13 +328,16 @@ de datos.
 
 El carrito tiene dos formas de cerrar un pedido:
 
-- **"💳 Pagar con Mercado Pago"** — el cliente paga en línea con tarjeta al
-  precio normal de catálogo.
 - **"Enviar cotización por WhatsApp"** — pensado para pago por
-  transferencia. Como evita la comisión de la terminal digital, el sitio
-  le ofrece automáticamente un **6% de descuento** (ajustable en
-  `CONFIG.TRANSFER_DISCOUNT_PCT` en `app.js`; ponlo en `0` para
-  desactivarlo).
+  transferencia, al precio normal de catálogo (ese precio ya es el precio
+  "de transferencia", sin ningún cargo).
+- **"💳 Pagar con Mercado Pago"** — el cliente paga en línea con tarjeta.
+  Como Mercado Pago le cobra una comisión al negocio por procesar el pago,
+  el sitio le agrega automáticamente un **6% de cargo** solo a este método
+  (ajustable en `CONFIG.MP_SURCHARGE_PCT` en `app.js` **y** en
+  `MP_SURCHARGE_PCT` al inicio de `netlify/functions/create-order.js` —
+  ambos deben coincidir; ponlos en `0` para que Mercado Pago cobre el
+  mismo precio de catálogo).
 
 ### Configurar Mercado Pago
 
@@ -355,10 +358,9 @@ muestra al cliente un aviso de que el pago en línea no está listo todavía
 
 ### Cómo se evita sobrevender el stock
 
-El pedido mínimo (`CONFIG.MIN_ORDER_MXN`) y el descuento por transferencia
-funcionan como antes; lo nuevo es que las **piezas disponibles de la
-sección "En stock"** ahora se descuentan solas cuando un pedido se
-confirma como pagado:
+El pedido mínimo (`CONFIG.MIN_ORDER_MXN`) funciona como antes; lo nuevo es
+que las **piezas disponibles de la sección "En stock"** ahora se
+descuentan solas cuando un pedido se confirma como pagado:
 
 - Con Mercado Pago, esto pasa automáticamente: cuando el pago queda
   aprobado, un webhook (`netlify/functions/mp-webhook.js`) resta las
