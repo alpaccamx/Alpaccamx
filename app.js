@@ -1110,7 +1110,7 @@ function productCardHTML(p, { rank } = {}) {
             <span data-card-unit>${boxUnitPriceHTML(p)}</span>
             ${
               p.precioTarjeta && p.precioTarjeta > p.precio + 0.5
-                ? `<span class="block text-[10px] text-ink/40">💳 Con tarjeta: ${formatPrice(p.precioTarjeta)}</span>`
+                ? `<span class="block text-[10px] text-ink/40">🏦 Precio por transferencia (con tarjeta: ${formatPrice(p.precioTarjeta)})</span>`
                 : ""
             }
           </div>
@@ -2112,14 +2112,14 @@ function renderCart() {
   sendBtn.disabled = items.length === 0 || belowMin;
   if (payBtn) payBtn.disabled = items.length === 0 || belowMin;
 
-  const surchargeNote = document.getElementById("cart-mp-surcharge-note");
-  if (surchargeNote) {
+  const transferNote = document.getElementById("cart-mp-surcharge-note");
+  if (transferNote) {
     const tarjetaTotal = cartTotalTarjeta();
     if (items.length && tarjetaTotal > total + 0.5) {
-      surchargeNote.textContent = `💳 Precio pagando con tarjeta (Mercado Pago): ${formatPrice(tarjetaTotal)}`;
-      surchargeNote.classList.remove("hidden");
+      transferNote.textContent = `🏦 Pagando por transferencia (WhatsApp) ahorras ${formatPrice(tarjetaTotal - total)} (precio con tarjeta: ${formatPrice(tarjetaTotal)})`;
+      transferNote.classList.remove("hidden");
     } else {
-      surchargeNote.classList.add("hidden");
+      transferNote.classList.add("hidden");
     }
   }
 

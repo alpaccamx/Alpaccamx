@@ -328,16 +328,17 @@ de datos.
 El carrito tiene dos formas de cerrar un pedido, cada una a su propio
 precio **ya anunciado de antemano en el catálogo** (no se le suma nada al
 cliente en el momento de pagar — en México sumar un cargo por pagar con
-tarjeta en el momento del cobro no es legal; publicar dos precios fijos y
-distintos por adelantado sí lo es):
+tarjeta en el momento del cobro no es legal; ofrecer un descuento por
+pagar por transferencia, publicando los dos precios fijos de antemano, sí
+lo es):
 
-- **"Enviar cotización por WhatsApp"** — pago por transferencia, al precio
-  de la columna **"Precio"** de tu Google Sheet (el precio normal de
-  catálogo).
+- **"Enviar cotización por WhatsApp"** — pago por transferencia, **con
+  descuento**: al precio de la columna **"Precio"** de tu Google Sheet (el
+  precio normal de catálogo).
 - **"💳 Pagar con Mercado Pago"** — pago en línea con tarjeta, al precio de
-  una columna nueva y opcional: **"Precio Tarjeta"**. Como Mercado Pago le
-  cobra una comisión al negocio, normalmente aquí pones un precio un poco
-  más alto que el de transferencia (tú decides cuánto).
+  una columna nueva y opcional: **"Precio Tarjeta"**, que sirve como precio
+  de referencia. La diferencia entre ambos es el descuento que le ofreces
+  al cliente por pagar por transferencia (tú decides cuánto).
 
 ### Agregar la columna "Precio Tarjeta"
 
@@ -345,18 +346,20 @@ En la pestaña **Productos** de tu Google Sheet, agrega una columna con el
 encabezado exacto `Precio Tarjeta`. Como ya tienes una fórmula en la
 columna `Precio` que calcula el precio a partir de `Precio USD`/`Costo
 MXN` + tu comisión + el arancel (ver sección 1), lo más simple es agregar
-en el `Config` una nueva clave `Comisión tarjeta (%)` (por ejemplo `6`,
-ajústalo al % real que te cobra Mercado Pago) y en `Precio Tarjeta` una
+en el `Config` una nueva clave `Descuento por transferencia (%)` (por
+ejemplo `6`, ajústalo al % que quieras ofrecer) y en `Precio Tarjeta` una
 fórmula que tome el `Precio` ya calculado y le sume ese %:
 
 ```
-=CEILING(F2*(1+Config!$B$5/100),1)
+=CEILING(F2*(1+Config!$B$6/100),1)
 ```
 
-(cambia `F2` por la columna donde tengas `Precio` y `Config!$B$5` por la
-celda donde pongas `Comisión tarjeta (%)`, y arrástrala a todas las filas).
-Te mandé un Excel con esta columna y la clave de Config ya agregadas — solo
-cópialas a tu Sheet real.
+(cambia `F2` por la columna donde tengas `Precio` y `Config!$B$6` por la
+celda donde pongas `Descuento por transferencia (%)` — usa `B6`, no `B5`,
+porque esa fila ya está reservada para la comisión de Cosmético Americano,
+ver sección 1.2 — y arrástrala a todas las filas). Te mandé un Excel con
+esta columna y la clave de Config ya agregadas — solo cópialas a tu Sheet
+real.
 
 Si dejas esta columna vacía o no la agregas, Mercado Pago simplemente
 cobra el mismo precio que por transferencia — el sitio no se rompe.
@@ -366,9 +369,10 @@ opcional `Precio Tarjeta MXN` en tu hoja de Stock (junto a `Precio MXN`);
 si la dejas vacía, se cobra igual que por transferencia.
 
 Cuando algún producto tiene un `Precio Tarjeta` distinto de su `Precio`,
-el catálogo lo muestra de una vez en la tarjeta del producto ("💳 Con
-tarjeta: $X") y también junto al botón de Mercado Pago en el carrito, para
-que el cliente vea ambos precios antes de elegir cómo pagar.
+el catálogo lo muestra de una vez en la tarjeta del producto ("🏦 Precio
+por transferencia, con tarjeta: $X") y el carrito muestra cuánto ahorra el
+cliente pagando por transferencia, para que vea ambos precios antes de
+elegir cómo pagar.
 
 ### Configurar Mercado Pago
 
