@@ -49,12 +49,12 @@ const CONFIG = {
   // Pedido mínimo para poder enviar la cotización, en pesos mexicanos (monto fijo).
   MIN_ORDER_MXN: 5700,
 
-  // % de cargo que se agrega SOLO al pagar con tarjeta vía Mercado Pago
-  // (el precio normal de catálogo es el precio de transferencia, sin
-  // cargo). Cubre la comisión que cobra la terminal digital. Ponlo en 0
-  // para que Mercado Pago cobre el mismo precio de catálogo. Debe
-  // coincidir con MP_SURCHARGE_PCT en netlify/functions/create-order.js.
-  MP_SURCHARGE_PCT: 6,
+  // El precio para pagar con tarjeta (Mercado Pago) se lee directo de la
+  // columna opcional "Precio Tarjeta" de tu Google Sheet (ver README
+  // sección 4) -- son dos precios fijos y ya anunciados de antemano, en
+  // vez de un cargo que el sitio calcule y le sume al cliente en el
+  // momento de pagar. Si no agregas esa columna, se cobra igual que por
+  // transferencia.
 
   // Mensajes que se muestran en la barra deslizante debajo del banner.
   TICKER_MESSAGES: [
@@ -324,6 +324,7 @@ function csvToProducts(text) {
   const iCategoria = findCol(headers, ["categoria", "categoría", "category"]);
   const iMarca = findCol(headers, ["marca", "brand"]);
   const iPrecio = findCol(headers, ["precio", "price"]);
+  const iPrecioTarjeta = findCol(headers, ["precio tarjeta", "preciotarjeta", "precio con tarjeta", "card price"]);
   const iImagen = findCol(headers, ["imagen", "image", "foto", "imagen url"]);
   const iDescripcion = findCol(headers, ["descripcion", "descripción", "description"]);
   const iSku = findCol(headers, ["sku", "codigo", "código"]);
@@ -343,14 +344,18 @@ function csvToProducts(text) {
           ? true
           : ["si", "sí", "yes", "true", "1", "disponible"].includes(disponibleRaw);
       const precioRaw = get(iPrecio).replace(/[^0-9.,]/g, "").replace(",", ".");
+      const precioTarjetaRaw = get(iPrecioTarjeta).replace(/[^0-9.,]/g, "").replace(",", ".");
       const pesoRaw = get(iPeso).replace(/[^0-9.,]/g, "").replace(",", ".");
       const splitTags = (value) => value.split(",").map((s) => s.trim()).filter(Boolean);
+      const precio = parseFloat(precioRaw) || 0;
+      const precioTarjeta = parseFloat(precioTarjetaRaw) || precio;
       return {
         id: get(iSku) || `row${n}`,
         nombre: get(iNombre) || "Producto sin nombre",
         categoria: get(iCategoria) || "General",
         marca: get(iMarca),
-        precio: parseFloat(precioRaw) || 0,
+        precio,
+        precioTarjeta,
         peso: parseFloat(pesoRaw) || 0,
         presentacion: get(iPresentacion),
         imagen: get(iImagen),
@@ -601,6 +606,9 @@ function csvToStockData(text) {
   const iSku = findCol(headers, ["sku", "codigo", "código"]);
   const iPiezas = findCol(headers, ["piezas disponibles", "piezas", "cantidad", "stock"]);
   const iPrecio = findCol(headers, ["precio mxn", "precio", "price"]);
+  // Opcional: precio para pagar con tarjeta vía Mercado Pago. Si se deja
+  // vacío, se cobra lo mismo que por transferencia (Precio MXN).
+  const iPrecioTarjeta = findCol(headers, ["precio tarjeta mxn", "precio tarjeta", "preciotarjeta"]);
   // Columnas opcionales -- solo se necesitan para productos que NO existen
   // todavía en el catálogo principal (para crearlos desde cero aquí mismo).
   const iNombre = findCol(headers, ["nombre", "producto", "name"]);
@@ -617,11 +625,13 @@ function csvToStockData(text) {
     const get = (i) => (i >= 0 && r[i] != null ? r[i].trim() : "");
     const piezas = parseInt(get(iPiezas).replace(/[^0-9]/g, ""), 10) || 0;
     const precioMXN = parseFloat(get(iPrecio).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
+    const precioTarjetaMXN = parseFloat(get(iPrecioTarjeta).replace(/[^0-9.,]/g, "").replace(",", ".")) || precioMXN;
     const pesoKg = parseFloat(get(iPeso).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
     if (piezas > 0) {
       map.set(sku, {
         piezas,
         precioMXN,
+        precioTarjetaMXN,
         nombre: get(iNombre),
         marca: get(iMarca),
         imagen: get(iImagen),
@@ -645,6 +655,7 @@ function applyStockData() {
       p.enStock = true;
       p.stockPiezas = Math.max(0, entry.piezas - vendidas);
       p.precio = entry.precioMXN || p.precio;
+      p.precioTarjeta = entry.precioTarjetaMXN || p.precio;
     } else {
       p.enStock = false;
       p.stockPiezas = 0;
@@ -667,6 +678,7 @@ function applyStockData() {
       categoria: entry.categoria || "General",
       marca: entry.marca || "",
       precio: entry.precioMXN,
+      precioTarjeta: entry.precioTarjetaMXN || entry.precioMXN,
       peso: entry.pesoKg,
       presentacion: "",
       imagen: entry.imagen,
@@ -1096,6 +1108,11 @@ function productCardHTML(p, { rank } = {}) {
           <div class="leading-tight">
             <span data-card-price class="font-display text-ink block">${formatPrice(p.precio)}</span>
             <span data-card-unit>${boxUnitPriceHTML(p)}</span>
+            ${
+              p.precioTarjeta && p.precioTarjeta > p.precio + 0.5
+                ? `<span class="block text-[10px] text-ink/40">💳 Con tarjeta: ${formatPrice(p.precioTarjeta)}</span>`
+                : ""
+            }
           </div>
           <button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
             class="rounded-full bg-rose text-cream text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
@@ -1978,6 +1995,16 @@ function cartTotal() {
   return Object.values(cart).reduce((sum, it) => sum + it.product.precio * it.qty, 0);
 }
 
+/* Total del carrito si se paga con tarjeta vía Mercado Pago -- usa el
+   precio de la columna "Precio Tarjeta" de cada producto (o el precio
+   normal si esa columna no está configurada para ese producto). */
+function cartTotalTarjeta() {
+  return Object.values(cart).reduce(
+    (sum, it) => sum + (it.product.precioTarjeta ?? it.product.precio) * it.qty,
+    0
+  );
+}
+
 function cartCount() {
   return Object.values(cart).reduce((sum, it) => sum + it.qty, 0);
 }
@@ -2086,11 +2113,10 @@ function renderCart() {
   if (payBtn) payBtn.disabled = items.length === 0 || belowMin;
 
   const surchargeNote = document.getElementById("cart-mp-surcharge-note");
-  const surchargePct = CONFIG.MP_SURCHARGE_PCT || 0;
   if (surchargeNote) {
-    if (items.length && surchargePct > 0) {
-      const surcharge = total * (surchargePct / 100);
-      surchargeNote.textContent = `💳 Pagando con Mercado Pago se aplica ${surchargePct}% por el cargo de la terminal digital: +${formatPrice(surcharge)} (total con MP: ${formatPrice(total + surcharge)})`;
+    const tarjetaTotal = cartTotalTarjeta();
+    if (items.length && tarjetaTotal > total + 0.5) {
+      surchargeNote.textContent = `💳 Precio pagando con tarjeta (Mercado Pago): ${formatPrice(tarjetaTotal)}`;
       surchargeNote.classList.remove("hidden");
     } else {
       surchargeNote.classList.add("hidden");
@@ -2265,12 +2291,12 @@ function recordWhatsAppOrder() {
   }
 }
 
-function cartItemsForOrder() {
+function cartItemsForOrder({ useTarjetaPrice = false } = {}) {
   return Object.values(cart).map((it) => ({
     sku: it.product.id,
     nombre: it.product.presentacion ? `${it.product.nombre} (${it.product.presentacion})` : it.product.nombre,
     qty: it.qty,
-    precio: it.product.precio,
+    precio: useTarjetaPrice ? (it.product.precioTarjeta ?? it.product.precio) : it.product.precio,
     enStock: !!it.product.enStock,
   }));
 }
@@ -2305,7 +2331,7 @@ async function payWithMercadoPago() {
     const weight = cartWeight();
     const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
     const shippingMXN = shipping ? shipping.totalMXN : 0;
-    const subtotal = cartTotal();
+    const subtotal = cartTotalTarjeta();
 
     const res = await fetch("/.netlify/functions/create-order", {
       method: "POST",
@@ -2313,7 +2339,7 @@ async function payWithMercadoPago() {
       body: JSON.stringify({
         source: "mercadopago",
         customer: { name, phone, cp, notes },
-        items: cartItemsForOrder(),
+        items: cartItemsForOrder({ useTarjetaPrice: true }),
         subtotal,
         shippingMXN,
         grandTotal: subtotal + shippingMXN,
