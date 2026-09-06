@@ -151,6 +151,9 @@
         .map((it) => `<li>${escapeHtml(it.nombre)} x${it.qty}${it.enStock ? " · en stock" : ""} — ${formatPrice(it.precio * it.qty)}</li>`)
         .join("");
       const fecha = o.createdAt ? new Date(o.createdAt).toLocaleString("es-MX") : "";
+      const surchargeNote = o.mpSurchargePct
+        ? `<div style="font-size:11px;color:#999;">(precios de la lista sin el ${o.mpSurchargePct}% de cargo de Mercado Pago; el total ya lo incluye)</div>`
+        : "";
       return `
         <div class="order-card">
           <div class="top">
@@ -158,6 +161,7 @@
             <span style="font-size:12px;color:#999;">${fecha}</span>
           </div>
           <ul>${items}</ul>
+          ${surchargeNote}
           <div class="total">Total: ${formatPrice(o.grandTotal)}</div>
           <div class="customer">
             ${escapeHtml(o.customer?.name || "(sin nombre)")}

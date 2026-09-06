@@ -4,12 +4,17 @@
 //   {
 //     source: "whatsapp" | "mercadopago",
 //     customer: { name, phone, cp, notes },
-//     items: [{ sku, nombre, qty, precio, enStock }],
-//     subtotal, discount, shippingMXN, grandTotal
+//     items: [{ sku, nombre, qty, precio, enStock }],  <- precio de catálogo (precio de transferencia, SIN cargo)
+//     subtotal, shippingMXN, grandTotal
 //   }
 //
-// Para "mercadopago" además crea una preferencia de pago (Checkout Pro) y
-// regresa la URL a la que hay que redirigir al cliente.
+// Para "mercadopago" además crea una preferencia de pago (Checkout Pro):
+// como el precio de catálogo es el precio "de transferencia" (sin cargo
+// de terminal), aquí se le agrega el % de MP_SURCHARGE_PCT antes de
+// mandarlo a cobrar. El pedido guardado en Blobs conserva el precio base
+// de catálogo en "items" (para no afectar el descuento de stock ni los
+// reportes), y guarda por separado mpSurchargePct + el grandTotal real
+// que se le cobró al cliente.
 //
 // Variable de entorno necesaria para Mercado Pago (Netlify → Site
 // settings → Environment variables): MP_ACCESS_TOKEN
@@ -18,6 +23,13 @@ const { randomUUID } = require("crypto");
 const { saveNewOrder, transitionOrder } = require("./lib/blob-store.js");
 
 const MP_API = "https://api.mercadopago.com";
+
+// Debe coincidir con CONFIG.MP_SURCHARGE_PCT en app.js.
+const MP_SURCHARGE_PCT = 6;
+
+function roundMXN(n) {
+  return Math.round(n * 100) / 100;
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -31,7 +43,7 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "JSON inválido." });
   }
 
-  const { source, customer, items, subtotal, discount, shippingMXN, grandTotal } = body;
+  const { source, customer, items, subtotal, shippingMXN, grandTotal } = body;
 
   if (source !== "whatsapp" && source !== "mercadopago") {
     return jsonResponse(400, { error: "source debe ser 'whatsapp' o 'mercadopago'." });
@@ -67,10 +79,20 @@ exports.handler = async (event) => {
     },
     items: cleanItems,
     subtotal: Number(subtotal) || 0,
-    discount: Number(discount) || 0,
     shippingMXN: Number(shippingMXN) || 0,
     grandTotal: Number(grandTotal) || 0,
   };
+
+  if (source === "mercadopago") {
+    // El precio de catálogo (items[].precio) es el precio de transferencia,
+    // sin cargo de terminal: para Mercado Pago hay que sumarle el %.
+    order.mpSurchargePct = MP_SURCHARGE_PCT;
+    const subtotalConCargo = cleanItems.reduce(
+      (sum, it) => sum + roundMXN(it.precio * (1 + MP_SURCHARGE_PCT / 100)) * it.qty,
+      0
+    );
+    order.grandTotal = roundMXN(subtotalConCargo + order.shippingMXN);
+  }
 
   try {
     await saveNewOrder(order);
@@ -94,7 +116,7 @@ exports.handler = async (event) => {
   const mpItems = cleanItems.map((it) => ({
     title: it.nombre.slice(0, 250),
     quantity: it.qty,
-    unit_price: it.precio,
+    unit_price: roundMXN(it.precio * (1 + MP_SURCHARGE_PCT / 100)),
     currency_id: "MXN",
   }));
   if (order.shippingMXN > 0) {
