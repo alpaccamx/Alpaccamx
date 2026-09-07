@@ -143,9 +143,9 @@ maneja tu proveedor, con dos columnas: `Peso Total de la Unidad` y
 - Opcional: agrega una columna `Costo Tarjeta (USD)` con el costo de este
   tramo de envío al pagar con Mercado Pago (ver sección 4). Si la dejas
   vacía o no la agregas, se calcula sola con el % de `Descuento por
-  transferencia` de `Config`, redondeado siempre hacia arriba
-  (`=CEILING(B2*(1+Config!$B$6/100),0.01)`, ya incluida en el Excel que te
-  mandé).
+  transferencia` de `Config`, redondeado siempre hacia arriba al **dólar
+  entero** (`=CEILING(B2*(1+Config!$B$6/100),1)`, ya incluida en el Excel
+  que te mandé).
 
 **Pestaña "TarifasNacional"** — tabla de envío nacional en México por
 **zona (estado + rango de código postal) y peso**, con cuatro columnas:
