@@ -516,6 +516,14 @@ function csvToNacionalRates(text) {
   return rates;
 }
 
+/* Redondea SIEMPRE hacia arriba al múltiplo de "step" más cercano (igual
+   que CEILING en Google Sheets), para que el precio con tarjeta calculado
+   en automático (cuando no llenaste la columna "Costo Tarjeta") nunca
+   quede por debajo de lo que realmente cuesta cubrir la comisión. */
+function ceilTo(value, step) {
+  return Math.ceil(value / step) * step;
+}
+
 function nacionalShippingMXN(cp, pesoKg, useTarjeta = false) {
   const cpNum = parseInt((cp || "").trim(), 10);
   if (isNaN(cpNum) || pesoKg <= 0 || !shippingNacionalRates.length) return null;
@@ -534,7 +542,7 @@ function nacionalShippingMXN(cp, pesoKg, useTarjeta = false) {
   if (!useTarjeta) return tier.costoMXN;
   if (tier.costoTarjetaMXN != null) return tier.costoTarjetaMXN;
   const pct = shippingSettings.transferDiscountPct || 0;
-  return tier.costoMXN * (1 + pct / 100);
+  return ceilTo(tier.costoMXN * (1 + pct / 100), 1);
 }
 
 function csvToKoreaShippingTiers(text) {
@@ -581,15 +589,15 @@ function koreaShippingUSD(pesoKg, useTarjeta = false) {
   const inRange = tiers.find((t) => pesoKg <= t.maxKg);
   if (inRange) {
     if (!useTarjeta) return inRange.costoUSD;
-    return inRange.costoTarjetaUSD != null ? inRange.costoTarjetaUSD : inRange.costoUSD * (1 + pct / 100);
+    return inRange.costoTarjetaUSD != null ? inRange.costoTarjetaUSD : ceilTo(inRange.costoUSD * (1 + pct / 100), 0.01);
   }
 
   const last = tiers[tiers.length - 1];
   const extraKg = Math.ceil(pesoKg - last.maxKg);
   if (!useTarjeta) return last.costoUSD + extraKg * extraPerKgUSD;
 
-  const baseTarjeta = last.costoTarjetaUSD != null ? last.costoTarjetaUSD : last.costoUSD * (1 + pct / 100);
-  const extraTarjeta = extraPerKgTarjetaUSD != null ? extraPerKgTarjetaUSD : extraPerKgUSD * (1 + pct / 100);
+  const baseTarjeta = last.costoTarjetaUSD != null ? last.costoTarjetaUSD : ceilTo(last.costoUSD * (1 + pct / 100), 0.01);
+  const extraTarjeta = extraPerKgTarjetaUSD != null ? extraPerKgTarjetaUSD : ceilTo(extraPerKgUSD * (1 + pct / 100), 0.01);
   return baseTarjeta + extraKg * extraTarjeta;
 }
 
