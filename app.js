@@ -1212,7 +1212,7 @@ function productCardHTML(p, { rank } = {}) {
             <span data-card-unit>${boxUnitPriceHTML(p)}</span>
             ${
               p.precioTarjeta && p.precioTarjeta > p.precio + 0.5
-                ? `<span class="block text-[10px] text-ink/40">🏦 Precio por transferencia (con tarjeta: ${formatPrice(p.precioTarjeta)})</span>`
+                ? `<span class="block text-[10px] text-ink/40">🏦 Precio por transferencia (<span class="text-rose font-semibold">con tarjeta: ${formatPrice(p.precioTarjeta)}</span>)</span>`
                 : ""
             }
           </div>
