@@ -589,15 +589,15 @@ function koreaShippingUSD(pesoKg, useTarjeta = false) {
   const inRange = tiers.find((t) => pesoKg <= t.maxKg);
   if (inRange) {
     if (!useTarjeta) return inRange.costoUSD;
-    return inRange.costoTarjetaUSD != null ? inRange.costoTarjetaUSD : ceilTo(inRange.costoUSD * (1 + pct / 100), 0.01);
+    return inRange.costoTarjetaUSD != null ? inRange.costoTarjetaUSD : ceilTo(inRange.costoUSD * (1 + pct / 100), 1);
   }
 
   const last = tiers[tiers.length - 1];
   const extraKg = Math.ceil(pesoKg - last.maxKg);
   if (!useTarjeta) return last.costoUSD + extraKg * extraPerKgUSD;
 
-  const baseTarjeta = last.costoTarjetaUSD != null ? last.costoTarjetaUSD : ceilTo(last.costoUSD * (1 + pct / 100), 0.01);
-  const extraTarjeta = extraPerKgTarjetaUSD != null ? extraPerKgTarjetaUSD : ceilTo(extraPerKgUSD * (1 + pct / 100), 0.01);
+  const baseTarjeta = last.costoTarjetaUSD != null ? last.costoTarjetaUSD : ceilTo(last.costoUSD * (1 + pct / 100), 1);
+  const extraTarjeta = extraPerKgTarjetaUSD != null ? extraPerKgTarjetaUSD : ceilTo(extraPerKgUSD * (1 + pct / 100), 1);
   return baseTarjeta + extraKg * extraTarjeta;
 }
 
