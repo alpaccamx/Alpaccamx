@@ -133,7 +133,7 @@ dónde transferir sin tener que preguntarlo por chat:
 | Titular | Tu nombre o el de tu negocio |
 | CLABE | 012180001234567895 |
 | Cuenta | (opcional, si prefieres dar número de cuenta en vez de CLABE) |
-| Referencia | (opcional, ej. "Usa tu nombre como referencia") |
+| Referencia | (opcional, ej. "Referencia de la transferencia: Tu nombre completo") |
 
 Puedes agregar cualquiera de estas filas (no hace falta llenarlas todas)
 en cualquier lugar de la pestaña "Config", junto a las de arriba — a
