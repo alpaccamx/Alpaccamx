@@ -44,7 +44,7 @@
   .btn-secondary { background: #eee; color: #333; }
   .btn-danger { background: #d9534f; color: #fff; }
   button:disabled { opacity: .5; cursor: not-allowed; }
-  #orders { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  #orders, #history { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
   .order-card {
     background: #fff;
     border-radius: 12px;
@@ -61,16 +61,22 @@
   }
   .badge.whatsapp { background: #dcf8e8; color: #17803d; }
   .badge.mercadopago { background: #dbeeff; color: #0b6bc2; }
+  .badge.status-pending { background: #fff3cd; color: #8a6d00; }
+  .badge.status-paid { background: #dcf8e8; color: #17803d; }
+  .badge.status-cancelled { background: #eee; color: #777; }
+  .badge.status-failed { background: #fde2e1; color: #b03a2e; }
   .order-card ul { margin: 10px 0; padding-left: 18px; font-size: 13px; }
   .order-card .total { font-weight: 700; margin-top: 6px; }
   .order-card .customer { font-size: 13px; color: #555; margin-top: 8px; }
   .order-card .actions { margin-top: 12px; display: flex; gap: 8px; }
   #empty, #status { text-align: center; color: #888; font-size: 14px; margin-top: 30px; }
+  h2.section-title { max-width: 720px; margin: 36px auto 12px; font-size: 16px; color: #444; }
+  #history-empty { text-align: center; color: #888; font-size: 14px; margin-top: 20px; }
 </style>
 </head>
 <body>
-  <h1>Panel de pedidos pendientes</h1>
-  <p class="sub">Pedidos por transferencia (WhatsApp) esperando confirmación de pago, y pagos de Mercado Pago que quedaron a medias.</p>
+  <h1>Panel de pedidos</h1>
+  <p class="sub">Arriba, los pedidos por transferencia (WhatsApp) esperando confirmación de pago (o de Mercado Pago que quedaron a medias). Abajo, el historial completo de todos tus pedidos.</p>
 
   <div class="login-box" id="login-box">
     <input id="admin-key-input" type="password" placeholder="Clave de administrador" />
@@ -86,6 +92,10 @@
   <p id="empty" style="display:none;">No hay pedidos pendientes 🎉</p>
   <div id="orders"></div>
 
+  <h2 class="section-title" id="history-title" style="display:none;">📋 Historial de pedidos</h2>
+  <p id="history-empty" style="display:none;">Todavía no hay pedidos.</p>
+  <div id="history"></div>
+
   <script>
     const KEY_STORAGE = "alpacca_admin_key";
     let adminKey = "";
@@ -95,6 +105,9 @@
     const ordersEl = document.getElementById("orders");
     const statusEl = document.getElementById("status");
     const emptyEl = document.getElementById("empty");
+    const historyEl = document.getElementById("history");
+    const historyTitleEl = document.getElementById("history-title");
+    const historyEmptyEl = document.getElementById("history-empty");
 
     function formatPrice(n) {
       return (n || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
@@ -109,6 +122,8 @@
       setStatus("Cargando...");
       emptyEl.style.display = "none";
       ordersEl.innerHTML = "";
+      historyEmptyEl.style.display = "none";
+      historyEl.innerHTML = "";
       try {
         const res = await fetch("/.netlify/functions/admin-orders", {
           headers: { "x-admin-key": adminKey },
@@ -124,13 +139,15 @@
           return;
         }
         setStatus("");
-        renderOrders(data.orders || []);
+        const allOrders = data.orders || [];
+        renderPending(allOrders.filter((o) => o.status === "pending"));
+        renderHistory(allOrders);
       } catch (err) {
         setStatus("No se pudo conectar con el servidor.");
       }
     }
 
-    function renderOrders(orders) {
+    function renderPending(orders) {
       if (!orders.length) {
         emptyEl.style.display = "block";
         return;
@@ -143,6 +160,48 @@
       ordersEl.querySelectorAll("[data-cancel]").forEach((btn) => {
         btn.addEventListener("click", () => confirmOrCancel(btn.dataset.cancel, "cancel"));
       });
+    }
+
+    function renderHistory(orders) {
+      historyTitleEl.style.display = "block";
+      if (!orders.length) {
+        historyEmptyEl.style.display = "block";
+        return;
+      }
+      historyEl.innerHTML = orders.map((o) => historyCardHTML(o)).join("");
+    }
+
+    const STATUS_LABELS = {
+      pending: "⏳ Pendiente",
+      paid: "✅ Pagado",
+      cancelled: "✕ Cancelado",
+      failed: "⚠️ Falló",
+    };
+
+    function historyCardHTML(o) {
+      const sourceLabel = o.source === "mercadopago" ? "Mercado Pago" : "WhatsApp / transferencia";
+      const statusLabel = STATUS_LABELS[o.status] || o.status;
+      const items = (o.items || [])
+        .map((it) => `<li>${escapeHtml(it.nombre)} x${it.qty}${it.enStock ? " · en stock" : ""} — ${formatPrice(it.precio * it.qty)}</li>`)
+        .join("");
+      const fecha = o.createdAt ? new Date(o.createdAt).toLocaleString("es-MX") : "";
+      return `
+        <div class="order-card">
+          <div class="top">
+            <span>
+              <span class="badge ${o.source}">${sourceLabel}</span>
+              <span class="badge status-${o.status}">${statusLabel}</span>
+            </span>
+            <span style="font-size:12px;color:#999;">${fecha}</span>
+          </div>
+          <ul>${items}</ul>
+          <div class="total">Total: ${formatPrice(o.grandTotal)}</div>
+          <div class="customer">
+            ${escapeHtml(o.customer?.name || "(sin nombre)")}
+            ${o.customer?.phone ? " · " + escapeHtml(o.customer.phone) : ""}
+            ${o.customer?.cp ? " · CP " + escapeHtml(o.customer.cp) : ""}
+          </div>
+        </div>`;
     }
 
     function orderCardHTML(o) {
@@ -214,6 +273,9 @@
       toolbar.style.display = "none";
       ordersEl.innerHTML = "";
       emptyEl.style.display = "none";
+      historyEl.innerHTML = "";
+      historyEmptyEl.style.display = "none";
+      historyTitleEl.style.display = "none";
     }
 
     document.getElementById("login-btn").addEventListener("click", login);

@@ -467,6 +467,68 @@ volumen como mayoreo esto es normalmente suficiente, pero si notas que se
 te juntan varios pedidos sin confirmar al mismo tiempo, confirma o cancela
 seguido para que el conteo se mantenga al día.
 
+### Dónde se guardan tus pedidos
+
+Todos los pedidos (por WhatsApp o por Mercado Pago, sin importar su
+estado) quedan guardados y los puedes consultar en cualquier momento en
+`/admin.html`: arriba, los "Pedidos pendientes" que necesitan tu
+confirmación manual; abajo, el "Historial de pedidos" completo, con
+fecha, artículos, total, datos del cliente y su estado (pendiente,
+pagado, cancelado o fallido).
+
+### Avisos automáticos por WhatsApp
+
+Además de poder consultar `/admin.html` cuando quieras, el sitio te puede
+avisar por WhatsApp en automático cada vez que se confirma un pago (ya
+sea porque el cliente pagó con Mercado Pago, o porque tú confirmaste a
+mano un pedido por transferencia). Esto es opcional — si no configuras
+las variables de abajo, el sitio sigue funcionando igual, simplemente no
+manda el aviso.
+
+Usa la API oficial de WhatsApp Business Cloud (de Meta, la misma empresa
+de WhatsApp e Instagram):
+
+1. Entra a https://business.facebook.com y crea (o usa) una cuenta de
+   **Meta Business Manager**.
+2. Entra a https://developers.facebook.com/apps, crea una app nueva de
+   tipo "Business" y agrégale el producto **WhatsApp**.
+3. En **WhatsApp → Introducción**, Meta te da un número de prueba gratis
+   para empezar (sirve para probar el aviso sin verificar tu propio
+   número todavía). Ahí mismo ves dos datos que necesitas:
+   - El **Phone Number ID** (un número largo, no es el número de teléfono
+     en sí).
+   - Un **token de acceso temporal** (dura 24 horas — solo para probar).
+4. Para que el aviso funcione permanentemente (no cada 24 horas), genera
+   un **token permanente**: en tu app, ve a **WhatsApp → Configuración de
+   la API** o a **Configuración de la app → Usuarios del sistema**, crea
+   un "usuario del sistema" con rol de administrador, asígnale la app y
+   genera un token con el permiso `whatsapp_business_messaging` sin fecha
+   de expiración.
+5. En Netlify: **Site settings → Environment variables**, agrega tres
+   variables:
+   - `WHATSAPP_ACCESS_TOKEN` — el token permanente del paso 4.
+   - `WHATSAPP_PHONE_NUMBER_ID` — el Phone Number ID del paso 3.
+   - `NOTIFY_WHATSAPP_NUMBER` — tu número de WhatsApp (el que va a
+     recibir los avisos), con código de país, solo dígitos y sin "+" (ej.
+     `5216571920559`).
+6. Dispara un nuevo deploy.
+
+**Importante sobre cómo funciona WhatsApp Business API**: Meta solo deja
+mandar mensajes de texto libres a un número si ese número te escribió a
+ti (a tu número de WhatsApp Business) en las últimas 24 horas — es una
+regla de Meta para evitar spam, no algo que este sitio pueda evitar. Como
+`NOTIFY_WHATSAPP_NUMBER` eres tú misma (la dueña del negocio, no el
+cliente), esto significa que para seguir recibiendo avisos sin
+interrupción tienes que mandarle al menos un mensaje cada 24 horas al
+número de WhatsApp Business que registraste en el paso 3 (con que dure la
+conversación abierta basta). Si se te pasan las 24 horas sin escribirle,
+el aviso automático de ese pedido simplemente no llega — pero el pedido
+sigue quedando guardado normal en `/admin.html`, así que nunca pierdes la
+información, solo el aviso instantáneo. Si esto te resulta poco práctico,
+la alternativa (fuera del alcance de esta configuración) es usar
+"plantillas de mensaje" pre-aprobadas por Meta, que sí se pueden mandar
+en cualquier momento.
+
 ## Secciones de la página
 
 Header (logo + buscador + carrito + menú ☰ en móvil) → menú de secciones
