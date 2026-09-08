@@ -110,6 +110,21 @@ async function listOrders({ status } = {}) {
   return orders;
 }
 
+/* Borra un pedido permanentemente (usado en /admin.html para limpiar
+   pedidos cancelados que ya no sirven). Con onlyIfStatus, por seguridad,
+   solo borra si el pedido sigue en ese estado -- así no se puede borrar
+   por error un pedido pendiente o pagado. */
+async function deleteOrder(orderId, { onlyIfStatus } = {}) {
+  const store = getOrdersStore();
+  const order = await store.get(orderId, { type: "json" });
+  if (!order) return { deleted: false, reason: "not_found" };
+  if (onlyIfStatus && order.status !== onlyIfStatus) {
+    return { deleted: false, reason: "wrong_status", order };
+  }
+  await store.delete(orderId);
+  return { deleted: true, order };
+}
+
 module.exports = {
   getSoldMap,
   applyStockDecrement,
@@ -117,4 +132,5 @@ module.exports = {
   getOrder,
   transitionOrder,
   listOrders,
+  deleteOrder,
 };

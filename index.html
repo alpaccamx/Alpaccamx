@@ -470,13 +470,75 @@
           class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
       </div>
       <div>
-        <label for="customer-phone" class="block text-xs font-semibold text-ink/60 mb-1">Tu teléfono (opcional)</label>
-        <input id="customer-phone" type="tel" placeholder="55 1234 5678"
+        <label for="customer-phone" class="block text-xs font-semibold text-ink/60 mb-1">Tu teléfono *</label>
+        <input id="customer-phone" required type="tel" placeholder="55 1234 5678"
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+      </div>
+      <p class="text-xs font-semibold text-ink/70 pt-1">📦 Datos de envío (para tu guía de paquetería)</p>
+      <div>
+        <label for="customer-street" class="block text-xs font-semibold text-ink/60 mb-1">Calle y número *</label>
+        <input id="customer-street" required type="text" placeholder="Ej. Av. Reforma 123"
           class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
       </div>
       <div>
-        <label for="customer-cp" class="block text-xs font-semibold text-ink/60 mb-1">Código postal (para calcular tu envío nacional) *</label>
-        <input id="customer-cp" required type="text" inputmode="numeric" maxlength="5" placeholder="Ej. 06700"
+        <label for="customer-colonia" class="block text-xs font-semibold text-ink/60 mb-1">Colonia *</label>
+        <input id="customer-colonia" required type="text" placeholder="Ej. Roma Norte"
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label for="customer-municipio" class="block text-xs font-semibold text-ink/60 mb-1">Municipio/Alcaldía *</label>
+          <input id="customer-municipio" required type="text" placeholder="Ej. Cuauhtémoc"
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+        </div>
+        <div>
+          <label for="customer-cp" class="block text-xs font-semibold text-ink/60 mb-1">Código postal *</label>
+          <input id="customer-cp" required type="text" inputmode="numeric" maxlength="5" placeholder="Ej. 06700"
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+        </div>
+      </div>
+      <div>
+        <label for="customer-estado" class="block text-xs font-semibold text-ink/60 mb-1">Estado *</label>
+        <select id="customer-estado" required
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush">
+          <option value="" selected disabled>Selecciona tu estado</option>
+          <option>Aguascalientes</option>
+          <option>Baja California</option>
+          <option>Baja California Sur</option>
+          <option>Campeche</option>
+          <option>Chiapas</option>
+          <option>Chihuahua</option>
+          <option>Ciudad de México</option>
+          <option>Coahuila</option>
+          <option>Colima</option>
+          <option>Durango</option>
+          <option>Estado de México</option>
+          <option>Guanajuato</option>
+          <option>Guerrero</option>
+          <option>Hidalgo</option>
+          <option>Jalisco</option>
+          <option>Michoacán</option>
+          <option>Morelos</option>
+          <option>Nayarit</option>
+          <option>Nuevo León</option>
+          <option>Oaxaca</option>
+          <option>Puebla</option>
+          <option>Querétaro</option>
+          <option>Quintana Roo</option>
+          <option>San Luis Potosí</option>
+          <option>Sinaloa</option>
+          <option>Sonora</option>
+          <option>Tabasco</option>
+          <option>Tamaulipas</option>
+          <option>Tlaxcala</option>
+          <option>Veracruz</option>
+          <option>Yucatán</option>
+          <option>Zacatecas</option>
+        </select>
+      </div>
+      <div>
+        <label for="customer-referencias" class="block text-xs font-semibold text-ink/60 mb-1">Referencias (opcional)</label>
+        <input id="customer-referencias" type="text" placeholder="Entre calles, color de fachada, portón..."
           class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
       </div>
       <div>
