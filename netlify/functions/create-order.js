@@ -3,7 +3,7 @@
 // Body esperado (JSON):
 //   {
 //     source: "whatsapp" | "mercadopago",
-//     customer: { name, phone, cp, notes },
+//     customer: { name, phone, cp, street, colonia, municipio, estado, referencias, notes },
 //     items: [{ sku, nombre, qty, precio, enStock }],
 //     subtotal, shippingMXN, grandTotal
 //   }
@@ -70,6 +70,11 @@ exports.handler = async (event) => {
       name: String((customer && customer.name) || ""),
       phone: String((customer && customer.phone) || ""),
       cp: String((customer && customer.cp) || ""),
+      street: String((customer && customer.street) || ""),
+      colonia: String((customer && customer.colonia) || ""),
+      municipio: String((customer && customer.municipio) || ""),
+      estado: String((customer && customer.estado) || ""),
+      referencias: String((customer && customer.referencias) || ""),
       notes: String((customer && customer.notes) || ""),
     },
     items: cleanItems,

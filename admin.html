@@ -298,6 +298,8 @@
       o.customer?.name,
       o.customer?.phone,
       o.customer?.cp,
+      o.customer?.colonia,
+      o.customer?.municipio,
       ...((o.items || []).map((it) => it.nombre)),
     ].filter(Boolean).join(" ").toLowerCase();
     return haystack.includes(query);
@@ -316,6 +318,7 @@
     ordersEl.querySelectorAll("[data-cancel]").forEach((btn) => {
       btn.addEventListener("click", () => confirmOrCancel(btn.dataset.cancel, "cancel"));
     });
+    wireCopyAddressButtons(ordersEl);
   }
 
   function renderHistory(orders) {
@@ -325,6 +328,56 @@
       return;
     }
     historyEl.innerHTML = orders.map((o) => historyCardHTML(o)).join("");
+
+    historyEl.querySelectorAll("[data-delete]").forEach((btn) => {
+      btn.addEventListener("click", () => deleteOrder(btn.dataset.delete));
+    });
+    wireCopyAddressButtons(historyEl);
+  }
+
+  function wireCopyAddressButtons(container) {
+    container.querySelectorAll("[data-copy-address]").forEach((btn) => {
+      btn.addEventListener("click", () => copyAddress(btn.dataset.copyAddress, btn));
+    });
+  }
+
+  function copyAddress(orderId, btn) {
+    const order = allOrders.find((o) => o.id === orderId);
+    if (!order) return;
+    const text = shippingAddressText(order);
+    const showCopied = () => {
+      const original = btn.textContent;
+      btn.textContent = "✅ ¡Copiado!";
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showCopied).catch(() => {
+        setStatus("No se pudo copiar. Cópiala manualmente.");
+      });
+    } else {
+      setStatus("No se pudo copiar. Cópiala manualmente.");
+    }
+  }
+
+  async function deleteOrder(orderId) {
+    if (!window.confirm("¿Borrar este pedido cancelado? No se puede deshacer.")) return;
+    setStatus("Borrando...");
+    try {
+      const res = await fetch("/.netlify/functions/admin-delete-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus(data.error || "Error al borrar el pedido.");
+        return;
+      }
+      setStatus("");
+      fetchOrders();
+    } catch (err) {
+      setStatus("No se pudo conectar con el servidor.");
+    }
   }
 
   const STATUS_LABELS = {
@@ -344,19 +397,42 @@
       .join("");
   }
 
+  /* Texto listo para pegar en el formulario de la paquetería al generar
+     la guía de envío. */
+  function shippingAddressText(o) {
+    const c = o.customer || {};
+    const lines = [c.name, c.phone];
+    if (c.street || c.colonia) lines.push([c.street, c.colonia].filter(Boolean).join(", "));
+    if (c.municipio || c.estado || c.cp) {
+      lines.push([c.municipio, c.estado, c.cp ? `CP ${c.cp}` : ""].filter(Boolean).join(", "));
+    }
+    if (c.referencias) lines.push(`Referencias: ${c.referencias}`);
+    return lines.filter(Boolean).join("\n");
+  }
+
   function customerHTML(o) {
-    const phone = o.customer?.phone;
+    const c = o.customer || {};
+    const hasAddress = c.street || c.colonia || c.municipio || c.estado;
     return `
       <div class="customer">
-        👤 ${escapeHtml(o.customer?.name || "(sin nombre)")}<br/>
-        ${phone ? `📞 <a href="tel:${escapeAttr(phone)}">${escapeHtml(phone)}</a>` : ""}
-        ${o.customer?.cp ? (phone ? " · " : "") + "📍 CP " + escapeHtml(o.customer.cp) : ""}
+        👤 ${escapeHtml(c.name || "(sin nombre)")}<br/>
+        ${c.phone ? `📞 <a href="tel:${escapeAttr(c.phone)}">${escapeHtml(c.phone)}</a><br/>` : ""}
+        ${hasAddress
+          ? `📍 ${escapeHtml([c.street, c.colonia].filter(Boolean).join(", "))}<br/>
+             &nbsp;&nbsp;&nbsp;${escapeHtml([c.municipio, c.estado].filter(Boolean).join(", "))}${c.cp ? ", CP " + escapeHtml(c.cp) : ""}<br/>`
+          : (c.cp ? `📍 CP ${escapeHtml(c.cp)}<br/>` : "")
+        }
+        ${c.referencias ? `📝 Ref: ${escapeHtml(c.referencias)}<br/>` : ""}
+        ${hasAddress ? `<button type="button" class="btn-secondary" data-copy-address="${o.id}" style="margin-top:8px;padding:6px 14px;font-size:12px;">📋 Copiar dirección</button>` : ""}
       </div>`;
   }
 
   function historyCardHTML(o) {
     const statusLabel = STATUS_LABELS[o.status] || o.status;
     const borderColor = STATUS_BORDER_COLORS[o.status] || "#ddd";
+    const deleteBtn = o.status === "cancelled"
+      ? `<div class="actions"><button type="button" class="btn-danger" data-delete="${o.id}">🗑️ Borrar este pedido</button></div>`
+      : "";
     return `
       <div class="order-card" style="border-left-color:${borderColor};">
         <div class="top">
@@ -369,6 +445,7 @@
         <ul>${itemsListHTML(o)}</ul>
         <div class="total">${formatPrice(o.grandTotal)}</div>
         ${customerHTML(o)}
+        ${deleteBtn}
       </div>`;
   }
 
@@ -397,14 +474,19 @@
   }
 
   function ordersToCSV(orders) {
-    const header = ["Fecha", "Origen", "Estado", "Cliente", "Teléfono", "CP", "Productos", "Total"];
+    const header = ["Fecha", "Origen", "Estado", "Cliente", "Teléfono", "Calle y número", "Colonia", "Municipio/Alcaldía", "Estado (Mx)", "CP", "Referencias", "Productos", "Total"];
     const rows = orders.map((o) => [
       o.createdAt ? new Date(o.createdAt).toLocaleString("es-MX") : "",
       o.source === "mercadopago" ? "Tarjeta (Mercado Pago)" : "WhatsApp / transferencia",
       STATUS_LABELS[o.status] || o.status,
       o.customer?.name || "",
       o.customer?.phone || "",
+      o.customer?.street || "",
+      o.customer?.colonia || "",
+      o.customer?.municipio || "",
+      o.customer?.estado || "",
       o.customer?.cp || "",
+      o.customer?.referencias || "",
       (o.items || []).map((it) => `${it.nombre} x${it.qty}`).join("; "),
       o.grandTotal || 0,
     ]);

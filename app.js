@@ -2281,12 +2281,29 @@ function closeCart() {
 /* ======================================================================
    Envío de cotización por WhatsApp
    ====================================================================== */
+/* Lee todos los campos del formulario del carrito principal, incluida la
+   dirección completa que se necesita para generar la guía de paquetería. */
+function getCustomerFields() {
+  return {
+    name: document.getElementById("customer-name").value.trim(),
+    phone: document.getElementById("customer-phone").value.trim(),
+    cp: document.getElementById("customer-cp").value.trim(),
+    street: document.getElementById("customer-street").value.trim(),
+    colonia: document.getElementById("customer-colonia").value.trim(),
+    municipio: document.getElementById("customer-municipio").value.trim(),
+    estado: document.getElementById("customer-estado").value.trim(),
+    referencias: document.getElementById("customer-referencias").value.trim(),
+    notes: document.getElementById("customer-notes").value.trim(),
+  };
+}
+
+function addressLine(c) {
+  return `${c.street}, ${c.colonia}, ${c.municipio}, ${c.estado}, CP ${c.cp}`;
+}
+
 function buildWhatsAppMessage() {
   const items = Object.values(cart);
-  const name = document.getElementById("customer-name").value.trim();
-  const phone = document.getElementById("customer-phone").value.trim();
-  const cp = document.getElementById("customer-cp").value.trim();
-  const notes = document.getElementById("customer-notes").value.trim();
+  const c = getCustomerFields();
 
   const lines = items.map((it, i) => {
     const nombre = it.product.presentacion ? `${it.product.nombre} (${it.product.presentacion})` : it.product.nombre;
@@ -2295,7 +2312,7 @@ function buildWhatsAppMessage() {
   });
 
   const weight = cartWeight();
-  const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
+  const shipping = shippingEstimate(weight, c.cp, cartWeightNonStock());
   const grandTotal = cartTotal() + (shipping ? shipping.totalMXN : 0);
 
   const parts = [
@@ -2313,16 +2330,15 @@ function buildWhatsAppMessage() {
       parts.push(`   • Corea→México: ${formatPrice(shipping.coreaMXN)}`);
     }
     if (shipping.hasNacional) {
-      parts.push(`   • Nacional MX (Estafeta, CP ${cp}): ${formatPrice(shipping.nacionalMXN)}`);
+      parts.push(`   • Nacional MX (Estafeta, CP ${c.cp}): ${formatPrice(shipping.nacionalMXN)}`);
     }
   }
 
   parts.push("", `*Total a pagar: ${formatPrice(grandTotal)}*`);
 
-  parts.push("", `Nombre: ${name}`);
-  if (phone) parts.push(`Teléfono: ${phone}`);
-  if (cp) parts.push(`Código postal: ${cp}`);
-  if (notes) parts.push(`Notas: ${notes}`);
+  parts.push("", `Nombre: ${c.name}`, `Teléfono: ${c.phone}`, `Dirección: ${addressLine(c)}`);
+  if (c.referencias) parts.push(`Referencias: ${c.referencias}`);
+  if (c.notes) parts.push(`Notas: ${c.notes}`);
 
   return parts.join("\n");
 }
@@ -2370,14 +2386,11 @@ function sendQuote(e) {
    grave: el pedido se sigue mandando por WhatsApp igual. */
 function recordWhatsAppOrder() {
   try {
-    const name = document.getElementById("customer-name").value.trim();
-    const phone = document.getElementById("customer-phone").value.trim();
-    const cp = document.getElementById("customer-cp").value.trim();
-    const notes = document.getElementById("customer-notes").value.trim();
+    const c = getCustomerFields();
     const items = cartItemsForOrder();
     const subtotal = cartTotal();
     const weight = cartWeight();
-    const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
+    const shipping = shippingEstimate(weight, c.cp, cartWeightNonStock());
     const shippingMXN = shipping ? shipping.totalMXN : 0;
 
     fetch("/.netlify/functions/create-order", {
@@ -2385,7 +2398,7 @@ function recordWhatsAppOrder() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         source: "whatsapp",
-        customer: { name, phone, cp, notes },
+        customer: c,
         items,
         subtotal,
         shippingMXN,
@@ -2417,12 +2430,10 @@ function cartItemsForOrder({ useTarjetaPrice = false } = {}) {
 async function payWithMercadoPago() {
   if (!Object.keys(cart).length) return;
 
-  const name = document.getElementById("customer-name").value.trim();
-  const cp = document.getElementById("customer-cp").value.trim();
-  if (!name || cp.length !== 5) {
-    setStatus("Completa tu nombre y código postal antes de pagar con Mercado Pago.");
-    return;
-  }
+  const form = document.getElementById("quote-form");
+  if (!form.reportValidity()) return;
+
+  const c = getCustomerFields();
 
   const hasNonStockItems = Object.values(cart).some((it) => !it.product.enStock);
   if (hasNonStockItems && cartTotalNonStock() < minOrderMXN()) {
@@ -2436,10 +2447,8 @@ async function payWithMercadoPago() {
   payBtn.innerHTML = "<span>Redirigiendo…</span>";
 
   try {
-    const phone = document.getElementById("customer-phone").value.trim();
-    const notes = document.getElementById("customer-notes").value.trim();
     const weight = cartWeight();
-    const shipping = shippingEstimate(weight, cp, cartWeightNonStock());
+    const shipping = shippingEstimate(weight, c.cp, cartWeightNonStock());
     const shippingMXN = shipping ? shipping.totalMXNTarjeta : 0;
     const subtotal = cartTotalTarjeta();
 
@@ -2448,7 +2457,7 @@ async function payWithMercadoPago() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         source: "mercadopago",
-        customer: { name, phone, cp, notes },
+        customer: c,
         items: cartItemsForOrder({ useTarjetaPrice: true }),
         subtotal,
         shippingMXN,

@@ -483,6 +483,22 @@ producto), y tiene un botón "⬇️ Descargar en Excel" que descarga los
 pedidos que estés viendo en ese momento (respeta los filtros aplicados)
 como un archivo `.csv` que abre directo en Excel/Google Sheets.
 
+Desde el carrito, el cliente ahora captura su dirección completa (calle y
+número, colonia, municipio/alcaldía, estado y código postal, más
+referencias opcionales) además de su nombre y teléfono — ambos ahora
+obligatorios. Esos datos quedan guardados en cada pedido y se ven
+completos en su tarjeta dentro de `/admin.html`, con un botón
+"📋 Copiar dirección" para pegarla directo en el formulario de tu
+paquetería al generar la guía de envío. La colección de Cosmético
+Americano (si la usas) no se vio afectada — ahí el envío se sigue
+cotizando aparte por WhatsApp, como antes.
+
+Los pedidos **cancelados** que ya no necesitas (para que no se acumulen)
+se pueden borrar de forma permanente con el botón "🗑️ Borrar este
+pedido" que aparece en su tarjeta del historial — por seguridad, esta
+opción solo aparece en pedidos ya cancelados; no se puede borrar un
+pedido pendiente, pagado ni fallido.
+
 ### Avisos automáticos por WhatsApp
 
 Además de poder consultar `/admin.html` cuando quieras, el sitio te puede

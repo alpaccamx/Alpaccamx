@@ -29,7 +29,13 @@ function orderPaidMessage(order) {
     `Cliente: ${order.customer?.name || "(sin nombre)"}`,
   ];
   if (order.customer?.phone) lines.push(`Teléfono: ${order.customer.phone}`);
-  if (order.customer?.cp) lines.push(`Código postal: ${order.customer.cp}`);
+  const direccion = [order.customer?.street, order.customer?.colonia].filter(Boolean).join(", ");
+  const direccion2 = [order.customer?.municipio, order.customer?.estado].filter(Boolean).join(", ");
+  if (direccion || direccion2 || order.customer?.cp) {
+    const cpTxt = order.customer?.cp ? `CP ${order.customer.cp}` : "";
+    lines.push(`Dirección: ${[direccion, direccion2, cpTxt].filter(Boolean).join(", ")}`);
+  }
+  if (order.customer?.referencias) lines.push(`Referencias: ${order.customer.referencias}`);
   if (order.customer?.notes) lines.push(`Notas: ${order.customer.notes}`);
   return lines.join("\n");
 }
