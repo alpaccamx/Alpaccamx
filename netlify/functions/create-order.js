@@ -27,6 +27,7 @@
 
 const { randomUUID } = require("crypto");
 const { saveNewOrder, transitionOrder } = require("./lib/blob-store.js");
+const { notifySellerWhatsApp, orderCreatedMessage } = require("./lib/whatsapp.js");
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -93,6 +94,11 @@ exports.handler = async (event) => {
     console.error("Error guardando el pedido:", err);
     return jsonResponse(500, { error: "No se pudo guardar el pedido." });
   }
+
+  // Aviso inmediato al dueño del negocio de que hay un pedido nuevo, aún
+  // sin confirmar (si WHATSAPP_ACCESS_TOKEN no está configurado, o algo
+  // falla, notifySellerWhatsApp no revienta -- solo no manda nada).
+  await notifySellerWhatsApp(orderCreatedMessage(order));
 
   if (source === "transferencia" || source === "whatsapp") {
     return jsonResponse(200, { orderId: order.id });
