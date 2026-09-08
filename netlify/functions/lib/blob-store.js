@@ -4,6 +4,9 @@
 //   - "stock-sold": un solo documento con el conteo de piezas ya vendidas
 //     por SKU, que el sitio resta de las "Piezas Disponibles" de tu hoja
 //     de Stock para no sobrevender.
+//   - "payment-proofs": el archivo (imagen o PDF) que el cliente sube
+//     desde el carrito como comprobante de una transferencia, uno por
+//     pedido.
 //
 // Netlify Blobs normalmente se configura solo, sin nada que hacer -- pero
 // en este sitio en particular el entorno no le pasa esas credenciales a
@@ -36,6 +39,10 @@ function getOrdersStore() {
 
 function getStockSoldStore() {
   return getStore({ name: "stock-sold", consistency: "strong", ...blobsClientOptions() });
+}
+
+function getPaymentProofsStore() {
+  return getStore({ name: "payment-proofs", consistency: "strong", ...blobsClientOptions() });
 }
 
 const SOLD_MAP_KEY = "sold-map";
@@ -125,6 +132,35 @@ async function deleteOrder(orderId, { onlyIfStatus } = {}) {
   return { deleted: true, order };
 }
 
+/* Igual que transitionOrder pero sin tocar el estado -- para anexarle
+   datos sueltos a un pedido (ej. el comprobante de pago) sin interferir
+   con el flujo de confirmación manual/automática. */
+async function updateOrderFields(orderId, patch) {
+  const store = getOrdersStore();
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const existing = await store.getWithMetadata(orderId, { type: "json" });
+    if (!existing) return null;
+    const updated = { ...existing.data, ...patch };
+    const result = await store.setJSON(orderId, updated, { onlyIfMatch: existing.etag });
+    if (result.modified) return updated;
+  }
+  throw new Error("No se pudo actualizar el pedido (conflicto de concurrencia).");
+}
+
+/* Guarda el comprobante de pago (imagen o PDF) que sube el cliente. Un
+   solo comprobante por pedido -- si vuelve a subir uno, reemplaza al
+   anterior. */
+async function savePaymentProof(orderId, buffer, { contentType, filename }) {
+  const store = getPaymentProofsStore();
+  const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  await store.set(orderId, arrayBuffer, { metadata: { contentType, filename } });
+}
+
+async function getPaymentProof(orderId) {
+  const store = getPaymentProofsStore();
+  return store.getWithMetadata(orderId, { type: "arrayBuffer" });
+}
+
 module.exports = {
   getSoldMap,
   applyStockDecrement,
@@ -133,4 +169,7 @@ module.exports = {
   transitionOrder,
   listOrders,
   deleteOrder,
+  updateOrderFields,
+  savePaymentProof,
+  getPaymentProof,
 };
