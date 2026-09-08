@@ -476,11 +476,12 @@ confirmación manual; abajo, el "Historial de pedidos" completo, con
 fecha, artículos, total, datos del cliente y su estado (pendiente,
 pagado, cancelado o fallido).
 
-El historial se puede filtrar por estado, por rango de fechas y con un
-buscador (por nombre de cliente, teléfono o producto), y tiene un botón
-"⬇️ Exportar CSV" que descarga los pedidos que estés viendo en ese
-momento (respeta los filtros aplicados) como un archivo `.csv` que abre
-directo en Excel/Google Sheets.
+El historial se puede filtrar tocando botones grandes (Todos / Pagados /
+Pendientes / Cancelados / No pagados, y por fecha: Hoy / Esta semana /
+Este mes / Todo), con un buscador de texto libre (nombre, teléfono o
+producto), y tiene un botón "⬇️ Descargar en Excel" que descarga los
+pedidos que estés viendo en ese momento (respeta los filtros aplicados)
+como un archivo `.csv` que abre directo en Excel/Google Sheets.
 
 ### Avisos automáticos por WhatsApp
 
