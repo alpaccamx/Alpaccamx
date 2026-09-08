@@ -117,6 +117,27 @@ publícala como CSV aparte (mismos pasos de arriba, eligiendo esa pestaña):
   esa misma fórmula de Precio para llegar al precio de venta final —
   **no se aplican a los envíos**, solo a los productos.
 
+### Datos de depósito/transferencia (opcional)
+
+Si agregas estas filas a la misma pestaña **"Config"**, el carrito
+muestra un bloque "🏦 Datos para tu depósito o transferencia" junto al
+botón "Enviar cotización por WhatsApp", para que el cliente sepa a dónde
+transferir sin tener que preguntarlo por chat:
+
+| Clave | Valor |
+|-------|-------|
+| Banco | BBVA |
+| Titular | Tu nombre o el de tu negocio |
+| CLABE | 012180001234567895 |
+| Cuenta | (opcional, si prefieres dar número de cuenta en vez de CLABE) |
+| Referencia | (opcional, ej. "Usa tu nombre como referencia") |
+
+Puedes agregar cualquiera de estas filas (no hace falta llenarlas todas)
+en cualquier lugar de la pestaña "Config", junto a las de arriba — a
+diferencia de Tipo de cambio/Comisión/Arancel, estas no dependen de una
+celda fija. Si no agregas ninguna, el bloque simplemente no aparece y el
+resto del sitio sigue funcionando igual.
+
 Si además quieres que el mensaje de WhatsApp incluya una **referencia de
 costo de envío** (Corea→EE.UU. y/o nacional en México) junto al peso,
 agrega también estas pestañas:
@@ -499,6 +520,26 @@ pedido" que aparece en su tarjeta del historial — por seguridad, esta
 opción solo aparece en pedidos ya cancelados; no se puede borrar un
 pedido pendiente, pagado ni fallido.
 
+### Comprobante de pago (captura o PDF) directo desde el sitio
+
+Después de enviar la cotización por WhatsApp, el carrito no se cierra
+solo: se queda abierto mostrando un panel de "¡Tu pedido quedó
+registrado!" con el folio, los mismos datos de depósito/transferencia
+(si los configuraste, ver sección 1.1) y un apartado para que el cliente
+suba directo ahí su comprobante de pago (una foto/captura o un PDF, hasta
+4MB) — así no tiene que mandarlo por WhatsApp aparte.
+
+El archivo se guarda junto al pedido (en un Netlify Blobs propio, no en
+el Sheet) y, en `/admin.html`, cualquier pedido que ya tenga comprobante
+muestra un link "📎 Ver comprobante de pago" para que lo revises antes
+de confirmar el pago. Esto no reemplaza el botón "✅ Ya me pagó" — sigue
+siendo tu decisión confirmar el pedido, el comprobante solo te ayuda a
+verificarlo sin tener que buscarlo en el chat de WhatsApp.
+
+Como el resto de los pedidos, esto usa Netlify Blobs — si ya configuraste
+`NETLIFY_BLOBS_TOKEN` (sección 4, "Configurar Netlify Blobs") no hay nada
+extra que hacer.
+
 ### Avisos automáticos por WhatsApp
 
 Además de poder consultar `/admin.html` cuando quieras, el sitio te puede
@@ -645,4 +686,7 @@ El listado (función `getMenuItems()` en `app.js`) combina:
   queda deshabilitado y se muestra cuánto le falta al cliente. Cambia
   `MIN_ORDER_MXN` en `app.js` si el mínimo cambia (recuerda también
   actualizar `SHIPPING_MESSAGE`, que muestra el monto en la barra
-  superior).
+  superior). **Los productos de la sección "En stock" no cuentan para
+  este mínimo** -- si el cliente solo lleva productos en stock, puede
+  pedir cualquier cantidad sin necesidad de alcanzar el monto mínimo (el
+  mínimo solo aplica a los productos que se encargan desde Corea).

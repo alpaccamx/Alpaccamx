@@ -449,7 +449,8 @@ function normalizeKey(s) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-let shippingSettings = { exchangeRate: 0, transferDiscountPct: 0 };
+const BANK_DETAILS_DEFAULTS = { bankName: "", bankHolder: "", bankClabe: "", bankAccount: "", bankNote: "" };
+let shippingSettings = { exchangeRate: 0, transferDiscountPct: 0, ...BANK_DETAILS_DEFAULTS };
 let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0, extraPerKgTarjetaUSD: null };
 let shippingNacionalRates = [];
 let stockData = new Map(); // SKU -> { piezas, precioMXN }
@@ -463,14 +464,30 @@ const SHIPPING_SETTING_ALIASES = {
   transferDiscountPct: ["descuentoportransferencia", "descuentotransferencia", "descuentoportransferenciaporciento"],
 };
 
+// Datos de depósito/transferencia (opcionales) que se muestran en el
+// carrito junto al botón "Enviar cotización por WhatsApp", para que el
+// cliente sepa a dónde transferir sin tener que preguntarlo por chat.
+// Se leen de la misma pestaña "Config" del Sheet, ver README sección 4.
+const BANK_DETAIL_ALIASES = {
+  bankName: ["banco", "nombredelbanco", "bank"],
+  bankHolder: ["titular", "beneficiario", "nombretitular", "accountholder"],
+  bankClabe: ["clabe", "clabeinterbancaria"],
+  bankAccount: ["numerodecuenta", "cuenta", "numerocuenta", "accountnumber"],
+  bankNote: ["conceptosugerido", "referencia", "notabancaria", "instruccionesdeposito"],
+};
+
 function csvToShippingSettings(text) {
   const rows = parseCSV(text);
-  const settings = { exchangeRate: 0, transferDiscountPct: 0 };
+  const settings = { exchangeRate: 0, transferDiscountPct: 0, ...BANK_DETAILS_DEFAULTS };
   rows.forEach((r) => {
     const key = normalizeKey(r[0]);
-    const value = parseFloat((r[1] || "").replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0;
+    const rawValue = (r[1] || "").trim();
+    const numValue = parseFloat(rawValue.replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0;
     for (const field in SHIPPING_SETTING_ALIASES) {
-      if (SHIPPING_SETTING_ALIASES[field].includes(key)) settings[field] = value;
+      if (SHIPPING_SETTING_ALIASES[field].includes(key)) settings[field] = numValue;
+    }
+    for (const field in BANK_DETAIL_ALIASES) {
+      if (BANK_DETAIL_ALIASES[field].includes(key)) settings[field] = rawValue;
     }
   });
   return settings;
@@ -2142,6 +2159,40 @@ function minOrderMXN() {
   return CONFIG.MIN_ORDER_MXN || 0;
 }
 
+/* Pinta los datos de depósito/transferencia (si se configuraron en el
+   Sheet) en el bloque del carrito y en el del panel de éxito tras enviar
+   el pedido -- ambos comparten el mismo contenido. Si no se configuró
+   nada, el bloque se queda oculto y no cambia nada más del flujo. */
+function bankDetailsHTML() {
+  const s = shippingSettings;
+  const rows = [];
+  if (s.bankName) rows.push(`Banco: <strong>${escapeHtml(s.bankName)}</strong>`);
+  if (s.bankHolder) rows.push(`Titular: <strong>${escapeHtml(s.bankHolder)}</strong>`);
+  if (s.bankClabe) rows.push(`CLABE: <strong>${escapeHtml(s.bankClabe)}</strong>`);
+  if (s.bankAccount) rows.push(`Cuenta: <strong>${escapeHtml(s.bankAccount)}</strong>`);
+  if (s.bankNote) rows.push(escapeHtml(s.bankNote));
+  return rows.map((r) => `<p>${r}</p>`).join("");
+}
+
+function hasBankDetails() {
+  const s = shippingSettings;
+  return !!(s.bankName || s.bankHolder || s.bankClabe || s.bankAccount);
+}
+
+function renderBankDetails() {
+  const show = hasBankDetails();
+  const html = show ? bankDetailsHTML() : "";
+  ["cart-bank-details", "success-bank-details"].forEach((wrapperId) => {
+    const wrapper = document.getElementById(wrapperId);
+    if (!wrapper) return;
+    wrapper.classList.toggle("hidden", !show);
+  });
+  const cartBody = document.getElementById("cart-bank-details-body");
+  if (cartBody) cartBody.innerHTML = html;
+  const successBody = document.getElementById("success-bank-details-body");
+  if (successBody) successBody.innerHTML = html;
+}
+
 function updateNacionalShippingUI() {
   const row = document.getElementById("cart-shipping-nacional-row");
   const label = document.getElementById("cart-shipping-nacional-label");
@@ -2181,6 +2232,8 @@ function renderCart() {
   const wrap = document.getElementById("cart-items");
   const emptyMsg = document.getElementById("cart-empty");
   const items = Object.entries(cart);
+
+  renderBankDetails();
 
   const total = cartTotal();
   const nonStockTotal = cartTotalNonStock();
@@ -2276,6 +2329,11 @@ function closeCart() {
   document.getElementById("cart-drawer").classList.add("translate-x-full");
   const overlay = document.getElementById("cart-overlay");
   overlay.classList.add("opacity-0", "pointer-events-none");
+  // Si se cerró el carrito mientras se mostraba el panel de "pedido
+  // enviado" (comprobante), lo regresa a la vista del formulario para la
+  // próxima vez que se abra.
+  document.getElementById("quote-success-panel").classList.add("hidden");
+  document.getElementById("quote-form").classList.remove("hidden");
 }
 
 /* ======================================================================
@@ -2371,19 +2429,28 @@ function sendQuote(e) {
   // mismo "click" del usuario.
   if (!opened) window.location.href = url;
 
-  recordWhatsAppOrder();
+  // No se espera ("await") esta llamada antes de abrir WhatsApp arriba
+  // para no bloquear la ventana emergente -- pero sí se usa su resultado
+  // (el orderId) para mostrar, justo después, los datos de depósito y el
+  // apartado para subir el comprobante de pago.
+  recordWhatsAppOrder().then((orderId) => {
+    if (orderId) showQuoteSuccess(orderId);
+  });
 
   cart = {};
   saveCart();
   renderCart();
   document.getElementById("quote-form").reset();
-  closeCart();
+  // No se cierra el carrito aquí -- se queda abierto mostrando el panel
+  // de "pedido enviado" con los datos para transferir y subir el
+  // comprobante (ver showQuoteSuccess).
 }
 
-/* Registra el pedido en segundo plano (no bloquea el envío del WhatsApp)
-   para que aparezca en /admin.html y, cuando confirmes el pago recibido,
-   se descuenten las piezas vendidas del stock. Si falla, no pasa nada
-   grave: el pedido se sigue mandando por WhatsApp igual. */
+/* Registra el pedido para que aparezca en /admin.html y, cuando
+   confirmes el pago recibido, se descuenten las piezas vendidas del
+   stock. Devuelve el orderId (o null si algo falló) -- si falla, no pasa
+   nada grave para el cliente: el pedido se sigue mandando por WhatsApp
+   igual, solo no se podrá subir el comprobante desde el sitio. */
 function recordWhatsAppOrder() {
   try {
     const c = getCustomerFields();
@@ -2393,7 +2460,7 @@ function recordWhatsAppOrder() {
     const shipping = shippingEstimate(weight, c.cp, cartWeightNonStock());
     const shippingMXN = shipping ? shipping.totalMXN : 0;
 
-    fetch("/.netlify/functions/create-order", {
+    return fetch("/.netlify/functions/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -2404,10 +2471,102 @@ function recordWhatsAppOrder() {
         shippingMXN,
         grandTotal: subtotal + shippingMXN,
       }),
-    }).catch((err) => console.warn("No se pudo registrar el pedido para /admin.html:", err));
+    })
+      .then((res) => res.json())
+      .then((data) => data.orderId || null)
+      .catch((err) => {
+        console.warn("No se pudo registrar el pedido para /admin.html:", err);
+        return null;
+      });
   } catch (err) {
     console.warn("No se pudo registrar el pedido para /admin.html:", err);
+    return Promise.resolve(null);
   }
+}
+
+/* Muestra, dentro del mismo carrito, el panel de "pedido enviado" con el
+   folio, los datos de depósito/transferencia y el apartado para subir el
+   comprobante de pago (imagen o PDF) directo desde el sitio. */
+function showQuoteSuccess(orderId) {
+  document.getElementById("quote-form").classList.add("hidden");
+  const panel = document.getElementById("quote-success-panel");
+  panel.classList.remove("hidden");
+  document.getElementById("success-order-id").textContent = orderId.slice(0, 8).toUpperCase();
+
+  const fileInput = document.getElementById("proof-file-input");
+  fileInput.value = "";
+  const statusEl = document.getElementById("proof-status");
+  statusEl.textContent = "";
+  statusEl.className = "text-[11px] text-ink/50 mt-1";
+
+  const uploadBtn = document.getElementById("proof-upload-btn");
+  uploadBtn.disabled = false;
+  uploadBtn.innerHTML = "<span>📤 Enviar comprobante</span>";
+  uploadBtn.onclick = () => uploadPaymentProof(orderId);
+}
+
+const MAX_PROOF_FILE_MB = 4;
+
+function uploadPaymentProof(orderId) {
+  const input = document.getElementById("proof-file-input");
+  const statusEl = document.getElementById("proof-status");
+  const uploadBtn = document.getElementById("proof-upload-btn");
+  const file = input.files && input.files[0];
+
+  const showError = (msg) => {
+    statusEl.textContent = msg;
+    statusEl.className = "text-[11px] text-rose mt-1";
+  };
+
+  if (!file) {
+    showError("Selecciona una imagen o PDF primero.");
+    return;
+  }
+  const isAllowedType = file.type.startsWith("image/") || file.type === "application/pdf";
+  if (!isAllowedType) {
+    showError("Solo se aceptan imágenes o archivos PDF.");
+    return;
+  }
+  if (file.size > MAX_PROOF_FILE_MB * 1024 * 1024) {
+    showError(`El archivo pesa más de ${MAX_PROOF_FILE_MB}MB. Usa uno más ligero.`);
+    return;
+  }
+
+  uploadBtn.disabled = true;
+  uploadBtn.innerHTML = "<span>Subiendo…</span>";
+  statusEl.textContent = "";
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const base64 = String(reader.result).split(",")[1] || "";
+    fetch("/.netlify/functions/upload-payment-proof", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId, filename: file.name, contentType: file.type, dataBase64: base64 }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) throw new Error(data.error || "No se pudo subir el comprobante.");
+        statusEl.textContent = "✅ ¡Comprobante recibido! Gracias, te confirmaremos tu pedido pronto.";
+        statusEl.className = "text-[11px] text-ink/70 mt-1";
+        uploadBtn.innerHTML = "<span>✅ Comprobante enviado</span>";
+      })
+      .catch((err) => {
+        showError(err.message || "No se pudo subir el comprobante. Intenta de nuevo.");
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = "<span>📤 Enviar comprobante</span>";
+      });
+  };
+  reader.onerror = () => {
+    showError("No se pudo leer el archivo. Intenta de nuevo.");
+    uploadBtn.disabled = false;
+    uploadBtn.innerHTML = "<span>📤 Enviar comprobante</span>";
+  };
+  reader.readAsDataURL(file);
+}
+
+function closeQuoteSuccess() {
+  closeCart();
 }
 
 function cartItemsForOrder({ useTarjetaPrice = false } = {}) {
@@ -2563,6 +2722,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("quote-form").addEventListener("submit", sendQuote);
   document.getElementById("pay-mercadopago").addEventListener("click", payWithMercadoPago);
   document.getElementById("customer-cp").addEventListener("input", updateNacionalShippingUI);
+  document.getElementById("quote-success-close").addEventListener("click", closeQuoteSuccess);
 
   document.getElementById("quiz-retake").addEventListener("click", () => {
     localStorage.removeItem(SKIN_QUIZ_KEY);

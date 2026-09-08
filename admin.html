@@ -427,6 +427,12 @@
       </div>`;
   }
 
+  function proofLinkHTML(o) {
+    if (!o.hasPaymentProof) return "";
+    const url = `/.netlify/functions/admin-payment-proof?orderId=${encodeURIComponent(o.id)}&key=${encodeURIComponent(adminKey)}`;
+    return `<div style="margin-top:8px;"><a href="${url}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#0b6bc2;text-decoration:none;">📎 Ver comprobante de pago</a></div>`;
+  }
+
   function historyCardHTML(o) {
     const statusLabel = STATUS_LABELS[o.status] || o.status;
     const borderColor = STATUS_BORDER_COLORS[o.status] || "#ddd";
@@ -445,6 +451,7 @@
         <ul>${itemsListHTML(o)}</ul>
         <div class="total">${formatPrice(o.grandTotal)}</div>
         ${customerHTML(o)}
+        ${proofLinkHTML(o)}
         ${deleteBtn}
       </div>`;
   }
@@ -460,6 +467,7 @@
         <ul>${itemsListHTML(o)}</ul>
         <div class="total">${formatPrice(o.grandTotal)}</div>
         ${customerHTML(o)}
+        ${proofLinkHTML(o)}
         <div class="actions">
           <button class="btn-primary" data-confirm="${o.id}" title="Esto resta las piezas vendidas del stock automáticamente">✅ Ya me pagó</button>
           <button class="btn-danger" data-cancel="${o.id}">✕ No pagó / Cancelar</button>
