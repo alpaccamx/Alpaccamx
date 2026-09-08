@@ -5,17 +5,37 @@
 //     por SKU, que el sitio resta de las "Piezas Disponibles" de tu hoja
 //     de Stock para no sobrevender.
 //
-// No requiere configuración: Netlify Blobs ya viene incluido en el
-// hosting del sitio.
+// Netlify Blobs normalmente se configura solo, sin nada que hacer -- pero
+// en este sitio en particular el entorno no le pasa esas credenciales a
+// las funciones (error real visto en logs: MissingBlobsEnvironmentError),
+// así que aquí se le dan a mano.
+//
+// Variable de entorno necesaria (Netlify → Site settings → Environment
+// variables): NETLIFY_BLOBS_TOKEN -- un Personal Access Token que generas
+// en https://app.netlify.com/user/applications ("New access token"), ver
+// README sección 4.
 
 const { getStore } = require("@netlify/blobs");
 
+// Site ID del sitio "alpaccamx" en Netlify -- no es secreto (aparece en
+// la URL del panel), solo sirve para identificar a qué sitio pertenecen
+// los blobs. Se puede sobrescribir con NETLIFY_SITE_ID si el sitio
+// cambiara de nombre/ID.
+const FALLBACK_SITE_ID = "24b5e390-bcf9-4659-bbf6-1fe46f2b0a09";
+
+function blobsClientOptions() {
+  const token = process.env.NETLIFY_BLOBS_TOKEN;
+  if (!token) return {}; // sin token, se intenta el modo automático (probablemente falle)
+  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID || FALLBACK_SITE_ID;
+  return { siteID, token };
+}
+
 function getOrdersStore() {
-  return getStore({ name: "orders", consistency: "strong" });
+  return getStore({ name: "orders", consistency: "strong", ...blobsClientOptions() });
 }
 
 function getStockSoldStore() {
-  return getStore({ name: "stock-sold", consistency: "strong" });
+  return getStore({ name: "stock-sold", consistency: "strong", ...blobsClientOptions() });
 }
 
 const SOLD_MAP_KEY = "sold-map";

@@ -413,6 +413,30 @@ Si `MP_ACCESS_TOKEN` no está configurado, el botón sigue visible pero le
 muestra al cliente un aviso de que el pago en línea no está listo todavía
 (no rompe el resto del sitio).
 
+### Configurar Netlify Blobs (necesario para guardar pedidos)
+
+Los pedidos (por WhatsApp o Mercado Pago) y el conteo de piezas ya
+vendidas se guardan con Netlify Blobs. Normalmente Netlify se lo
+configura solo a las funciones sin que tengas que hacer nada — pero en
+este sitio ese paso automático no está funcionando (si ves el error
+`MissingBlobsEnvironmentError` en los logs de una función como
+`create-order`, es justo este problema), así que hay que dárselo a mano:
+
+1. Entra a https://app.netlify.com/user/applications (arriba a la
+   derecha, tu ícono de usuario → **User settings** → **Applications**).
+2. En **Personal access tokens**, dale a **"New access token"**, ponle un
+   nombre (ej. "Alpacca Blobs") y genera el token. Cópialo de inmediato —
+   Netlify solo te lo muestra una vez.
+3. En **Site settings → Environment variables** de tu sitio, agrega
+   `NETLIFY_BLOBS_TOKEN` con ese valor (márcalo como "Contains secret
+   values", igual que `MP_ACCESS_TOKEN`).
+4. Dispara un nuevo deploy.
+
+Este token le da acceso a tu cuenta completa de Netlify (no solo a
+Blobs), así que trátalo con el mismo cuidado que una contraseña — nunca
+lo compartas ni lo pegues en ningún lado fuera de esa variable de
+entorno.
+
 ### Cómo se evita sobrevender el stock
 
 El pedido mínimo (`CONFIG.MIN_ORDER_MXN`) funciona como antes; lo nuevo es
