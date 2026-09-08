@@ -528,10 +528,11 @@ pedido pendiente, pagado ni fallido.
 Después de darle "✅ Confirmar pedido por transferencia" (sin pasar por
 WhatsApp — el pedido se registra directo en el sitio), el carrito no se
 cierra solo: se queda abierto mostrando un panel de "¡Tu pedido quedó
-registrado!" con el folio, los mismos datos de depósito/transferencia
-(si los configuraste, ver sección 1.1) y un apartado para que el cliente
-suba directo ahí su comprobante de pago (una foto/captura o un PDF, hasta
-4MB) — así no tiene que mandarlo por WhatsApp aparte.
+registrado!" con el número de orden, los mismos datos de
+depósito/transferencia (si los configuraste, ver sección 1.1) y un
+apartado para que el cliente suba directo ahí su comprobante de pago
+(una foto/captura o un PDF, hasta 4MB) — así no tiene que mandarlo por
+WhatsApp aparte.
 
 El archivo se guarda junto al pedido (en un Netlify Blobs propio, no en
 el Sheet) y, en `/admin.html`, cualquier pedido que ya tenga comprobante
@@ -544,14 +545,35 @@ Como el resto de los pedidos, esto usa Netlify Blobs — si ya configuraste
 `NETLIFY_BLOBS_TOKEN` (sección 4, "Configurar Netlify Blobs") no hay nada
 extra que hacer.
 
+### Avisar al cliente el número de guía cuando envías su pedido
+
+En `/admin.html`, cada pedido ya **pagado** tiene un apartado para
+capturar el **número de guía** (y opcionalmente la paquetería) y avisarle
+al cliente que su pedido ya va en camino. Al darle "💬 Guardar y avisar
+por WhatsApp":
+
+1. Guarda la guía en el pedido (queda visible ahí mismo la próxima vez,
+   con un aviso "🚚 Enviado").
+2. Abre WhatsApp (tu WhatsApp normal, no requiere ninguna API ni
+   configuración) con un mensaje ya escrito para el cliente, con su
+   número de teléfono como destinatario y el número de guía incluido —
+   solo te falta darle "Enviar".
+
+No es 100% automático (tú das el último clic), pero funciona sin
+necesidad de configurar la API de WhatsApp Business ni esperar
+aprobaciones de Meta.
+
 ### Avisos automáticos por WhatsApp
 
 Además de poder consultar `/admin.html` cuando quieras, el sitio te puede
-avisar por WhatsApp en automático cada vez que se confirma un pago (ya
-sea porque el cliente pagó con Mercado Pago, o porque tú confirmaste a
-mano un pedido por transferencia). Esto es opcional — si no configuras
-las variables de abajo, el sitio sigue funcionando igual, simplemente no
-manda el aviso.
+avisar por WhatsApp en automático en dos momentos: (1) **en cuanto un
+cliente hace un pedido nuevo**, aunque todavía no haya pagado (con
+Mercado Pago puede que ni siquiera termine de pagar — el aviso solo te
+dice que alguien está comprando), y (2) **cuando se confirma un pago**
+(porque el cliente pagó con Mercado Pago, o porque tú confirmaste a mano
+un pedido por transferencia). Esto es opcional — si no configuras las
+variables de abajo, el sitio sigue funcionando igual, simplemente no
+manda los avisos.
 
 Usa la API oficial de WhatsApp Business Cloud (de Meta, la misma empresa
 de WhatsApp e Instagram):

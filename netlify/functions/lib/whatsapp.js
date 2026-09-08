@@ -1,6 +1,8 @@
-// Manda un aviso de WhatsApp al dueño del negocio cuando se confirma un
-// pago (Mercado Pago aprobado, o transferencia confirmada a mano en
-// /admin.html), usando la API de WhatsApp Business Cloud de Meta.
+// Manda un aviso de WhatsApp al dueño del negocio (1) en cuanto un
+// cliente hace un pedido nuevo -- aunque todavía no haya pagado -- y (2)
+// cuando ese pago se confirma (Mercado Pago aprobado, o transferencia
+// confirmada a mano en /admin.html), usando la API de WhatsApp Business
+// Cloud de Meta.
 //
 // Variables de entorno necesarias (Netlify → Site settings →
 // Environment variables), ver README sección 4:
@@ -18,11 +20,11 @@ function formatPriceMXN(n) {
   return (Number(n) || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 }
 
-function orderPaidMessage(order) {
-  const sourceLabel = order.source === "mercadopago" ? "Mercado Pago" : "transferencia";
+/* Detalle del pedido (productos, total, datos del cliente) que comparten
+   el aviso de "pedido nuevo" y el de "pedido pagado" -- solo cambia el
+   título de arriba. */
+function orderDetailLines(order) {
   const lines = [
-    `🛒 *Nuevo pedido pagado (${sourceLabel})*`,
-    "",
     ...(order.items || []).map((it) => `• ${it.nombre} x${it.qty}${it.enStock ? " (en stock)" : ""}`),
     "",
     `Total: ${formatPriceMXN(order.grandTotal)}`,
@@ -37,6 +39,31 @@ function orderPaidMessage(order) {
   }
   if (order.customer?.referencias) lines.push(`Referencias: ${order.customer.referencias}`);
   if (order.customer?.notes) lines.push(`Notas: ${order.customer.notes}`);
+  return lines;
+}
+
+function sourceLabel(order) {
+  return order.source === "mercadopago" ? "Mercado Pago" : "transferencia";
+}
+
+/* Aviso al crear el pedido -- se manda de inmediato, ANTES de que se
+   confirme el pago (con Mercado Pago puede que el cliente ni siquiera
+   termine de pagar). Sirve para que sepas que alguien está comprando. */
+function orderCreatedMessage(order) {
+  const lines = [
+    `🆕 *Pedido nuevo (${sourceLabel(order)}) -- aún sin confirmar*`,
+    "",
+    ...orderDetailLines(order),
+  ];
+  return lines.join("\n");
+}
+
+function orderPaidMessage(order) {
+  const lines = [
+    `🛒 *Nuevo pedido pagado (${sourceLabel(order)})*`,
+    "",
+    ...orderDetailLines(order),
+  ];
   return lines.join("\n");
 }
 
@@ -69,4 +96,4 @@ async function notifySellerWhatsApp(text) {
   }
 }
 
-module.exports = { notifySellerWhatsApp, orderPaidMessage };
+module.exports = { notifySellerWhatsApp, orderPaidMessage, orderCreatedMessage };
