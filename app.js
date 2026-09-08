@@ -465,8 +465,8 @@ const SHIPPING_SETTING_ALIASES = {
 };
 
 // Datos de depósito/transferencia (opcionales) que se muestran en el
-// carrito junto al botón "Enviar cotización por WhatsApp", para que el
-// cliente sepa a dónde transferir sin tener que preguntarlo por chat.
+// carrito junto al botón "Confirmar pedido por transferencia", para que
+// el cliente sepa a dónde transferir sin tener que preguntarlo por chat.
 // Se leen de la misma pestaña "Config" del Sheet, ver README sección 4.
 const BANK_DETAIL_ALIASES = {
   bankName: ["banco", "nombredelbanco", "bank"],
@@ -2211,7 +2211,7 @@ function updateNacionalShippingUI() {
     amount.textContent = formatPrice(shipping.nacionalMXN);
   } else {
     label.textContent = "🚚 Envío nacional";
-    amount.textContent = "Se confirmará por WhatsApp";
+    amount.textContent = "Te contactaremos para confirmarlo";
   }
   row.classList.remove("hidden");
   renderGrandTotal();
@@ -2275,7 +2275,7 @@ function renderCart() {
     const totalConEnvio = total + (shippingForNote ? shippingForNote.totalMXN : 0);
     const tarjetaTotalConEnvio = cartTotalTarjeta() + (shippingForNote ? shippingForNote.totalMXNTarjeta : 0);
     if (items.length && tarjetaTotalConEnvio > totalConEnvio + 0.5) {
-      transferNote.textContent = `🏦 Pagando por transferencia (WhatsApp) ahorras ${formatPrice(tarjetaTotalConEnvio - totalConEnvio)} (precio con tarjeta, incluyendo envío: ${formatPrice(tarjetaTotalConEnvio)})`;
+      transferNote.textContent = `🏦 Pagando por transferencia ahorras ${formatPrice(tarjetaTotalConEnvio - totalConEnvio)} (precio con tarjeta, incluyendo envío: ${formatPrice(tarjetaTotalConEnvio)})`;
       transferNote.classList.remove("hidden");
     } else {
       transferNote.classList.add("hidden");
@@ -2337,7 +2337,7 @@ function closeCart() {
 }
 
 /* ======================================================================
-   Envío de cotización por WhatsApp
+   Pedido por transferencia (registro directo, sin pasar por WhatsApp)
    ====================================================================== */
 /* Lee todos los campos del formulario del carrito principal, incluida la
    dirección completa que se necesita para generar la guía de paquetería. */
@@ -2355,53 +2355,7 @@ function getCustomerFields() {
   };
 }
 
-function addressLine(c) {
-  return `${c.street}, ${c.colonia}, ${c.municipio}, ${c.estado}, CP ${c.cp}`;
-}
-
-function buildWhatsAppMessage() {
-  const items = Object.values(cart);
-  const c = getCustomerFields();
-
-  const lines = items.map((it, i) => {
-    const nombre = it.product.presentacion ? `${it.product.nombre} (${it.product.presentacion})` : it.product.nombre;
-    const marca = it.product.marca ? `${it.product.marca} — ` : "";
-    return `${i + 1}. ${marca}${nombre} x${it.qty} — ${formatPrice(it.product.precio * it.qty)}`;
-  });
-
-  const weight = cartWeight();
-  const shipping = shippingEstimate(weight, c.cp, cartWeightNonStock());
-  const grandTotal = cartTotal() + (shipping ? shipping.totalMXN : 0);
-
-  const parts = [
-    `Hola ${CONFIG.BUSINESS_NAME}! Quiero cotizar lo siguiente (pago por transferencia):`,
-    "",
-    ...lines,
-    "",
-    `Subtotal productos: ${formatPrice(cartTotal())}`,
-    `📦 Peso total estimado: ${formatWeight(weight)}`,
-  ];
-
-  if (shipping) {
-    parts.push(`🚚 Envío estimado (referencia, sujeto a confirmación): ${formatPrice(shipping.totalMXN)}`);
-    if (shipping.hasKorea) {
-      parts.push(`   • Corea→México: ${formatPrice(shipping.coreaMXN)}`);
-    }
-    if (shipping.hasNacional) {
-      parts.push(`   • Nacional MX (Estafeta, CP ${c.cp}): ${formatPrice(shipping.nacionalMXN)}`);
-    }
-  }
-
-  parts.push("", `*Total a pagar: ${formatPrice(grandTotal)}*`);
-
-  parts.push("", `Nombre: ${c.name}`, `Teléfono: ${c.phone}`, `Dirección: ${addressLine(c)}`);
-  if (c.referencias) parts.push(`Referencias: ${c.referencias}`);
-  if (c.notes) parts.push(`Notas: ${c.notes}`);
-
-  return parts.join("\n");
-}
-
-function sendQuote(e) {
+async function sendQuote(e) {
   e.preventDefault();
   if (!Object.keys(cart).length) return;
 
@@ -2411,31 +2365,22 @@ function sendQuote(e) {
     return;
   }
 
-  const numberIsPlaceholder = !CONFIG.WHATSAPP_NUMBER || CONFIG.WHATSAPP_NUMBER.includes("XXXX");
-  if (numberIsPlaceholder) {
-    setStatus("Falta configurar CONFIG.WHATSAPP_NUMBER en app.js con tu número real.");
+  const sendBtn = document.getElementById("send-quote");
+  const originalLabel = sendBtn.innerHTML;
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = "<span>Enviando…</span>";
+
+  const orderId = await recordTransferOrder();
+
+  if (!orderId) {
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = originalLabel;
+    setStatus("No se pudo registrar tu pedido. Intenta de nuevo o contáctanos por WhatsApp.");
     return;
   }
 
-  const message = buildWhatsAppMessage();
-  const url = `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-  const opened = window.open(url, "_blank", "noopener");
-  // Algunos navegadores integrados (ej. el de WhatsApp) bloquean la
-  // ventana emergente en vez de abrirla; en ese caso navegamos en la
-  // misma pestaña para que el link sí funcione. Nota: por eso el registro
-  // del pedido (recordWhatsAppOrder) se hace SIN esperar la respuesta del
-  // servidor -- si se esperara con "await" antes de abrir WhatsApp, la
-  // mayoría de navegadores bloquearían la ventana por no ser ya parte del
-  // mismo "click" del usuario.
-  if (!opened) window.location.href = url;
-
-  // No se espera ("await") esta llamada antes de abrir WhatsApp arriba
-  // para no bloquear la ventana emergente -- pero sí se usa su resultado
-  // (el orderId) para mostrar, justo después, los datos de depósito y el
-  // apartado para subir el comprobante de pago.
-  recordWhatsAppOrder().then((orderId) => {
-    if (orderId) showQuoteSuccess(orderId);
-  });
+  sendBtn.disabled = false;
+  sendBtn.innerHTML = originalLabel;
 
   cart = {};
   saveCart();
@@ -2444,14 +2389,13 @@ function sendQuote(e) {
   // No se cierra el carrito aquí -- se queda abierto mostrando el panel
   // de "pedido enviado" con los datos para transferir y subir el
   // comprobante (ver showQuoteSuccess).
+  showQuoteSuccess(orderId);
 }
 
 /* Registra el pedido para que aparezca en /admin.html y, cuando
    confirmes el pago recibido, se descuenten las piezas vendidas del
-   stock. Devuelve el orderId (o null si algo falló) -- si falla, no pasa
-   nada grave para el cliente: el pedido se sigue mandando por WhatsApp
-   igual, solo no se podrá subir el comprobante desde el sitio. */
-function recordWhatsAppOrder() {
+   stock. Devuelve el orderId (o null si algo falló). */
+function recordTransferOrder() {
   try {
     const c = getCustomerFields();
     const items = cartItemsForOrder();
@@ -2464,7 +2408,7 @@ function recordWhatsAppOrder() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        source: "whatsapp",
+        source: "transferencia",
         customer: c,
         items,
         subtotal,
@@ -2475,11 +2419,11 @@ function recordWhatsAppOrder() {
       .then((res) => res.json())
       .then((data) => data.orderId || null)
       .catch((err) => {
-        console.warn("No se pudo registrar el pedido para /admin.html:", err);
+        console.warn("No se pudo registrar el pedido:", err);
         return null;
       });
   } catch (err) {
-    console.warn("No se pudo registrar el pedido para /admin.html:", err);
+    console.warn("No se pudo registrar el pedido:", err);
     return Promise.resolve(null);
   }
 }
@@ -2632,7 +2576,7 @@ async function payWithMercadoPago() {
     window.location.href = data.redirectUrl;
   } catch (err) {
     console.error(err);
-    setStatus(err.message || "No se pudo iniciar el pago con Mercado Pago. Intenta de nuevo o usa el botón de WhatsApp.");
+    setStatus(err.message || "No se pudo iniciar el pago con Mercado Pago. Intenta de nuevo o paga por transferencia.");
     payBtn.disabled = false;
     payBtn.innerHTML = originalLabel;
   }

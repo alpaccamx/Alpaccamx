@@ -1,8 +1,10 @@
-# Catálogo Alpacca — cotización por WhatsApp
+# Catálogo Alpacca
 
 Sitio (HTML + Tailwind CSS + JavaScript) que lee productos desde un Google
-Sheet publicado como CSV y permite al cliente armar un carrito y enviarlo
-como cotización estructurada por WhatsApp. No procesa pagos.
+Sheet publicado como CSV y permite al cliente armar un carrito y pagarlo
+en línea con tarjeta (Mercado Pago) o registrar su pedido por
+transferencia directo en el sitio (con datos de depósito y subida de
+comprobante incluidos, ver sección 4).
 
 El diseño está inspirado en la estructura general de sitios de e-commerce
 de skincare coreano, pero con marca, copys y datos propios — no reutiliza
@@ -11,7 +13,7 @@ contenido, marcas ni fotografía de ningún negocio real.
 ## Archivos
 
 - `index.html` — estructura de la página.
-- `app.js` — lógica: carga de CSV, secciones, carrito, envío a WhatsApp.
+- `app.js` — lógica: carga de CSV, secciones, carrito, pagos y pedidos.
 - `styles.css` — CSS de Tailwind ya compilado (no requiere CDN en producción).
 - `input.css` / `tailwind.config.js` / `package.json` — solo se usan para
   recompilar `styles.css` si cambias clases (`npm install && npm run build:css`).
@@ -63,16 +65,17 @@ variar ligeramente, el sitio los reconoce en español o inglés):
   solo el precio de los productos. La plantilla que te compartí ya trae
   esta fórmula armada, solo cópiala por fila.
 - **Peso**: opcional. Peso del producto en kilogramos (ej. `0.25`). Se
-  usa para calcular el peso total del carrito, que se incluye en el
-  mensaje de WhatsApp de la cotización (`📦 Peso total estimado: X kg`)
-  para que puedas cotizar el envío. Si lo dejas vacío se toma como 0.
+  usa para calcular el peso total del carrito y, con las tablas de
+  tarifas (ver más abajo), el costo real de envío que se le cobra al
+  cliente. Si lo dejas vacío se toma como 0.
 - **Presentacion**: opcional. Texto libre para distinguir cómo se vende
   ese renglón, por ejemplo `Pieza individual` o `Caja con 30 piezas`. Se
   muestra como una etiqueta sobre el nombre del producto en su tarjeta, y
-  se incluye entre paréntesis junto al nombre en el mensaje de WhatsApp
-  para que sepas exactamente cuál variante pidió el cliente. Si un
-  producto tiene versión individual y versión caja, agrégalos como dos
-  filas distintas (con su propio SKU, precio y peso), no como una sola.
+  se incluye entre paréntesis junto al nombre en el pedido guardado
+  (visible en `/admin.html`) para que sepas exactamente cuál variante
+  pidió el cliente. Si un producto tiene versión individual y versión
+  caja, agrégalos como dos filas distintas (con su propio SKU, precio y
+  peso), no como una sola.
 - **Imagen**: URL pública de la foto del producto.
 - **Disponible**: `SI` / `NO` (si se deja vacío, se asume disponible).
 - **SKU**: opcional, identificador único de la fila.
@@ -121,8 +124,8 @@ publícala como CSV aparte (mismos pasos de arriba, eligiendo esa pestaña):
 
 Si agregas estas filas a la misma pestaña **"Config"**, el carrito
 muestra un bloque "🏦 Datos para tu depósito o transferencia" junto al
-botón "Enviar cotización por WhatsApp", para que el cliente sepa a dónde
-transferir sin tener que preguntarlo por chat:
+botón "Confirmar pedido por transferencia", para que el cliente sepa a
+dónde transferir sin tener que preguntarlo por chat:
 
 | Clave | Valor |
 |-------|-------|
@@ -138,9 +141,9 @@ diferencia de Tipo de cambio/Comisión/Arancel, estas no dependen de una
 celda fija. Si no agregas ninguna, el bloque simplemente no aparece y el
 resto del sitio sigue funcionando igual.
 
-Si además quieres que el mensaje de WhatsApp incluya una **referencia de
-costo de envío** (Corea→EE.UU. y/o nacional en México) junto al peso,
-agrega también estas pestañas:
+Si además quieres que el sitio calcule el **costo real de envío**
+(Corea→EE.UU. y/o nacional en México) y lo sume al total que paga el
+cliente, agrega también estas pestañas:
 
 **Pestaña "TarifasCorea"** — tabla de tarifas por peso, igual a la que
 maneja tu proveedor, con dos columnas: `Peso Total de la Unidad` y
@@ -211,20 +214,16 @@ Si dejas alguno como el placeholder de ejemplo, esa parte del envío
 simplemente no aparece en la cotización (puedes tener solo el nacional,
 solo el de Corea, ninguno, o ambos). El envío nacional también necesita
 que el cliente escriba su **código postal** en el formulario del
-carrito (campo opcional "Código postal") — si lo deja vacío, esa parte
-del estimado no aparece. Cuando todo está configurado, el mensaje de
-WhatsApp se ve así:
+carrito — si lo deja vacío, esa parte del estimado no aparece. Cuando
+todo está configurado, el carrito muestra cada tramo por separado (ej.
+"✈️ Envío Corea→México" y "🚚 Envío nacional (estimado) a CP 06700") y
+los suma al "Total estimado" que el cliente realmente paga o transfiere
+— no es solo una nota de referencia.
 
-```
-*Total estimado: $320.00*
-📦 Peso total estimado: 0.8 kg
-🚚 Envío estimado (referencia, sujeto a confirmación): $853.00
-   • Corea→EE.UU.: $603.00 (≈ $33.50 USD)
-   • Nacional MX (Estafeta, CP 06700): $250.00
-```
-
-Es una **referencia para ti** (no se suma al "Total estimado" que ve el
-cliente) — tú confirmas el costo real de envío antes de cerrar el pedido.
+Si el peso o el código postal del cliente caen fuera de las tablas que
+cargaste, esa parte del envío simplemente no se puede calcular; el
+carrito le avisa "Te contactaremos para confirmarlo" en vez de un monto,
+y te toca darle seguimiento tú directamente con ese pedido.
 
 ## 1.2 (opcional) Colección Cosmético Americano — catálogo y carrito aparte
 
@@ -364,9 +363,12 @@ tarjeta en el momento del cobro no es legal; ofrecer un descuento por
 pagar por transferencia, publicando los dos precios fijos de antemano, sí
 lo es):
 
-- **"Enviar cotización por WhatsApp"** — pago por transferencia, **con
-  descuento**: al precio de la columna **"Precio"** de tu Google Sheet (el
-  precio normal de catálogo).
+- **"✅ Confirmar pedido por transferencia"** — pago por transferencia,
+  **con descuento**: al precio de la columna **"Precio"** de tu Google
+  Sheet (el precio normal de catálogo). El pedido se registra directo en
+  el sitio (no abre WhatsApp) y, justo después, le aparecen al cliente
+  los datos para depositar y un apartado para subir su comprobante (ver
+  más abajo).
 - **"💳 Pagar con Mercado Pago"** — pago en línea con tarjeta, al precio de
   una columna nueva y opcional: **"Precio Tarjeta"**, que sirve como precio
   de referencia. La diferencia entre ambos es el descuento que le ofreces
@@ -436,7 +438,7 @@ muestra al cliente un aviso de que el pago en línea no está listo todavía
 
 ### Configurar Netlify Blobs (necesario para guardar pedidos)
 
-Los pedidos (por WhatsApp o Mercado Pago) y el conteo de piezas ya
+Los pedidos (por transferencia o Mercado Pago) y el conteo de piezas ya
 vendidas se guardan con Netlify Blobs. Normalmente Netlify se lo
 configura solo a las funciones sin que tengas que hacer nada — pero en
 este sitio ese paso automático no está funcionando (si ves el error
@@ -467,12 +469,13 @@ descuentan solas cuando un pedido se confirma como pagado:
 - Con Mercado Pago, esto pasa automáticamente: cuando el pago queda
   aprobado, un webhook (`netlify/functions/mp-webhook.js`) resta las
   piezas vendidas.
-- Con transferencia (WhatsApp) no hay forma de saber automáticamente si
-  el cliente ya pagó, así que ese pedido queda "pendiente" hasta que tú lo
-  confirmes a mano en el panel **`/admin.html`** de tu sitio (ej.
+- Con transferencia no hay forma de saber automáticamente si el cliente
+  ya pagó, así que ese pedido queda "pendiente" hasta que tú lo confirmes
+  a mano en el panel **`/admin.html`** de tu sitio (ej.
   `https://alpacca.mx/admin.html`) — ahí ves los pedidos por transferencia
-  esperando confirmación y le das "✅ Confirmar pago" (resta el stock) o
-  "✕ Cancelar" (lo descarta sin tocar el stock).
+  esperando confirmación (con su comprobante, si ya lo subieron) y le das
+  "✅ Ya me pagó" (resta el stock) o "✕ No pagó / Cancelar" (lo descarta
+  sin tocar el stock).
 
 Para entrar a `/admin.html` necesitas configurar en Netlify una variable
 `ADMIN_KEY` con una contraseña que tú inventes; es la clave que pide esa
@@ -490,7 +493,7 @@ seguido para que el conteo se mantenga al día.
 
 ### Dónde se guardan tus pedidos
 
-Todos los pedidos (por WhatsApp o por Mercado Pago, sin importar su
+Todos los pedidos (por transferencia o por Mercado Pago, sin importar su
 estado) quedan guardados y los puedes consultar en cualquier momento en
 `/admin.html`: arriba, los "Pedidos pendientes" que necesitan tu
 confirmación manual; abajo, el "Historial de pedidos" completo, con
@@ -522,8 +525,9 @@ pedido pendiente, pagado ni fallido.
 
 ### Comprobante de pago (captura o PDF) directo desde el sitio
 
-Después de enviar la cotización por WhatsApp, el carrito no se cierra
-solo: se queda abierto mostrando un panel de "¡Tu pedido quedó
+Después de darle "✅ Confirmar pedido por transferencia" (sin pasar por
+WhatsApp — el pedido se registra directo en el sitio), el carrito no se
+cierra solo: se queda abierto mostrando un panel de "¡Tu pedido quedó
 registrado!" con el folio, los mismos datos de depósito/transferencia
 (si los configuraste, ver sección 1.1) y un apartado para que el cliente
 suba directo ahí su comprobante de pago (una foto/captura o un PDF, hasta
@@ -673,17 +677,17 @@ El listado (función `getMenuItems()` en `app.js`) combina:
 
 - El carrito se guarda en el navegador del cliente (`localStorage`), así que
   sobrevive si recarga la página.
-- Al enviar la cotización se abre WhatsApp con un resumen del pedido; el
-  cliente debe darle "Enviar" manualmente desde WhatsApp.
-- El botón flotante "Contáctanos" y el link del footer son para preguntas
-  generales; el botón "Enviar cotización por WhatsApp" del carrito es para
-  el pedido armado.
+- El botón "✅ Confirmar pedido por transferencia" del carrito registra el
+  pedido directo en el sitio -- no abre WhatsApp. El botón flotante
+  "Contáctanos" y el link del footer siguen siendo por WhatsApp, pero son
+  para preguntas generales, no para el pedido armado.
 - Si el Google Sheet no carga (sin internet, URL incorrecta, hoja no
   publicada), el sitio cae automáticamente al catálogo de ejemplo en lugar
   de mostrar una página en blanco.
 - **Pedido mínimo**: mientras el carrito no llegue a `CONFIG.MIN_ORDER_MXN`
-  (un monto fijo en pesos), el botón "Enviar cotización por WhatsApp"
-  queda deshabilitado y se muestra cuánto le falta al cliente. Cambia
+  (un monto fijo en pesos), el botón "✅ Confirmar pedido por
+  transferencia" queda deshabilitado y se muestra cuánto le falta al
+  cliente. Cambia
   `MIN_ORDER_MXN` en `app.js` si el mínimo cambia (recuerda también
   actualizar `SHIPPING_MESSAGE`, que muestra el monto en la barra
   superior). **Los productos de la sección "En stock" no cuentan para

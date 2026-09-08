@@ -1,16 +1,20 @@
-// Registra un pedido nuevo (WhatsApp/transferencia o Mercado Pago).
+// Registra un pedido nuevo (transferencia o Mercado Pago).
 //
 // Body esperado (JSON):
 //   {
-//     source: "whatsapp" | "mercadopago",
+//     source: "transferencia" | "mercadopago",
 //     customer: { name, phone, cp, street, colonia, municipio, estado, referencias, notes },
 //     items: [{ sku, nombre, qty, precio, enStock }],
 //     subtotal, shippingMXN, grandTotal
 //   }
 //
+// "whatsapp" también se acepta como source por compatibilidad con pedidos
+// de versiones anteriores del sitio (antes de quitar el paso de WhatsApp
+// del checkout) -- se trata igual que "transferencia" en todo lo demás.
+//
 // En items[].precio el frontend ya manda el precio correcto según el
 // método de pago: el de la columna "Precio" (transferencia) para
-// source="whatsapp", o el de la columna "Precio Tarjeta" para
+// source="transferencia", o el de la columna "Precio Tarjeta" para
 // source="mercadopago" (ver CONFIG en app.js y la sección 4 del README).
 // Aquí NO se calcula ningún cargo ni porcentaje -- son dos precios fijos
 // y ya anunciados de antemano en el catálogo, cada uno se cobra tal cual.
@@ -40,8 +44,8 @@ exports.handler = async (event) => {
 
   const { source, customer, items, subtotal, shippingMXN, grandTotal } = body;
 
-  if (source !== "whatsapp" && source !== "mercadopago") {
-    return jsonResponse(400, { error: "source debe ser 'whatsapp' o 'mercadopago'." });
+  if (source !== "transferencia" && source !== "whatsapp" && source !== "mercadopago") {
+    return jsonResponse(400, { error: "source debe ser 'transferencia' o 'mercadopago'." });
   }
   if (!Array.isArray(items) || !items.length) {
     return jsonResponse(400, { error: "El pedido no tiene productos." });
@@ -90,7 +94,7 @@ exports.handler = async (event) => {
     return jsonResponse(500, { error: "No se pudo guardar el pedido." });
   }
 
-  if (source === "whatsapp") {
+  if (source === "transferencia" || source === "whatsapp") {
     return jsonResponse(200, { orderId: order.id });
   }
 

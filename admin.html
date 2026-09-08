@@ -62,7 +62,7 @@
     padding: 4px 12px;
     border-radius: 999px;
   }
-  .badge.whatsapp { background: #dcf8e8; color: #17803d; }
+  .badge.whatsapp, .badge.transferencia { background: #dcf8e8; color: #17803d; }
   .badge.mercadopago { background: #dbeeff; color: #0b6bc2; }
   .badge.status-pending { background: #fff3cd; color: #8a6d00; }
   .badge.status-paid { background: #dcf8e8; color: #17803d; }
@@ -388,7 +388,7 @@
   };
 
   function sourceLabel(o) {
-    return o.source === "mercadopago" ? "💳 Tarjeta" : "💬 WhatsApp";
+    return o.source === "mercadopago" ? "💳 Tarjeta" : "🏦 Transferencia";
   }
 
   function itemsListHTML(o) {
@@ -485,7 +485,7 @@
     const header = ["Fecha", "Origen", "Estado", "Cliente", "Teléfono", "Calle y número", "Colonia", "Municipio/Alcaldía", "Estado (Mx)", "CP", "Referencias", "Productos", "Total"];
     const rows = orders.map((o) => [
       o.createdAt ? new Date(o.createdAt).toLocaleString("es-MX") : "",
-      o.source === "mercadopago" ? "Tarjeta (Mercado Pago)" : "WhatsApp / transferencia",
+      o.source === "mercadopago" ? "Tarjeta (Mercado Pago)" : "Transferencia",
       STATUS_LABELS[o.status] || o.status,
       o.customer?.name || "",
       o.customer?.phone || "",
