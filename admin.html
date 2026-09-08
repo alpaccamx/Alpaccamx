@@ -72,6 +72,28 @@
   #empty, #status { text-align: center; color: #888; font-size: 14px; margin-top: 30px; }
   h2.section-title { max-width: 720px; margin: 36px auto 12px; font-size: 16px; color: #444; }
   #history-empty { text-align: center; color: #888; font-size: 14px; margin-top: 20px; }
+  .filters {
+    max-width: 720px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .filters-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filters-row input, .filters-row select {
+    flex: 1;
+    min-width: 130px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 13px;
+  }
+  .filters-row input[type="date"] { flex: 1 1 130px; }
+  #filter-count { font-size: 12px; color: #999; align-self: center; }
 </style>
 </head>
 <body>
@@ -93,6 +115,29 @@
   <div id="orders"></div>
 
   <h2 class="section-title" id="history-title" style="display:none;">📋 Historial de pedidos</h2>
+
+  <div class="filters" id="filters" style="display:none;">
+    <div class="filters-row">
+      <input id="filter-search" type="text" placeholder="Buscar por cliente, teléfono o producto..." />
+    </div>
+    <div class="filters-row">
+      <select id="filter-status">
+        <option value="">Todos los estados</option>
+        <option value="pending">⏳ Pendiente</option>
+        <option value="paid">✅ Pagado</option>
+        <option value="cancelled">✕ Cancelado</option>
+        <option value="failed">⚠️ Falló</option>
+      </select>
+      <input id="filter-from" type="date" title="Desde" />
+      <input id="filter-to" type="date" title="Hasta" />
+    </div>
+    <div class="filters-row">
+      <button class="btn-secondary" id="filter-clear-btn">Limpiar filtros</button>
+      <button class="btn-secondary" id="export-btn">⬇️ Exportar CSV</button>
+      <span id="filter-count"></span>
+    </div>
+  </div>
+
   <p id="history-empty" style="display:none;">Todavía no hay pedidos.</p>
   <div id="history"></div>
 
@@ -108,6 +153,15 @@
     const historyEl = document.getElementById("history");
     const historyTitleEl = document.getElementById("history-title");
     const historyEmptyEl = document.getElementById("history-empty");
+    const filtersEl = document.getElementById("filters");
+    const filterSearchEl = document.getElementById("filter-search");
+    const filterStatusEl = document.getElementById("filter-status");
+    const filterFromEl = document.getElementById("filter-from");
+    const filterToEl = document.getElementById("filter-to");
+    const filterCountEl = document.getElementById("filter-count");
+
+    let allOrders = [];
+    let filteredOrders = [];
 
     function formatPrice(n) {
       return (n || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
@@ -139,12 +193,45 @@
           return;
         }
         setStatus("");
-        const allOrders = data.orders || [];
+        allOrders = data.orders || [];
         renderPending(allOrders.filter((o) => o.status === "pending"));
-        renderHistory(allOrders);
+        filtersEl.style.display = "flex";
+        applyFilters();
       } catch (err) {
         setStatus("No se pudo conectar con el servidor.");
       }
+    }
+
+    function applyFilters() {
+      const search = filterSearchEl.value.trim().toLowerCase();
+      const status = filterStatusEl.value;
+      const from = filterFromEl.value;
+      const to = filterToEl.value;
+
+      filteredOrders = allOrders.filter((o) => {
+        if (status && o.status !== status) return false;
+        const fecha = o.createdAt ? o.createdAt.slice(0, 10) : "";
+        if (from && (!fecha || fecha < from)) return false;
+        if (to && (!fecha || fecha > to)) return false;
+        if (search && !matchesSearch(o, search)) return false;
+        return true;
+      });
+
+      renderHistory(filteredOrders);
+      const total = allOrders.length;
+      filterCountEl.textContent = filteredOrders.length === total
+        ? `${total} pedido${total === 1 ? "" : "s"}`
+        : `${filteredOrders.length} de ${total} pedidos`;
+    }
+
+    function matchesSearch(o, query) {
+      const haystack = [
+        o.customer?.name,
+        o.customer?.phone,
+        o.customer?.cp,
+        ...((o.items || []).map((it) => it.nombre)),
+      ].filter(Boolean).join(" ").toLowerCase();
+      return haystack.includes(query);
     }
 
     function renderPending(orders) {
@@ -230,6 +317,41 @@
         </div>`;
     }
 
+    function csvEscape(val) {
+      const s = String(val ?? "");
+      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }
+
+    function ordersToCSV(orders) {
+      const header = ["Fecha", "Origen", "Estado", "Cliente", "Teléfono", "CP", "Productos", "Total"];
+      const rows = orders.map((o) => [
+        o.createdAt ? new Date(o.createdAt).toLocaleString("es-MX") : "",
+        o.source === "mercadopago" ? "Mercado Pago" : "WhatsApp / transferencia",
+        STATUS_LABELS[o.status] || o.status,
+        o.customer?.name || "",
+        o.customer?.phone || "",
+        o.customer?.cp || "",
+        (o.items || []).map((it) => `${it.nombre} x${it.qty}`).join("; "),
+        o.grandTotal || 0,
+      ]);
+      return [header, ...rows].map((cols) => cols.map(csvEscape).join(",")).join("\r\n");
+    }
+
+    function exportCSV() {
+      if (!filteredOrders.length) return;
+      const csv = ordersToCSV(filteredOrders);
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pedidos-alpacca-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     function escapeHtml(str) {
       return String(str ?? "").replace(/[&<>"']/g, (c) => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -276,6 +398,14 @@
       historyEl.innerHTML = "";
       historyEmptyEl.style.display = "none";
       historyTitleEl.style.display = "none";
+      filtersEl.style.display = "none";
+      allOrders = [];
+      filteredOrders = [];
+      filterSearchEl.value = "";
+      filterStatusEl.value = "";
+      filterFromEl.value = "";
+      filterToEl.value = "";
+      filterCountEl.textContent = "";
     }
 
     document.getElementById("login-btn").addEventListener("click", login);
@@ -284,6 +414,18 @@
     });
     document.getElementById("refresh-btn").addEventListener("click", fetchOrders);
     document.getElementById("logout-btn").addEventListener("click", logout);
+    document.getElementById("export-btn").addEventListener("click", exportCSV);
+    document.getElementById("filter-clear-btn").addEventListener("click", () => {
+      filterSearchEl.value = "";
+      filterStatusEl.value = "";
+      filterFromEl.value = "";
+      filterToEl.value = "";
+      applyFilters();
+    });
+    filterSearchEl.addEventListener("input", applyFilters);
+    filterStatusEl.addEventListener("change", applyFilters);
+    filterFromEl.addEventListener("change", applyFilters);
+    filterToEl.addEventListener("change", applyFilters);
 
     const savedKey = sessionStorage.getItem(KEY_STORAGE);
     if (savedKey) {
