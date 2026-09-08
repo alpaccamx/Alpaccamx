@@ -1,6 +1,7 @@
-// Lista los pedidos pendientes de confirmar (WhatsApp/transferencia, y
-// también intentos de Mercado Pago que se quedaron a medias), para el
-// panel /admin.html.
+// Lista TODOS los pedidos (pendientes, pagados, cancelados, fallidos)
+// para el panel /admin.html -- ahí se dividen en "Pedidos pendientes"
+// (los que necesitan que confirmes a mano) y "Historial de pedidos"
+// (todo, de más reciente a más antiguo).
 //
 // Requiere el header "x-admin-key" (o ?key= en la URL) con el valor de la
 // variable de entorno ADMIN_KEY configurada en Netlify.
@@ -24,7 +25,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const orders = await listOrders({ status: "pending" });
+    const orders = await listOrders({});
     return jsonResponse(200, { orders });
   } catch (err) {
     console.error("Error listando pedidos:", err);

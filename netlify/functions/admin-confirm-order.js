@@ -9,6 +9,7 @@
 // Body esperado (JSON): { orderId, action: "confirm" | "cancel" }
 
 const { transitionOrder, applyStockDecrement } = require("./lib/blob-store.js");
+const { notifySellerWhatsApp, orderPaidMessage } = require("./lib/whatsapp.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -44,7 +45,10 @@ exports.handler = async (event) => {
         confirmedBy: "admin",
       });
       if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
-      if (transitioned) await applyStockDecrement(order.items);
+      if (transitioned) {
+        await applyStockDecrement(order.items);
+        await notifySellerWhatsApp(orderPaidMessage(order));
+      }
       return jsonResponse(200, { order });
     }
 
