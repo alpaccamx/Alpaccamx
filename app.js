@@ -2365,6 +2365,20 @@ async function sendQuote(e) {
     return;
   }
 
+  // El comprobante de transferencia es obligatorio -- no se registra el
+  // pedido sin él (el input ya tiene "required", esto es por si acaso).
+  const fileInput = document.getElementById("proof-file-input");
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) {
+    setStatus("Sube tu comprobante de transferencia para poder confirmar el pedido.");
+    return;
+  }
+  const proofError = validateProofFile(file);
+  if (proofError) {
+    setStatus(proofError);
+    return;
+  }
+
   const sendBtn = document.getElementById("send-quote");
   const originalLabel = sendBtn.innerHTML;
   sendBtn.disabled = true;
@@ -2379,6 +2393,14 @@ async function sendQuote(e) {
     return;
   }
 
+  sendBtn.innerHTML = "<span>Subiendo comprobante…</span>";
+  let proofFailed = false;
+  try {
+    await uploadProofFile(orderId, file);
+  } catch (err) {
+    proofFailed = true;
+  }
+
   sendBtn.disabled = false;
   sendBtn.innerHTML = originalLabel;
 
@@ -2387,9 +2409,8 @@ async function sendQuote(e) {
   renderCart();
   document.getElementById("quote-form").reset();
   // No se cierra el carrito aquí -- se queda abierto mostrando el panel
-  // de "pedido enviado" con los datos para transferir y subir el
-  // comprobante (ver showQuoteSuccess).
-  showQuoteSuccess(orderId);
+  // de "pedido enviado" (ver showQuoteSuccess).
+  showQuoteSuccess(orderId, proofFailed);
 }
 
 /* Registra el pedido para que aparezca en /admin.html y, cuando
@@ -2429,84 +2450,96 @@ function recordTransferOrder() {
 }
 
 /* Muestra, dentro del mismo carrito, el panel de "pedido enviado" con el
-   folio, los datos de depósito/transferencia y el apartado para subir el
-   comprobante de pago (imagen o PDF) directo desde el sitio. */
-function showQuoteSuccess(orderId) {
+   folio y los datos de depósito/transferencia. El comprobante ya se subió
+   como parte del mismo envío (ver sendQuote) -- si por alguna razón esa
+   subida falló, aquí se muestra un bloque para reintentarla, para no
+   dejar el pedido sin comprobante. */
+function showQuoteSuccess(orderId, proofFailed) {
   document.getElementById("quote-form").classList.add("hidden");
   const panel = document.getElementById("quote-success-panel");
   panel.classList.remove("hidden");
   document.getElementById("success-order-id").textContent = orderId.slice(0, 8).toUpperCase();
 
-  const fileInput = document.getElementById("proof-file-input");
-  fileInput.value = "";
-  const statusEl = document.getElementById("proof-status");
-  statusEl.textContent = "";
-  statusEl.className = "text-[11px] text-ink/50 mt-1";
+  const retryBlock = document.getElementById("proof-retry-block");
+  retryBlock.classList.toggle("hidden", !proofFailed);
+  if (proofFailed) {
+    const retryInput = document.getElementById("proof-retry-file-input");
+    retryInput.value = "";
+    const retryStatus = document.getElementById("proof-retry-status");
+    retryStatus.textContent = "";
+    retryStatus.className = "text-[11px] text-ink/50 mt-1";
 
-  const uploadBtn = document.getElementById("proof-upload-btn");
-  uploadBtn.disabled = false;
-  uploadBtn.innerHTML = "<span>📤 Enviar comprobante</span>";
-  uploadBtn.onclick = () => uploadPaymentProof(orderId);
+    const retryBtn = document.getElementById("proof-retry-btn");
+    retryBtn.disabled = false;
+    retryBtn.innerHTML = "<span>📤 Reintentar subir comprobante</span>";
+    retryBtn.onclick = () => {
+      const file = retryInput.files && retryInput.files[0];
+      const showError = (msg) => {
+        retryStatus.textContent = msg;
+        retryStatus.className = "text-[11px] text-rose mt-1";
+      };
+      if (!file) {
+        showError("Selecciona una imagen o PDF primero.");
+        return;
+      }
+      const proofError = validateProofFile(file);
+      if (proofError) {
+        showError(proofError);
+        return;
+      }
+      retryBtn.disabled = true;
+      retryBtn.innerHTML = "<span>Subiendo…</span>";
+      uploadProofFile(orderId, file)
+        .then(() => {
+          retryStatus.textContent = "✅ ¡Comprobante recibido! Gracias, te confirmaremos tu pedido pronto.";
+          retryStatus.className = "text-[11px] text-ink/70 mt-1";
+          retryBtn.innerHTML = "<span>✅ Comprobante enviado</span>";
+        })
+        .catch((err) => {
+          showError(err.message || "No se pudo subir el comprobante. Intenta de nuevo.");
+          retryBtn.disabled = false;
+          retryBtn.innerHTML = "<span>📤 Reintentar subir comprobante</span>";
+        });
+    };
+  }
 }
 
 const MAX_PROOF_FILE_MB = 4;
 
-function uploadPaymentProof(orderId) {
-  const input = document.getElementById("proof-file-input");
-  const statusEl = document.getElementById("proof-status");
-  const uploadBtn = document.getElementById("proof-upload-btn");
-  const file = input.files && input.files[0];
-
-  const showError = (msg) => {
-    statusEl.textContent = msg;
-    statusEl.className = "text-[11px] text-rose mt-1";
-  };
-
-  if (!file) {
-    showError("Selecciona una imagen o PDF primero.");
-    return;
-  }
+/* Valida tipo y tamaño del comprobante antes de mandarlo -- regresa un
+   mensaje de error, o null si el archivo está bien. */
+function validateProofFile(file) {
   const isAllowedType = file.type.startsWith("image/") || file.type === "application/pdf";
-  if (!isAllowedType) {
-    showError("Solo se aceptan imágenes o archivos PDF.");
-    return;
-  }
+  if (!isAllowedType) return "Solo se aceptan imágenes o archivos PDF.";
   if (file.size > MAX_PROOF_FILE_MB * 1024 * 1024) {
-    showError(`El archivo pesa más de ${MAX_PROOF_FILE_MB}MB. Usa uno más ligero.`);
-    return;
+    return `El archivo pesa más de ${MAX_PROOF_FILE_MB}MB. Usa uno más ligero.`;
   }
+  return null;
+}
 
-  uploadBtn.disabled = true;
-  uploadBtn.innerHTML = "<span>Subiendo…</span>";
-  statusEl.textContent = "";
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    const base64 = String(reader.result).split(",")[1] || "";
-    fetch("/.netlify/functions/upload-payment-proof", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, filename: file.name, contentType: file.type, dataBase64: base64 }),
-    })
-      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-      .then(({ ok, data }) => {
-        if (!ok) throw new Error(data.error || "No se pudo subir el comprobante.");
-        statusEl.textContent = "✅ ¡Comprobante recibido! Gracias, te confirmaremos tu pedido pronto.";
-        statusEl.className = "text-[11px] text-ink/70 mt-1";
-        uploadBtn.innerHTML = "<span>✅ Comprobante enviado</span>";
+/* Sube el comprobante de pago (imagen o PDF) de un pedido ya registrado.
+   Regresa una Promise que se rechaza con un Error si algo falla, para
+   que quien la llame decida cómo avisarle al cliente. */
+function uploadProofFile(orderId, file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = String(reader.result).split(",")[1] || "";
+      fetch("/.netlify/functions/upload-payment-proof", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, filename: file.name, contentType: file.type, dataBase64: base64 }),
       })
-      .catch((err) => {
-        showError(err.message || "No se pudo subir el comprobante. Intenta de nuevo.");
-        uploadBtn.disabled = false;
-        uploadBtn.innerHTML = "<span>📤 Enviar comprobante</span>";
-      });
-  };
-  reader.onerror = () => {
-    showError("No se pudo leer el archivo. Intenta de nuevo.");
-    uploadBtn.disabled = false;
-    uploadBtn.innerHTML = "<span>📤 Enviar comprobante</span>";
-  };
-  reader.readAsDataURL(file);
+        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok) throw new Error(data.error || "No se pudo subir el comprobante.");
+          resolve();
+        })
+        .catch(reject);
+    };
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    reader.readAsDataURL(file);
+  });
 }
 
 function closeQuoteSuccess() {

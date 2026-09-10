@@ -523,16 +523,22 @@ pedido" que aparece en su tarjeta del historial — por seguridad, esta
 opción solo aparece en pedidos ya cancelados; no se puede borrar un
 pedido pendiente, pagado ni fallido.
 
-### Comprobante de pago (captura o PDF) directo desde el sitio
+### Comprobante de pago (captura o PDF) directo desde el sitio — obligatorio
 
-Después de darle "✅ Confirmar pedido por transferencia" (sin pasar por
-WhatsApp — el pedido se registra directo en el sitio), el carrito no se
-cierra solo: se queda abierto mostrando un panel de "¡Tu pedido quedó
-registrado!" con el número de orden, los mismos datos de
-depósito/transferencia (si los configuraste, ver sección 1.1) y un
-apartado para que el cliente suba directo ahí su comprobante de pago
-(una foto/captura o un PDF, hasta 4MB) — así no tiene que mandarlo por
-WhatsApp aparte.
+Para pedir por transferencia, el cliente tiene que subir su comprobante
+de pago (una foto/captura o un PDF, hasta 4MB) **en el mismo formulario**,
+antes de poder darle "✅ Confirmar pedido por transferencia" — el campo es
+obligatorio (el navegador no deja enviar el formulario sin un archivo
+seleccionado), así que no se puede registrar un pedido por transferencia
+sin comprobante.
+
+Los datos de depósito/transferencia (si los configuraste, ver sección
+1.1) se muestran arriba del campo para que el cliente transfiera primero
+y luego adjunte la captura. Al darle "Confirmar pedido", el sitio manda
+el pedido y sube el comprobante en el mismo paso; si por algún problema
+de conexión el comprobante no se pudo subir (el pedido sí quedó
+registrado), aparece un aviso con un botón para volver a intentar la
+subida sin perder el pedido.
 
 El archivo se guarda junto al pedido (en un Netlify Blobs propio, no en
 el Sheet) y, en `/admin.html`, cualquier pedido que ya tenga comprobante
