@@ -1199,7 +1199,9 @@ function productCardHTML(p, { rank } = {}) {
         <div class="flex flex-wrap gap-1 mb-1">
           ${
             p.enStock
-              ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
+              ? p.stockPiezas > 0
+                ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
+                : `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Agotado</span>`
               : ""
           }
           ${
@@ -1233,7 +1235,7 @@ function productCardHTML(p, { rank } = {}) {
                 : ""
             }
           </div>
-          <button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
+          <button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants || (p.enStock && p.stockPiezas <= 0) ? "disabled" : ""}
             class="rounded-full bg-rose text-cream text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
             Agregar
           </button>
