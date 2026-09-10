@@ -87,6 +87,25 @@
     font-size: 13px;
   }
   .tracking-block button { margin-top: 8px; width: 100%; }
+  .guide-block { margin-top: 14px; padding-top: 14px; border-top: 1px dashed #eee; }
+  .guide-block .guide-toggle { width: 100%; }
+  .guide-form { margin-top: 10px; display: none; flex-direction: column; gap: 8px; }
+  .guide-form.open { display: flex; }
+  .guide-form .field-label { font-size: 11px; color: #999; font-weight: 700; text-transform: uppercase; }
+  .guide-form .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .guide-form input {
+    flex: 1;
+    min-width: 110px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 13px;
+  }
+  .rate-options { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .rate-option { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .rate-option.selected { border-color: #e07a8f; background: #fdf1f3; }
+  .rate-option .price { margin-left: auto; font-weight: 800; white-space: nowrap; }
+  .guide-error { color: #b03a2e; font-size: 12px; }
   #empty, #status { text-align: center; color: #888; font-size: 15px; margin-top: 30px; }
   h2.section-title { margin: 40px 0 14px; font-size: 18px; color: #444; }
   #history-empty { text-align: center; color: #888; font-size: 15px; margin-top: 20px; }
@@ -177,6 +196,15 @@
   <p id="history-empty" style="display:none;">Todavía no tienes pedidos.</p>
   <div id="history"></div>
 </div>
+
+<datalist id="weight-presets">
+  <option value="0.5"></option>
+  <option value="1"></option>
+  <option value="1.5"></option>
+  <option value="2"></option>
+  <option value="3"></option>
+  <option value="5"></option>
+</datalist>
 
 <script>
   const KEY_STORAGE = "alpacca_admin_key";
@@ -347,6 +375,15 @@
     historyEl.querySelectorAll("[data-send-tracking]").forEach((btn) => {
       btn.addEventListener("click", () => sendTracking(btn.dataset.sendTracking, btn));
     });
+    historyEl.querySelectorAll("[data-guide-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => toggleGuideForm(btn.dataset.guideToggle));
+    });
+    historyEl.querySelectorAll("[data-guide-quote]").forEach((btn) => {
+      btn.addEventListener("click", () => quoteGuide(btn.dataset.guideQuote));
+    });
+    historyEl.querySelectorAll("[data-guide-generate]").forEach((btn) => {
+      btn.addEventListener("click", () => generateGuide(btn.dataset.guideGenerate, btn));
+    });
     wireCopyAddressButtons(historyEl);
   }
 
@@ -462,6 +499,164 @@
     }
   }
 
+  /* Estado temporal (mientras el admin cotiza y elige paquetería) de cada
+     formulario de "generar guía" -- no se guarda en el pedido hasta que
+     de verdad se genera la guía. */
+  const guideState = {};
+
+  function toggleGuideForm(orderId) {
+    const form = document.getElementById(`guide-form-${orderId}`);
+    if (form) form.classList.toggle("open");
+  }
+
+  async function quoteGuide(orderId) {
+    const weight = Number(document.querySelector(`[data-guide-weight="${orderId}"]`).value);
+    const errorEl = document.querySelector(`[data-guide-error="${orderId}"]`);
+    const ratesEl = document.querySelector(`[data-guide-rates="${orderId}"]`);
+    const generateBtn = document.querySelector(`[data-guide-generate="${orderId}"]`);
+    errorEl.textContent = "";
+    ratesEl.innerHTML = "";
+    generateBtn.disabled = true;
+    guideState[orderId] = null;
+
+    if (!weight || weight <= 0) {
+      errorEl.textContent = "Escribe un peso válido.";
+      return;
+    }
+    const destinationZipCode = document.querySelector(`[data-guide-zip="${orderId}"]`).value.trim();
+    if (!destinationZipCode) {
+      errorEl.textContent = "Escribe el código postal del destinatario.";
+      return;
+    }
+
+    ratesEl.innerHTML = "Cotizando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-shipping-rates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ orderId, weight, destinationZipCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        ratesEl.innerHTML = "";
+        errorEl.textContent = data.error || "No se pudo cotizar el envío.";
+        return;
+      }
+      const rates = (data.rates || []).filter((r) => r.available);
+      if (!rates.length) {
+        ratesEl.innerHTML = "";
+        errorEl.textContent = "No hay opciones de envío disponibles para ese código postal.";
+        return;
+      }
+      guideState[orderId] = { rates, selected: null };
+      ratesEl.innerHTML = rates.map((r, i) => `
+        <label class="rate-option" data-rate-option="${orderId}" data-rate-index="${i}">
+          <input type="radio" name="rate-${orderId}" value="${i}" />
+          ${escapeHtml(r.summary || "")}${r.details?.deliveryCommitment ? " · " + escapeHtml(r.details.deliveryCommitment) : ""}
+          <span class="price">${formatPrice(r.details?.total)}</span>
+        </label>`).join("");
+      ratesEl.querySelectorAll(`[data-rate-option="${orderId}"]`).forEach((label) => {
+        label.addEventListener("click", () => {
+          const idx = Number(label.dataset.rateIndex);
+          guideState[orderId].selected = idx;
+          ratesEl.querySelectorAll(`[data-rate-option="${orderId}"]`).forEach((l) => l.classList.remove("selected"));
+          label.classList.add("selected");
+          label.querySelector('input[type="radio"]').checked = true;
+          generateBtn.disabled = false;
+        });
+      });
+    } catch (err) {
+      ratesEl.innerHTML = "";
+      errorEl.textContent = "No se pudo conectar con el servidor.";
+    }
+  }
+
+  /* Genera la guía con la paquetería elegida, guarda el número de guía en
+     el pedido y abre WhatsApp con el aviso listo para el cliente -- mismo
+     truco de abrir la pestaña en blanco antes del await para que el
+     navegador no la bloquee. */
+  async function generateGuide(orderId, btn) {
+    const errorEl = document.querySelector(`[data-guide-error="${orderId}"]`);
+    errorEl.textContent = "";
+    const state = guideState[orderId];
+    if (!state || state.selected === null || state.selected === undefined) {
+      errorEl.textContent = "Elige una opción de envío primero.";
+      return;
+    }
+    const rate = state.rates[state.selected];
+    const weight = Number(document.querySelector(`[data-guide-weight="${orderId}"]`).value);
+
+    const nameVal = document.querySelector(`[data-guide-name="${orderId}"]`).value.trim().slice(0, 30);
+    const phoneDigits = document.querySelector(`[data-guide-phone="${orderId}"]`).value.replace(/[^0-9]/g, "").slice(0, 10);
+    const destination = {
+      company: nameVal || "Cliente",
+      name: nameVal || "Cliente",
+      phone: phoneDigits,
+      street: document.querySelector(`[data-guide-street="${orderId}"]`).value.trim(),
+      exteriorNumber: document.querySelector(`[data-guide-ext="${orderId}"]`).value.trim() || "S/N",
+      neighborhood: document.querySelector(`[data-guide-neighborhood="${orderId}"]`).value.trim().slice(0, 25),
+      zipCode: document.querySelector(`[data-guide-zip="${orderId}"]`).value.trim(),
+      references: document.querySelector(`[data-guide-references="${orderId}"]`).value.trim().slice(0, 25) || "Sin referencias",
+    };
+    const interiorVal = document.querySelector(`[data-guide-int="${orderId}"]`).value.trim();
+    if (interiorVal) destination.interiorNumber = interiorVal;
+
+    const order = allOrders.find((o) => o.id === orderId);
+    const waWindow = window.open("", "_blank", "noopener");
+
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Generando guía...";
+
+    try {
+      const res = await fetch("/.netlify/functions/admin-generate-guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({
+          orderId,
+          weight,
+          courier: rate.details?.courier,
+          service: rate.details?.service,
+          destination,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (waWindow) waWindow.close();
+        errorEl.textContent = data.error || "No se pudo generar la guía.";
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+
+      const trackingNumber = data.order.trackingNumber;
+      const carrier = data.order.carrier;
+      const waNumber = phoneDigits.length === 10 ? "521" + phoneDigits : phoneDigits;
+
+      if (waNumber) {
+        const name = order?.customer?.name || destination.name || "";
+        const lines = [
+          `¡Hola${name ? " " + name : ""}! 📦 Tu pedido con Alpacca ya va en camino.`,
+          "",
+          `Número de guía: ${trackingNumber}`,
+          `Paquetería: ${carrier}`,
+        ];
+        const message = lines.join("\n");
+        if (waWindow) waWindow.location.href = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
+      } else if (waWindow) {
+        waWindow.close();
+      }
+
+      setStatus("");
+      fetchOrders();
+    } catch (err) {
+      if (waWindow) waWindow.close();
+      errorEl.textContent = "No se pudo conectar con el servidor.";
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
   const STATUS_LABELS = {
     pending: "⏳ Pendiente",
     paid: "✅ Pagado",
@@ -534,6 +729,43 @@
       </div>`;
   }
 
+  /* Solo en pedidos pagados: botón para generar la guía real con Envíos
+     Perros (cotiza, tú eliges la paquetería y se genera + avisa por
+     WhatsApp). Caja fija 2x2x2 cm, solo el peso lo escribes tú. */
+  function guideBlockHTML(o) {
+    if (o.status !== "paid") return "";
+    const c = o.customer || {};
+    return `
+      <div class="guide-block">
+        <button type="button" class="btn-secondary guide-toggle" data-guide-toggle="${o.id}">📦 Generar guía real (Envíos Perros)</button>
+        <div class="guide-form" id="guide-form-${o.id}">
+          <label class="field-label">Peso del paquete (kg) · caja 2x2x2 cm</label>
+          <div class="row">
+            <input type="number" step="0.1" min="0.1" placeholder="Ej. 1.5" list="weight-presets" data-guide-weight="${o.id}" />
+            <button type="button" class="btn-secondary" data-guide-quote="${o.id}">💲 Cotizar</button>
+          </div>
+          <label class="field-label">Datos del destinatario (revísalos antes de generar)</label>
+          <div class="row">
+            <input type="text" placeholder="Nombre" value="${escapeHtml(c.name || "")}" data-guide-name="${o.id}" />
+            <input type="text" placeholder="Teléfono" value="${escapeHtml(c.phone || "")}" data-guide-phone="${o.id}" />
+          </div>
+          <div class="row">
+            <input type="text" placeholder="Calle" value="${escapeHtml(c.street || "")}" data-guide-street="${o.id}" />
+            <input type="text" placeholder="No. ext." data-guide-ext="${o.id}" />
+            <input type="text" placeholder="No. int. (opcional)" data-guide-int="${o.id}" />
+          </div>
+          <div class="row">
+            <input type="text" placeholder="Colonia" value="${escapeHtml(c.colonia || "")}" data-guide-neighborhood="${o.id}" />
+            <input type="text" placeholder="Código postal" value="${escapeHtml(c.cp || "")}" data-guide-zip="${o.id}" />
+          </div>
+          <input type="text" placeholder="Referencias" value="${escapeHtml(c.referencias || "")}" data-guide-references="${o.id}" />
+          <div class="rate-options" data-guide-rates="${o.id}"></div>
+          <div class="guide-error" data-guide-error="${o.id}"></div>
+          <button type="button" class="btn-primary" data-guide-generate="${o.id}" disabled>📦 Generar guía y avisar por WhatsApp</button>
+        </div>
+      </div>`;
+  }
+
   function historyCardHTML(o) {
     const statusLabel = STATUS_LABELS[o.status] || o.status;
     const borderColor = STATUS_BORDER_COLORS[o.status] || "#ddd";
@@ -554,6 +786,7 @@
         ${customerHTML(o)}
         ${proofLinkHTML(o)}
         ${trackingBlockHTML(o)}
+        ${guideBlockHTML(o)}
         ${deleteBtn}
       </div>`;
   }
