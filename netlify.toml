@@ -1,2 +1,10 @@
 [build]
   functions = "netlify/functions"
+  # NOTIFY_WHATSAPP_NUMBER no es un secreto real -- es el mismo número de
+  # WhatsApp del negocio que ya aparece público en el sitio (CONFIG.WHATSAPP_NUMBER
+  # en app.js, botón "Hablar con Mae"), por eso el escáner de secretos de
+  # Netlify lo detecta como coincidencia y bloquea el deploy. Se excluye
+  # explícitamente porque no hay nada que proteger.
+
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "NOTIFY_WHATSAPP_NUMBER"
