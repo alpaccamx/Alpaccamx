@@ -5,10 +5,10 @@
 // variables):
 //   ENVIOS_PERROS_API_KEY -> token de la sección "Conexión API Rest"
 //   ENVIOS_PERROS_ORIGIN  -> JSON con los datos del remitente (tú), ej:
-//     {"company":"Alpacca","name":"Maelyn Arias","phone":"6571920559",
-//      "email":"alpacca.mx@gmail.com","street":"Via Somero",
-//      "exteriorNumber":"8503","interiorNumber":"17","neighborhood":"Harmoni",
-//      "zipCode":"32668","references":"Porton blanco"}
+//     {"company":"Tu negocio","name":"Tu nombre","phone":"5512345678",
+//      "email":"tu@correo.com","street":"Tu calle",
+//      "exteriorNumber":"123","interiorNumber":"4","neighborhood":"Tu colonia",
+//      "zipCode":"12345","references":"Referencias para el repartidor"}
 
 const BASE_URL = "https://app.enviosperros.com/api/v3";
 

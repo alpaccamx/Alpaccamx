@@ -7,7 +7,7 @@
 //   SKYDROPX_CLIENT_ID
 //   SKYDROPX_CLIENT_SECRET
 //   SKYDROPX_ORIGIN -> JSON con los datos de origen (remitente), ej:
-//     {"zip":"32668","state":"Chihuahua","city":"Ciudad Juárez"}
+//     {"zip":"12345","state":"Tu estado","city":"Tu municipio o ciudad"}
 
 const BASE_URL = "https://pro.skydropx.com";
 
