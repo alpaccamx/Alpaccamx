@@ -524,17 +524,20 @@
       return;
     }
     const destinationZipCode = document.querySelector(`[data-guide-zip="${orderId}"]`).value.trim();
+    const destinationState = document.querySelector(`[data-guide-state="${orderId}"]`).value.trim();
+    const destinationCity = document.querySelector(`[data-guide-city="${orderId}"]`).value.trim();
+    const destinationNeighborhood = document.querySelector(`[data-guide-neighborhood="${orderId}"]`).value.trim();
     if (!destinationZipCode) {
       errorEl.textContent = "Escribe el código postal del destinatario.";
       return;
     }
 
-    ratesEl.innerHTML = "Cotizando...";
+    ratesEl.innerHTML = "Cotizando en Envíos Perros y Skydropx...";
     try {
       const res = await fetch("/.netlify/functions/admin-shipping-rates", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ orderId, weight, destinationZipCode }),
+        body: JSON.stringify({ orderId, weight, destinationZipCode, destinationState, destinationCity, destinationNeighborhood }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -542,18 +545,20 @@
         errorEl.textContent = data.error || "No se pudo cotizar el envío.";
         return;
       }
-      const rates = (data.rates || []).filter((r) => r.available);
+      const rates = data.rates || [];
       if (!rates.length) {
         ratesEl.innerHTML = "";
-        errorEl.textContent = "No hay opciones de envío disponibles para ese código postal.";
+        errorEl.textContent = "No hay opciones de envío disponibles para esos datos.";
         return;
       }
       guideState[orderId] = { rates, selected: null };
+      const providerBadge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
       ratesEl.innerHTML = rates.map((r, i) => `
         <label class="rate-option" data-rate-option="${orderId}" data-rate-index="${i}">
           <input type="radio" name="rate-${orderId}" value="${i}" />
-          ${escapeHtml(r.summary || "")}${r.details?.deliveryCommitment ? " · " + escapeHtml(r.details.deliveryCommitment) : ""}
-          <span class="price">${formatPrice(r.details?.total)}</span>
+          ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""}
+          <span style="font-size:11px;color:#999;">(${providerBadge[r.provider] || r.provider})</span>
+          <span class="price">${formatPrice(r.total)}</span>
         </label>`).join("");
       ratesEl.querySelectorAll(`[data-rate-option="${orderId}"]`).forEach((label) => {
         label.addEventListener("click", () => {
@@ -589,12 +594,13 @@
     const nameVal = document.querySelector(`[data-guide-name="${orderId}"]`).value.trim().slice(0, 30);
     const phoneDigits = document.querySelector(`[data-guide-phone="${orderId}"]`).value.replace(/[^0-9]/g, "").slice(0, 10);
     const destination = {
-      company: nameVal || "Cliente",
       name: nameVal || "Cliente",
       phone: phoneDigits,
       street: document.querySelector(`[data-guide-street="${orderId}"]`).value.trim(),
       exteriorNumber: document.querySelector(`[data-guide-ext="${orderId}"]`).value.trim() || "S/N",
       neighborhood: document.querySelector(`[data-guide-neighborhood="${orderId}"]`).value.trim().slice(0, 25),
+      city: document.querySelector(`[data-guide-city="${orderId}"]`).value.trim(),
+      state: document.querySelector(`[data-guide-state="${orderId}"]`).value.trim(),
       zipCode: document.querySelector(`[data-guide-zip="${orderId}"]`).value.trim(),
       references: document.querySelector(`[data-guide-references="${orderId}"]`).value.trim().slice(0, 25) || "Sin referencias",
     };
@@ -615,8 +621,13 @@
         body: JSON.stringify({
           orderId,
           weight,
-          courier: rate.details?.courier,
-          service: rate.details?.service,
+          provider: rate.provider,
+          courier: rate.carrier,
+          service: rate.service,
+          quotationId: rate.quotationId,
+          rateId: rate.rateId,
+          carrierSlug: rate.carrierSlug,
+          serviceCode: rate.serviceCode,
           destination,
         }),
       });
@@ -737,12 +748,12 @@
     const c = o.customer || {};
     return `
       <div class="guide-block">
-        <button type="button" class="btn-secondary guide-toggle" data-guide-toggle="${o.id}">📦 Generar guía real (Envíos Perros)</button>
+        <button type="button" class="btn-secondary guide-toggle" data-guide-toggle="${o.id}">📦 Generar guía real (comparar precios)</button>
         <div class="guide-form" id="guide-form-${o.id}">
           <label class="field-label">Peso del paquete (kg) · caja 2x2x2 cm</label>
           <div class="row">
             <input type="number" step="0.1" min="0.1" placeholder="Ej. 1.5" list="weight-presets" data-guide-weight="${o.id}" />
-            <button type="button" class="btn-secondary" data-guide-quote="${o.id}">💲 Cotizar</button>
+            <button type="button" class="btn-secondary" data-guide-quote="${o.id}">💲 Cotizar y comparar</button>
           </div>
           <label class="field-label">Datos del destinatario (revísalos antes de generar)</label>
           <div class="row">
@@ -757,6 +768,10 @@
           <div class="row">
             <input type="text" placeholder="Colonia" value="${escapeHtml(c.colonia || "")}" data-guide-neighborhood="${o.id}" />
             <input type="text" placeholder="Código postal" value="${escapeHtml(c.cp || "")}" data-guide-zip="${o.id}" />
+          </div>
+          <div class="row">
+            <input type="text" placeholder="Municipio/Alcaldía" value="${escapeHtml(c.municipio || "")}" data-guide-city="${o.id}" />
+            <input type="text" placeholder="Estado" value="${escapeHtml(c.estado || "")}" data-guide-state="${o.id}" />
           </div>
           <input type="text" placeholder="Referencias" value="${escapeHtml(c.referencias || "")}" data-guide-references="${o.id}" />
           <div class="rate-options" data-guide-rates="${o.id}"></div>

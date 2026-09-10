@@ -563,21 +563,31 @@ No es 100% automático (tú das el último clic), pero funciona sin
 necesidad de configurar la API de WhatsApp Business ni esperar
 aprobaciones de Meta.
 
-### Generar la guía real con Envíos Perros
+### Generar la guía real comparando Envíos Perros y Skydropx
 
 Además de capturar el número de guía a mano, cada pedido pagado tiene un
-botón **"📦 Generar guía real (Envíos Perros)"** que cotiza y genera la
-guía de verdad usando la API de [Envíos Perros](https://enviosperros.com):
+botón **"📦 Generar guía real (comparar precios)"** que cotiza al mismo
+tiempo en [Envíos Perros](https://enviosperros.com) y en
+[Skydropx](https://pro.skydropx.com), junta las dos listas de opciones y
+te las muestra ordenadas de la más barata a la más cara (con 🏆 en la
+primera):
 
 1. Escribes el peso del paquete (la caja va fija en 2x2x2 cm — solo el
    peso importa para la cotización).
 2. Revisas/completas los datos del destinatario (vienen precargados del
    pedido, pero puedes corregirlos, por ejemplo el número exterior si no
    quedó guardado).
-3. Le das "Cotizar" y eliges de la lista la paquetería que quieras usar.
-4. Le das "Generar guía y avisar por WhatsApp" — se genera la guía real,
-   se guarda el número de guía en el pedido, y se abre WhatsApp con el
-   aviso listo para el cliente (mismo mecanismo que el botón manual).
+3. Le das "Cotizar y comparar" y eliges de la lista combinada la
+   paquetería que quieras usar (no tiene que ser la más barata, tú
+   decides).
+4. Le das "Generar guía y avisar por WhatsApp" — se genera la guía real
+   en la paquetería/plataforma que elegiste, se guarda el número de guía
+   en el pedido, y se abre WhatsApp con el aviso listo para el cliente
+   (mismo mecanismo que el botón manual).
+
+Si una de las dos plataformas falla al cotizar (por ejemplo por no tener
+sus variables configuradas), el sitio simplemente muestra las opciones de
+la otra — no hace falta tener las dos conectadas para usar el botón.
 
 Variables de entorno necesarias en Netlify:
 
@@ -588,9 +598,13 @@ Variables de entorno necesarias en Netlify:
   ```json
   {"company":"Alpacca","name":"Tu nombre","phone":"5512345678","email":"tu@correo.com","street":"Tu calle","exteriorNumber":"123","interiorNumber":"4","neighborhood":"Tu colonia","zipCode":"12345","references":"Referencias para el repartidor"}
   ```
-
-Si falta alguna de las dos, el botón simplemente muestra un error al
-intentar cotizar/generar — el resto del sitio sigue funcionando normal.
+- `SKYDROPX_CLIENT_ID` y `SKYDROPX_CLIENT_SECRET` — de la sección de API
+  de tu cuenta de Skydropx.
+- `SKYDROPX_ORIGIN` — un JSON de una sola línea con tu código postal,
+  estado y municipio como remitente, por ejemplo:
+  ```json
+  {"zip":"12345","state":"Tu estado","city":"Tu municipio o ciudad"}
+  ```
 
 ### Avisos automáticos por WhatsApp
 
