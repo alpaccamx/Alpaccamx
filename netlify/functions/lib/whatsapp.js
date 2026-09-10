@@ -87,9 +87,11 @@ async function notifySellerWhatsApp(text) {
         text: { body: text },
       }),
     });
+    const resBody = await res.text();
     if (!res.ok) {
-      const errText = await res.text();
-      console.error("Error enviando aviso de WhatsApp:", res.status, errText);
+      console.error("Error enviando aviso de WhatsApp:", res.status, resBody);
+    } else {
+      console.log("Aviso de WhatsApp aceptado por Meta:", resBody);
     }
   } catch (err) {
     console.error("Error de red enviando aviso de WhatsApp:", err);
