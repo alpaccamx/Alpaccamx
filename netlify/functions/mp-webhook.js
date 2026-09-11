@@ -11,7 +11,7 @@
 // Variable de entorno necesaria: MP_ACCESS_TOKEN
 
 const { transitionOrder, applyStockDecrement } = require("./lib/blob-store.js");
-const { notifySellerWhatsApp, orderPaidMessage } = require("./lib/whatsapp.js");
+const { notifySellerWhatsApp, notifyCustomerOrderConfirmed, orderPaidMessage } = require("./lib/whatsapp.js");
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -63,6 +63,7 @@ exports.handler = async (event) => {
     if (transitioned) {
       await applyStockDecrement(order.items);
       await notifySellerWhatsApp(orderPaidMessage(order));
+      await notifyCustomerOrderConfirmed(order);
     }
 
     return { statusCode: 200, body: "ok" };

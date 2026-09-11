@@ -668,6 +668,37 @@ la alternativa (fuera del alcance de esta configuración) es usar
 "plantillas de mensaje" pre-aprobadas por Meta, que sí se pueden mandar
 en cualquier momento.
 
+### Confirmación de pedido automática al cliente
+
+Además de avisarte a ti, el sitio le manda al **cliente** un mensaje de
+WhatsApp confirmándole su pedido en el mismo momento en que se marca como
+pagado (Mercado Pago aprobado, o tú confirmándolo a mano en
+`/admin.html`). Como es un mensaje que el negocio inicia (el cliente no
+te escribió primero), tiene que ser una **plantilla de mensaje aprobada
+por Meta** — no un texto libre como los avisos que te llegan a ti.
+
+Para configurarlo:
+
+1. Crea la plantilla en **business.facebook.com → Administrador de
+   WhatsApp → Plantillas de mensajes → Crear plantilla**. Categoría
+   "Utilidad", con 3 variables en este orden: nombre del cliente, número
+   de orden, total pagado. Espera a que Meta la apruebe (de minutos a un
+   día).
+2. Nombra la plantilla exactamente **`confirmacion_pedido`** (en
+   español, idioma "Spanish (MEX)") — el código ya espera ese nombre.
+3. Este mensaje se manda desde un número de WhatsApp de **producción**
+   (no el número de prueba que usas para tus propios avisos) — sigue la
+   guía de Meta para "Configuración de producción" y registra tu propio
+   número.
+4. En Netlify agrega la variable `WHATSAPP_CUSTOMER_PHONE_NUMBER_ID` con
+   el Phone Number ID de ese número de producción (reutiliza el mismo
+   `WHATSAPP_ACCESS_TOKEN` que ya configuraste arriba).
+5. Dispara un nuevo deploy.
+
+Si `WHATSAPP_CUSTOMER_PHONE_NUMBER_ID` no está configurado, o el pedido
+no tiene un teléfono de 10 dígitos, simplemente no se manda este mensaje
+en particular — el resto del flujo de pago sigue igual.
+
 ## Secciones de la página
 
 Header (logo + buscador + carrito + menú ☰ en móvil) → menú de secciones
