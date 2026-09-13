@@ -1,9 +1,10 @@
 // Borra permanentemente un pedido del historial de /admin.html, para que
-// los pedidos cancelados que ya no sirven no estorben en la lista.
+// los pedidos cancelados o pagados que ya no sirven (ej. pruebas) no
+// estorben en la lista.
 //
-// Por seguridad, solo borra pedidos que YA están en estado "cancelled" --
-// no se puede borrar un pedido pendiente, pagado ni fallido desde aquí
-// (primero hay que cancelarlo con /admin-confirm-order).
+// Por seguridad, solo borra pedidos que YA están en estado "cancelled" o
+// "paid" -- no se puede borrar un pedido pendiente ni fallido desde aquí
+// (primero hay que confirmarlo o cancelarlo con /admin-confirm-order).
 //
 // Requiere el header "x-admin-key" con el valor de ADMIN_KEY.
 //
@@ -39,10 +40,10 @@ exports.handler = async (event) => {
   }
 
   try {
-    const result = await deleteOrder(orderId, { onlyIfStatus: "cancelled" });
+    const result = await deleteOrder(orderId, { onlyIfStatus: ["cancelled", "paid"] });
     if (!result.deleted) {
       if (result.reason === "not_found") return jsonResponse(404, { error: "Pedido no encontrado." });
-      return jsonResponse(400, { error: "Solo se pueden borrar pedidos cancelados." });
+      return jsonResponse(400, { error: "Solo se pueden borrar pedidos cancelados o pagados." });
     }
     return jsonResponse(200, { ok: true });
   } catch (err) {

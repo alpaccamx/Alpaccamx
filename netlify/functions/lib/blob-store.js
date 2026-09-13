@@ -125,7 +125,8 @@ async function deleteOrder(orderId, { onlyIfStatus } = {}) {
   const store = getOrdersStore();
   const order = await store.get(orderId, { type: "json" });
   if (!order) return { deleted: false, reason: "not_found" };
-  if (onlyIfStatus && order.status !== onlyIfStatus) {
+  const allowedStatuses = Array.isArray(onlyIfStatus) ? onlyIfStatus : onlyIfStatus ? [onlyIfStatus] : null;
+  if (allowedStatuses && !allowedStatuses.includes(order.status)) {
     return { deleted: false, reason: "wrong_status", order };
   }
   await store.delete(orderId);
