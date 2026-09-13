@@ -2568,8 +2568,16 @@ function cartItemsForOrder({ useTarjetaPrice = false } = {}) {
 async function payWithMercadoPago() {
   if (!Object.keys(cart).length) return;
 
+  // El comprobante de transferencia (obligatorio con "required" en el
+  // HTML) vive en este mismo formulario, pero no aplica a Mercado Pago
+  // -- se ignora nada más para esta validación.
   const form = document.getElementById("quote-form");
-  if (!form.reportValidity()) return;
+  const proofInput = document.getElementById("proof-file-input");
+  const wasProofRequired = proofInput.required;
+  proofInput.required = false;
+  const formIsValid = form.reportValidity();
+  proofInput.required = wasProofRequired;
+  if (!formIsValid) return;
 
   const c = getCustomerFields();
 
