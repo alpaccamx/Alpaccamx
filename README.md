@@ -517,11 +517,12 @@ paquetería al generar la guía de envío. La colección de Cosmético
 Americano (si la usas) no se vio afectada — ahí el envío se sigue
 cotizando aparte por WhatsApp, como antes.
 
-Los pedidos **cancelados** que ya no necesitas (para que no se acumulen)
-se pueden borrar de forma permanente con el botón "🗑️ Borrar este
-pedido" que aparece en su tarjeta del historial — por seguridad, esta
-opción solo aparece en pedidos ya cancelados; no se puede borrar un
-pedido pendiente, pagado ni fallido.
+Los pedidos **cancelados o pagados** que ya no necesitas (por ejemplo,
+pedidos de prueba) se pueden borrar de forma permanente con el botón
+"🗑️ Borrar este pedido" que aparece en su tarjeta del historial — por
+seguridad, esta opción solo aparece en esos dos estados (con una
+confirmación extra si el pedido está pagado); no se puede borrar un
+pedido pendiente ni fallido.
 
 ### Comprobante de pago (captura o PDF) directo desde el sitio — obligatorio
 

@@ -412,7 +412,11 @@
   }
 
   async function deleteOrder(orderId) {
-    if (!window.confirm("¿Borrar este pedido cancelado? No se puede deshacer.")) return;
+    const order = allOrders.find((o) => o.id === orderId);
+    const warning = order && order.status === "paid"
+      ? "⚠️ Este pedido está PAGADO. ¿Seguro que lo quieres borrar? No se puede deshacer."
+      : "¿Borrar este pedido cancelado? No se puede deshacer.";
+    if (!window.confirm(warning)) return;
     setStatus("Borrando...");
     try {
       const res = await fetch("/.netlify/functions/admin-delete-order", {
@@ -784,7 +788,7 @@
   function historyCardHTML(o) {
     const statusLabel = STATUS_LABELS[o.status] || o.status;
     const borderColor = STATUS_BORDER_COLORS[o.status] || "#ddd";
-    const deleteBtn = o.status === "cancelled"
+    const deleteBtn = (o.status === "cancelled" || o.status === "paid")
       ? `<div class="actions"><button type="button" class="btn-danger" data-delete="${o.id}">🗑️ Borrar este pedido</button></div>`
       : "";
     return `
