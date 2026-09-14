@@ -1015,7 +1015,7 @@ function renderTicker() {
 const CATEGORY_MENU_OPTIONS = ["Skincare", "Suplementos"];
 
 function getMenuItems() {
-  const items = [{ type: "link", label: "Skincare Asiático en nuestra bodega en Corea", href: "#catalog-section" }];
+  const items = [{ type: "link", label: "Skincare en nuestra bodega en Corea", href: "#catalog-section" }];
 
   if (americanoProducts.length) {
     items.push({ type: "link", label: CONFIG.AMERICANO.TITLE || "Cosmético Americano", href: "#americano-section" });
