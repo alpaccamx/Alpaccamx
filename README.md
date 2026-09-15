@@ -530,22 +530,26 @@ seguridad, esta opción solo aparece en esos dos estados (con una
 confirmación extra si el pedido está pagado); no se puede borrar un
 pedido pendiente ni fallido.
 
-Cada artículo de la tarjeta muestra su marca, precio unitario y su total
-(precio × cantidad), y debajo de la lista un desglose del cobro:
-**Subtotal productos**, **Envío** (si aplica) y, solo en pedidos pagados
-con tarjeta por Mercado Pago que sí tuvieron comisión, **💳 Comisión por
-pago con tarjeta** — la diferencia entre lo que se cobró (columna "Precio
-Tarjeta") y lo que hubiera costado por transferencia, ya calculada y
-guardada al momento de crear el pedido (no se recalcula después, así que
-no cambia aunque después edites el catálogo). El botón "⬇️ Descargar en
-Excel" incluye esas mismas columnas.
+Cada artículo de la tarjeta muestra su marca, y su precio **siempre al de
+transferencia** (columna "Precio", nunca el inflado de "Precio Tarjeta"),
+tanto el unitario como el total (precio × cantidad) — así el listado de
+productos se ve igual sin importar cómo pagó el cliente. Debajo de la
+lista, un desglose del cobro: **Subtotal productos**, **Envío** (si
+aplica) y, solo en pedidos pagados con tarjeta por Mercado Pago que sí
+tuvieron comisión, una sola línea al final con **💳 Comisión por pago con
+tarjeta** — el resto de lo cobrado que no es ni producto ni envío a
+precio de transferencia. El botón "⬇️ Descargar en Excel" incluye esas
+mismas columnas.
 
-La marca se guarda en cada pedido nuevo desde que se creó (no necesitas
-hacer nada). Para pedidos de antes de este cambio, que no la tenían
-guardada, `/admin.html` la busca automáticamente por SKU en tu catálogo y
-tu hoja de Stock actuales — si el producto sigue existiendo ahí, su marca
-aparece igual; si ya no existe en ninguna de las dos, ese artículo se
-queda sin marca (no rompe nada).
+La marca y el precio de transferencia exacto (`precioBase`) se guardan en
+cada pedido nuevo desde que se creó (no necesitas hacer nada). Para
+pedidos de antes de este cambio, que no los tenían guardados,
+`/admin.html` los busca automáticamente por SKU en tu catálogo y tu hoja
+de Stock actuales — si el producto sigue existiendo ahí, su marca y
+precio aparecen igual (el precio es el **actual** del catálogo, así que
+en pedidos muy viejos donde ya cambiaste el precio puede no coincidir
+exacto con el de ese día); si ya no existe en ninguna de las dos, ese
+artículo se queda con lo que se haya cobrado, sin romper nada.
 
 ### Comprobante de pago (captura o PDF) directo desde el sitio — obligatorio
 
