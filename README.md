@@ -530,15 +530,22 @@ seguridad, esta opción solo aparece en esos dos estados (con una
 confirmación extra si el pedido está pagado); no se puede borrar un
 pedido pendiente ni fallido.
 
-Cada artículo de la tarjeta muestra su precio unitario y su total (precio
-× cantidad), y debajo de la lista un desglose del cobro: **Subtotal
-productos**, **Envío** (si aplica) y, solo en pedidos pagados con tarjeta
-por Mercado Pago que sí tuvieron comisión, **💳 Comisión por pago con
-tarjeta** — la diferencia entre lo que se cobró (columna "Precio
+Cada artículo de la tarjeta muestra su marca, precio unitario y su total
+(precio × cantidad), y debajo de la lista un desglose del cobro:
+**Subtotal productos**, **Envío** (si aplica) y, solo en pedidos pagados
+con tarjeta por Mercado Pago que sí tuvieron comisión, **💳 Comisión por
+pago con tarjeta** — la diferencia entre lo que se cobró (columna "Precio
 Tarjeta") y lo que hubiera costado por transferencia, ya calculada y
 guardada al momento de crear el pedido (no se recalcula después, así que
 no cambia aunque después edites el catálogo). El botón "⬇️ Descargar en
 Excel" incluye esas mismas columnas.
+
+La marca se guarda en cada pedido nuevo desde que se creó (no necesitas
+hacer nada). Para pedidos de antes de este cambio, que no la tenían
+guardada, `/admin.html` la busca automáticamente por SKU en tu catálogo y
+tu hoja de Stock actuales — si el producto sigue existiendo ahí, su marca
+aparece igual; si ya no existe en ninguna de las dos, ese artículo se
+queda sin marca (no rompe nada).
 
 ### Comprobante de pago (captura o PDF) directo desde el sitio — obligatorio
 

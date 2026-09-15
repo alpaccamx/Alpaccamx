@@ -233,6 +233,66 @@
   let currentStatus = "";
   let currentRange = "all";
 
+  // SKU -> Marca, para mostrar la marca en pedidos guardados ANTES de que
+  // el sitio empezara a guardarla en cada artículo (ver app.js
+  // cartItemsForOrder). Se arma leyendo el mismo catálogo (y la hoja de
+  // Stock) que usa la tienda -- si un SKU ya no existe en ninguna de las
+  // dos, ese artículo se queda sin marca, igual que antes.
+  const CATALOG_CSV_URL_FOR_MARCA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=926701642&single=true&output=csv";
+  const STOCK_CSV_URL_FOR_MARCA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=1208388065&single=true&output=csv";
+  let skuToMarca = new Map();
+
+  function parseCSVForMarca(text) {
+    const rows = [];
+    let row = [], field = "", inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQuotes = false; }
+        else field += c;
+      } else if (c === '"') inQuotes = true;
+      else if (c === ",") { row.push(field); field = ""; }
+      else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+      else if (c === "\r") { /* ignorar */ }
+      else field += c;
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows.filter((r) => r.some((f) => f.trim() !== ""));
+  }
+
+  function addSkuMarcaFromCSV(text) {
+    const rows = parseCSVForMarca(text);
+    if (!rows.length) return;
+    const headers = rows[0].map((h) => h.trim().toLowerCase());
+    const iSku = headers.findIndex((h) => ["sku", "codigo", "código"].includes(h));
+    const iMarca = headers.findIndex((h) => ["marca", "brand"].includes(h));
+    if (iSku < 0 || iMarca < 0) return;
+    rows.slice(1).forEach((r) => {
+      const sku = (r[iSku] || "").trim();
+      const marca = (r[iMarca] || "").trim();
+      if (sku && marca) skuToMarca.set(sku, marca);
+    });
+  }
+
+  async function loadSkuMarcaMap() {
+    // allSettled a propósito: si una de las dos hojas falla o tarda, la
+    // otra igual se aprovecha -- no queremos perder TODA la marca por un
+    // solo fetch fallido.
+    const results = await Promise.allSettled([
+      fetch(CATALOG_CSV_URL_FOR_MARCA, { cache: "no-store" }).then((r) => (r.ok ? r.text() : null)),
+      fetch(STOCK_CSV_URL_FOR_MARCA, { cache: "no-store" }).then((r) => (r.ok ? r.text() : null)),
+    ]);
+    results.forEach((r) => {
+      if (r.status === "fulfilled" && r.value) addSkuMarcaFromCSV(r.value);
+    });
+    // Ya con el mapa listo, se vuelve a pintar lo que esté en pantalla
+    // para que los pedidos viejos (sin marca guardada) la muestren.
+    if (allOrders.length) {
+      renderPending(allOrders.filter((o) => o.status === "pending"));
+      applyFilters();
+    }
+  }
+
   const STATUS_TAB_COLORS = {
     "": "#e07a8f",
     paid: "#2fa968",
@@ -687,9 +747,16 @@
     return o.source === "mercadopago" ? "💳 Tarjeta" : "🏦 Transferencia";
   }
 
+  function itemMarca(it) {
+    return it.marca || skuToMarca.get(it.sku) || "";
+  }
+
   function itemsListHTML(o) {
     return (o.items || [])
-      .map((it) => `<li>${it.marca ? `<strong>${escapeHtml(it.marca)}</strong> — ` : ""}${escapeHtml(it.nombre)} x${it.qty}${it.enStock ? " · en stock" : ""} <span class="unit-price">(${formatPrice(it.precio)} c/u)</span> — ${formatPrice(it.precio * it.qty)}</li>`)
+      .map((it) => {
+        const marca = itemMarca(it);
+        return `<li>${marca ? `<strong>${escapeHtml(marca)}</strong> — ` : ""}${escapeHtml(it.nombre)} x${it.qty}${it.enStock ? " · en stock" : ""} <span class="unit-price">(${formatPrice(it.precio)} c/u)</span> — ${formatPrice(it.precio * it.qty)}</li>`;
+      })
       .join("");
   }
 
@@ -875,7 +942,7 @@
       o.customer?.estado || "",
       o.customer?.cp || "",
       o.customer?.referencias || "",
-      (o.items || []).map((it) => `${it.marca ? it.marca + " - " : ""}${it.nombre} x${it.qty} (${formatPrice(it.precio)} c/u)`).join("; "),
+      (o.items || []).map((it) => { const marca = itemMarca(it); return `${marca ? marca + " - " : ""}${it.nombre} x${it.qty} (${formatPrice(it.precio)} c/u)`; }).join("; "),
       o.subtotal || 0,
       o.shippingMXN || 0,
       o.cardFeeMXN || 0,
@@ -935,6 +1002,7 @@
     loginBox.style.display = "none";
     toolbar.style.display = "flex";
     fetchOrders();
+    loadSkuMarcaMap();
   }
 
   function resetTabs() {
@@ -1017,6 +1085,7 @@
     loginBox.style.display = "none";
     toolbar.style.display = "flex";
     fetchOrders();
+    loadSkuMarcaMap();
   }
 </script>
 </body>
