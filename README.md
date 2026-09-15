@@ -759,6 +759,61 @@ Si `WHATSAPP_CUSTOMER_PHONE_NUMBER_ID` no está configurado, o el pedido
 no tiene un teléfono de 10 dígitos, simplemente no se manda este mensaje
 en particular — el resto del flujo de pago sigue igual.
 
+## 5. Cuentas de clientas (iniciar sesión, ver "Mis pedidos")
+
+El botón con el ícono de persona 👤 en el header abre un panel de
+"Mi cuenta" donde una clienta puede registrarse (nombre, correo,
+**el mismo teléfono que usa al hacer sus pedidos**, y contraseña) o
+iniciar sesión, y ver ahí todos sus pedidos con su estado, productos,
+total y número de guía si ya se envió.
+
+No hace falta enlazar cada pedido a mano con ninguna cuenta: como los
+pedidos ya se guardan con el teléfono de quien compra, "Mis pedidos"
+simplemente busca los que coincidan con el teléfono registrado en la
+cuenta — incluyendo pedidos de **antes** de que esa clienta se hubiera
+registrado.
+
+### Variables de entorno necesarias
+
+Además de `NETLIFY_BLOBS_TOKEN` (sección 4, ya configurada si usas
+pedidos), agrega en Netlify → Site settings → Environment variables:
+
+- **`CUSTOMER_JWT_SECRET`**: cualquier texto largo y aleatorio (40+
+  caracteres, ej. generado en
+  [1password.com/password-generator](https://1password.com/password-generator/)).
+  Es lo que firma la sesión de las clientas — si lo cambias, todas las
+  sesiones activas se cierran de golpe (útil si alguna vez sospechas que
+  se filtró).
+- **`RESEND_API_KEY`**: tu API key de [Resend](https://resend.com) (o el
+  proveedor de correo que uses), para mandar el correo de "restablecer
+  contraseña". Necesitas haber verificado tu dominio (`alpacca.mx`) ahí
+  primero — Resend te da los registros DNS que hay que agregar donde
+  compraste el dominio.
+- **`RESEND_FROM_EMAIL`** (opcional): el remitente que ven tus clientas,
+  ej. `Alpacca <pedidos@alpacca.mx>` (tiene que ser de tu dominio ya
+  verificado). Si no lo configuras, se usa un remitente de pruebas de
+  Resend que solo te deja mandarte correos a ti misma — configúralo antes
+  de que esto sea real para tus clientas.
+
+Sin `CUSTOMER_JWT_SECRET` no se puede iniciar sesión (el registro/login
+regresa un error pidiendo que lo configures). Sin `RESEND_API_KEY`, todo
+lo demás funciona igual, pero "olvidé mi contraseña" no manda ningún
+correo (no truena, simplemente no llega nada — revisa los logs de la
+función `customer-forgot-password` si pasa esto).
+
+### Seguridad
+
+- Las contraseñas nunca se guardan en texto plano — se guardan
+  "hasheadas" con bcrypt.
+- Los mensajes de error de inicio de sesión son iguales tanto si el
+  correo no existe como si la contraseña está mal, y "olvidé mi
+  contraseña" siempre responde lo mismo exista o no esa cuenta — así
+  nadie puede usar el sitio para averiguar qué correos ya están
+  registrados.
+- El link de recuperación de contraseña vale por 1 hora y solo se puede
+  usar una vez.
+- La sesión se guarda en el navegador (localStorage) y dura 30 días.
+
 ## Secciones de la página
 
 Header (logo + buscador + carrito + menú ☰ en móvil) → menú de secciones
