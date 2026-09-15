@@ -1855,6 +1855,7 @@ function openFullCatalog() {
   }
 
   showHomeView("catalog");
+  document.getElementById("catalog-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /* ======================================================================
@@ -1877,6 +1878,7 @@ function openStockSection() {
   }
 
   showHomeView("stock");
+  document.getElementById("stock-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /* ======================================================================
