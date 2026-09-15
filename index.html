@@ -45,8 +45,10 @@
       <!-- social icons injected by JS -->
     </div>
     <p class="flex-1 sm:flex-none text-center font-semibold truncate" id="shipping-message"></p>
-    <div class="hidden sm:flex items-center gap-4">
-      <span class="text-ink/60 font-semibold">MXN $</span>
+    <div class="flex items-center gap-4 shrink-0">
+      <button id="currency-toggle" type="button"
+        class="hidden text-ink/60 font-semibold hover:text-ink transition underline decoration-dotted underline-offset-2"
+        aria-label="Cambiar entre pesos y dólares">MXN $</button>
     </div>
   </div>
 </div>

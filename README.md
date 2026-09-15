@@ -114,7 +114,13 @@ publícala como CSV aparte (mismos pasos de arriba, eligiendo esa pestaña):
 - **Tipo de cambio** (celda `B2`): cuántos pesos vale 1 dólar. La usa la
   fórmula de la columna Precio en Productos (sección 1 arriba) para
   convertir tus costos en dólares, y también la cotización de envío
-  Corea-EE.UU. más abajo.
+  Corea-EE.UU. más abajo. También es la que usa el botón **"MXN $ / USD
+  $"** de la barra superior del sitio: al tocarlo, todos los precios se
+  muestran divididos entre este tipo de cambio (no la columna "Precio
+  USD" del catálogo, que es tu costo) — así el dólar mostrado respeta tu
+  mismo margen que el peso. El botón solo aparece una vez que esta celda
+  tiene un valor mayor a 0; el cobro real (Mercado Pago/transferencia)
+  siempre es en pesos, el dólar es solo de referencia visual.
 - **Comisión (%)** (celda `B3`) y **Arancel EE.UU. (%)** (celda `B4`): tu
   comisión y el arancel de importación a EE.UU., en porcentaje. Las usa
   esa misma fórmula de Precio para llegar al precio de venta final —
@@ -523,6 +529,23 @@ pedidos de prueba) se pueden borrar de forma permanente con el botón
 seguridad, esta opción solo aparece en esos dos estados (con una
 confirmación extra si el pedido está pagado); no se puede borrar un
 pedido pendiente ni fallido.
+
+Cada artículo de la tarjeta muestra su marca, precio unitario y su total
+(precio × cantidad), y debajo de la lista un desglose del cobro:
+**Subtotal productos**, **Envío** (si aplica) y, solo en pedidos pagados
+con tarjeta por Mercado Pago que sí tuvieron comisión, **💳 Comisión por
+pago con tarjeta** — la diferencia entre lo que se cobró (columna "Precio
+Tarjeta") y lo que hubiera costado por transferencia, ya calculada y
+guardada al momento de crear el pedido (no se recalcula después, así que
+no cambia aunque después edites el catálogo). El botón "⬇️ Descargar en
+Excel" incluye esas mismas columnas.
+
+La marca se guarda en cada pedido nuevo desde que se creó (no necesitas
+hacer nada). Para pedidos de antes de este cambio, que no la tenían
+guardada, `/admin.html` la busca automáticamente por SKU en tu catálogo y
+tu hoja de Stock actuales — si el producto sigue existiendo ahí, su marca
+aparece igual; si ya no existe en ninguna de las dos, ese artículo se
+queda sin marca (no rompe nada).
 
 ### Comprobante de pago (captura o PDF) directo desde el sitio — obligatorio
 

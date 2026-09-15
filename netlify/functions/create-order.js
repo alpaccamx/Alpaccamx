@@ -4,8 +4,8 @@
 //   {
 //     source: "transferencia" | "mercadopago",
 //     customer: { name, phone, cp, street, colonia, municipio, estado, referencias, notes },
-//     items: [{ sku, nombre, qty, precio, enStock }],
-//     subtotal, shippingMXN, grandTotal
+//     items: [{ sku, nombre, marca, qty, precio, precioBase, enStock }],
+//     subtotal, shippingMXN, subtotalBase, shippingMXNBase, grandTotal
 //   }
 //
 // "whatsapp" también se acepta como source por compatibilidad con pedidos
@@ -16,8 +16,17 @@
 // método de pago: el de la columna "Precio" (transferencia) para
 // source="transferencia", o el de la columna "Precio Tarjeta" para
 // source="mercadopago" (ver CONFIG en app.js y la sección 4 del README).
-// Aquí NO se calcula ningún cargo ni porcentaje -- son dos precios fijos
-// y ya anunciados de antemano en el catálogo, cada uno se cobra tal cual.
+// Aquí NO se calcula ningún cargo ni porcentaje sobre esos dos precios --
+// son fijos y ya anunciados de antemano en el catálogo, cada uno se cobra
+// tal cual.
+//
+// items[].precioBase / subtotalBase / shippingMXNBase son, en cambio, el
+// precio de transferencia (sin comisión) de cada producto y envío, SIEMPRE
+// -- en transferencia son iguales a precio/subtotal/shippingMXN, y en
+// Mercado Pago quedan por debajo. Solo se guardan para que /admin.html
+// pueda mostrar cuánto de lo cobrado con tarjeta es comisión (ver
+// cardFeeMXN más abajo), sin depender de que el catálogo no haya
+// cambiado desde entonces.
 //
 // Para "mercadopago" además crea una preferencia de pago (Checkout Pro) y
 // regresa la URL a la que hay que redirigir al cliente.
@@ -43,7 +52,7 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "JSON inválido." });
   }
 
-  const { source, customer, items, subtotal, shippingMXN, grandTotal } = body;
+  const { source, customer, items, subtotal, shippingMXN, subtotalBase, shippingMXNBase, grandTotal } = body;
 
   if (source !== "transferencia" && source !== "whatsapp" && source !== "mercadopago") {
     return jsonResponse(400, { error: "source debe ser 'transferencia' o 'mercadopago'." });
@@ -56,8 +65,10 @@ exports.handler = async (event) => {
     .map((it) => ({
       sku: String(it.sku || ""),
       nombre: String(it.nombre || ""),
+      marca: String(it.marca || ""),
       qty: Number(it.qty) || 0,
       precio: Number(it.precio) || 0,
+      precioBase: Number(it.precioBase) || Number(it.precio) || 0,
       enStock: !!it.enStock,
     }))
     .filter((it) => it.sku && it.qty > 0);
@@ -65,6 +76,13 @@ exports.handler = async (event) => {
   if (!cleanItems.length) {
     return jsonResponse(400, { error: "El pedido no tiene productos válidos." });
   }
+
+  const subtotalNum = Number(subtotal) || 0;
+  const shippingMXNNum = Number(shippingMXN) || 0;
+  const subtotalBaseNum = Number(subtotalBase) || subtotalNum;
+  const shippingMXNBaseNum = Number(shippingMXNBase) || shippingMXNNum;
+  // Lo que se cobró de más por pagar con tarjeta, sobre productos + envío.
+  const cardFeeMXN = Math.max(0, (subtotalNum - subtotalBaseNum) + (shippingMXNNum - shippingMXNBaseNum));
 
   const order = {
     id: randomUUID(),
@@ -83,8 +101,11 @@ exports.handler = async (event) => {
       notes: String((customer && customer.notes) || ""),
     },
     items: cleanItems,
-    subtotal: Number(subtotal) || 0,
-    shippingMXN: Number(shippingMXN) || 0,
+    subtotal: subtotalNum,
+    shippingMXN: shippingMXNNum,
+    subtotalBase: subtotalBaseNum,
+    shippingMXNBase: shippingMXNBaseNum,
+    cardFeeMXN,
     grandTotal: Number(grandTotal) || 0,
   };
 
