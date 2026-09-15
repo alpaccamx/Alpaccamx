@@ -551,6 +551,38 @@ en pedidos muy viejos donde ya cambiaste el precio puede no coincidir
 exacto con el de ese día); si ya no existe en ninguna de las dos, ese
 artículo se queda con lo que se haya cobrado, sin romper nada.
 
+### Modificar los productos de un pedido (agregar/quitar/cambiar cantidad)
+
+Cuando un cliente pide un cambio después de haber hecho su pedido, el
+botón "✏️ Modificar productos del pedido" (en pedidos **pendientes** y
+**pagados**) abre un panel donde puedes:
+
+- Cambiar la cantidad o el precio (de transferencia) de cualquier artículo.
+- Quitar un artículo con el botón "✕" de su fila.
+- Agregar uno nuevo con "+ Agregar producto" (escribes nombre, marca, SKU,
+  cantidad y precio a mano — no hay buscador de catálogo).
+- Ajustar el "Envío" y el "Total cobrado" — este último se puede escribir
+  a mano, o llenar de un clic con el botón "usar este total" (que suma lo
+  que capturaste: productos + envío).
+
+Al guardar, el desglose y la comisión de tarjeta (si aplica) se
+recalculan solos con la misma lógica de siempre.
+
+**En pedidos ya pagados**, además:
+- Se ajustan las piezas vendidas de tu hoja de Stock (solo para los
+  artículos marcados "en stock"): si subes una cantidad o agregas un
+  producto, se resta más stock disponible; si bajas o quitas uno, se
+  regresa.
+- **No se cobra ni se reembolsa nada solo.** Si el pedido se pagó con
+  Mercado Pago, ese cobro ya quedó fijo ahí — cualquier diferencia
+  (agregaste o quitaste algo) la tienes que cobrar o reembolsar tú misma
+  desde tu cuenta de Mercado Pago, y luego escribir el monto correcto en
+  "Total cobrado" para que el registro (y la comisión mostrada) queden
+  bien. Si el pedido fue por transferencia, tú ya manejas ese ajuste
+  directo con el cliente — el sitio solo lleva el registro.
+
+No se puede modificar un pedido cancelado ni uno que falló.
+
 ### Comprobante de pago (captura o PDF) directo desde el sitio — obligatorio
 
 Para pedir por transferencia, el cliente tiene que subir su comprobante

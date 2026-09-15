@@ -75,6 +75,30 @@ async function applyStockDecrement(items) {
   throw new Error("No se pudo actualizar el stock vendido (conflicto de concurrencia).");
 }
 
+/* Igual que applyStockDecrement, pero suma un delta con signo por SKU en
+   vez de sumar siempre -- lo usa admin-update-order-items.js cuando se
+   edita un pedido YA PAGADO (se agregó/quitó/cambió cantidad de un
+   producto "en stock"): delta positivo = se vendieron más piezas de las
+   que ya se habían descontado, delta negativo = se regresan piezas al
+   stock disponible. Nunca deja el conteo en negativo. */
+async function adjustStockSold(deltaBySku) {
+  const entries = Object.entries(deltaBySku || {}).filter(([, delta]) => delta);
+  if (!entries.length) return;
+
+  const store = getStockSoldStore();
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const existing = await store.getWithMetadata(SOLD_MAP_KEY, { type: "json" });
+    const map = (existing && existing.data) || {};
+    for (const [sku, delta] of entries) {
+      map[sku] = Math.max(0, (map[sku] || 0) + delta);
+    }
+    const options = existing && existing.etag ? { onlyIfMatch: existing.etag } : { onlyIfNew: true };
+    const result = await store.setJSON(SOLD_MAP_KEY, map, options);
+    if (result.modified) return;
+  }
+  throw new Error("No se pudo ajustar el stock vendido (conflicto de concurrencia).");
+}
+
 async function saveNewOrder(order) {
   const store = getOrdersStore();
   const result = await store.setJSON(order.id, order, { onlyIfNew: true });
@@ -165,6 +189,7 @@ async function getPaymentProof(orderId) {
 module.exports = {
   getSoldMap,
   applyStockDecrement,
+  adjustStockSold,
   saveNewOrder,
   getOrder,
   transitionOrder,

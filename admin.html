@@ -110,6 +110,15 @@
   .rate-option.selected { border-color: #e07a8f; background: #fdf1f3; }
   .rate-option .price { margin-left: auto; font-weight: 800; white-space: nowrap; }
   .guide-error { color: #b03a2e; font-size: 12px; }
+  .edit-block { margin-top: 14px; padding-top: 14px; border-top: 1px dashed #eee; }
+  .edit-block .edit-toggle { width: 100%; }
+  .edit-item-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; border: 1px solid #eee; border-radius: 8px; padding: 8px; }
+  .edit-item-row input[type="text"] { flex: 2 1 140px; min-width: 110px; }
+  .edit-item-row input[type="number"] { flex: 1 1 70px; min-width: 60px; }
+  .edit-item-row label.edit-stock-label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #777; white-space: nowrap; }
+  .edit-item-row .btn-danger { padding: 8px 10px; font-size: 12px; }
+  .edit-hint { font-size: 12px; color: #999; }
+  .edit-hint button { background: none; border: none; padding: 0; color: #0b6bc2; font-weight: 700; font-size: 12px; cursor: pointer; }
   #empty, #status { text-align: center; color: #888; font-size: 15px; margin-top: 30px; }
   h2.section-title { margin: 40px 0 14px; font-size: 18px; color: #444; }
   #history-empty { text-align: center; color: #888; font-size: 15px; margin-top: 20px; }
@@ -435,6 +444,7 @@
       btn.addEventListener("click", () => confirmOrCancel(btn.dataset.cancel, "cancel"));
     });
     wireCopyAddressButtons(ordersEl);
+    wireEditButtons(ordersEl);
   }
 
   function renderHistory(orders) {
@@ -461,6 +471,7 @@
       btn.addEventListener("click", () => generateGuide(btn.dataset.guideGenerate, btn));
     });
     wireCopyAddressButtons(historyEl);
+    wireEditButtons(historyEl);
   }
 
   function wireCopyAddressButtons(container) {
@@ -587,6 +598,135 @@
   function toggleGuideForm(orderId) {
     const form = document.getElementById(`guide-form-${orderId}`);
     if (form) form.classList.toggle("open");
+  }
+
+  /* ======================================================================
+     Modificar productos de un pedido (agregar/quitar/cambiar cantidad) --
+     ver editBlockHTML más arriba y admin-update-order-items.js.
+     ====================================================================== */
+  function toggleEditForm(orderId) {
+    const form = document.getElementById(`edit-form-${orderId}`);
+    if (form) form.classList.toggle("open");
+  }
+
+  function wireEditItemRowRemovers(scopeEl) {
+    scopeEl.querySelectorAll(".edit-item-remove").forEach((btn) => {
+      if (btn.dataset.wired) return;
+      btn.dataset.wired = "1";
+      btn.addEventListener("click", () => {
+        const form = btn.closest('[id^="edit-form-"]');
+        btn.closest(".edit-item-row").remove();
+        if (form) updateEditComputedTotal(form.id.replace("edit-form-", ""));
+      });
+    });
+  }
+
+  function addEditItemRow(orderId) {
+    const container = document.getElementById(`edit-items-${orderId}`);
+    if (!container) return;
+    const wrap = document.createElement("div");
+    wrap.innerHTML = editItemRowHTML(null).trim();
+    const row = wrap.firstElementChild;
+    container.appendChild(row);
+    wireEditItemRowRemovers(container);
+    updateEditComputedTotal(orderId);
+  }
+
+  /* Suma en vivo (sin guardar nada) lo que dice el formulario ahorita --
+     solo para el texto de ayuda "usar este total", no valida nada. */
+  function updateEditComputedTotal(orderId) {
+    const container = document.getElementById(`edit-items-${orderId}`);
+    const computedEl = document.getElementById(`edit-computed-${orderId}`);
+    const shippingInput = document.getElementById(`edit-shipping-${orderId}`);
+    if (!container || !computedEl) return;
+    let subtotal = 0;
+    container.querySelectorAll(".edit-item-row").forEach((row) => {
+      const qty = Number(row.querySelector(".edit-item-qty").value) || 0;
+      const precio = Number(row.querySelector(".edit-item-precio").value) || 0;
+      subtotal += qty * precio;
+    });
+    const shipping = Number(shippingInput?.value) || 0;
+    computedEl.textContent = formatPrice(subtotal + shipping);
+  }
+
+  function useComputedTotal(orderId) {
+    const computedEl = document.getElementById(`edit-computed-${orderId}`);
+    const totalInput = document.getElementById(`edit-total-${orderId}`);
+    if (!computedEl || !totalInput) return;
+    const num = Number(String(computedEl.textContent).replace(/[^0-9.-]/g, "")) || 0;
+    totalInput.value = num;
+  }
+
+  function wireEditButtons(container) {
+    container.querySelectorAll("[data-edit-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => toggleEditForm(btn.dataset.editToggle));
+    });
+    container.querySelectorAll("[data-edit-add]").forEach((btn) => {
+      btn.addEventListener("click", () => addEditItemRow(btn.dataset.editAdd));
+    });
+    container.querySelectorAll("[data-edit-use-computed]").forEach((btn) => {
+      btn.addEventListener("click", () => useComputedTotal(btn.dataset.editUseComputed));
+    });
+    container.querySelectorAll("[data-edit-save]").forEach((btn) => {
+      btn.addEventListener("click", () => saveOrderEdit(btn.dataset.editSave, btn));
+    });
+    container.querySelectorAll('[id^="edit-form-"]').forEach((form) => {
+      const orderId = form.id.replace("edit-form-", "");
+      wireEditItemRowRemovers(form);
+      form.addEventListener("input", (e) => {
+        if (e.target.matches(".edit-item-qty, .edit-item-precio") || e.target.id === `edit-shipping-${orderId}`) {
+          updateEditComputedTotal(orderId);
+        }
+      });
+      updateEditComputedTotal(orderId);
+    });
+  }
+
+  async function saveOrderEdit(orderId, btn) {
+    const errorEl = document.getElementById(`edit-error-${orderId}`);
+    errorEl.textContent = "";
+
+    const container = document.getElementById(`edit-items-${orderId}`);
+    const items = Array.from(container.querySelectorAll(".edit-item-row")).map((row) => ({
+      nombre: row.querySelector(".edit-item-nombre").value.trim(),
+      marca: row.querySelector(".edit-item-marca").value.trim(),
+      sku: row.querySelector(".edit-item-sku").value.trim(),
+      qty: Number(row.querySelector(".edit-item-qty").value) || 0,
+      precio: Number(row.querySelector(".edit-item-precio").value) || 0,
+      enStock: row.querySelector(".edit-item-enstock").checked,
+    })).filter((it) => it.nombre && it.qty > 0);
+
+    if (!items.length) {
+      errorEl.textContent = "El pedido debe tener al menos un producto con nombre y cantidad.";
+      return;
+    }
+
+    const shippingMXN = Number(document.getElementById(`edit-shipping-${orderId}`).value) || 0;
+    const grandTotal = Number(document.getElementById(`edit-total-${orderId}`).value) || 0;
+
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-update-order-items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ orderId, items, shippingMXN, grandTotal }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        errorEl.textContent = data.error || "No se pudo guardar el pedido.";
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+      setStatus("");
+      fetchOrders();
+    } catch (err) {
+      errorEl.textContent = "No se pudo conectar con el servidor.";
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   }
 
   async function quoteGuide(orderId) {
@@ -911,12 +1051,70 @@
       </div>`;
   }
 
+  function editItemRowHTML(it) {
+    const precio = it ? itemPrecioTransferencia(it) : 0;
+    return `
+      <div class="edit-item-row">
+        <input type="text" class="edit-item-nombre" placeholder="Nombre del producto" value="${escapeHtml((it && it.nombre) || "")}" />
+        <input type="text" class="edit-item-marca" placeholder="Marca" value="${escapeHtml(it ? itemMarca(it) : "")}" />
+        <input type="text" class="edit-item-sku" placeholder="SKU" value="${escapeHtml((it && it.sku) || "")}" />
+        <input type="number" class="edit-item-qty" min="1" step="1" value="${it ? it.qty : 1}" placeholder="Cant." />
+        <input type="number" class="edit-item-precio" min="0" step="1" value="${precio}" placeholder="Precio (transf.) c/u" />
+        <label class="edit-stock-label"><input type="checkbox" class="edit-item-enstock" ${it && it.enStock ? "checked" : ""} /> en stock</label>
+        <button type="button" class="btn-danger edit-item-remove">✕</button>
+      </div>`;
+  }
+
+  /* Panel para agregar/quitar productos de un pedido (pendiente o ya
+     pagado) cuando el cliente cambia de opinión. En pedidos pagados,
+     además de actualizar el registro, ajusta las piezas vendidas del
+     stock (lib/blob-store.js adjustStockSold) para que no quede
+     descuadrado -- pero NO cobra ni reembolsa nada por sí solo: si el
+     pedido se pagó con Mercado Pago, ese cobro ya quedó fijo ahí, así que
+     cualquier diferencia hay que cobrarla o reembolsarla aparte, tú
+     misma, desde tu cuenta de Mercado Pago (ver admin-update-order-items.js). */
+  function editBlockHTML(o) {
+    if (o.status !== "pending" && o.status !== "paid") return "";
+    const shippingValue = o.shippingMXNBase != null ? o.shippingMXNBase : (o.shippingMXN || 0);
+    const rows = (o.items || []).map((it) => editItemRowHTML(it)).join("");
+    const mpWarning = o.status === "paid" && o.source === "mercadopago"
+      ? `<p class="edit-hint">⚠️ Este pedido ya se cobró por Mercado Pago -- si agregas o quitas productos, ese cobro NO cambia solo. Cualquier diferencia tienes que cobrarla o reembolsarla tú misma desde tu cuenta de Mercado Pago.</p>`
+      : "";
+    const stockHint = o.status === "paid"
+      ? `<p class="edit-hint">Esto también ajusta las piezas vendidas de tu hoja de Stock para los productos marcados "en stock".</p>`
+      : "";
+    return `
+      <div class="edit-block">
+        <button type="button" class="btn-secondary edit-toggle" data-edit-toggle="${o.id}">✏️ Modificar productos del pedido</button>
+        <div class="guide-form" id="edit-form-${o.id}">
+          <label class="field-label">Productos</label>
+          <div class="edit-items" id="edit-items-${o.id}">${rows}</div>
+          <button type="button" class="btn-secondary" data-edit-add="${o.id}">+ Agregar producto</button>
+          <label class="field-label">Envío (precio de transferencia)</label>
+          <input type="number" min="0" step="1" id="edit-shipping-${o.id}" value="${shippingValue}" />
+          <label class="field-label">Total cobrado</label>
+          <input type="number" min="0" step="1" id="edit-total-${o.id}" value="${o.grandTotal || 0}" />
+          <p class="edit-hint">Subtotal + envío = <span id="edit-computed-${o.id}">$0.00</span> ·
+            <button type="button" data-edit-use-computed="${o.id}">usar este total</button></p>
+          ${mpWarning}
+          ${stockHint}
+          <div class="guide-error" id="edit-error-${o.id}"></div>
+          <button type="button" class="btn-primary" data-edit-save="${o.id}">💾 Guardar cambios</button>
+        </div>
+      </div>`;
+  }
+
   function historyCardHTML(o) {
     const statusLabel = STATUS_LABELS[o.status] || o.status;
     const borderColor = STATUS_BORDER_COLORS[o.status] || "#ddd";
     const deleteBtn = (o.status === "cancelled" || o.status === "paid")
       ? `<div class="actions"><button type="button" class="btn-danger" data-delete="${o.id}">🗑️ Borrar este pedido</button></div>`
       : "";
+    // Los pendientes ya traen su propio panel de edición en pendingCardHTML
+    // -- si también se pintara aquí, habría dos elementos con el mismo id
+    // en la página (uno en "Pedidos pendientes", otro en "Todos tus
+    // pedidos") y solo el primero respondería a los botones.
+    const editBlock = o.status === "pending" ? "" : editBlockHTML(o);
     return `
       <div class="order-card" style="border-left-color:${borderColor};">
         <div class="top">
@@ -933,6 +1131,7 @@
         ${proofLinkHTML(o)}
         ${trackingBlockHTML(o)}
         ${guideBlockHTML(o)}
+        ${editBlock}
         ${deleteBtn}
       </div>`;
   }
@@ -950,6 +1149,7 @@
         <div class="total">${formatPrice(o.grandTotal)}</div>
         ${customerHTML(o)}
         ${proofLinkHTML(o)}
+        ${editBlockHTML(o)}
         <div class="actions">
           <button class="btn-primary" data-confirm="${o.id}" title="Esto resta las piezas vendidas del stock automáticamente">✅ Ya me pagó</button>
           <button class="btn-danger" data-cancel="${o.id}">✕ No pagó / Cancelar</button>
