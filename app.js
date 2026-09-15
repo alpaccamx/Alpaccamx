@@ -245,8 +245,36 @@ let americanoCart = loadAmericanoCart();
 /* ======================================================================
    Utilidades
    ====================================================================== */
+// Moneda en la que se muestran los precios (el cobro real, en checkout,
+// siempre es en pesos -- este toggle es solo de referencia visual para
+// clientes que piensan en dólares). Se guarda en localStorage para que se
+// recuerde entre visitas. El USD se calcula dividiendo el Precio en pesos
+// (ya con el margen de Mae incluido) entre el "Tipo de cambio" real de la
+// pestaña Config -- así el dólar mostrado respeta el mismo margen que el
+// peso, en vez de mostrar directo la columna "Precio USD" del catálogo
+// (que es SU COSTO mayorista, no un precio de venta).
+let displayCurrency = localStorage.getItem("displayCurrency") === "USD" ? "USD" : "MXN";
+
 function formatPrice(n) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
+  const mxn = n || 0;
+  if (displayCurrency === "USD" && shippingSettings.exchangeRate > 0) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+      mxn / shippingSettings.exchangeRate
+    );
+  }
+  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(mxn);
+}
+
+/* Muestra/oculta el botón MXN↔USD (solo tiene sentido una vez que se
+   cargó el "Tipo de cambio" de Config) y refleja la moneda activa en su
+   texto. */
+function updateCurrencyToggleButton() {
+  const btn = document.getElementById("currency-toggle");
+  if (!btn) return;
+  const available = shippingSettings.exchangeRate > 0;
+  btn.classList.toggle("hidden", !available);
+  btn.textContent = displayCurrency === "USD" ? "USD $" : "MXN $";
+  btn.setAttribute("aria-pressed", displayCurrency === "USD" ? "true" : "false");
 }
 
 function loadCart() {
@@ -658,6 +686,8 @@ async function loadShippingSettings() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const text = await res.text();
     shippingSettings = csvToShippingSettings(text);
+    updateCurrencyToggleButton();
+    renderFaqMinOrder();
     renderCart();
   } catch (err) {
     console.warn("No se pudo cargar la configuración de envíos:", err);
@@ -1852,6 +1882,13 @@ function openStockSection() {
 /* ======================================================================
    Beneficios
    ====================================================================== */
+function renderFaqMinOrder() {
+  const faqMinOrder = document.getElementById("faq-min-order");
+  if (faqMinOrder && CONFIG.MIN_ORDER_MXN) {
+    faqMinOrder.textContent = `Es de ${formatPrice(CONFIG.MIN_ORDER_MXN)}.`;
+  }
+}
+
 function renderBenefits() {
   const items = CONFIG.BENEFITS || [];
   document.getElementById("benefits-grid").innerHTML = items
@@ -2436,6 +2473,10 @@ function recordTransferOrder() {
         items,
         subtotal,
         shippingMXN,
+        // En transferencia no hay comisión de tarjeta -- el precio ya
+        // cobrado es el mismo que el base.
+        subtotalBase: subtotal,
+        shippingMXNBase: shippingMXN,
         grandTotal: subtotal + shippingMXN,
       }),
     })
@@ -2558,6 +2599,10 @@ function cartItemsForOrder({ useTarjetaPrice = false } = {}) {
     nombre: it.product.presentacion ? `${it.product.nombre} (${it.product.presentacion})` : it.product.nombre,
     qty: it.qty,
     precio: useTarjetaPrice ? (it.product.precioTarjeta ?? it.product.precio) : it.product.precio,
+    // Precio de transferencia (sin comisión de tarjeta), siempre, para que
+    // /admin.html pueda mostrar cuánto de "precio" es comisión cuando se
+    // pagó con Mercado Pago (ver create-order.js).
+    precioBase: it.product.precio,
     enStock: !!it.product.enStock,
   }));
 }
@@ -2597,6 +2642,11 @@ async function payWithMercadoPago() {
     const shipping = shippingEstimate(weight, c.cp, cartWeightNonStock());
     const shippingMXN = shipping ? shipping.totalMXNTarjeta : 0;
     const subtotal = cartTotalTarjeta();
+    // Precios/envío sin la comisión de tarjeta, solo para que
+    // /admin.html pueda mostrar cuánto de lo cobrado es comisión (ver
+    // create-order.js).
+    const shippingMXNBase = shipping ? shipping.totalMXN : 0;
+    const subtotalBase = cartTotal();
 
     const res = await fetch("/.netlify/functions/create-order", {
       method: "POST",
@@ -2607,6 +2657,8 @@ async function payWithMercadoPago() {
         items: cartItemsForOrder({ useTarjetaPrice: true }),
         subtotal,
         shippingMXN,
+        subtotalBase,
+        shippingMXNBase,
         grandTotal: subtotal + shippingMXN,
       }),
     });
@@ -2698,6 +2750,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("cart-close").addEventListener("click", closeCart);
   document.getElementById("cart-overlay").addEventListener("click", closeCart);
 
+  document.getElementById("currency-toggle").addEventListener("click", () => {
+    localStorage.setItem("displayCurrency", displayCurrency === "USD" ? "MXN" : "USD");
+    location.reload();
+  });
+  updateCurrencyToggleButton();
+
   document.getElementById("americano-cart-close").addEventListener("click", closeAmericanoCart);
   document.getElementById("americano-cart-overlay").addEventListener("click", closeAmericanoCart);
   document.getElementById("americano-quote-form").addEventListener("submit", sendAmericanoQuote);
@@ -2733,10 +2791,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("footer-shipping-link").addEventListener("click", openCart);
 
-  const faqMinOrder = document.getElementById("faq-min-order");
-  if (faqMinOrder && CONFIG.MIN_ORDER_MXN) {
-    faqMinOrder.textContent = `Es de ${formatPrice(CONFIG.MIN_ORDER_MXN)}.`;
-  }
+  renderFaqMinOrder();
 
   // Si el usuario hace clic en un enlace ancla (menú, footer, CTAs) mientras
   // la búsqueda está activa, primero hay que volver a mostrar las secciones

@@ -70,6 +70,10 @@
   .badge.status-failed { background: #fde2e1; color: #b03a2e; }
   .order-card ul { margin: 12px 0; padding-left: 20px; font-size: 14px; }
   .order-card ul li { margin-bottom: 2px; }
+  .order-card ul li .unit-price { color: #888; }
+  .order-card .breakdown { font-size: 13px; color: #666; margin-top: 6px; }
+  .order-card .breakdown .row { display: flex; justify-content: space-between; gap: 12px; padding: 1px 0; }
+  .order-card .breakdown .row.fee { color: #b0790e; font-weight: 700; }
   .order-card .total { font-weight: 800; font-size: 20px; color: #e07a8f; margin-top: 8px; }
   .order-card .customer { font-size: 14px; color: #444; margin-top: 10px; line-height: 1.6; }
   .order-card .customer a { color: #0b6bc2; text-decoration: none; }
@@ -685,8 +689,28 @@
 
   function itemsListHTML(o) {
     return (o.items || [])
-      .map((it) => `<li>${escapeHtml(it.nombre)} x${it.qty}${it.enStock ? " · en stock" : ""} — ${formatPrice(it.precio * it.qty)}</li>`)
+      .map((it) => `<li>${escapeHtml(it.nombre)} x${it.qty}${it.enStock ? " · en stock" : ""} <span class="unit-price">(${formatPrice(it.precio)} c/u)</span> — ${formatPrice(it.precio * it.qty)}</li>`)
       .join("");
+  }
+
+  /* Desglose del cobro: subtotal de productos, envío y, si el pedido se
+     pagó con tarjeta (Mercado Pago), la comisión incluida en esos dos
+     precios -- ya calculada y guardada al crear el pedido (ver
+     create-order.js), para que no cambie si luego editas el catálogo. */
+  function totalsBreakdownHTML(o) {
+    const subtotal = o.subtotal || 0;
+    const shippingMXN = o.shippingMXN || 0;
+    const cardFeeMXN = o.cardFeeMXN || 0;
+    const rows = [
+      `<div class="row"><span>Subtotal productos</span><span>${formatPrice(subtotal)}</span></div>`,
+    ];
+    if (shippingMXN > 0) {
+      rows.push(`<div class="row"><span>Envío</span><span>${formatPrice(shippingMXN)}</span></div>`);
+    }
+    if (cardFeeMXN > 0.5) {
+      rows.push(`<div class="row fee"><span>💳 Comisión por pago con tarjeta (incluida arriba)</span><span>${formatPrice(cardFeeMXN)}</span></div>`);
+    }
+    return `<div class="breakdown">${rows.join("")}</div>`;
   }
 
   /* Texto listo para pegar en el formulario de la paquetería al generar
@@ -801,6 +825,7 @@
           <span class="fecha">${formatFecha(o.createdAt)}</span>
         </div>
         <ul>${itemsListHTML(o)}</ul>
+        ${totalsBreakdownHTML(o)}
         <div class="total">${formatPrice(o.grandTotal)}</div>
         ${customerHTML(o)}
         ${proofLinkHTML(o)}
@@ -819,6 +844,7 @@
           <span class="fecha">${formatFecha(o.createdAt)}</span>
         </div>
         <ul>${itemsListHTML(o)}</ul>
+        ${totalsBreakdownHTML(o)}
         <div class="total">${formatPrice(o.grandTotal)}</div>
         ${customerHTML(o)}
         ${proofLinkHTML(o)}
@@ -836,7 +862,7 @@
   }
 
   function ordersToCSV(orders) {
-    const header = ["Fecha", "Origen", "Estado", "Cliente", "Teléfono", "Calle y número", "Colonia", "Municipio/Alcaldía", "Estado (Mx)", "CP", "Referencias", "Productos", "Total"];
+    const header = ["Fecha", "Origen", "Estado", "Cliente", "Teléfono", "Calle y número", "Colonia", "Municipio/Alcaldía", "Estado (Mx)", "CP", "Referencias", "Productos", "Subtotal productos", "Envío", "Comisión por tarjeta", "Total"];
     const rows = orders.map((o) => [
       o.createdAt ? new Date(o.createdAt).toLocaleString("es-MX") : "",
       o.source === "mercadopago" ? "Tarjeta (Mercado Pago)" : "Transferencia",
@@ -849,7 +875,10 @@
       o.customer?.estado || "",
       o.customer?.cp || "",
       o.customer?.referencias || "",
-      (o.items || []).map((it) => `${it.nombre} x${it.qty}`).join("; "),
+      (o.items || []).map((it) => `${it.nombre} x${it.qty} (${formatPrice(it.precio)} c/u)`).join("; "),
+      o.subtotal || 0,
+      o.shippingMXN || 0,
+      o.cardFeeMXN || 0,
       o.grandTotal || 0,
     ]);
     return [header, ...rows].map((cols) => cols.map(csvEscape).join(",")).join("\r\n");
