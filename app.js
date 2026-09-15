@@ -2597,6 +2597,7 @@ function cartItemsForOrder({ useTarjetaPrice = false } = {}) {
     // correcta de tu Google Sheet.
     sku: it.product.stockSku || it.product.id,
     nombre: it.product.presentacion ? `${it.product.nombre} (${it.product.presentacion})` : it.product.nombre,
+    marca: it.product.marca || "",
     qty: it.qty,
     precio: useTarjetaPrice ? (it.product.precioTarjeta ?? it.product.precio) : it.product.precio,
     // Precio de transferencia (sin comisión de tarjeta), siempre, para que

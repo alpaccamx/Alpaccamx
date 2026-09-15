@@ -4,7 +4,7 @@
 //   {
 //     source: "transferencia" | "mercadopago",
 //     customer: { name, phone, cp, street, colonia, municipio, estado, referencias, notes },
-//     items: [{ sku, nombre, qty, precio, precioBase, enStock }],
+//     items: [{ sku, nombre, marca, qty, precio, precioBase, enStock }],
 //     subtotal, shippingMXN, subtotalBase, shippingMXNBase, grandTotal
 //   }
 //
@@ -65,6 +65,7 @@ exports.handler = async (event) => {
     .map((it) => ({
       sku: String(it.sku || ""),
       nombre: String(it.nombre || ""),
+      marca: String(it.marca || ""),
       qty: Number(it.qty) || 0,
       precio: Number(it.precio) || 0,
       precioBase: Number(it.precioBase) || Number(it.precio) || 0,

@@ -689,7 +689,7 @@
 
   function itemsListHTML(o) {
     return (o.items || [])
-      .map((it) => `<li>${escapeHtml(it.nombre)} x${it.qty}${it.enStock ? " · en stock" : ""} <span class="unit-price">(${formatPrice(it.precio)} c/u)</span> — ${formatPrice(it.precio * it.qty)}</li>`)
+      .map((it) => `<li>${it.marca ? `<strong>${escapeHtml(it.marca)}</strong> — ` : ""}${escapeHtml(it.nombre)} x${it.qty}${it.enStock ? " · en stock" : ""} <span class="unit-price">(${formatPrice(it.precio)} c/u)</span> — ${formatPrice(it.precio * it.qty)}</li>`)
       .join("");
   }
 
@@ -875,7 +875,7 @@
       o.customer?.estado || "",
       o.customer?.cp || "",
       o.customer?.referencias || "",
-      (o.items || []).map((it) => `${it.nombre} x${it.qty} (${formatPrice(it.precio)} c/u)`).join("; "),
+      (o.items || []).map((it) => `${it.marca ? it.marca + " - " : ""}${it.nombre} x${it.qty} (${formatPrice(it.precio)} c/u)`).join("; "),
       o.subtotal || 0,
       o.shippingMXN || 0,
       o.cardFeeMXN || 0,
