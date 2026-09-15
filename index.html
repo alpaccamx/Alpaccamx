@@ -74,6 +74,11 @@
       </div>
     </form>
 
+    <button id="account-toggle" type="button" aria-label="Mi cuenta"
+      class="inline-flex items-center justify-center w-11 h-11 rounded-full text-ink/70 hover:text-ink hover:bg-ink/5 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+
     <button id="cart-toggle" type="button" aria-label="Abrir carrito"
       class="relative inline-flex items-center gap-2 rounded-full bg-rose text-cream px-4 py-2 min-h-[44px] text-sm font-semibold hover:bg-rose/90 transition">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
@@ -604,6 +609,132 @@
       <button id="quote-success-close" type="button" class="w-full text-xs text-ink/50 hover:text-ink underline text-center">Listo, cerrar</button>
     </div>
   </div>
+  </div>
+</aside>
+
+<!-- Mi cuenta (login / registro / mis pedidos) -->
+<div id="account-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+<aside id="account-drawer" aria-label="Mi cuenta"
+  class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
+  <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
+    <h2 class="font-logo text-xl text-ink">Mi cuenta</h2>
+    <button id="account-close" type="button" aria-label="Cerrar" class="text-ink/60 hover:text-ink text-2xl leading-none">&times;</button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto px-5 py-5">
+
+    <!-- Iniciar sesión -->
+    <div id="account-view-login">
+      <form id="login-form" class="space-y-3">
+        <div>
+          <label for="login-email" class="block text-xs font-semibold text-ink/60 mb-1">Correo</label>
+          <input id="login-email" required type="email" autocomplete="email"
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+        </div>
+        <div>
+          <label for="login-password" class="block text-xs font-semibold text-ink/60 mb-1">Contraseña</label>
+          <input id="login-password" required type="password" autocomplete="current-password"
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+        </div>
+        <p id="login-error" class="hidden text-xs text-rose"></p>
+        <button id="login-submit" type="submit"
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          <span>Iniciar sesión</span>
+        </button>
+      </form>
+      <p class="text-xs text-center mt-3">
+        <button type="button" id="show-forgot" class="text-ink/60 underline hover:text-ink">¿Olvidaste tu contraseña?</button>
+      </p>
+      <p class="text-sm text-center text-ink/70 mt-6 pt-5 border-t border-ink/10">
+        ¿Aún no tienes cuenta?
+        <button type="button" id="show-signup" class="text-rose font-semibold underline">Regístrate</button>
+      </p>
+    </div>
+
+    <!-- Registro -->
+    <div id="account-view-signup" class="hidden">
+      <form id="signup-form" class="space-y-3">
+        <div>
+          <label for="signup-name" class="block text-xs font-semibold text-ink/60 mb-1">Tu nombre</label>
+          <input id="signup-name" required type="text" autocomplete="name"
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+        </div>
+        <div>
+          <label for="signup-email" class="block text-xs font-semibold text-ink/60 mb-1">Correo</label>
+          <input id="signup-email" required type="email" autocomplete="email"
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+        </div>
+        <div>
+          <label for="signup-phone" class="block text-xs font-semibold text-ink/60 mb-1">Tu teléfono</label>
+          <input id="signup-phone" required type="tel" placeholder="55 1234 5678" autocomplete="tel"
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+          <p class="text-[11px] text-ink/40 mt-1">El mismo que usas al hacer tus pedidos — así vinculamos tu cuenta con tu historial.</p>
+        </div>
+        <div>
+          <label for="signup-password" class="block text-xs font-semibold text-ink/60 mb-1">Contraseña</label>
+          <input id="signup-password" required type="password" minlength="8" autocomplete="new-password"
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+          <p class="text-[11px] text-ink/40 mt-1">Mínimo 8 caracteres.</p>
+        </div>
+        <p id="signup-error" class="hidden text-xs text-rose"></p>
+        <button id="signup-submit" type="submit"
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          <span>Crear cuenta</span>
+        </button>
+      </form>
+      <p class="text-sm text-center text-ink/70 mt-6 pt-5 border-t border-ink/10">
+        ¿Ya tienes cuenta?
+        <button type="button" id="show-login-from-signup" class="text-rose font-semibold underline">Inicia sesión</button>
+      </p>
+    </div>
+
+    <!-- Olvidé mi contraseña -->
+    <div id="account-view-forgot" class="hidden">
+      <p class="text-sm text-ink/70 mb-3">Escribe tu correo y te mandamos un link para restablecer tu contraseña.</p>
+      <form id="forgot-form" class="space-y-3">
+        <div>
+          <label for="forgot-email" class="block text-xs font-semibold text-ink/60 mb-1">Correo</label>
+          <input id="forgot-email" required type="email" autocomplete="email"
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+        </div>
+        <button id="forgot-submit" type="submit"
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          <span>Mandar link de recuperación</span>
+        </button>
+      </form>
+      <p id="forgot-success" class="hidden text-xs text-center text-ink/70 mt-3">📩 Si ese correo tiene una cuenta, te mandamos un link — revisa tu bandeja (y spam).</p>
+      <p class="text-xs text-center mt-4">
+        <button type="button" id="show-login-from-forgot" class="text-ink/60 underline hover:text-ink">Volver a iniciar sesión</button>
+      </p>
+    </div>
+
+    <!-- Restablecer contraseña (desde el link del correo) -->
+    <div id="account-view-reset" class="hidden">
+      <p class="text-sm text-ink/70 mb-3">Escribe tu nueva contraseña.</p>
+      <form id="reset-form" class="space-y-3">
+        <div>
+          <label for="reset-password" class="block text-xs font-semibold text-ink/60 mb-1">Nueva contraseña</label>
+          <input id="reset-password" required type="password" minlength="8" autocomplete="new-password"
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+        </div>
+        <p id="reset-error" class="hidden text-xs text-rose"></p>
+        <button id="reset-submit" type="submit"
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          <span>Cambiar contraseña</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Sesión iniciada: mis pedidos -->
+    <div id="account-view-orders" class="hidden">
+      <p class="text-sm text-ink/70 mb-4">¡Hola, <span id="account-name" class="font-semibold text-ink"></span>! 👋</p>
+      <div id="account-orders-list" class="space-y-3"></div>
+      <p id="account-orders-empty" class="hidden text-center text-ink/50 text-sm py-6">Aún no tienes pedidos.</p>
+      <p id="account-orders-loading" class="text-center text-ink/50 text-sm py-6">Cargando tus pedidos…</p>
+      <button type="button" id="account-logout" class="w-full text-xs text-ink/50 hover:text-ink underline text-center mt-6 pt-5 border-t border-ink/10">Cerrar sesión</button>
+    </div>
+
   </div>
 </aside>
 

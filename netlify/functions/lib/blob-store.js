@@ -187,6 +187,7 @@ async function getPaymentProof(orderId) {
 }
 
 module.exports = {
+  blobsClientOptions,
   getSoldMap,
   applyStockDecrement,
   adjustStockSold,

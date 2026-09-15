@@ -2740,6 +2740,265 @@ function initWhatsAppFloat() {
   });
 }
 
+/* ======================================================================
+   Mi cuenta (login / registro / mis pedidos)
+   ====================================================================== */
+const CUSTOMER_TOKEN_KEY = "alpacca_customer_token";
+
+function getCustomerToken() {
+  return localStorage.getItem(CUSTOMER_TOKEN_KEY);
+}
+function setCustomerToken(token) {
+  localStorage.setItem(CUSTOMER_TOKEN_KEY, token);
+}
+function clearCustomerToken() {
+  localStorage.removeItem(CUSTOMER_TOKEN_KEY);
+}
+
+function openAccountPanel() {
+  document.getElementById("account-drawer").classList.remove("translate-x-full");
+  const overlay = document.getElementById("account-overlay");
+  overlay.classList.remove("opacity-0", "pointer-events-none");
+}
+
+function closeAccountPanel() {
+  document.getElementById("account-drawer").classList.add("translate-x-full");
+  const overlay = document.getElementById("account-overlay");
+  overlay.classList.add("opacity-0", "pointer-events-none");
+}
+
+const ACCOUNT_VIEWS = ["login", "signup", "forgot", "reset", "orders"];
+function showAccountView(view) {
+  ACCOUNT_VIEWS.forEach((v) => {
+    document.getElementById(`account-view-${v}`).classList.toggle("hidden", v !== view);
+  });
+}
+
+/* Al abrir el panel: si hay sesión, muestra "Mis pedidos" (y los carga);
+   si no, la pantalla de inicio de sesión. */
+function openAccountPanelDefault() {
+  openAccountPanel();
+  if (getCustomerToken()) {
+    showAccountView("orders");
+    loadMyOrders();
+  } else {
+    showAccountView("login");
+  }
+}
+
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  const errorEl = document.getElementById("login-error");
+  const btn = document.getElementById("login-submit");
+  errorEl.classList.add("hidden");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/.netlify/functions/customer-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "No se pudo iniciar sesión.");
+    setCustomerToken(data.token);
+    document.getElementById("login-form").reset();
+    showAccountView("orders");
+    loadMyOrders();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function handleSignupSubmit(e) {
+  e.preventDefault();
+  const name = document.getElementById("signup-name").value.trim();
+  const email = document.getElementById("signup-email").value.trim();
+  const phone = document.getElementById("signup-phone").value.trim();
+  const password = document.getElementById("signup-password").value;
+  const errorEl = document.getElementById("signup-error");
+  const btn = document.getElementById("signup-submit");
+  errorEl.classList.add("hidden");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/.netlify/functions/customer-signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, phone, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "No se pudo crear tu cuenta.");
+    setCustomerToken(data.token);
+    document.getElementById("signup-form").reset();
+    showAccountView("orders");
+    loadMyOrders();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function handleForgotSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById("forgot-email").value.trim();
+  const btn = document.getElementById("forgot-submit");
+  const successEl = document.getElementById("forgot-success");
+  btn.disabled = true;
+  try {
+    await fetch("/.netlify/functions/customer-forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch (err) {
+    // Aunque falle la conexión, se muestra el mismo mensaje -- ver nota
+    // en customer-forgot-password.js sobre no revelar qué correos existen.
+  } finally {
+    document.getElementById("forgot-form").reset();
+    successEl.classList.remove("hidden");
+    btn.disabled = false;
+  }
+}
+
+async function handleResetSubmit(e) {
+  e.preventDefault();
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get("email") || "";
+  const token = params.get("reset") || "";
+  const newPassword = document.getElementById("reset-password").value;
+  const errorEl = document.getElementById("reset-error");
+  const btn = document.getElementById("reset-submit");
+  errorEl.classList.add("hidden");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/.netlify/functions/customer-reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, token, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "No se pudo cambiar tu contraseña.");
+    document.getElementById("reset-form").reset();
+    // Limpia el link de la URL para que no se pueda reusar por accidente.
+    window.history.replaceState({}, "", window.location.pathname);
+    showAccountView("login");
+    setStatus("✅ Tu contraseña se cambió. Ya puedes iniciar sesión.");
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function logoutCustomer() {
+  clearCustomerToken();
+  showAccountView("login");
+}
+
+const ORDER_STATUS_LABELS = {
+  pending: "⏳ Pendiente",
+  paid: "✅ Pagado",
+  cancelled: "✕ Cancelado",
+  failed: "⚠️ No se pudo procesar",
+};
+
+function myOrderCardHTML(o) {
+  const statusLabel = ORDER_STATUS_LABELS[o.status] || o.status;
+  const fecha = o.createdAt
+    ? new Date(o.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })
+    : "";
+  const itemsHTML = (o.items || [])
+    .map((it) => `<li>${escapeHtml(it.nombre)} x${it.qty}</li>`)
+    .join("");
+  const tracking = o.trackingNumber
+    ? `<p class="text-xs text-lilac font-semibold mt-1">🚚 Guía: ${escapeHtml(o.trackingNumber)}${o.carrier ? " · " + escapeHtml(o.carrier) : ""}</p>`
+    : "";
+  return `
+    <div class="rounded-lg border border-ink/10 p-3">
+      <div class="flex items-center justify-between text-xs text-ink/50 mb-1">
+        <span>${fecha}</span>
+        <span class="font-semibold">${statusLabel}</span>
+      </div>
+      <ul class="text-sm text-ink space-y-0.5 mb-1">${itemsHTML}</ul>
+      <p class="text-sm font-bold text-rose">${formatPrice(o.grandTotal)}</p>
+      ${tracking}
+    </div>`;
+}
+
+async function loadMyOrders() {
+  const listEl = document.getElementById("account-orders-list");
+  const emptyEl = document.getElementById("account-orders-empty");
+  const loadingEl = document.getElementById("account-orders-loading");
+  listEl.innerHTML = "";
+  emptyEl.classList.add("hidden");
+  loadingEl.classList.remove("hidden");
+
+  const token = getCustomerToken();
+  if (!token) {
+    loadingEl.classList.add("hidden");
+    showAccountView("login");
+    return;
+  }
+
+  try {
+    const res = await fetch("/.netlify/functions/customer-orders", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    loadingEl.classList.add("hidden");
+    if (res.status === 401) {
+      clearCustomerToken();
+      showAccountView("login");
+      return;
+    }
+    if (!res.ok) throw new Error(data.error || "No se pudieron cargar tus pedidos.");
+
+    document.getElementById("account-name").textContent = data.name || "";
+    const orders = data.orders || [];
+    if (!orders.length) {
+      emptyEl.classList.remove("hidden");
+      return;
+    }
+    listEl.innerHTML = orders.map(myOrderCardHTML).join("");
+  } catch (err) {
+    loadingEl.classList.add("hidden");
+    emptyEl.textContent = "No se pudieron cargar tus pedidos. Intenta de nuevo.";
+    emptyEl.classList.remove("hidden");
+  }
+}
+
+function initAccountPanel() {
+  document.getElementById("account-toggle").addEventListener("click", openAccountPanelDefault);
+  document.getElementById("account-close").addEventListener("click", closeAccountPanel);
+  document.getElementById("account-overlay").addEventListener("click", closeAccountPanel);
+
+  document.getElementById("login-form").addEventListener("submit", handleLoginSubmit);
+  document.getElementById("signup-form").addEventListener("submit", handleSignupSubmit);
+  document.getElementById("forgot-form").addEventListener("submit", handleForgotSubmit);
+  document.getElementById("reset-form").addEventListener("submit", handleResetSubmit);
+  document.getElementById("account-logout").addEventListener("click", logoutCustomer);
+
+  document.getElementById("show-signup").addEventListener("click", () => showAccountView("signup"));
+  document.getElementById("show-login-from-signup").addEventListener("click", () => showAccountView("login"));
+  document.getElementById("show-forgot").addEventListener("click", () => showAccountView("forgot"));
+  document.getElementById("show-login-from-forgot").addEventListener("click", () => showAccountView("login"));
+
+  // Si llegó desde el link del correo de recuperación (?reset=...&email=...),
+  // abre el panel directo en la pantalla de "nueva contraseña".
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("reset") && params.get("email")) {
+    openAccountPanel();
+    showAccountView("reset");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   window.scrollTo(0, 0);
   document.getElementById("year").textContent = new Date().getFullYear();
@@ -2842,6 +3101,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderPromoBanner();
   renderBenefits();
   initWhatsAppFloat();
+  initAccountPanel();
 
   // Por si alguien traía carritos de ambas colecciones guardados de antes
   // de que el carrito fuera uno solo: se queda el de Skincare Coreano.
