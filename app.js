@@ -89,6 +89,10 @@ const CONFIG = {
       imageMobile: "assets/hero/hero-anua-50-descuento-mobile.webp",
       imageAlt: "Hasta 50% de descuento en tus productos Anua favoritos: ampolla, tónico, sérum y crema.",
     },
+    {
+      image: "assets/hero/hero-productos-coleccion.webp",
+      imageAlt: "Colección de skincare coreano Alpacca: COSRX, Anua, Beauty of Joseon, mixsoon, haruharu wonder y AXIS-Y.",
+    },
   ],
 
   // Emojis para las etiquetas de la columna opcional "TipoPiel" del Sheet.
