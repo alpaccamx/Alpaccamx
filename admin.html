@@ -184,6 +184,35 @@
     <button class="btn-secondary" id="logout-btn">Salir</button>
   </div>
 
+  <h2 class="section-title" id="history-title" style="display:none;">📋 Todos tus pedidos</h2>
+
+  <div class="filters" id="filters" style="display:none;">
+    <div>
+      <label class="filters-label">¿Cuáles quieres ver?</label>
+      <div class="tabs" id="status-tabs" style="margin-top:8px;">
+        <button class="tab active" data-status="">Todos</button>
+        <button class="tab" data-status="paid">✅ Pagados</button>
+        <button class="tab" data-status="pending">⏳ Pendientes</button>
+        <button class="tab" data-status="cancelled">✕ Cancelados</button>
+        <button class="tab" data-status="failed">⚠️ No pagados</button>
+      </div>
+    </div>
+    <div>
+      <label class="filters-label">¿De cuándo?</label>
+      <div class="tabs" id="time-tabs" style="margin-top:8px;">
+        <button class="tab active" data-range="all">Todo</button>
+        <button class="tab" data-range="today">Hoy</button>
+        <button class="tab" data-range="week">Esta semana</button>
+        <button class="tab" data-range="month">Este mes</button>
+      </div>
+    </div>
+    <input id="filter-search" type="text" placeholder="🔍 Busca por nombre, teléfono, producto o # de orden" />
+    <div class="filters-row">
+      <button class="btn-secondary" id="export-btn">⬇️ Descargar en Excel</button>
+      <span id="filter-count"></span>
+    </div>
+  </div>
+
   <div class="filters" id="add-stock-form" style="display:none;">
     <label class="filters-label">Nuevo producto en Stock</label>
     <p style="font-size:13px;color:#777;margin:0;">Esto se agrega directo a tu Google Sheet, en la pestaña de Stock -- no necesitas abrirlo a mano.</p>
@@ -213,35 +242,6 @@
   <p id="status" style="display:none;"></p>
   <p id="empty" style="display:none;">🎉 No tienes pedidos por confirmar</p>
   <div id="orders"></div>
-
-  <h2 class="section-title" id="history-title" style="display:none;">📋 Todos tus pedidos</h2>
-
-  <div class="filters" id="filters" style="display:none;">
-    <div>
-      <label class="filters-label">¿Cuáles quieres ver?</label>
-      <div class="tabs" id="status-tabs" style="margin-top:8px;">
-        <button class="tab active" data-status="">Todos</button>
-        <button class="tab" data-status="paid">✅ Pagados</button>
-        <button class="tab" data-status="pending">⏳ Pendientes</button>
-        <button class="tab" data-status="cancelled">✕ Cancelados</button>
-        <button class="tab" data-status="failed">⚠️ No pagados</button>
-      </div>
-    </div>
-    <div>
-      <label class="filters-label">¿De cuándo?</label>
-      <div class="tabs" id="time-tabs" style="margin-top:8px;">
-        <button class="tab active" data-range="all">Todo</button>
-        <button class="tab" data-range="today">Hoy</button>
-        <button class="tab" data-range="week">Esta semana</button>
-        <button class="tab" data-range="month">Este mes</button>
-      </div>
-    </div>
-    <input id="filter-search" type="text" placeholder="🔍 Busca por nombre, teléfono, producto o # de orden" />
-    <div class="filters-row">
-      <button class="btn-secondary" id="export-btn">⬇️ Descargar en Excel</button>
-      <span id="filter-count"></span>
-    </div>
-  </div>
 
   <p id="history-empty" style="display:none;">Todavía no tienes pedidos.</p>
   <div id="history"></div>
