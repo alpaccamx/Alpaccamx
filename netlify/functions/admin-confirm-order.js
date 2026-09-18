@@ -10,6 +10,7 @@
 
 const { transitionOrder, applyStockDecrement } = require("./lib/blob-store.js");
 const { notifySellerWhatsApp, notifyCustomerOrderConfirmed, orderPaidMessage } = require("./lib/whatsapp.js");
+const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -47,6 +48,7 @@ exports.handler = async (event) => {
       if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
       if (transitioned) {
         await applyStockDecrement(order.items);
+        await applySheetStockDelta(deltaFromItems(order.items));
         await notifySellerWhatsApp(orderPaidMessage(order));
         await notifyCustomerOrderConfirmed(order);
       }

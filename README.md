@@ -814,6 +814,61 @@ función `customer-forgot-password` si pasa esto).
   usar una vez.
 - La sesión se guarda en el navegador (localStorage) y dura 30 días.
 
+## 6. Mantener tu Google Sheet de Stock al día sola (opcional)
+
+La columna **"Piezas Disponibles"** de tu Sheet de Stock es tu **conteo
+total** (cuántas piezas tenías cuando lo capturaste) — el sitio le resta
+automáticamente, solo para MOSTRARLO, lo que ya se vendió y pagó, sin
+tocar tu Sheet. Eso puede confundir: si capturaste 4 y ya se vendieron 2,
+el sitio muestra 2 disponibles, pero tu Sheet se queda en 4.
+
+Si configuras esto, cada vez que se confirma un pago (o editas un pedido
+en `/admin.html` para agregar/quitar algo) el sitio **también edita tu
+Google Sheet de verdad**, restando (o regresando) las piezas vendidas de
+la columna "Piezas Disponibles" — así el número que ves ahí siempre es
+el que de verdad queda, sin que tengas que restarlo tú a mano.
+
+### Cómo configurarlo
+
+1. Ve a **console.cloud.google.com** y crea un proyecto nuevo (o usa uno
+   que ya tengas) — el nombre no importa, ej. "Alpacca Sitio".
+2. En el buscador de arriba escribe **"Google Sheets API"**, ábrela, y
+   dale **"Habilitar"**.
+3. Ve a **"Credenciales"** (menú izquierdo) → **"Crear credenciales"** →
+   **"Cuenta de servicio"**. Ponle un nombre (ej. "alpacca-sitio") y
+   termina el asistente (los permisos de proyecto que te pregunta no
+   importan, déjalos como están).
+4. Entra a esa cuenta de servicio recién creada → pestaña **"Claves"** →
+   **"Agregar clave"** → **"Crear clave nueva"** → tipo **JSON** → se
+   descarga un archivo `.json` a tu computadora.
+5. Abre ese archivo con el Bloc de notas (o TextEdit) y busca dos
+   valores: `"client_email"` y `"private_key"`.
+6. Abre tu Google Sheet (el catálogo/Stock) → botón **"Compartir"** →
+   pega ahí el valor de `client_email` (se ve como
+   `alpacca-sitio@tu-proyecto.iam.gserviceaccount.com`) → dale permiso de
+   **Editor** → Enviar (sin necesidad de que le llegue un correo, solo
+   compártelo).
+7. Copia el **ID de tu Sheet real** de la barra de direcciones cuando lo
+   tienes abierto para editar: `docs.google.com/spreadsheets/d/`**`ESTE
+   PEDAZO`**`/edit...` — NO es el link de "Publicar en la web" que ya
+   usas para que el sitio lea el catálogo, es distinto.
+8. En Netlify → Site settings → Environment variables, agrega 4
+   variables nuevas:
+   - `GOOGLE_SHEETS_CLIENT_EMAIL` → el `client_email` del paso 5.
+   - `GOOGLE_SHEETS_PRIVATE_KEY` → el `private_key` del paso 5 (cópialo
+     completo, tal cual, incluyendo las líneas `-----BEGIN PRIVATE
+     KEY-----` y `-----END PRIVATE KEY-----`).
+   - `GOOGLE_SHEETS_SPREADSHEET_ID` → el ID del paso 7.
+   - `GOOGLE_SHEETS_STOCK_TAB` → el nombre EXACTO de la pestaña de Stock
+     tal cual aparece abajo en tu Sheet (ej. `Stock`).
+9. Dispara un nuevo deploy.
+
+Si falta cualquiera de estas 4 variables, o el Sheet no está compartido
+con la cuenta de servicio, o el nombre de la pestaña no coincide, esto
+simplemente no actualiza tu Sheet — no rompe nada más del flujo de pago
+(revisa los logs de `admin-confirm-order`, `mp-webhook` o
+`admin-update-order-items` si esperabas que se actualizara y no pasó).
+
 ## Secciones de la página
 
 Header (logo + buscador + carrito + menú ☰ en móvil) → menú de secciones

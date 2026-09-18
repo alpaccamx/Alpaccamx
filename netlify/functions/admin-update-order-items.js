@@ -33,6 +33,7 @@
 // aquí el campo "Total cobrado" para que quede el registro correcto.
 
 const { getOrder, updateOrderFields, adjustStockSold } = require("./lib/blob-store.js");
+const { applySheetStockDelta } = require("./lib/google-sheets.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -112,6 +113,7 @@ exports.handler = async (event) => {
       console.error("Error ajustando el stock vendido:", err);
       return jsonResponse(500, { error: "No se pudo ajustar el stock. Intenta de nuevo." });
     }
+    await applySheetStockDelta(delta);
   }
 
   try {
