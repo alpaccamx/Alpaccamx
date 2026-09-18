@@ -301,6 +301,48 @@ function saveAmericanoCart() {
   localStorage.setItem(AMERICANO_CART_KEY, JSON.stringify(americanoCart));
 }
 
+/* El carrito guarda en localStorage una copia completa de cada producto
+   (precio, precio con tarjeta, peso...) tal como estaba cuando se agregó,
+   y el carrito no se vacía solo -- puede quedarse ahí días. Si Mae
+   corrige un precio en su Google Sheet mientras tanto, sin este refresco
+   la clienta seguiría viendo y pagando el precio viejo, porque nada
+   comparaba lo guardado contra el catálogo recién cargado. Se llama cada
+   vez que se vuelve a cargar el catálogo/stock, y quita del carrito lo
+   que ya no exista (producto eliminado o agotado). */
+function syncCartWithProducts() {
+  let changed = false;
+  Object.keys(cart).forEach((id) => {
+    const fresh = products.find((p) => p.id === id);
+    if (!fresh) {
+      delete cart[id];
+      changed = true;
+      return;
+    }
+    if (cart[id].product !== fresh) {
+      cart[id].product = fresh;
+      changed = true;
+    }
+  });
+  if (changed) saveCart();
+}
+
+function syncAmericanoCartWithProducts() {
+  let changed = false;
+  Object.keys(americanoCart).forEach((id) => {
+    const fresh = americanoProducts.find((p) => p.id === id);
+    if (!fresh) {
+      delete americanoCart[id];
+      changed = true;
+      return;
+    }
+    if (americanoCart[id].product !== fresh) {
+      americanoCart[id].product = fresh;
+      changed = true;
+    }
+  });
+  if (changed) saveAmericanoCart();
+}
+
 function setStatus(text) {
   const banner = document.getElementById("status-banner");
   const el = document.getElementById("status-text");
@@ -865,6 +907,7 @@ async function loadStockData() {
     await loadSoldStock();
     stockData = csvToStockData(text);
     applyStockData();
+    syncCartWithProducts();
     renderAll();
   } catch (err) {
     console.warn("No se pudo cargar la tabla de stock:", err);
@@ -881,6 +924,7 @@ async function loadProducts() {
     products = DEMO_PRODUCTS;
     setStatus("Mostrando catálogo de ejemplo. Conecta tu Google Sheet: edita CONFIG.GOOGLE_SHEET_CSV_URL en app.js.");
     applyStockData();
+    syncCartWithProducts();
     renderAll();
     return;
   }
@@ -899,6 +943,7 @@ async function loadProducts() {
     setStatus("No se pudo conectar con Google Sheets en este momento — mostrando catálogo de ejemplo.");
   }
   applyStockData();
+  syncCartWithProducts();
   renderAll();
 }
 
@@ -920,6 +965,7 @@ async function loadAmericanoProducts() {
     console.warn("No se pudo cargar el catálogo de Cosmético Americano:", err);
     americanoProducts = [];
   }
+  syncAmericanoCartWithProducts();
   renderAmericanoSection();
   renderAmericanoCart();
   renderCategoryNav();
