@@ -49,7 +49,7 @@ const CONFIG = {
   BUSINESS_NAME: "Mae",
 
   // Mensaje de la barra superior.
-  SHIPPING_MESSAGE: "📦 Stock sin mínimo de compra con más de 50% de descuento ✨",
+  SHIPPING_MESSAGE: "📦 Stock sin mínimo de compra con 50% de descuento ✨",
 
   // Pedido mínimo para poder enviar la cotización, en pesos mexicanos (monto fijo).
   MIN_ORDER_MXN: 5700,
