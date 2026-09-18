@@ -236,7 +236,7 @@
         <button class="tab" data-range="month">Este mes</button>
       </div>
     </div>
-    <input id="filter-search" type="text" placeholder="🔍 Busca por nombre, teléfono o producto" />
+    <input id="filter-search" type="text" placeholder="🔍 Busca por nombre, teléfono, producto o # de orden" />
     <div class="filters-row">
       <button class="btn-secondary" id="export-btn">⬇️ Descargar en Excel</button>
       <span id="filter-count"></span>
@@ -462,6 +462,7 @@
       o.customer?.cp,
       o.customer?.colonia,
       o.customer?.municipio,
+      orderNumber(o),
       ...((o.items || []).map((it) => it.nombre)),
     ].filter(Boolean).join(" ").toLowerCase();
     return haystack.includes(query);
@@ -936,6 +937,14 @@
     return o.source === "mercadopago" ? "💳 Tarjeta" : "🏦 Transferencia";
   }
 
+  /* Mismo número corto que ya ve el cliente (en WhatsApp, en "Mis
+     pedidos", y en el panel de éxito al pagar): los primeros 8
+     caracteres del id, en mayúsculas -- para que Mae pueda ubicar el
+     pedido cuando la clienta le escriba con ese número. */
+  function orderNumber(o) {
+    return (o.id || "").slice(0, 8).toUpperCase();
+  }
+
   function itemMarca(it) {
     return it.marca || (skuToInfo.get(it.sku) || {}).marca || "";
   }
@@ -1159,7 +1168,7 @@
             <span class="badge ${o.source}">${sourceLabel(o)}</span>
             <span class="badge status-${o.status}">${statusLabel}</span>
           </span>
-          <span class="fecha">${formatFecha(o.createdAt)}</span>
+          <span class="fecha">#${orderNumber(o)} · ${formatFecha(o.createdAt)}</span>
         </div>
         <ul>${itemsListHTML(o)}</ul>
         ${totalsBreakdownHTML(o)}
@@ -1179,7 +1188,7 @@
       <div class="order-card" style="border-left-color:${borderColor};">
         <div class="top">
           <span class="badge ${o.source}">${sourceLabel(o)} · esperando</span>
-          <span class="fecha">${formatFecha(o.createdAt)}</span>
+          <span class="fecha">#${orderNumber(o)} · ${formatFecha(o.createdAt)}</span>
         </div>
         <ul>${itemsListHTML(o)}</ul>
         ${totalsBreakdownHTML(o)}
