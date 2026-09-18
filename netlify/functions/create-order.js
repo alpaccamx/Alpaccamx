@@ -52,7 +52,10 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "JSON inválido." });
   }
 
-  const { source, customer, items, subtotal, shippingMXN, subtotalBase, shippingMXNBase, grandTotal } = body;
+  const {
+    source, customer, items, subtotal, shippingMXN, subtotalBase, shippingMXNBase, grandTotal,
+    shippingKoreaMXN, shippingNacionalMXN, weightKg,
+  } = body;
 
   if (source !== "transferencia" && source !== "whatsapp" && source !== "mercadopago") {
     return jsonResponse(400, { error: "source debe ser 'transferencia' o 'mercadopago'." });
@@ -107,6 +110,14 @@ exports.handler = async (event) => {
     shippingMXNBase: shippingMXNBaseNum,
     cardFeeMXN,
     grandTotal: Number(grandTotal) || 0,
+    // Desglose de envío (siempre a precio de transferencia, como
+    // shippingMXNBase) y peso total del pedido -- solo para que
+    // /admin.html pueda mostrarlos sin tener que recalcularlos. Se
+    // guardan en 0 si el frontend no los mandó (pedidos de versiones
+    // anteriores del sitio no los tenían).
+    shippingKoreaMXN: Number(shippingKoreaMXN) || 0,
+    shippingNacionalMXN: Number(shippingNacionalMXN) || 0,
+    weightKg: Number(weightKg) || 0,
   };
 
   try {
