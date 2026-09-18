@@ -91,6 +91,7 @@ const CONFIG = {
     },
     {
       image: "assets/hero/hero-productos-coleccion.webp",
+      imageMobile: "assets/hero/hero-productos-coleccion-mobile.webp",
       imageAlt: "Colección de skincare coreano Alpacca: COSRX, Anua, Beauty of Joseon, mixsoon, haruharu wonder y AXIS-Y.",
     },
   ],
