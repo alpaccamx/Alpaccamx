@@ -29,11 +29,20 @@
 // permiso de Editor -- si no, Google rechaza la escritura aunque las
 // credenciales estén bien.
 
+const { randomBytes } = require("crypto");
 const jwt = require("jsonwebtoken");
 
 const SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets";
 const SKU_ALIASES = ["sku", "codigo", "código"];
 const PIEZAS_ALIASES = ["piezas disponibles", "piezas", "cantidad", "stock"];
+const PRECIO_ALIASES = ["precio mxn", "precio", "price"];
+const PRECIO_TARJETA_ALIASES = ["precio tarjeta mxn", "precio tarjeta", "preciotarjeta"];
+const NOMBRE_ALIASES = ["nombre", "producto", "name"];
+const MARCA_ALIASES = ["marca", "brand"];
+const IMAGEN_ALIASES = ["imagen", "image", "foto", "imagen url"];
+const DESCRIPCION_ALIASES = ["descripcion", "descripción", "description"];
+const CATEGORIA_ALIASES = ["categoria", "categoría", "category"];
+const PESO_ALIASES = ["peso", "peso (kg)", "peso kg", "weight", "pesokg"];
 
 let cachedToken = null; // { token, expiresAt } -- se reusa mientras no venza
 
@@ -106,6 +115,125 @@ function findColumnIndex(headers, aliases) {
   return normalized.findIndex((h) => aliases.includes(h));
 }
 
+/* Lee toda la pestaña de Stock (encabezados + filas) -- usado tanto para
+   restar piezas vendidas como para agregar productos nuevos. Regresa
+   null si falta configuración, credenciales, o la lectura falla (ya
+   logueado el motivo); nunca truena. */
+async function readStockTab() {
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  const tab = process.env.GOOGLE_SHEETS_STOCK_TAB;
+  if (!spreadsheetId || !tab) return null;
+
+  const token = await getAccessToken();
+  if (!token) return null;
+
+  try {
+    const range = `${tab}!A:Z`;
+    const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/${encodeURIComponent(range)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("Error leyendo la pestaña de Stock:", data);
+      return null;
+    }
+    const rows = data.values || [];
+    if (!rows.length) return null;
+    return { spreadsheetId, tab, token, headers: rows[0], rows };
+  } catch (err) {
+    console.error("Error de red leyendo la pestaña de Stock:", err);
+    return null;
+  }
+}
+
+/* Genera un SKU corto y legible que no choque con ninguno ya existente
+   en la pestaña de Stock -- para cuando Mae agrega un producto nuevo sin
+   escribir uno ella misma. */
+function generateStockSku(existingSkus) {
+  const used = new Set(existingSkus);
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const code = randomBytes(4).toString("hex").toUpperCase(); // ej. "A1B2C3D4"
+    const sku = `STOCK-${code}`;
+    if (!used.has(sku)) return sku;
+  }
+  // Prácticamente imposible de alcanzar (colisión 20 veces seguidas),
+  // pero por si acaso, se agrega la hora para garantizar que sea único.
+  return `STOCK-${Date.now().toString(36).toUpperCase()}`;
+}
+
+/* Agrega un producto nuevo como fila al final de la pestaña de Stock --
+   ver admin-add-stock-product.js. "fields" trae las mismas columnas que
+   ya lee csvToStockData en app.js (sku, piezas, precio, precioTarjeta,
+   nombre, marca, imagen, descripcion, categoria, peso); cualquiera que
+   falte en la pestaña real de Mae simplemente se deja vacía en esa
+   columna, no truena. Si fields.sku viene vacío, se genera uno solo y se
+   regresa en el resultado.
+   Regresa { ok: true, sku } o { ok: false, error } -- nunca truena. */
+async function appendStockProduct(fields) {
+  const sheet = await readStockTab();
+  if (!sheet) {
+    return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
+  }
+  const { spreadsheetId, tab, token, headers, rows } = sheet;
+
+  const iSku = findColumnIndex(headers, SKU_ALIASES);
+  if (iSku < 0) {
+    return { ok: false, error: 'No se encontró la columna "SKU" en la pestaña de Stock.' };
+  }
+
+  let sku = String(fields.sku || "").trim();
+  if (!sku) {
+    const existingSkus = rows.slice(1).map((r) => String(r[iSku] || "").trim()).filter(Boolean);
+    sku = generateStockSku(existingSkus);
+  } else {
+    const collision = rows.slice(1).some((r) => String(r[iSku] || "").trim() === sku);
+    if (collision) {
+      return { ok: false, error: `Ya existe un producto con el SKU "${sku}" en tu Stock.` };
+    }
+  }
+
+  const columnValues = {
+    [iSku]: sku,
+    [findColumnIndex(headers, PIEZAS_ALIASES)]: fields.piezas,
+    [findColumnIndex(headers, PRECIO_ALIASES)]: fields.precio,
+    [findColumnIndex(headers, PRECIO_TARJETA_ALIASES)]: fields.precioTarjeta || "",
+    [findColumnIndex(headers, NOMBRE_ALIASES)]: fields.nombre || "",
+    [findColumnIndex(headers, MARCA_ALIASES)]: fields.marca || "",
+    [findColumnIndex(headers, IMAGEN_ALIASES)]: fields.imagen || "",
+    [findColumnIndex(headers, DESCRIPCION_ALIASES)]: fields.descripcion || "",
+    [findColumnIndex(headers, CATEGORIA_ALIASES)]: fields.categoria || "",
+    [findColumnIndex(headers, PESO_ALIASES)]: fields.peso || "",
+  };
+  delete columnValues["-1"]; // columnas que no existen en esta pestaña -- se ignoran
+
+  const newRow = new Array(headers.length).fill("");
+  for (const [index, value] of Object.entries(columnValues)) {
+    newRow[Number(index)] = value;
+  }
+
+  try {
+    const range = `${tab}!A:Z`;
+    const res = await fetch(
+      `${SHEETS_API}/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ values: [newRow] }),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("Error agregando el producto a la pestaña de Stock:", data);
+      return { ok: false, error: "Google rechazó la escritura -- revisa que el Sheet esté compartido con la cuenta de servicio." };
+    }
+    console.log("Producto agregado a Stock:", JSON.stringify(newRow));
+    return { ok: true, sku };
+  } catch (err) {
+    console.error("Error de red agregando el producto a la pestaña de Stock:", err);
+    return { ok: false, error: "No se pudo conectar con Google Sheets. Intenta de nuevo." };
+  }
+}
+
 /* Construye { sku: qty } a partir de items de un pedido, con el mismo
    filtro que applyStockDecrement en blob-store.js (solo artículos "en
    stock" con SKU y cantidad > 0) -- para llamar applySheetStockDelta con
@@ -128,34 +256,18 @@ async function applySheetStockDelta(deltaBySku) {
   const entries = Object.entries(deltaBySku || {}).filter(([, delta]) => delta);
   if (!entries.length) return;
 
-  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
-  const tab = process.env.GOOGLE_SHEETS_STOCK_TAB;
-  if (!spreadsheetId || !tab) return;
+  const sheet = await readStockTab();
+  if (!sheet) return;
+  const { spreadsheetId, tab, token, headers, rows } = sheet;
 
-  const token = await getAccessToken();
-  if (!token) return;
+  const iSku = findColumnIndex(headers, SKU_ALIASES);
+  const iPiezas = findColumnIndex(headers, PIEZAS_ALIASES);
+  if (iSku < 0 || iPiezas < 0) {
+    console.error('No se encontraron las columnas "SKU" / "Piezas Disponibles" en la pestaña de Stock.');
+    return;
+  }
 
   try {
-    const range = `${tab}!A:Z`;
-    const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/${encodeURIComponent(range)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      console.error("Error leyendo la pestaña de Stock:", data);
-      return;
-    }
-
-    const rows = data.values || [];
-    if (!rows.length) return;
-    const headers = rows[0];
-    const iSku = findColumnIndex(headers, SKU_ALIASES);
-    const iPiezas = findColumnIndex(headers, PIEZAS_ALIASES);
-    if (iSku < 0 || iPiezas < 0) {
-      console.error('No se encontraron las columnas "SKU" / "Piezas Disponibles" en la pestaña de Stock.');
-      return;
-    }
-
     const deltaMap = new Map(entries);
     const colLetter = columnIndexToLetter(iPiezas);
     const updates = [];
@@ -186,4 +298,4 @@ async function applySheetStockDelta(deltaBySku) {
   }
 }
 
-module.exports = { applySheetStockDelta, deltaFromItems };
+module.exports = { applySheetStockDelta, deltaFromItems, appendStockProduct };

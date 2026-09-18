@@ -869,6 +869,29 @@ simplemente no actualiza tu Sheet — no rompe nada más del flujo de pago
 (revisa los logs de `admin-confirm-order`, `mp-webhook` o
 `admin-update-order-items` si esperabas que se actualizara y no pasó).
 
+### Agregar productos a Stock desde /admin.html (sin abrir el Sheet)
+
+Con la misma configuración de arriba ya funcionando, el botón
+**"➕ Agregar producto en Stock"** (junto a "🔄 Actualizar" en
+`/admin.html`) abre un formulario que agrega una fila nueva directo a tu
+pestaña de Stock — no necesitas abrir ni tocar el Google Sheet.
+
+Campos obligatorios: **Nombre**, **Piezas disponibles** y **Precio
+transferencia (MXN)**. Todo lo demás es opcional (marca, categoría,
+precio con tarjeta, peso, foto, descripción) — lo que dejes vacío,
+simplemente se queda vacío en esa columna, igual que si hubieras
+capturado la fila a mano.
+
+**SKU opcional**: si lo dejas vacío, se genera uno solo (tipo
+`STOCK-A1B2C3D4`) y no se repite con ninguno que ya tengas. Si escribes
+uno tú misma y ya existe, te avisa en vez de duplicarlo.
+
+A diferencia del resto de los avisos automáticos de esta sección (que
+son "mejor esfuerzo" y no truenan si Google Sheets no está configurado),
+este botón sí necesita que ya hayas hecho los pasos de arriba —
+si no, te va a decir claramente que falta configurarlo, en vez de
+fallar en silencio, porque es la única forma de agregar el producto.
+
 ## Secciones de la página
 
 Header (logo + buscador + carrito + menú ☰ en móvil) → menú de secciones
