@@ -314,8 +314,9 @@
     if (!rows.length) return;
     const headers = rows[0].map((h) => h.trim().toLowerCase());
     const iSku = headers.findIndex((h) => ["sku", "codigo", "código"].includes(h));
-    const iMarca = headers.findIndex((h) => ["marca", "brand"].includes(h));
+    const iMarca = headers.findIndex((h) => ["marca", "brand", "marca (opcional)"].includes(h));
     const iPrecio = headers.findIndex((h) => ["precio", "precio mxn", "price"].includes(h));
+    const iPeso = headers.findIndex((h) => ["peso", "peso (kg)", "peso kg", "peso kg (opcional)"].includes(h));
     if (iSku < 0) return;
     rows.slice(1).forEach((r) => {
       const sku = (r[iSku] || "").trim();
@@ -323,10 +324,13 @@
       const marca = iMarca >= 0 ? (r[iMarca] || "").trim() : "";
       const precioRaw = iPrecio >= 0 ? (r[iPrecio] || "").replace(/[^0-9.,]/g, "").replace(",", ".") : "";
       const precio = parseFloat(precioRaw) || 0;
+      const pesoRaw = iPeso >= 0 ? (r[iPeso] || "").replace(/[^0-9.,]/g, "").replace(",", ".") : "";
+      const peso = parseFloat(pesoRaw) || 0;
       const prev = skuToInfo.get(sku) || {};
       skuToInfo.set(sku, {
         marca: marca || prev.marca || "",
         precio: precio || prev.precio || 0,
+        peso: peso || prev.peso || 0,
       });
     });
   }
@@ -963,6 +967,30 @@
     return it.precio || 0;
   }
 
+  /* Peso de un artículo -- los pedidos no guardan el peso por renglón
+     (solo el peso total ya sumado, en o.weightKg), así que esto es nomás
+     para aproximar el peso de pedidos viejos que no tienen o.weightKg,
+     buscando el peso actual del mismo SKU en el catálogo/Stock. */
+  function itemPeso(it) {
+    const info = skuToInfo.get(it.sku);
+    return (info && info.peso) || 0;
+  }
+
+  /* Piezas totales y peso del paquete. El peso exacto se guarda desde
+     esta sesión (o.weightKg); los pedidos de antes no lo tienen, así que
+     se aproxima sumando el peso actual de cada SKU. */
+  function orderPiecesAndWeight(o) {
+    const pieces = (o.items || []).reduce((sum, it) => sum + (it.qty || 0), 0);
+    const weightKg = o.weightKg > 0
+      ? o.weightKg
+      : (o.items || []).reduce((sum, it) => sum + itemPeso(it) * (it.qty || 0), 0);
+    return { pieces, weightKg };
+  }
+
+  function formatWeight(kg) {
+    return `${(kg || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 })} kg`;
+  }
+
   function itemsListHTML(o) {
     return (o.items || [])
       .map((it) => {
@@ -983,16 +1011,24 @@
   function orderBreakdown(o) {
     const subtotal = (o.items || []).reduce((sum, it) => sum + itemPrecioTransferencia(it) * it.qty, 0);
     const shippingMXN = o.shippingMXNBase != null ? o.shippingMXNBase : (o.shippingMXN || 0);
+    const shippingKoreaMXN = o.shippingKoreaMXN || 0;
+    const shippingNacionalMXN = o.shippingNacionalMXN || 0;
     const cardFeeMXN = o.source === "mercadopago" ? Math.max(0, (o.grandTotal || 0) - subtotal - shippingMXN) : 0;
-    return { subtotal, shippingMXN, cardFeeMXN };
+    return { subtotal, shippingMXN, shippingKoreaMXN, shippingNacionalMXN, cardFeeMXN };
   }
 
   function totalsBreakdownHTML(o) {
-    const { subtotal, shippingMXN, cardFeeMXN } = orderBreakdown(o);
-    const rows = [
-      `<div class="row"><span>Subtotal productos</span><span>${formatPrice(subtotal)}</span></div>`,
-    ];
-    if (shippingMXN > 0) {
+    const { subtotal, shippingMXN, shippingKoreaMXN, shippingNacionalMXN, cardFeeMXN } = orderBreakdown(o);
+    const { pieces, weightKg } = orderPiecesAndWeight(o);
+    const rows = [];
+    if (pieces > 0) {
+      rows.push(`<div class="row"><span>📦 Piezas / peso</span><span>${pieces} pieza${pieces === 1 ? "" : "s"}${weightKg > 0 ? ` · ${formatWeight(weightKg)}` : ""}</span></div>`);
+    }
+    rows.push(`<div class="row"><span>Subtotal productos</span><span>${formatPrice(subtotal)}</span></div>`);
+    if (shippingKoreaMXN > 0 || shippingNacionalMXN > 0) {
+      if (shippingKoreaMXN > 0) rows.push(`<div class="row"><span>🌏 Envío Corea</span><span>${formatPrice(shippingKoreaMXN)}</span></div>`);
+      if (shippingNacionalMXN > 0) rows.push(`<div class="row"><span>🚚 Envío nacional</span><span>${formatPrice(shippingNacionalMXN)}</span></div>`);
+    } else if (shippingMXN > 0) {
       rows.push(`<div class="row"><span>Envío</span><span>${formatPrice(shippingMXN)}</span></div>`);
     }
     if (cardFeeMXN > 0.5) {

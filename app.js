@@ -2526,6 +2526,11 @@ function recordTransferOrder() {
         subtotalBase: subtotal,
         shippingMXNBase: shippingMXN,
         grandTotal: subtotal + shippingMXN,
+        // Desglose de envío y peso, para que /admin.html pueda mostrarlos
+        // sin tener que volver a adivinar el peso de cada producto.
+        shippingKoreaMXN: shipping ? shipping.coreaMXN : 0,
+        shippingNacionalMXN: shipping ? shipping.nacionalMXN : 0,
+        weightKg: weight,
       }),
     })
       .then((res) => res.json())
@@ -2709,6 +2714,11 @@ async function payWithMercadoPago() {
         subtotalBase,
         shippingMXNBase,
         grandTotal: subtotal + shippingMXN,
+        // Desglose de envío (siempre a precio de transferencia, igual que
+        // shippingMXNBase) y peso, para que /admin.html pueda mostrarlos.
+        shippingKoreaMXN: shipping ? shipping.coreaMXN : 0,
+        shippingNacionalMXN: shipping ? shipping.nacionalMXN : 0,
+        weightKg: weight,
       }),
     });
 
