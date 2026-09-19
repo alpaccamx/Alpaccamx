@@ -3055,9 +3055,28 @@ function orderAddressHTML(o) {
   return `<p class="text-xs text-ink/50">📍 Enviado a: ${escapeHtml(parts)}</p>`;
 }
 
+/* No todas las paqueterías tienen una URL de rastreo simple y
+   predecible (el campo "Paquetería" es texto libre en /admin.html, y
+   puede traer cosas como "enviosperros fedex_express" o el nombre que
+   haya escrito Mae a mano). En vez de armar un mapa de URLs por
+   paquetería que se puede romper o quedar incompleto, se manda a una
+   búsqueda de Google con la guía y la paquetería -- casi siempre lleva
+   directo a la página de rastreo correcta, sea cual sea. */
+function orderTrackingUrl(o) {
+  if (!o.trackingNumber) return null;
+  const query = `rastrear guía ${o.carrier || ""} ${o.trackingNumber}`.trim();
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
 function orderTrackingDetailHTML(o) {
   if (!o.trackingNumber) return "";
-  return `<p class="text-xs text-lilac font-semibold">🚚 Guía: ${escapeHtml(o.trackingNumber)}${o.carrier ? " · " + escapeHtml(o.carrier) : ""}</p>`;
+  const url = orderTrackingUrl(o);
+  return `
+    <a href="${escapeAttr(url)}" target="_blank" rel="noopener"
+      class="flex items-center justify-between gap-2 rounded-lg bg-lilac/10 px-3 py-2 hover:bg-lilac/20 transition">
+      <span class="text-xs text-lilac font-semibold">🚚 Guía: ${escapeHtml(o.trackingNumber)}${o.carrier ? " · " + escapeHtml(o.carrier) : ""}</span>
+      <span class="text-xs font-bold text-lilac shrink-0">Rastrear ›</span>
+    </a>`;
 }
 
 function orderWhatsAppButtonHTML(o) {
