@@ -94,6 +94,11 @@ const CONFIG = {
       imageMobile: "assets/hero/hero-productos-coleccion-mobile.webp",
       imageAlt: "Colección de skincare coreano Alpacca: COSRX, Anua, Beauty of Joseon, mixsoon, haruharu wonder y AXIS-Y.",
     },
+    {
+      image: "assets/hero/hero-nida-skincare.webp",
+      imageMobile: "assets/hero/hero-nida-skincare-mobile.webp",
+      imageAlt: "El mejor skincare coreano NIDA: crema hidratante, contorno de ojos y sérums.",
+    },
   ],
 
   // Emojis para las etiquetas de la columna opcional "TipoPiel" del Sheet.
