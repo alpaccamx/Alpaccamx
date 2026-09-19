@@ -181,6 +181,7 @@
   <div class="toolbar" id="toolbar" style="display:none;">
     <button class="btn-secondary" id="refresh-btn">🔄 Actualizar</button>
     <button class="btn-secondary" id="add-stock-toggle">➕ Agregar producto en Stock</button>
+    <button class="btn-secondary" id="brand-logo-toggle">🎨 Logo de marca</button>
     <button class="btn-secondary" id="logout-btn">Salir</button>
   </div>
 
@@ -236,6 +237,20 @@
     <p id="stock-add-success" style="display:none;color:#17803d;font-size:14px;font-weight:700;"></p>
     <div class="filters-row">
       <button class="btn-primary" id="stock-add-submit">Agregar a Stock</button>
+    </div>
+  </div>
+
+  <div class="filters" id="brand-logo-form" style="display:none;">
+    <label class="filters-label">Logo de marca</label>
+    <p style="font-size:13px;color:#777;margin:0;">Se guarda directo en tu Google Sheet (columna "Logo Marca" del catálogo) -- la crea sola si todavía no existe. Solo hace falta una vez por marca.</p>
+    <div class="row">
+      <input type="text" id="brand-logo-marca" placeholder="Marca (tal cual aparece en tu catálogo) *" style="flex:1;" />
+      <input type="text" id="brand-logo-url" placeholder="Link de la imagen del logo *" style="flex:2;" />
+    </div>
+    <div class="guide-error" id="brand-logo-error"></div>
+    <p id="brand-logo-success" style="display:none;color:#17803d;font-size:14px;font-weight:700;"></p>
+    <div class="filters-row">
+      <button class="btn-primary" id="brand-logo-submit">Guardar logo</button>
     </div>
   </div>
 
@@ -1355,6 +1370,57 @@
     }
   }
 
+  /* ======================================================================
+     Logo de marca (ver admin-set-brand-logo.js) -- se guarda directo en
+     la columna "Logo Marca" del catálogo, no hace falta abrir el Sheet.
+     ====================================================================== */
+  function toggleBrandLogoForm() {
+    const form = document.getElementById("brand-logo-form");
+    const opening = form.style.display === "none";
+    form.style.display = opening ? "flex" : "none";
+    if (opening) {
+      document.getElementById("brand-logo-error").textContent = "";
+      document.getElementById("brand-logo-success").style.display = "none";
+    }
+  }
+
+  async function submitBrandLogo() {
+    const errorEl = document.getElementById("brand-logo-error");
+    const successEl = document.getElementById("brand-logo-success");
+    errorEl.textContent = "";
+    successEl.style.display = "none";
+
+    const marca = document.getElementById("brand-logo-marca").value.trim();
+    const logoUrl = document.getElementById("brand-logo-url").value.trim();
+    if (!marca) { errorEl.textContent = "Falta la marca."; return; }
+    if (!logoUrl) { errorEl.textContent = "Falta el link del logo."; return; }
+
+    const btn = document.getElementById("brand-logo-submit");
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-set-brand-logo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ marca, logoUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        errorEl.textContent = data.error || "No se pudo guardar el logo.";
+        return;
+      }
+      successEl.textContent = `✅ Logo de "${marca}" guardado.`;
+      successEl.style.display = "block";
+      ["brand-logo-marca", "brand-logo-url"].forEach((id) => { document.getElementById(id).value = ""; });
+    } catch (err) {
+      errorEl.textContent = "No se pudo conectar con el servidor.";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
   function escapeHtml(str) {
     return String(str ?? "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -1428,6 +1494,7 @@
     filterSearchEl.value = "";
     filterCountEl.textContent = "";
     document.getElementById("add-stock-form").style.display = "none";
+    document.getElementById("brand-logo-form").style.display = "none";
     resetTabs();
   }
 
@@ -1440,6 +1507,8 @@
   document.getElementById("export-btn").addEventListener("click", exportCSV);
   document.getElementById("add-stock-toggle").addEventListener("click", toggleAddStockForm);
   document.getElementById("stock-add-submit").addEventListener("click", submitAddStockProduct);
+  document.getElementById("brand-logo-toggle").addEventListener("click", toggleBrandLogoForm);
+  document.getElementById("brand-logo-submit").addEventListener("click", submitBrandLogo);
   filterSearchEl.addEventListener("input", applyFilters);
 
   statusTabsEl.querySelectorAll(".tab").forEach((btn) => {
