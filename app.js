@@ -161,10 +161,10 @@ const CONFIG = {
 
   // Beneficios (franja de 4 íconos antes del footer).
   BENEFITS: [
-    { emoji: "🚚", title: "Envíos", text: "A todo México" },
-    { emoji: "💬", title: "Atención por WhatsApp", text: "Resolvemos tus dudas" },
-    { emoji: "🔒", title: "Cotización sin compromiso", text: "Sin pagos en línea" },
-    { emoji: "✅", title: "Catálogo verificado", text: "Disponibilidad real" },
+    { icon: "truck", title: "Envíos", text: "A todo México" },
+    { icon: "chat", title: "Atención por WhatsApp", text: "Resolvemos tus dudas" },
+    { icon: "lock", title: "Cotización sin compromiso", text: "Sin pagos en línea" },
+    { icon: "badgeCheck", title: "Catálogo verificado", text: "Disponibilidad real" },
   ],
 
   // ------------------------------------------------------------------
@@ -210,6 +210,30 @@ const ICONS = {
   tiktok: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor"><path d="M16.5 2h-3v13.5a2.5 2.5 0 1 1-2.5-2.5c.17 0 .34.02.5.05V9.9a5.5 5.5 0 1 0 5 5.48V8.2a7.4 7.4 0 0 0 4.5 1.5V6.7A4.5 4.5 0 0 1 16.5 2z"/></svg>`,
   whatsapp: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>`,
 };
+
+/* ======================================================================
+   Íconos de línea para las franjas de "beneficios" / "por qué Alpacca"
+   -- mismo estilo (trazo, sin relleno) para que todos combinen entre sí,
+   en vez de mezclar emojis sueltos que se ven distinto en cada equipo.
+   ====================================================================== */
+const BENEFIT_ICONS = {
+  globe: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>`,
+  shield: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="m9 12 2 2 4-4"/></svg>`,
+  chat: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`,
+  bag: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>`,
+  box: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>`,
+  truck: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v8H3z"/><path d="M14 10h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/></svg>`,
+  lock: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`,
+  badgeCheck: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.4 2.4L18 4l.6 3.6L22 9l-1.6 3.4L22 15l-3.4.6L18 20l-3.6-.6L12 22l-2.4-2.6L6 20l-.6-3.6L2 15l1.6-2.6L2 9l3.4-.6L6 4l3.6.4z"/><path d="m9 12 2 2 4-4"/></svg>`,
+};
+
+/* Círculo rosa con un ícono de línea adentro -- el mismo tratamiento
+   visual en toda la página para que los "beneficios"/"por qué Alpacca"
+   se vean como un solo sistema, no como íconos sueltos. */
+function benefitIconHTML(name, sizeClass = "w-10 h-10") {
+  const svg = (BENEFIT_ICONS[name] || "").replace("<svg ", '<svg class="w-1/2 h-1/2" ');
+  return `<span class="inline-flex items-center justify-center ${sizeClass} rounded-full bg-rose/10 text-rose" aria-hidden="true">${svg}</span>`;
+}
 
 /* ======================================================================
    Catálogo de ejemplo — se usa mientras no conectes tu Google Sheet,
@@ -420,6 +444,11 @@ function csvToProducts(text) {
   const iNombre = findCol(headers, ["nombre", "producto", "name"]);
   const iCategoria = findCol(headers, ["categoria", "categoría", "category"]);
   const iMarca = findCol(headers, ["marca", "brand"]);
+  // Opcional: logo de la marca (URL), para que la sección "Marcas en el
+  // catálogo" muestre el logo real en vez de solo el nombre en texto.
+  // Solo hace falta ponerlo en UNA fila de cada marca -- con que un
+  // producto de esa marca lo tenga, ya se usa para todos.
+  const iLogoMarca = findCol(headers, ["logo marca", "logo de marca", "logomarca", "brand logo"]);
   const iPrecio = findCol(headers, ["precio", "price"]);
   const iPrecioTarjeta = findCol(headers, ["precio tarjeta", "preciotarjeta", "precio con tarjeta", "card price"]);
   const iImagen = findCol(headers, ["imagen", "image", "foto", "imagen url"]);
@@ -451,6 +480,7 @@ function csvToProducts(text) {
         nombre: get(iNombre) || "Producto sin nombre",
         categoria: get(iCategoria) || "General",
         marca: get(iMarca),
+        logoMarca: get(iLogoMarca),
         precio,
         precioTarjeta,
         peso: parseFloat(pesoRaw) || 0,
@@ -1714,7 +1744,9 @@ function renderPromoBanner() {
 }
 
 /* ======================================================================
-   Marcas — derivadas de la columna Marca del catálogo (no logos externos)
+   Marcas — derivadas de la columna Marca del catálogo. Si algún
+   producto de esa marca trae "Logo Marca" (columna opcional del Sheet),
+   se muestra ese logo en vez de solo el nombre en texto.
    ====================================================================== */
 const BRANDS_PREVIEW_COUNT = 5;
 
@@ -1727,8 +1759,20 @@ function renderBrands(showAll = false) {
   }
   section.classList.remove("hidden");
 
-  const brandButton = (b) => `<button type="button" data-brand="${escapeAttr(b)}"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition">${escapeHtml(b)}</button>`;
+  const logoByBrand = new Map();
+  products.forEach((p) => {
+    if (p.marca && p.logoMarca && !logoByBrand.has(p.marca)) logoByBrand.set(p.marca, p.logoMarca);
+  });
+
+  const brandButton = (b) => {
+    const logo = logoByBrand.get(b);
+    const content = logo
+      ? `<img src="${escapeAttr(logo)}" alt="${escapeAttr(b)}" class="h-6 max-w-full object-contain mx-auto"
+          onerror="this.replaceWith(document.createTextNode(this.closest('button').dataset.brand))" />`
+      : `<span>${escapeHtml(b)}</span>`;
+    return `<button type="button" data-brand="${escapeAttr(b)}"
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition">${content}</button>`;
+  };
 
   const hasMore = !showAll && brands.length > BRANDS_PREVIEW_COUNT;
   const visibleBrands = hasMore ? brands.slice(0, BRANDS_PREVIEW_COUNT) : brands;
@@ -1969,8 +2013,8 @@ function renderBenefits() {
   const items = CONFIG.BENEFITS || [];
   document.getElementById("benefits-grid").innerHTML = items
     .map(
-      (b) => `<div class="text-center">
-        <div class="text-3xl mb-2">${b.emoji || ""}</div>
+      (b) => `<div class="text-center flex flex-col items-center">
+        <div class="mb-2">${benefitIconHTML(b.icon)}</div>
         <p class="font-semibold text-sm text-ink">${escapeHtml(b.title)}</p>
         <p class="text-xs text-ink/50 mt-0.5">${escapeHtml(b.text)}</p>
       </div>`
