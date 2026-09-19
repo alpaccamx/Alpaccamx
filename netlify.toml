@@ -6,11 +6,12 @@
   # Netlify lo detecta como coincidencia y bloquea el deploy. Se excluye
   # explícitamente porque no hay nada que proteger.
   #
-  # GOOGLE_SHEETS_STOCK_TAB tampoco es un secreto real -- es solo el
-  # nombre de una pestaña de Google Sheets (ej. "Stock"), y esa palabra
-  # aparece por todo el sitio para funciones que no tienen nada que ver
-  # (badges "en stock", etc.), así que el escáner la marca por error en
-  # decenas de archivos.
+  # GOOGLE_SHEETS_STOCK_TAB / GOOGLE_SHEETS_CATALOG_TAB tampoco son
+  # secretos reales -- son solo nombres de pestañas de Google Sheets
+  # (ej. "Stock", "Productos"), y esas palabras aparecen por todo el
+  # sitio para funciones que no tienen nada que ver (badges "en stock",
+  # nombres de variables, etc.), así que el escáner las marca por error
+  # en decenas de archivos.
 
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "NOTIFY_WHATSAPP_NUMBER,GOOGLE_SHEETS_STOCK_TAB"
+  SECRETS_SCAN_OMIT_KEYS = "NOTIFY_WHATSAPP_NUMBER,GOOGLE_SHEETS_STOCK_TAB,GOOGLE_SHEETS_CATALOG_TAB"

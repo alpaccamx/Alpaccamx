@@ -43,6 +43,8 @@ const IMAGEN_ALIASES = ["imagen", "image", "foto", "imagen url"];
 const DESCRIPCION_ALIASES = ["descripcion", "descripción", "description"];
 const CATEGORIA_ALIASES = ["categoria", "categoría", "category"];
 const PESO_ALIASES = ["peso", "peso (kg)", "peso kg", "weight", "pesokg"];
+const LOGO_MARCA_ALIASES = ["logo marca", "logo de marca", "logomarca", "brand logo"];
+const LOGO_MARCA_HEADER = "Logo Marca"; // se escribe así si hay que crear la columna
 
 let cachedToken = null; // { token, expiresAt } -- se reusa mientras no venza
 
@@ -115,13 +117,11 @@ function findColumnIndex(headers, aliases) {
   return normalized.findIndex((h) => aliases.includes(h));
 }
 
-/* Lee toda la pestaña de Stock (encabezados + filas) -- usado tanto para
-   restar piezas vendidas como para agregar productos nuevos. Regresa
-   null si falta configuración, credenciales, o la lectura falla (ya
-   logueado el motivo); nunca truena. */
-async function readStockTab() {
+/* Lee cualquier pestaña del Sheet (encabezados + filas) por nombre.
+   Regresa null si falta configuración, credenciales, o la lectura falla
+   (ya logueado el motivo); nunca truena. */
+async function readTab(tab, { label = tab } = {}) {
   const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
-  const tab = process.env.GOOGLE_SHEETS_STOCK_TAB;
   if (!spreadsheetId || !tab) return null;
 
   const token = await getAccessToken();
@@ -134,16 +134,22 @@ async function readStockTab() {
     });
     const data = await res.json();
     if (!res.ok) {
-      console.error("Error leyendo la pestaña de Stock:", data);
+      console.error(`Error leyendo la pestaña de ${label}:`, data);
       return null;
     }
     const rows = data.values || [];
     if (!rows.length) return null;
     return { spreadsheetId, tab, token, headers: rows[0], rows };
   } catch (err) {
-    console.error("Error de red leyendo la pestaña de Stock:", err);
+    console.error(`Error de red leyendo la pestaña de ${label}:`, err);
     return null;
   }
+}
+
+/* Lee toda la pestaña de Stock (encabezados + filas) -- usado tanto para
+   restar piezas vendidas como para agregar productos nuevos. */
+async function readStockTab() {
+  return readTab(process.env.GOOGLE_SHEETS_STOCK_TAB, { label: "Stock" });
 }
 
 /* Genera un SKU corto y legible que no choque con ninguno ya existente
@@ -298,4 +304,57 @@ async function applySheetStockDelta(deltaBySku) {
   }
 }
 
-module.exports = { applySheetStockDelta, deltaFromItems, appendStockProduct };
+/* Guarda el link del logo de una marca en la pestaña del catálogo (la
+   misma columna opcional "Logo Marca" que ya lee csvToProducts en
+   app.js) -- solo hace falta en UNA fila de esa marca, no en todas. Si
+   la columna no existe todavía, se crea sola (encabezado en la
+   siguiente columna vacía). Si la marca no aparece en ningún producto
+   del catálogo, regresa un error -- no tiene caso guardar el logo de
+   una marca que no existe ahí.
+   Regresa { ok: true } o { ok: false, error } -- nunca truena. */
+async function updateBrandLogo(marca, logoUrl) {
+  const tabName = process.env.GOOGLE_SHEETS_CATALOG_TAB || "Productos";
+  const sheet = await readTab(tabName, { label: "catálogo" });
+  if (!sheet) {
+    return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
+  }
+  const { spreadsheetId, tab, token, headers, rows } = sheet;
+
+  const iMarca = findColumnIndex(headers, MARCA_ALIASES);
+  if (iMarca < 0) {
+    return { ok: false, error: 'No se encontró la columna "Marca" en tu catálogo.' };
+  }
+
+  const targetMarca = String(marca || "").trim().toLowerCase();
+  const rowIndex = rows.findIndex((row, i) => i > 0 && String(row[iMarca] || "").trim().toLowerCase() === targetMarca);
+  if (rowIndex < 0) {
+    return { ok: false, error: `No encontré ningún producto con la marca "${marca}" en tu catálogo.` };
+  }
+
+  let iLogo = findColumnIndex(headers, LOGO_MARCA_ALIASES);
+  const updates = [];
+  if (iLogo < 0) {
+    iLogo = headers.length;
+    updates.push({ range: `${tab}!${columnIndexToLetter(iLogo)}1`, values: [[LOGO_MARCA_HEADER]] });
+  }
+  updates.push({ range: `${tab}!${columnIndexToLetter(iLogo)}${rowIndex + 1}`, values: [[logoUrl]] });
+
+  try {
+    const batchRes = await fetch(`${SHEETS_API}/${spreadsheetId}/values:batchUpdate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ valueInputOption: "RAW", data: updates }),
+    });
+    const batchData = await batchRes.json();
+    if (!batchRes.ok) {
+      console.error("Error guardando el logo de marca:", batchData);
+      return { ok: false, error: "Google rechazó la escritura -- revisa que el Sheet esté compartido con la cuenta de servicio." };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error("Error de red guardando el logo de marca:", err);
+    return { ok: false, error: "No se pudo conectar con Google Sheets. Intenta de nuevo." };
+  }
+}
+
+module.exports = { applySheetStockDelta, deltaFromItems, appendStockProduct, updateBrandLogo };
