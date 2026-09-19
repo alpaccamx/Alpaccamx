@@ -731,8 +731,10 @@
 
     <!-- Sesión iniciada: mis pedidos -->
     <div id="account-view-orders" class="hidden">
-      <p class="text-sm text-ink/70 mb-4">¡Hola, <span id="account-name" class="font-semibold text-ink"></span>! 👋</p>
-      <div id="account-orders-list" class="space-y-3"></div>
+      <p class="text-sm text-ink/70 mb-1">¡Hola, <span id="account-name" class="font-semibold text-ink"></span>! 👋</p>
+      <p id="account-orders-summary" class="hidden text-xs text-ink/50 mb-4"></p>
+      <p id="account-orders-status" class="hidden text-xs text-rose font-semibold mb-3"></p>
+      <div id="account-orders-list" class="space-y-2.5"></div>
       <p id="account-orders-empty" class="hidden text-center text-ink/50 text-sm py-6">Aún no tienes pedidos.</p>
       <p id="account-orders-loading" class="text-center text-ink/50 text-sm py-6">Cargando tus pedidos…</p>
       <button type="button" id="account-logout" class="w-full text-xs text-ink/50 hover:text-ink underline text-center mt-6 pt-5 border-t border-ink/10">Cerrar sesión</button>

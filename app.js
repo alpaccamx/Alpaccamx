@@ -2995,35 +2995,186 @@ const ORDER_STATUS_LABELS = {
   failed: "⚠️ No se pudo procesar",
 };
 
+const ORDER_STATUS_BADGE_CLASSES = {
+  pending: "bg-lilac/20 text-ink/70",
+  paid: "bg-green-100 text-green-700",
+  cancelled: "bg-ink/10 text-ink/50",
+  failed: "bg-red-100 text-red-700",
+};
+
+/* Mismo número corto que ya se manda por WhatsApp y se ve en el panel
+   de éxito al pagar -- así la clienta puede usarlo para preguntar por
+   su pedido y Mae lo ubica al toque en /admin.html. */
+function orderNumber(o) {
+  return (o.id || "").slice(0, 8).toUpperCase();
+}
+
+/* Línea de tiempo del pedido. Cancelado/fallido se muestran aparte (no
+   tiene sentido un avance "recibido -> pagado -> enviado" para esos). */
+function orderTimelineHTML(o) {
+  if (o.status === "cancelled") {
+    return `<p class="text-xs font-semibold text-ink/60 bg-ink/5 rounded-lg px-3 py-2">✕ Este pedido fue cancelado.</p>`;
+  }
+  if (o.status === "failed") {
+    return `<p class="text-xs font-semibold text-rose bg-rose/10 rounded-lg px-3 py-2">⚠️ No se pudo procesar el pago de este pedido. Si crees que es un error, contáctanos.</p>`;
+  }
+  const steps = [
+    { label: "Recibido", done: true },
+    { label: "Pagado", done: o.status === "paid" },
+    { label: "Enviado", done: !!o.trackingNumber },
+  ];
+  const stepsHTML = steps
+    .map(
+      (s, i) => `
+      ${i > 0 ? `<div class="flex-1 h-0.5 ${s.done ? "bg-rose" : "bg-ink/15"}"></div>` : ""}
+      <div class="flex flex-col items-center gap-1 shrink-0">
+        <div class="w-2.5 h-2.5 rounded-full ${s.done ? "bg-rose" : "bg-ink/15"}"></div>
+        <span class="text-[10px] ${s.done ? "text-ink font-semibold" : "text-ink/40"} whitespace-nowrap">${s.label}</span>
+      </div>`
+    )
+    .join("");
+  return `<div class="flex items-center px-1">${stepsHTML}</div>`;
+}
+
+function orderItemsDetailHTML(o) {
+  return (o.items || [])
+    .map(
+      (it) => `
+      <li class="flex justify-between gap-3 text-sm">
+        <span class="text-ink/80">${escapeHtml(it.nombre)} <span class="text-ink/40">x${it.qty}</span></span>
+        <span class="text-ink/60 shrink-0">${formatPrice((it.precio || 0) * it.qty)}</span>
+      </li>`
+    )
+    .join("");
+}
+
+function orderAddressHTML(o) {
+  const c = o.customer || {};
+  const parts = [c.street, c.colonia, c.municipio, c.estado, c.cp].filter(Boolean).join(", ");
+  if (!parts) return "";
+  return `<p class="text-xs text-ink/50">📍 Enviado a: ${escapeHtml(parts)}</p>`;
+}
+
+function orderTrackingDetailHTML(o) {
+  if (!o.trackingNumber) return "";
+  return `<p class="text-xs text-lilac font-semibold">🚚 Guía: ${escapeHtml(o.trackingNumber)}${o.carrier ? " · " + escapeHtml(o.carrier) : ""}</p>`;
+}
+
+function orderWhatsAppButtonHTML(o) {
+  const href = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una duda sobre mi pedido #${orderNumber(o)}.`);
+  if (!href) return "";
+  return `<a href="${escapeAttr(href)}" target="_blank" rel="noopener"
+      class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-ink/20 text-ink text-xs font-semibold py-2 hover:border-rose hover:text-rose transition">
+      💬 Dudas de este pedido
+    </a>`;
+}
+
 function myOrderCardHTML(o) {
   const statusLabel = ORDER_STATUS_LABELS[o.status] || o.status;
+  const badgeClass = ORDER_STATUS_BADGE_CLASSES[o.status] || "bg-ink/10 text-ink/60";
   const fecha = o.createdAt
     ? new Date(o.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })
     : "";
-  const itemsHTML = (o.items || [])
-    .map((it) => `<li>${escapeHtml(it.nombre)} x${it.qty}</li>`)
-    .join("");
-  const tracking = o.trackingNumber
-    ? `<p class="text-xs text-lilac font-semibold mt-1">🚚 Guía: ${escapeHtml(o.trackingNumber)}${o.carrier ? " · " + escapeHtml(o.carrier) : ""}</p>`
-    : "";
+  const itemsSummary = (o.items || []).map((it) => it.nombre).join(", ");
+  const subtotal = o.subtotal != null ? o.subtotal : o.grandTotal;
+  const shippingMXN = o.shippingMXN || 0;
+  const canReorder = (o.items || []).length > 0;
+
   return `
-    <div class="rounded-lg border border-ink/10 p-3">
-      <div class="flex items-center justify-between text-xs text-ink/50 mb-1">
-        <span>${fecha}</span>
-        <span class="font-semibold">${statusLabel}</span>
+    <details class="rounded-xl border border-ink/10 overflow-hidden bg-white/40">
+      <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-3 p-3 hover:bg-ink/5 transition">
+        <div class="min-w-0 flex-1">
+          <p class="text-[11px] text-ink/40">#${orderNumber(o)} · ${fecha}</p>
+          <p class="text-sm font-semibold text-ink truncate">${escapeHtml(itemsSummary)}</p>
+        </div>
+        <div class="flex flex-col items-end gap-1 shrink-0">
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}">${statusLabel}</span>
+          <span class="text-sm font-bold text-rose">${formatPrice(o.grandTotal)}</span>
+        </div>
+      </summary>
+      <div class="border-t border-ink/10 p-3 space-y-3">
+        ${orderTimelineHTML(o)}
+        <ul class="space-y-1">${orderItemsDetailHTML(o)}</ul>
+        <div class="text-xs text-ink/60 space-y-0.5 pt-2 border-t border-ink/10">
+          <div class="flex justify-between"><span>Subtotal</span><span>${formatPrice(subtotal)}</span></div>
+          ${shippingMXN > 0 ? `<div class="flex justify-between"><span>Envío</span><span>${formatPrice(shippingMXN)}</span></div>` : ""}
+          <div class="flex justify-between text-ink font-bold text-sm pt-1"><span>Total</span><span>${formatPrice(o.grandTotal)}</span></div>
+        </div>
+        ${orderAddressHTML(o)}
+        ${orderTrackingDetailHTML(o)}
+        <div class="flex gap-2 pt-1">
+          ${canReorder ? `<button type="button" data-reorder="${escapeAttr(o.id)}"
+              class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-rose/10 text-rose text-xs font-semibold py-2 hover:bg-rose/20 transition">
+              🔁 Volver a pedir
+            </button>` : ""}
+          ${orderWhatsAppButtonHTML(o)}
+        </div>
       </div>
-      <ul class="text-sm text-ink space-y-0.5 mb-1">${itemsHTML}</ul>
-      <p class="text-sm font-bold text-rose">${formatPrice(o.grandTotal)}</p>
-      ${tracking}
-    </div>`;
+    </details>`;
+}
+
+/* Copia local de los pedidos ya cargados -- para "Volver a pedir" sin
+   tener que volver a pedirle los datos al servidor. */
+let myOrdersCache = [];
+
+/* Busca cada producto del pedido en el catálogo actual (por SKU) y lo
+   agrega al carrito con la misma cantidad -- respetando el stock
+   disponible si es un producto "en stock". Los que ya no existan o no
+   quepan se avisan en vez de fallar en silencio. */
+function reorderFromOrder(orderId) {
+  const order = myOrdersCache.find((o) => o.id === orderId);
+  if (!order) return;
+
+  let addedCount = 0;
+  const skipped = [];
+
+  (order.items || []).forEach((it) => {
+    const product = it.enStock
+      ? products.find((p) => p.stockSku === it.sku && p.enStock)
+      : products.find((p) => p.id === it.sku);
+    if (!product || !product.disponible) {
+      skipped.push(it.nombre);
+      return;
+    }
+    const maxQty = product.enStock ? product.stockPiezas : Infinity;
+    const currentQty = cart[product.id] ? cart[product.id].qty : 0;
+    const qtyToAdd = Math.min(it.qty, Math.max(0, maxQty - currentQty));
+    if (qtyToAdd <= 0) {
+      skipped.push(it.nombre);
+      return;
+    }
+    if (cart[product.id]) cart[product.id].qty += qtyToAdd;
+    else cart[product.id] = { product, qty: qtyToAdd };
+    addedCount += qtyToAdd;
+  });
+
+  saveCart();
+  renderCart();
+
+  const statusEl = document.getElementById("account-orders-status");
+  if (addedCount > 0) {
+    statusEl.textContent = skipped.length
+      ? `Agregamos lo disponible de ese pedido al carrito. No se pudo agregar: ${skipped.join(", ")}.`
+      : "✅ Agregamos los productos de ese pedido a tu carrito.";
+    statusEl.classList.remove("hidden");
+    closeAccountPanel();
+    openCart();
+  } else {
+    statusEl.textContent = "Ningún producto de ese pedido está disponible ahorita.";
+    statusEl.classList.remove("hidden");
+  }
 }
 
 async function loadMyOrders() {
   const listEl = document.getElementById("account-orders-list");
   const emptyEl = document.getElementById("account-orders-empty");
   const loadingEl = document.getElementById("account-orders-loading");
+  const summaryEl = document.getElementById("account-orders-summary");
+  const statusEl = document.getElementById("account-orders-status");
   listEl.innerHTML = "";
   emptyEl.classList.add("hidden");
+  summaryEl.classList.add("hidden");
+  statusEl.classList.add("hidden");
   loadingEl.classList.remove("hidden");
 
   const token = getCustomerToken();
@@ -3048,11 +3199,28 @@ async function loadMyOrders() {
 
     document.getElementById("account-name").textContent = data.name || "";
     const orders = data.orders || [];
+    myOrdersCache = orders;
     if (!orders.length) {
       emptyEl.classList.remove("hidden");
       return;
     }
-    listEl.innerHTML = orders.map(myOrderCardHTML).join("");
+
+    const paidOrders = orders.filter((o) => o.status === "paid");
+    if (paidOrders.length) {
+      const totalSpent = paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+      summaryEl.textContent = `🎉 Has hecho ${paidOrders.length} pedido${paidOrders.length === 1 ? "" : "s"} con nosotros por un total de ${formatPrice(totalSpent)}.`;
+      summaryEl.classList.remove("hidden");
+    }
+
+    // Más reciente primero.
+    const sorted = orders.slice().sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    listEl.innerHTML = sorted.map(myOrderCardHTML).join("");
+    listEl.querySelectorAll("[data-reorder]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        reorderFromOrder(btn.dataset.reorder);
+      });
+    });
   } catch (err) {
     loadingEl.classList.add("hidden");
     emptyEl.textContent = "No se pudieron cargar tus pedidos. Intenta de nuevo.";
