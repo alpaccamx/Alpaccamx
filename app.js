@@ -1917,24 +1917,9 @@ function showCategoryProducts(categoria) {
 }
 
 /* ======================================================================
-   Búsqueda — filtra por nombre, marca y categoría. Muestra resultados
-   en vivo mientras el cliente escribe; solo hace scroll al enviar
-   (Enter) para no saltar la página en cada tecla.
+   Búsqueda — filtra por nombre, marca y categoría. Solo busca al enviar
+   (Enter o el botón de lupa), no en cada tecla.
    ====================================================================== */
-/* Con miles de productos en el catálogo, filtrar y volver a pintar la
-   grilla completa en cada tecla (sin esperar nada) hace que escribir se
-   sienta trabado -- el navegador no alcanza a terminar un renderizado
-   antes de que llegue la siguiente tecla. Se espera un momento sin
-   teclear antes de buscar, para que solo se renderice una vez que la
-   clienta hace una pausa. */
-function debounce(fn, waitMs) {
-  let timer = null;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), waitMs);
-  };
-}
-
 function normalizeForSearch(s) {
   return (s || "")
     .toString()
@@ -3441,8 +3426,6 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSearchResults(searchInput.value);
     document.getElementById("search-results-section").scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  const renderSearchResultsDebounced = debounce(() => renderSearchResults(searchInput.value), 200);
-  searchInput.addEventListener("input", renderSearchResultsDebounced);
   document.getElementById("search-results-clear").addEventListener("click", () => {
     searchInput.value = "";
     showHomeView("home");
