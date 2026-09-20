@@ -43,8 +43,9 @@ const IMAGEN_ALIASES = ["imagen", "image", "foto", "imagen url"];
 const DESCRIPCION_ALIASES = ["descripcion", "descripción", "description"];
 const CATEGORIA_ALIASES = ["categoria", "categoría", "category"];
 const PESO_ALIASES = ["peso", "peso (kg)", "peso kg", "weight", "pesokg"];
-const LOGO_MARCA_ALIASES = ["logo marca", "logo de marca", "logomarca", "brand logo"];
-const LOGO_MARCA_HEADER = "Logo Marca"; // se escribe así si hay que crear la columna
+const LOGO_MARCA_ALIASES = ["logo", "logo marca", "logo de marca", "logomarca", "brand logo"];
+const MARCA_HEADER = "Marca"; // se escribe así si hay que crear la columna
+const LOGO_MARCA_HEADER = "Logo"; // se escribe así si hay que crear la columna
 
 let cachedToken = null; // { token, expiresAt } -- se reusa mientras no venza
 
@@ -304,40 +305,44 @@ async function applySheetStockDelta(deltaBySku) {
   }
 }
 
-/* Guarda el link del logo de una marca en la pestaña del catálogo (la
-   misma columna opcional "Logo Marca" que ya lee csvToProducts en
-   app.js) -- solo hace falta en UNA fila de esa marca, no en todas. Si
-   la columna no existe todavía, se crea sola (encabezado en la
-   siguiente columna vacía). Si la marca no aparece en ningún producto
-   del catálogo, regresa un error -- no tiene caso guardar el logo de
-   una marca que no existe ahí.
+/* Guarda el link del logo de una marca en una mini tabla "Marca"/"Logo"
+   dentro de la pestaña Config (la misma que ya lee csvToBrandLogos en
+   app.js) -- una fila por marca, no por producto. Si esas columnas no
+   existen todavía, se crean solas (encabezados en las siguientes
+   columnas vacías, sin tocar tu lista de Clave/Valor). Si la marca ya
+   tenía fila, se actualiza; si no, se agrega una nueva.
    Regresa { ok: true } o { ok: false, error } -- nunca truena. */
 async function updateBrandLogo(marca, logoUrl) {
-  const tabName = process.env.GOOGLE_SHEETS_CATALOG_TAB || "Productos Corea";
-  const sheet = await readTab(tabName, { label: "catálogo" });
+  const tabName = process.env.GOOGLE_SHEETS_CONFIG_TAB || "Config";
+  const sheet = await readTab(tabName, { label: "Config" });
   if (!sheet) {
     return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
   }
   const { spreadsheetId, tab, token, headers, rows } = sheet;
 
-  const iMarca = findColumnIndex(headers, MARCA_ALIASES);
+  let iMarca = findColumnIndex(headers, MARCA_ALIASES);
+  let iLogo = findColumnIndex(headers, LOGO_MARCA_ALIASES);
+
+  const updates = [];
+  let nextFreeCol = headers.length;
   if (iMarca < 0) {
-    return { ok: false, error: 'No se encontró la columna "Marca" en tu catálogo.' };
+    iMarca = nextFreeCol++;
+    updates.push({ range: `${tab}!${columnIndexToLetter(iMarca)}1`, values: [[MARCA_HEADER]] });
+  }
+  if (iLogo < 0) {
+    iLogo = nextFreeCol++;
+    updates.push({ range: `${tab}!${columnIndexToLetter(iLogo)}1`, values: [[LOGO_MARCA_HEADER]] });
   }
 
   const targetMarca = String(marca || "").trim().toLowerCase();
   const rowIndex = rows.findIndex((row, i) => i > 0 && String(row[iMarca] || "").trim().toLowerCase() === targetMarca);
-  if (rowIndex < 0) {
-    return { ok: false, error: `No encontré ningún producto con la marca "${marca}" en tu catálogo.` };
-  }
-
-  let iLogo = findColumnIndex(headers, LOGO_MARCA_ALIASES);
-  const updates = [];
-  if (iLogo < 0) {
-    iLogo = headers.length;
-    updates.push({ range: `${tab}!${columnIndexToLetter(iLogo)}1`, values: [[LOGO_MARCA_HEADER]] });
-  }
-  updates.push({ range: `${tab}!${columnIndexToLetter(iLogo)}${rowIndex + 1}`, values: [[logoUrl]] });
+  // Si la marca ya tiene fila en la tabla, se actualiza ahí; si no, se
+  // agrega una fila nueva después de la última fila usada del Sheet
+  // (así nunca choca con tu lista de Clave/Valor, aunque esté en otras
+  // columnas).
+  const targetRow = rowIndex >= 0 ? rowIndex + 1 : rows.length + 1;
+  updates.push({ range: `${tab}!${columnIndexToLetter(iMarca)}${targetRow}`, values: [[marca]] });
+  updates.push({ range: `${tab}!${columnIndexToLetter(iLogo)}${targetRow}`, values: [[logoUrl]] });
 
   try {
     const batchRes = await fetch(`${SHEETS_API}/${spreadsheetId}/values:batchUpdate`, {

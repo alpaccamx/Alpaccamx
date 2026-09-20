@@ -444,11 +444,6 @@ function csvToProducts(text) {
   const iNombre = findCol(headers, ["nombre", "producto", "name"]);
   const iCategoria = findCol(headers, ["categoria", "categoría", "category"]);
   const iMarca = findCol(headers, ["marca", "brand"]);
-  // Opcional: logo de la marca (URL), para que la sección "Marcas en el
-  // catálogo" muestre el logo real en vez de solo el nombre en texto.
-  // Solo hace falta ponerlo en UNA fila de cada marca -- con que un
-  // producto de esa marca lo tenga, ya se usa para todos.
-  const iLogoMarca = findCol(headers, ["logo marca", "logo de marca", "logomarca", "brand logo"]);
   const iPrecio = findCol(headers, ["precio", "price"]);
   const iPrecioTarjeta = findCol(headers, ["precio tarjeta", "preciotarjeta", "precio con tarjeta", "card price"]);
   const iImagen = findCol(headers, ["imagen", "image", "foto", "imagen url"]);
@@ -480,7 +475,6 @@ function csvToProducts(text) {
         nombre: get(iNombre) || "Producto sin nombre",
         categoria: get(iCategoria) || "General",
         marca: get(iMarca),
-        logoMarca: get(iLogoMarca),
         precio,
         precioTarjeta,
         peso: parseFloat(pesoRaw) || 0,
@@ -569,6 +563,7 @@ let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0, extraPerKgTarjetaUSD: nu
 let shippingNacionalRates = [];
 let stockData = new Map(); // SKU -> { piezas, precioMXN }
 let soldStock = new Map(); // SKU -> piezas ya vendidas y pagadas (se resta de stockData)
+let brandLogos = new Map(); // marca (minúsculas) -> URL del logo, ver csvToBrandLogos
 
 const SHIPPING_SETTING_ALIASES = {
   exchangeRate: ["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"],
@@ -605,6 +600,27 @@ function csvToShippingSettings(text) {
     }
   });
   return settings;
+}
+
+/* Mini tabla opcional de "Marca" / "Logo" dentro de la misma pestaña
+   Config (en cualquier par de columnas, no tienen que ser las mismas
+   que Clave/Valor) -- para que "Marcas en el catálogo" muestre el logo
+   real de cada marca en vez de solo el nombre en texto. Se llena sola
+   desde /admin.html ("🎨 Logo de marca"), o a mano si prefieres. */
+function csvToBrandLogos(text) {
+  const rows = parseCSV(text);
+  const logos = new Map();
+  if (!rows.length) return logos;
+  const headers = rows[0].map((h) => h.trim().toLowerCase());
+  const iMarca = findCol(headers, ["marca", "brand"]);
+  const iLogo = findCol(headers, ["logo", "logo marca", "logo de marca", "logomarca", "brand logo"]);
+  if (iMarca < 0 || iLogo < 0) return logos;
+  rows.slice(1).forEach((r) => {
+    const marca = (r[iMarca] || "").trim();
+    const logo = (r[iLogo] || "").trim();
+    if (marca && logo) logos.set(marca.toLowerCase(), logo);
+  });
+  return logos;
 }
 
 function csvToNacionalRates(text) {
@@ -772,9 +788,11 @@ async function loadShippingSettings() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const text = await res.text();
     shippingSettings = csvToShippingSettings(text);
+    brandLogos = csvToBrandLogos(text);
     updateCurrencyToggleButton();
     renderFaqMinOrder();
     renderCart();
+    renderBrands();
   } catch (err) {
     console.warn("No se pudo cargar la configuración de envíos:", err);
   }
@@ -1744,9 +1762,10 @@ function renderPromoBanner() {
 }
 
 /* ======================================================================
-   Marcas — derivadas de la columna Marca del catálogo. Si algún
-   producto de esa marca trae "Logo Marca" (columna opcional del Sheet),
-   se muestra ese logo en vez de solo el nombre en texto.
+   Marcas — derivadas de la columna Marca del catálogo. Si la marca
+   tiene logo en la mini tabla "Marca"/"Logo" de la pestaña Config (ver
+   csvToBrandLogos), se muestra ese logo en vez de solo el nombre en
+   texto.
    ====================================================================== */
 const BRANDS_PREVIEW_COUNT = 5;
 
@@ -1759,13 +1778,8 @@ function renderBrands(showAll = false) {
   }
   section.classList.remove("hidden");
 
-  const logoByBrand = new Map();
-  products.forEach((p) => {
-    if (p.marca && p.logoMarca && !logoByBrand.has(p.marca)) logoByBrand.set(p.marca, p.logoMarca);
-  });
-
   const brandButton = (b) => {
-    const logo = logoByBrand.get(b);
+    const logo = brandLogos.get(b.toLowerCase());
     const content = logo
       ? `<img src="${escapeAttr(logo)}" alt="${escapeAttr(b)}" class="h-6 max-w-full object-contain mx-auto"
           onerror="this.replaceWith(document.createTextNode(this.closest('button').dataset.brand))" />`
