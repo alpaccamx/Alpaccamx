@@ -99,6 +99,11 @@ const CONFIG = {
       imageMobile: "assets/hero/hero-nida-skincare-mobile.webp",
       imageAlt: "El mejor skincare coreano NIDA: crema hidratante, contorno de ojos y sérums.",
     },
+    {
+      image: "assets/hero/hero-anua-txa.webp",
+      imageMobile: "assets/hero/hero-anua-txa-mobile.webp",
+      imageAlt: "Anua TXA: kit para una piel más luminosa y radiante -- mascarilla, sérum, tónico y almohadillas.",
+    },
   ],
 
   // Emojis para las etiquetas de la columna opcional "TipoPiel" del Sheet.
