@@ -610,19 +610,27 @@ function csvToShippingSettings(text) {
 }
 
 /* Mini tabla opcional de "Marca" / "Logo" dentro de la misma pestaña
-   Config (en cualquier par de columnas, no tienen que ser las mismas
-   que Clave/Valor) -- para que "Marcas en el catálogo" muestre el logo
-   real de cada marca en vez de solo el nombre en texto. Se llena sola
-   desde /admin.html ("🎨 Logo de marca"), o a mano si prefieres. */
+   Config, normalmente en la columna A debajo de tu lista de Clave/Valor
+   -- para que "Marcas en el catálogo" muestre el logo real de cada
+   marca en vez de solo el nombre en texto. Se llena sola desde
+   /admin.html ("🎨 Logo de marca"), o a mano si prefieres. */
 function csvToBrandLogos(text) {
   const rows = parseCSV(text);
   const logos = new Map();
   if (!rows.length) return logos;
-  const headers = rows[0].map((h) => h.trim().toLowerCase());
+  const logoAliases = ["logo", "logo marca", "logo de marca", "logomarca", "brand logo"];
+  // El encabezado "Marca"/"Logo" puede estar en cualquier fila -- normalmente
+  // va debajo de tu lista de Clave/Valor, no en la fila 1.
+  const headerRowIndex = rows.findIndex((r) => {
+    const cells = r.map((c) => (c || "").trim().toLowerCase());
+    return cells.includes("marca") && cells.some((c) => logoAliases.includes(c));
+  });
+  if (headerRowIndex < 0) return logos;
+  const headers = rows[headerRowIndex].map((h) => h.trim().toLowerCase());
   const iMarca = findCol(headers, ["marca", "brand"]);
-  const iLogo = findCol(headers, ["logo", "logo marca", "logo de marca", "logomarca", "brand logo"]);
+  const iLogo = findCol(headers, logoAliases);
   if (iMarca < 0 || iLogo < 0) return logos;
-  rows.slice(1).forEach((r) => {
+  rows.slice(headerRowIndex + 1).forEach((r) => {
     const marca = (r[iMarca] || "").trim();
     const logo = (r[iLogo] || "").trim();
     if (marca && logo) logos.set(marca.toLowerCase(), logo);

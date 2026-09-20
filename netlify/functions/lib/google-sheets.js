@@ -307,10 +307,10 @@ async function applySheetStockDelta(deltaBySku) {
 
 /* Guarda el link del logo de una marca en una mini tabla "Marca"/"Logo"
    dentro de la pestaña Config (la misma que ya lee csvToBrandLogos en
-   app.js) -- una fila por marca, no por producto. Si esas columnas no
-   existen todavía, se crean solas (encabezados en las siguientes
-   columnas vacías, sin tocar tu lista de Clave/Valor). Si la marca ya
-   tenía fila, se actualiza; si no, se agrega una nueva.
+   app.js) -- una fila por marca, no por producto. Si esa tabla no
+   existe todavía, se crea en la columna A, debajo de tu lista de
+   Clave/Valor (con una fila en blanco de separación), no a un lado.
+   Si la marca ya tenía fila, se actualiza; si no, se agrega una nueva.
    Regresa { ok: true } o { ok: false, error } -- nunca truena. */
 async function updateBrandLogo(marca, logoUrl) {
   const tabName = process.env.GOOGLE_SHEETS_CONFIG_TAB || "Config";
@@ -318,29 +318,39 @@ async function updateBrandLogo(marca, logoUrl) {
   if (!sheet) {
     return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
   }
-  const { spreadsheetId, tab, token, headers, rows } = sheet;
+  const { spreadsheetId, tab, token, rows } = sheet;
 
-  let iMarca = findColumnIndex(headers, MARCA_ALIASES);
-  let iLogo = findColumnIndex(headers, LOGO_MARCA_ALIASES);
+  // Busca la fila de encabezado "Marca"/"Logo" en cualquier parte de la
+  // hoja (no tiene que ser la fila 1) -- así puede ir debajo de tu lista
+  // de Clave/Valor, en la columna A, en vez de a un lado a media hoja.
+  const isLogoAliasCell = (cell) => LOGO_MARCA_ALIASES.includes(String(cell || "").trim().toLowerCase());
+  const headerRowIndex = rows.findIndex((row) => {
+    const cells = (row || []).map((c) => String(c || "").trim().toLowerCase());
+    return cells.includes("marca") && cells.some(isLogoAliasCell);
+  });
 
   const updates = [];
-  let nextFreeCol = headers.length;
-  if (iMarca < 0) {
-    iMarca = nextFreeCol++;
-    updates.push({ range: `${tab}!${columnIndexToLetter(iMarca)}1`, values: [[MARCA_HEADER]] });
-  }
-  if (iLogo < 0) {
-    iLogo = nextFreeCol++;
-    updates.push({ range: `${tab}!${columnIndexToLetter(iLogo)}1`, values: [[LOGO_MARCA_HEADER]] });
+  let iMarca, iLogo, targetRow;
+
+  if (headerRowIndex < 0) {
+    // No existe todavía -- se crea en la columna A, dejando una fila en
+    // blanco de separación después de lo último que ya tengas ahí.
+    const headerRow = rows.length + 2;
+    iMarca = 0;
+    iLogo = 1;
+    updates.push({ range: `${tab}!A${headerRow}:B${headerRow}`, values: [[MARCA_HEADER, LOGO_MARCA_HEADER]] });
+    targetRow = headerRow + 1;
+  } else {
+    const headerCells = rows[headerRowIndex].map((c) => String(c || "").trim().toLowerCase());
+    iMarca = headerCells.indexOf("marca");
+    iLogo = headerCells.findIndex(isLogoAliasCell);
+    const targetMarca = String(marca || "").trim().toLowerCase();
+    const existingRowIndex = rows.findIndex(
+      (row, i) => i > headerRowIndex && String(row[iMarca] || "").trim().toLowerCase() === targetMarca
+    );
+    targetRow = existingRowIndex >= 0 ? existingRowIndex + 1 : rows.length + 1;
   }
 
-  const targetMarca = String(marca || "").trim().toLowerCase();
-  const rowIndex = rows.findIndex((row, i) => i > 0 && String(row[iMarca] || "").trim().toLowerCase() === targetMarca);
-  // Si la marca ya tiene fila en la tabla, se actualiza ahí; si no, se
-  // agrega una fila nueva después de la última fila usada del Sheet
-  // (así nunca choca con tu lista de Clave/Valor, aunque esté en otras
-  // columnas).
-  const targetRow = rowIndex >= 0 ? rowIndex + 1 : rows.length + 1;
   updates.push({ range: `${tab}!${columnIndexToLetter(iMarca)}${targetRow}`, values: [[marca]] });
   updates.push({ range: `${tab}!${columnIndexToLetter(iLogo)}${targetRow}`, values: [[logoUrl]] });
 
