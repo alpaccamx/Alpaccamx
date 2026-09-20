@@ -159,6 +159,13 @@ const CONFIG = {
     ctaHref: "#catalog-section",
   },
 
+  // Marcas que se muestran primero en "Marcas en el catálogo" (en este
+  // orden), antes de darle a "Y más". Deben coincidir con el nombre tal
+  // cual aparece en la columna "Marca" del catálogo (sin distinguir
+  // mayúsculas/minúsculas) -- si una no existe todavía en el catálogo,
+  // simplemente no aparece.
+  FEATURED_BRANDS: ["Anua", "Dr. Althea", "Centellian24", "Medicube", "Skin1004", "mixsoon", "Tocobo"],
+
   // Beneficios (franja de 4 íconos antes del footer).
   BENEFITS: [
     { icon: "truck", title: "Envíos", text: "A todo México" },
@@ -1767,16 +1774,25 @@ function renderPromoBanner() {
    csvToBrandLogos), se muestra ese logo en vez de solo el nombre en
    texto.
    ====================================================================== */
-const BRANDS_PREVIEW_COUNT = 5;
+const BRANDS_PREVIEW_COUNT_DEFAULT = 5;
 
 function renderBrands(showAll = false) {
   const section = document.getElementById("brands-section");
-  const brands = [...new Set(products.map((p) => p.marca).filter(Boolean))].sort();
-  if (!brands.length) {
+  const allBrands = [...new Set(products.map((p) => p.marca).filter(Boolean))].sort();
+  if (!allBrands.length) {
     section.classList.add("hidden");
     return;
   }
   section.classList.remove("hidden");
+
+  // Las marcas de CONFIG.FEATURED_BRANDS salen primero (en ese orden),
+  // y el resto del catálogo llena lo que falte en orden alfabético.
+  const byLowerName = new Map(allBrands.map((b) => [b.toLowerCase(), b]));
+  const featuredLower = (CONFIG.FEATURED_BRANDS || []).map((b) => b.toLowerCase());
+  const featured = featuredLower.map((f) => byLowerName.get(f)).filter(Boolean);
+  const rest = allBrands.filter((b) => !featuredLower.includes(b.toLowerCase()));
+  const brands = [...featured, ...rest];
+  const previewCount = featured.length || BRANDS_PREVIEW_COUNT_DEFAULT;
 
   const brandButton = (b) => {
     const logo = brandLogos.get(b.toLowerCase());
@@ -1788,8 +1804,8 @@ function renderBrands(showAll = false) {
         class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition">${content}</button>`;
   };
 
-  const hasMore = !showAll && brands.length > BRANDS_PREVIEW_COUNT;
-  const visibleBrands = hasMore ? brands.slice(0, BRANDS_PREVIEW_COUNT) : brands;
+  const hasMore = !showAll && brands.length > previewCount;
+  const visibleBrands = hasMore ? brands.slice(0, previewCount) : brands;
 
   const moreTile = hasMore
     ? `<button type="button" id="brands-show-more"
