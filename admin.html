@@ -69,8 +69,11 @@
   .badge.status-cancelled { background: #eee; color: #777; }
   .badge.status-failed { background: #fde2e1; color: #b03a2e; }
   .order-card ul { margin: 12px 0; padding-left: 20px; font-size: 14px; }
-  .order-card ul li { margin-bottom: 2px; }
+  .order-card ul li { margin-bottom: 2px; border-radius: 6px; }
   .order-card ul li .unit-price { color: #888; }
+  .order-card ul li.item-hit { background: #fff4cf; margin-left: -8px; padding: 2px 8px; }
+  .order-card ul li.item-hit .unit-price { color: #8a6d00; }
+  mark.search-hit { background: #ffcf4d; color: inherit; border-radius: 3px; padding: 0 1px; }
   .order-card .breakdown { font-size: 13px; color: #666; margin-top: 6px; }
   .order-card .breakdown .row { display: flex; justify-content: space-between; gap: 12px; padding: 1px 0; }
   .order-card .breakdown .row.fee { color: #b0790e; font-weight: 700; }
@@ -293,6 +296,10 @@
   let filteredOrders = [];
   let currentStatus = "";
   let currentRange = "all";
+  // Lo que hay escrito en el buscador (ya en minúsculas), para resaltar en
+  // amarillo el producto que coincide dentro de cada pedido -- si no, con
+  // pedidos de muchos artículos es difícil ver cuál fue el que hizo match.
+  let currentSearchTerm = "";
 
   // SKU -> { marca, precio (de transferencia) }, para pedidos guardados
   // ANTES de que el sitio empezara a guardar esos datos en cada artículo
@@ -453,6 +460,7 @@
 
   function applyFilters() {
     const search = filterSearchEl.value.trim().toLowerCase();
+    currentSearchTerm = search;
     const bounds = getRangeBounds(currentRange);
 
     filteredOrders = allOrders.filter((o) => {
@@ -1023,11 +1031,17 @@
   }
 
   function itemsListHTML(o) {
+    const term = currentSearchTerm;
     return (o.items || [])
       .map((it) => {
         const marca = itemMarca(it);
         const precio = itemPrecioTransferencia(it);
-        return `<li>${marca ? `<strong>${escapeHtml(marca)}</strong> — ` : ""}${escapeHtml(it.nombre)} x${it.qty}${it.enStock ? " · en stock" : ""} <span class="unit-price">(${formatPrice(precio)} c/u)</span> — ${formatPrice(precio * it.qty)}</li>`;
+        const isMatch = Boolean(term) && (
+          (marca && marca.toLowerCase().includes(term)) ||
+          (it.nombre && it.nombre.toLowerCase().includes(term))
+        );
+        const marcaHTML = marca ? `<strong>${highlightMatch(marca, term)}</strong> — ` : "";
+        return `<li${isMatch ? ' class="item-hit"' : ""}>${marcaHTML}${highlightMatch(it.nombre, term)} x${it.qty}${it.enStock ? " · en stock" : ""} <span class="unit-price">(${formatPrice(precio)} c/u)</span> — ${formatPrice(precio * it.qty)}</li>`;
       })
       .join("");
   }
@@ -1441,6 +1455,21 @@
     return String(str ?? "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
     }[c]));
+  }
+
+  /* Igual que escapeHtml, pero envuelve en <mark> la primera coincidencia
+     de "query" (si hay) para resaltarla en amarillo -- se busca sobre el
+     texto original (sin escapar) y luego se escapa cada pedazo por
+     separado, para no romper el escape de HTML. */
+  function highlightMatch(str, query) {
+    const text = String(str ?? "");
+    if (!query) return escapeHtml(text);
+    const idx = text.toLowerCase().indexOf(query);
+    if (idx === -1) return escapeHtml(text);
+    const before = text.slice(0, idx);
+    const match = text.slice(idx, idx + query.length);
+    const after = text.slice(idx + query.length);
+    return `${escapeHtml(before)}<mark class="search-hit">${escapeHtml(match)}</mark>${escapeHtml(after)}`;
   }
 
   function escapeAttr(str) {
