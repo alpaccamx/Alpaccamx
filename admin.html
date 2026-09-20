@@ -365,7 +365,6 @@
     // para que los pedidos viejos (sin marca/precio base guardados) los
     // muestren.
     if (allOrders.length) {
-      renderPending(allOrders.filter((o) => o.status === "pending"));
       applyFilters();
     }
   }
@@ -424,7 +423,6 @@
       }
       setStatus("");
       allOrders = data.orders || [];
-      renderPending(allOrders.filter((o) => o.status === "pending"));
       filtersEl.style.display = "flex";
       applyFilters();
     } catch (err) {
@@ -467,6 +465,16 @@
       return true;
     });
 
+    // Los pedidos "por confirmar" (arriba, con botones de confirmar/cancelar)
+    // se muestran siempre para que Mae no se le pase ninguno -- pero también
+    // deben respetar la búsqueda, si no parece que el buscador está roto
+    // (aparece un pedido que no tiene nada que ver con lo que se buscó).
+    const pendingOrders = allOrders.filter((o) => o.status === "pending");
+    renderPending(
+      search ? pendingOrders.filter((o) => matchesSearch(o, search)) : pendingOrders,
+      Boolean(search) && pendingOrders.length > 0
+    );
+
     renderHistory(filteredOrders);
     const total = allOrders.length;
     filterCountEl.textContent = filteredOrders.length === total
@@ -488,11 +496,16 @@
     return haystack.includes(query);
   }
 
-  function renderPending(orders) {
+  function renderPending(orders, hiddenBySearch) {
     if (!orders.length) {
+      emptyEl.textContent = hiddenBySearch
+        ? "No hay pedidos por confirmar que coincidan con tu búsqueda."
+        : "🎉 No tienes pedidos por confirmar";
       emptyEl.style.display = "block";
+      ordersEl.innerHTML = "";
       return;
     }
+    emptyEl.style.display = "none";
     ordersEl.innerHTML = orders.map((o) => pendingCardHTML(o)).join("");
 
     ordersEl.querySelectorAll("[data-confirm]").forEach((btn) => {
@@ -509,8 +522,10 @@
     historyTitleEl.style.display = "block";
     if (!orders.length) {
       historyEmptyEl.style.display = "block";
+      historyEl.innerHTML = "";
       return;
     }
+    historyEmptyEl.style.display = "none";
     historyEl.innerHTML = orders.map((o) => historyCardHTML(o)).join("");
 
     historyEl.querySelectorAll("[data-delete]").forEach((btn) => {
