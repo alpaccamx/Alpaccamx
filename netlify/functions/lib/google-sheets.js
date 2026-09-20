@@ -313,7 +313,7 @@ async function applySheetStockDelta(deltaBySku) {
    una marca que no existe ahí.
    Regresa { ok: true } o { ok: false, error } -- nunca truena. */
 async function updateBrandLogo(marca, logoUrl) {
-  const tabName = process.env.GOOGLE_SHEETS_CATALOG_TAB || "Productos";
+  const tabName = process.env.GOOGLE_SHEETS_CATALOG_TAB || "Productos Corea";
   const sheet = await readTab(tabName, { label: "catálogo" });
   if (!sheet) {
     return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
