@@ -207,7 +207,7 @@
         <button class="tab" data-range="month">Este mes</button>
       </div>
     </div>
-    <input id="filter-search" type="text" placeholder="🔍 Busca por nombre, teléfono, producto o # de orden" />
+    <input id="filter-search" type="text" placeholder="🔍 Busca por nombre, teléfono, marca, producto o # de orden" />
     <div class="filters-row">
       <button class="btn-secondary" id="export-btn">⬇️ Descargar en Excel</button>
       <span id="filter-count"></span>
@@ -483,6 +483,7 @@
       o.customer?.municipio,
       orderNumber(o),
       ...((o.items || []).map((it) => it.nombre)),
+      ...((o.items || []).map((it) => itemMarca(it))),
     ].filter(Boolean).join(" ").toLowerCase();
     return haystack.includes(query);
   }
