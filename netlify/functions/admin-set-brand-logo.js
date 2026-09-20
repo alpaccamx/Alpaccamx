@@ -1,6 +1,6 @@
-// Guarda el link del logo de una marca directo en tu Google Sheet
-// (columna opcional "Logo Marca" del catálogo) -- para no tener que
-// abrir el Sheet a mano cada vez.
+// Guarda el link del logo de una marca directo en tu Google Sheet, en
+// una mini tabla "Marca"/"Logo" dentro de la pestaña Config -- para no
+// tener que abrir el Sheet a mano cada vez.
 //
 // Requiere el header "x-admin-key" con el valor de ADMIN_KEY.
 //
