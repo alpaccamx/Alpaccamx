@@ -185,6 +185,7 @@
     <button class="btn-secondary" id="refresh-btn">🔄 Actualizar</button>
     <button class="btn-secondary" id="add-stock-toggle">➕ Agregar producto en Stock</button>
     <button class="btn-secondary" id="brand-logo-toggle">🎨 Logo de marca</button>
+    <button class="btn-secondary" id="restock-requests-toggle">🔔 Avisos de restock<span id="restock-requests-badge" style="display:none;"></span></button>
     <button class="btn-secondary" id="logout-btn">Salir</button>
   </div>
 
@@ -255,6 +256,14 @@
     <div class="filters-row">
       <button class="btn-primary" id="brand-logo-submit">Guardar logo</button>
     </div>
+  </div>
+
+  <div class="filters" id="restock-requests-panel" style="display:none;">
+    <label class="filters-label">🔔 Avisos de restock</label>
+    <p style="font-size:13px;color:#777;margin:0;">Clientas que pidieron que les avises cuando vuelva a haber stock de un producto agotado. Escríbeles por WhatsApp y luego toca "Ya avisé" para quitarlo de la lista.</p>
+    <div id="restock-requests-list"></div>
+    <p id="restock-requests-empty" style="display:none;color:#777;font-size:14px;">No hay avisos pendientes por ahora.</p>
+    <p id="restock-requests-loading" style="color:#777;font-size:14px;">Cargando...</p>
   </div>
 
   <p id="status" style="display:none;"></p>
@@ -1451,6 +1460,107 @@
     }
   }
 
+  /* ======================================================================
+     Avisos de restock (ver restock-notify-request.js /
+     admin-restock-requests.js) -- solicitudes de "Avísame cuando vuelva"
+     que dejan las clientas en productos agotados. No hay aviso
+     automático: aquí solo se ven para que Mae le escriba a mano por
+     WhatsApp y luego las quite de la lista.
+     ====================================================================== */
+  let restockRequestsLoaded = false;
+
+  function toggleRestockPanel() {
+    const panel = document.getElementById("restock-requests-panel");
+    const opening = panel.style.display === "none";
+    panel.style.display = opening ? "flex" : "none";
+    if (opening && !restockRequestsLoaded) loadRestockRequests();
+  }
+
+  async function loadRestockRequests() {
+    const listEl = document.getElementById("restock-requests-list");
+    const emptyEl = document.getElementById("restock-requests-empty");
+    const loadingEl = document.getElementById("restock-requests-loading");
+    listEl.innerHTML = "";
+    emptyEl.style.display = "none";
+    loadingEl.style.display = "block";
+    try {
+      const res = await fetch("/.netlify/functions/admin-restock-requests", {
+        headers: { "x-admin-key": adminKey },
+      });
+      const data = await res.json();
+      loadingEl.style.display = "none";
+      if (!res.ok) {
+        setStatus(data.error || "No se pudieron cargar los avisos de restock.");
+        return;
+      }
+      restockRequestsLoaded = true;
+      renderRestockRequests(data.requests || []);
+    } catch (err) {
+      loadingEl.style.display = "none";
+      setStatus("No se pudo conectar con el servidor.");
+    }
+  }
+
+  function renderRestockRequests(requests) {
+    const listEl = document.getElementById("restock-requests-list");
+    const emptyEl = document.getElementById("restock-requests-empty");
+    const badgeEl = document.getElementById("restock-requests-badge");
+
+    badgeEl.textContent = requests.length ? ` (${requests.length})` : "";
+    badgeEl.style.display = requests.length ? "inline" : "none";
+
+    if (!requests.length) {
+      listEl.innerHTML = "";
+      emptyEl.style.display = "block";
+      return;
+    }
+    emptyEl.style.display = "none";
+
+    listEl.innerHTML = requests.map((r) => {
+      const phoneDigits = (r.phone || "").replace(/[^0-9]/g, "");
+      const waNumber = phoneDigits.length === 10 ? "521" + phoneDigits : phoneDigits;
+      const message = `¡Hola${r.name ? " " + r.name : ""}! 🔔 Ya volvió a haber stock de ${r.productName} -- ¿te interesa?`;
+      const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}` : "";
+      const fecha = r.createdAt ? new Date(r.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" }) : "";
+      return `
+        <div class="order-card" style="border-left-color:#f0ad4e;">
+          <div class="top">
+            <span><strong>${escapeHtml(r.productName || "")}</strong></span>
+            <span class="fecha">${fecha}</span>
+          </div>
+          <p style="font-size:14px;color:#444;margin:8px 0 0;">
+            ${escapeHtml(r.name || "(sin nombre)")} · ${escapeHtml(r.phone || "")}
+          </p>
+          <div class="actions">
+            ${waLink ? `<a class="btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;" href="${escapeHtml(waLink)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ""}
+            <button class="btn-secondary" data-restock-done="${escapeHtml(r.id)}">✓ Ya avisé</button>
+          </div>
+        </div>`;
+    }).join("");
+
+    listEl.querySelectorAll("[data-restock-done]").forEach((btn) => {
+      btn.addEventListener("click", () => markRestockDone(btn.dataset.restockDone));
+    });
+  }
+
+  async function markRestockDone(id) {
+    try {
+      const res = await fetch("/.netlify/functions/admin-restock-requests", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus(data.error || "No se pudo quitar el aviso.");
+        return;
+      }
+      loadRestockRequests();
+    } catch (err) {
+      setStatus("No se pudo conectar con el servidor.");
+    }
+  }
+
   function escapeHtml(str) {
     return String(str ?? "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -1540,6 +1650,8 @@
     filterCountEl.textContent = "";
     document.getElementById("add-stock-form").style.display = "none";
     document.getElementById("brand-logo-form").style.display = "none";
+    document.getElementById("restock-requests-panel").style.display = "none";
+    restockRequestsLoaded = false;
     resetTabs();
   }
 
@@ -1554,6 +1666,7 @@
   document.getElementById("stock-add-submit").addEventListener("click", submitAddStockProduct);
   document.getElementById("brand-logo-toggle").addEventListener("click", toggleBrandLogoForm);
   document.getElementById("brand-logo-submit").addEventListener("click", submitBrandLogo);
+  document.getElementById("restock-requests-toggle").addEventListener("click", toggleRestockPanel);
   filterSearchEl.addEventListener("input", applyFilters);
 
   statusTabsEl.querySelectorAll(".tab").forEach((btn) => {

@@ -457,6 +457,74 @@ function openWishlistSection() {
   document.getElementById("wishlist-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+/* ======================================================================
+   Avísame cuando vuelva (restock) -- modal chiquito que se abre desde
+   cualquier botón "🔔 Avísame" (productos agotados). Solo guarda la
+   solicitud (netlify/functions/restock-notify-request.js); no hay aviso
+   automático, Mae la ve en /admin.html y le escribe a mano.
+   ====================================================================== */
+let restockContext = null;
+
+function openRestockModal({ sku, productName, marca }) {
+  restockContext = { sku, productName, marca };
+  document.getElementById("restock-product-name").textContent = productName;
+  document.getElementById("restock-phone").value = "";
+  document.getElementById("restock-name").value = "";
+  document.getElementById("restock-error").classList.add("hidden");
+  document.getElementById("restock-success").classList.add("hidden");
+  document.getElementById("restock-fields").classList.remove("hidden");
+  const overlay = document.getElementById("restock-overlay");
+  overlay.classList.remove("opacity-0", "pointer-events-none");
+}
+
+function closeRestockModal() {
+  document.getElementById("restock-overlay").classList.add("opacity-0", "pointer-events-none");
+}
+
+async function handleRestockSubmit(e) {
+  e.preventDefault();
+  const phone = document.getElementById("restock-phone").value.trim();
+  const name = document.getElementById("restock-name").value.trim();
+  const errorEl = document.getElementById("restock-error");
+  const btn = document.getElementById("restock-submit");
+  errorEl.classList.add("hidden");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/.netlify/functions/restock-notify-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...restockContext, phone, name }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "No se pudo guardar tu solicitud.");
+    document.getElementById("restock-fields").classList.add("hidden");
+    document.getElementById("restock-success").classList.remove("hidden");
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function initRestock() {
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-restock]");
+    if (!btn) return;
+    e.preventDefault();
+    openRestockModal({
+      sku: btn.dataset.restockSku,
+      productName: btn.dataset.restockName,
+      marca: btn.dataset.restockMarca,
+    });
+  });
+  document.getElementById("restock-close").addEventListener("click", closeRestockModal);
+  document.getElementById("restock-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "restock-overlay") closeRestockModal();
+  });
+  document.getElementById("restock-form").addEventListener("submit", handleRestockSubmit);
+}
+
 /* El carrito guarda en localStorage una copia completa de cada producto
    (precio, precio con tarjeta, peso...) tal como estaba cuando se agregó,
    y el carrito no se vacía solo -- puede quedarse ahí días. Si Mae
@@ -1451,6 +1519,10 @@ function closeMobileMenu() {
 function productCardHTML(p, { rank } = {}) {
   const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
   const hasVariants = p.variants && p.variants.length > 1;
+  // Solo se ofrece "Avísame" cuando de verdad está agotado -- no cuando
+  // el botón está deshabilitado nada más porque falta elegir un tono
+  // (hasVariants), que es una razón distinta.
+  const outOfStock = !hasVariants && (!p.disponible || (p.enStock && p.stockPiezas <= 0));
   return `
     <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full transition duration-300 hover:shadow-lg hover:border-rose/30">
       <div class="aspect-square bg-blush/20 overflow-hidden relative">
@@ -1500,10 +1572,17 @@ function productCardHTML(p, { rank } = {}) {
                 : ""
             }
           </div>
-          <button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants || (p.enStock && p.stockPiezas <= 0) ? "disabled" : ""}
-            class="rounded-full bg-rose text-cream text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
-            Agregar
-          </button>
+          ${
+            outOfStock
+              ? `<button type="button" data-restock="${escapeAttr(p.id)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
+                  class="rounded-full border border-rose text-rose text-xs font-semibold px-3 py-1.5 hover:bg-rose/10 transition">
+                  🔔 Avísame
+                </button>`
+              : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""}
+                  class="rounded-full bg-rose text-cream text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                  Agregar
+                </button>`
+          }
         </div>
       </div>
     </div>`;
@@ -3729,6 +3808,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initWhatsAppFloat();
   initAccountPanel();
   initWishlist();
+  initRestock();
 
   // Por si alguien traía carritos de ambas colecciones guardados de antes
   // de que el carrito fuera uno solo: se queda el de Skincare Coreano.
