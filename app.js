@@ -162,6 +162,22 @@ const CONFIG = {
     },
   ],
 
+  // Tiles de "preocupación de piel" (acceso rápido, aparte del quiz de
+  // arriba). Cada una hace match contra la columna "TipoPiel" de tu
+  // Sheet buscando cualquiera de sus "keywords" como texto dentro de la
+  // etiqueta (sin importar mayúsculas/acentos) -- así aprovechan las
+  // etiquetas más descriptivas que ya tienes ahí (ej. "Piel con acné",
+  // "Piel opaca / con manchas", "Piel madura"), no solo el tipo base
+  // (Grasa/Seca/Mixta/Sensible/Normal). Si un producto no tiene ninguna
+  // etiqueta así de específica, simplemente no aparece en ninguna.
+  SKIN_CONCERNS: [
+    { key: "acne", label: "Acné", emoji: "🔴", keywords: ["acne"] },
+    { key: "manchas", label: "Manchas y opacidad", emoji: "✨", keywords: ["opaca", "mancha"] },
+    { key: "madura", label: "Piel madura", emoji: "🌿", keywords: ["madura", "linea de expresion", "antienvejec"] },
+    { key: "poros", label: "Poros dilatados", emoji: "🔍", keywords: ["poro"] },
+    { key: "hidratacion", label: "Hidratación profunda", emoji: "💧", keywords: ["deshidratada"] },
+  ],
+
   // Franja promocional ancha, entre las colecciones y las marcas.
   PROMO_BANNER: {
     title: "Skincare asiático que tus clientes van a querer",
@@ -2108,6 +2124,69 @@ function showCategoryProducts(categoria) {
 }
 
 /* ======================================================================
+   Tiles de "preocupación de piel" -- ver CONFIG.SKIN_CONCERNS arriba.
+   ====================================================================== */
+function productMatchesConcern(p, concern) {
+  return (p.tipoPiel || []).some((tag) => {
+    const normalizedTag = normalizeForSearch(tag);
+    return concern.keywords.some((kw) => normalizedTag.includes(normalizeForSearch(kw)));
+  });
+}
+
+function renderConcernTiles() {
+  const section = document.getElementById("concerns-section");
+  const concerns = CONFIG.SKIN_CONCERNS || [];
+  const withCounts = concerns
+    .map((c) => ({ ...c, count: products.filter((p) => productMatchesConcern(p, c)).length }))
+    .filter((c) => c.count > 0);
+
+  if (!withCounts.length) {
+    section.classList.add("hidden");
+    return;
+  }
+  section.classList.remove("hidden");
+
+  document.getElementById("concerns-grid").innerHTML = withCounts
+    .map(
+      (c) => `
+      <button type="button" data-concern="${escapeAttr(c.key)}"
+        class="flex flex-col items-center gap-1.5 rounded-2xl border border-ink/10 bg-white/60 py-4 px-2 hover:border-rose/40 hover:shadow-md transition">
+        <span class="text-2xl">${c.emoji}</span>
+        <span class="text-xs font-semibold text-ink text-center leading-tight">${escapeHtml(c.label)}</span>
+      </button>`
+    )
+    .join("");
+
+  document.getElementById("concerns-grid").querySelectorAll("[data-concern]").forEach((btn) => {
+    btn.addEventListener("click", () => showConcernProducts(btn.dataset.concern));
+  });
+}
+
+function showConcernProducts(key) {
+  const concern = (CONFIG.SKIN_CONCERNS || []).find((c) => c.key === key);
+  if (!concern) return;
+
+  const items = groupVariants(products.filter((p) => !p.enStock && productMatchesConcern(p, concern)));
+  const grid = document.getElementById("concern-products-grid");
+  const empty = document.getElementById("concern-products-empty");
+
+  document.getElementById("concern-products-title").textContent = `${concern.emoji} ${concern.label}`;
+
+  if (!items.length) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
+    wireAddButtons(grid);
+    wireVariantSelectors(grid);
+  }
+
+  showHomeView("concerns");
+  document.getElementById("concern-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ======================================================================
    Búsqueda — filtra por nombre, marca y categoría. Solo busca al enviar
    (Enter o el botón de lupa), no en cada tecla.
    ====================================================================== */
@@ -2131,6 +2210,7 @@ function showHomeView(view) {
   document.getElementById("brand-products-section").classList.toggle("hidden", view !== "brands");
   document.getElementById("category-products-section").classList.toggle("hidden", view !== "categories");
   document.getElementById("country-products-section").classList.toggle("hidden", view !== "country");
+  document.getElementById("concern-products-section").classList.toggle("hidden", view !== "concerns");
   document.getElementById("americano-section").classList.toggle("hidden", view !== "americano");
 }
 
@@ -2241,6 +2321,7 @@ function renderAll() {
   // El orden importa: renderCategoryNav/renderMobileMenu leen qué secciones
   // quedaron visibles, así que corren después de decidir esa visibilidad.
   renderBestSellers();
+  renderConcernTiles();
   renderSkinTypeSection();
   renderBrands();
   renderCategoryNav();
@@ -3800,6 +3881,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("country-products-clear").addEventListener("click", () => {
+    showHomeView("home");
+  });
+
+  document.getElementById("concern-products-clear").addEventListener("click", () => {
     showHomeView("home");
   });
 
