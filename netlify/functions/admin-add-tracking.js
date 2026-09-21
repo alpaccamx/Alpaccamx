@@ -7,6 +7,8 @@
 // Body esperado (JSON): { orderId, trackingNumber, carrier }
 
 const { getOrder, updateOrderFields } = require("./lib/blob-store.js");
+const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -44,6 +46,18 @@ exports.handler = async (event) => {
       carrier: String(carrier || "").trim(),
       shippedAt: new Date().toISOString(),
     });
+
+    // Solo se manda si la clienta tiene cuenta con ese teléfono (los
+    // pedidos no guardan correo) -- si no, Mae le avisa a mano por el
+    // link de WhatsApp que ya arma /admin.html con esta misma guía.
+    const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+    if (customer?.email) {
+      await sendEmail({
+        to: customer.email,
+        subject: "Tu pedido de Alpacca ya va en camino 📦",
+        html: orderShippedEmailHTML(order),
+      });
+    }
 
     return jsonResponse(200, { order });
   } catch (err) {

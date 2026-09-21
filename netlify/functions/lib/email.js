@@ -88,4 +88,33 @@ function orderConfirmedEmailHTML(order) {
   `);
 }
 
-module.exports = { sendEmail, resetPasswordEmailHTML, orderConfirmedEmailHTML };
+function orderShippedEmailHTML(order) {
+  const trackingLine = order.carrier
+    ? `Guía: ${order.trackingNumber} · ${order.carrier}`
+    : `Guía: ${order.trackingNumber}`;
+  return baseEmailHTML(`
+    <p>¡Hola${order.customer?.name ? " " + order.customer.name : ""}! 📦</p>
+    <p>Tu pedido ya va en camino.</p>
+    <p style="font-weight: 700; margin-top: 16px;">Pedido #${order.id.slice(0, 8).toUpperCase()}</p>
+    <p style="font-size: 14px;">${trackingLine}</p>
+    <p>Puedes ver el estatus y rastrear tu guía desde "Mi cuenta" en el sitio.</p>
+    <p>¡Gracias por tu compra!</p>
+  `);
+}
+
+function orderCancelledEmailHTML(order) {
+  return baseEmailHTML(`
+    <p>¡Hola${order.customer?.name ? " " + order.customer.name : ""}!</p>
+    <p>Tu pedido se canceló y no se realizó ningún cobro.</p>
+    <p style="font-weight: 700; margin-top: 16px;">Pedido #${order.id.slice(0, 8).toUpperCase()}</p>
+    <p>Si crees que esto es un error o tienes dudas, contáctanos y con gusto te ayudamos.</p>
+  `);
+}
+
+module.exports = {
+  sendEmail,
+  resetPasswordEmailHTML,
+  orderConfirmedEmailHTML,
+  orderShippedEmailHTML,
+  orderCancelledEmailHTML,
+};
