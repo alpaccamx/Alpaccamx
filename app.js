@@ -357,6 +357,106 @@ function saveAmericanoCart() {
   localStorage.setItem(AMERICANO_CART_KEY, JSON.stringify(americanoCart));
 }
 
+/* ======================================================================
+   Favoritos -- guardados por dispositivo (localStorage), no requiere
+   cuenta. Solo se guarda el id del producto; los datos (precio,
+   disponibilidad, etc.) siempre se leen frescos del catálogo actual al
+   pintar la sección, así nunca se muestra un precio viejo.
+   ====================================================================== */
+const WISHLIST_KEY = "alpacca_wishlist";
+
+function loadWishlist() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(WISHLIST_KEY));
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+let wishlist = loadWishlist();
+
+function saveWishlist() {
+  localStorage.setItem(WISHLIST_KEY, JSON.stringify([...wishlist]));
+}
+
+function isWishlisted(id) {
+  return wishlist.has(id);
+}
+
+/* Agrega/quita el producto y regresa el nuevo estado (true = ya quedó
+   guardado). */
+function toggleWishlist(id) {
+  const active = !wishlist.has(id);
+  if (active) wishlist.add(id);
+  else wishlist.delete(id);
+  saveWishlist();
+  updateWishlistCountBadge();
+  return active;
+}
+
+function updateWishlistCountBadge() {
+  const el = document.getElementById("wishlist-count");
+  if (!el) return;
+  el.textContent = wishlist.size;
+  el.classList.toggle("hidden", wishlist.size === 0);
+}
+
+function wishlistButtonHTML(id) {
+  const active = isWishlisted(id);
+  return `
+    <button type="button" data-wishlist="${escapeAttr(id)}" aria-label="${active ? "Quitar de favoritos" : "Guardar en favoritos"}"
+      class="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow transition ${active ? "text-rose" : "text-ink/40 hover:text-rose"}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="${active ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>`;
+}
+
+/* Un solo listener delegado (en vez de "wire" en cada grid) para que
+   funcione en CUALQUIER tarjeta de producto sin importar en qué sección
+   se pintó -- catálogo, búsqueda, marca, stock, favoritos, etc. */
+function initWishlist() {
+  updateWishlistCountBadge();
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-wishlist]");
+    if (!btn) return;
+    e.preventDefault();
+    const id = btn.dataset.wishlist;
+    const active = toggleWishlist(id);
+    btn.classList.toggle("text-rose", active);
+    btn.classList.toggle("text-ink/40", !active);
+    btn.classList.toggle("hover:text-rose", !active);
+    btn.setAttribute("aria-label", active ? "Quitar de favoritos" : "Guardar en favoritos");
+    btn.querySelector("svg").setAttribute("fill", active ? "currentColor" : "none");
+    // Si la sección de favoritos está abierta, se vuelve a pintar de una
+    // vez -- si no, quitar uno desde ahí lo dejaría ahí hasta refrescar.
+    const section = document.getElementById("wishlist-section");
+    if (section && !section.classList.contains("hidden")) openWishlistSection();
+  });
+
+  document.getElementById("wishlist-toggle").addEventListener("click", openWishlistSection);
+  document.getElementById("wishlist-clear").addEventListener("click", () => showHomeView("home"));
+}
+
+function openWishlistSection() {
+  document.getElementById("search-input").value = "";
+
+  const items = groupVariants(products.filter((p) => wishlist.has(p.id)));
+  const grid = document.getElementById("wishlist-grid");
+  const empty = document.getElementById("wishlist-empty");
+  if (!items.length) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
+    wireAddButtons(grid);
+    wireVariantSelectors(grid);
+  }
+
+  showHomeView("wishlist");
+  document.getElementById("wishlist-section").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 /* El carrito guarda en localStorage una copia completa de cada producto
    (precio, precio con tarjeta, peso...) tal como estaba cuando se agregó,
    y el carrito no se vacía solo -- puede quedarse ahí días. Si Mae
@@ -1358,6 +1458,7 @@ function productCardHTML(p, { rank } = {}) {
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
           class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
         <div data-card-badge class="absolute top-2 ${rank ? "right-2" : "left-2"}">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
+        ${wishlistButtonHTML(p.id)}
       </div>
       <div class="p-3 flex flex-col flex-1">
         <div class="flex flex-wrap gap-1 mb-1">
@@ -1947,6 +2048,7 @@ function showHomeView(view) {
   document.getElementById("search-results-section").classList.toggle("hidden", view !== "search");
   document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
   document.getElementById("stock-section").classList.toggle("hidden", view !== "stock");
+  document.getElementById("wishlist-section").classList.toggle("hidden", view !== "wishlist");
   document.getElementById("brand-products-section").classList.toggle("hidden", view !== "brands");
   document.getElementById("category-products-section").classList.toggle("hidden", view !== "categories");
   document.getElementById("country-products-section").classList.toggle("hidden", view !== "country");
@@ -3626,6 +3728,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderBenefits();
   initWhatsAppFloat();
   initAccountPanel();
+  initWishlist();
 
   // Por si alguien traía carritos de ambas colecciones guardados de antes
   // de que el carrito fuera uno solo: se queda el de Skincare Coreano.
