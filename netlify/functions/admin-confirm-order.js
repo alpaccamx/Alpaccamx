@@ -11,6 +11,8 @@
 const { transitionOrder, applyStockDecrement } = require("./lib/blob-store.js");
 const { notifySellerWhatsApp, notifyCustomerOrderConfirmed, orderPaidMessage } = require("./lib/whatsapp.js");
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
+const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { sendEmail, orderCancelledEmailHTML } = require("./lib/email.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -59,6 +61,18 @@ exports.handler = async (event) => {
       cancelledAt: new Date().toISOString(),
     });
     if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
+
+    // Igual que al mandar la guía: solo se manda si la clienta tiene
+    // cuenta con ese teléfono (los pedidos no guardan correo).
+    const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+    if (customer?.email) {
+      await sendEmail({
+        to: customer.email,
+        subject: "Tu pedido de Alpacca se canceló",
+        html: orderCancelledEmailHTML(order),
+      });
+    }
+
     return jsonResponse(200, { order });
   } catch (err) {
     console.error("Error actualizando el pedido:", err);

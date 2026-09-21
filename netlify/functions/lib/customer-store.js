@@ -41,6 +41,28 @@ async function getCustomerByEmail(email) {
   return store.get(normalizeEmail(email), { type: "json" });
 }
 
+/* Los pedidos no guardan a qué cuenta pertenecen (se conectan por
+   teléfono, ver arriba), así que para mandar un correo de "tu pedido se
+   envió/canceló" hay que buscar al revés: qué cuenta (si alguna) tiene
+   ese mismo teléfono. Como la tienda está indexada por correo, no queda
+   otra que recorrer todas las cuentas -- para el tamaño de este negocio
+   (cientos, no millones, de cuentas) es rápido y no vale la pena
+   mantener un índice aparte solo para esto. Si dos cuentas comparten
+   teléfono (no debería pasar) regresa la primera que encuentre. */
+async function getCustomerByPhone(phone) {
+  const digits = String(phone || "").replace(/[^0-9]/g, "");
+  if (!digits) return null;
+  const store = getCustomersStore();
+  const { blobs } = await store.list();
+  for (const b of blobs) {
+    const customer = await store.get(b.key, { type: "json" });
+    if (customer && String(customer.phone || "").replace(/[^0-9]/g, "") === digits) {
+      return customer;
+    }
+  }
+  return null;
+}
+
 /* Reintenta ante conflictos de concurrencia, igual que updateOrderFields
    en blob-store.js -- se usa para guardar el token de recuperación de
    contraseña y, luego, la contraseña nueva. */
@@ -57,4 +79,4 @@ async function updateCustomerFields(email, patch) {
   throw new Error("No se pudo actualizar la cuenta (conflicto de concurrencia).");
 }
 
-module.exports = { normalizeEmail, createCustomer, getCustomerByEmail, updateCustomerFields };
+module.exports = { normalizeEmail, createCustomer, getCustomerByEmail, getCustomerByPhone, updateCustomerFields };
