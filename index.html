@@ -369,19 +369,56 @@
     <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Antes de comprar</p>
     <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Preguntas frecuentes</h2>
   </div>
-  <div class="max-w-2xl mx-auto space-y-5">
-    <div>
-      <p class="font-semibold text-ink">¿Cómo pago?</p>
-      <p class="text-sm text-ink/60 mt-1">Con tarjeta a través de Mercado Pago, o por transferencia (con descuento) — te damos los datos y puedes subir tu comprobante directo en el sitio.</p>
-    </div>
-    <div>
-      <p class="font-semibold text-ink">¿De dónde vienen los productos?</p>
-      <p class="text-sm text-ink/60 mt-1">Trabajamos con productos provenientes de Corea y otros países de Asia. Coordinamos la logística necesaria para hacer llegar tu pedido a México.</p>
-    </div>
-    <div>
-      <p class="font-semibold text-ink">¿Cuál es el pedido mínimo?</p>
-      <p class="text-sm text-ink/60 mt-1" id="faq-min-order">Consulta el pedido mínimo vigente en la barra superior del sitio.</p>
-    </div>
+  <div class="max-w-2xl mx-auto space-y-2.5" id="faq-list">
+    <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden" open>
+      <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
+        <span class="font-semibold text-ink">¿Cómo pago?</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/40 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="text-sm text-ink/60 px-4 pb-4">Con tarjeta a través de Mercado Pago, o por transferencia (con descuento) — te damos los datos y puedes subir tu comprobante directo en el sitio.</p>
+    </details>
+    <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
+      <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
+        <span class="font-semibold text-ink">¿De dónde vienen los productos?</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/40 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="text-sm text-ink/60 px-4 pb-4">Trabajamos con productos provenientes de Corea y otros países de Asia. Coordinamos la logística necesaria para hacer llegar tu pedido a México.</p>
+    </details>
+    <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
+      <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
+        <span class="font-semibold text-ink">¿Cuál es el pedido mínimo?</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/40 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="text-sm text-ink/60 px-4 pb-4" id="faq-min-order">Consulta el pedido mínimo vigente en la barra superior del sitio.</p>
+    </details>
+    <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
+      <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
+        <span class="font-semibold text-ink">¿Cuánto tarda en llegar mi pedido?</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/40 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="text-sm text-ink/60 px-4 pb-4">Depende del producto: lo que ya está en stock en México (✅ En stock) se envía de inmediato; lo que viene directo desde Corea tarda más porque incluye el envío internacional. Te damos un estimado de envío antes de pagar.</p>
+    </details>
+    <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
+      <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
+        <span class="font-semibold text-ink">¿Hacen envíos a todo México?</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/40 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="text-sm text-ink/60 px-4 pb-4">Sí, hacemos envíos a todo el país. El costo de envío se calcula según tu código postal al momento de pagar.</p>
+    </details>
+    <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
+      <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
+        <span class="font-semibold text-ink">¿Puedo rastrear mi pedido?</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/40 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="text-sm text-ink/60 px-4 pb-4">Sí. En cuanto enviamos tu pedido, puedes ver el número de guía y rastrearlo desde "Mi cuenta" → tus pedidos, o preguntarnos directo por WhatsApp.</p>
+    </details>
+    <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
+      <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
+        <span class="font-semibold text-ink">¿Necesito crear una cuenta para comprar?</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/40 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="text-sm text-ink/60 px-4 pb-4">No es obligatorio, puedes comprar directo. Pero si te registras en "Mi cuenta" puedes ver el historial y el estatus de todos tus pedidos en un solo lugar.</p>
+    </details>
   </div>
 </section>
 
