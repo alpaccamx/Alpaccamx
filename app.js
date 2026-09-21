@@ -2607,6 +2607,7 @@ function renderCart() {
   const emptyMsg = document.getElementById("cart-empty");
   const items = Object.entries(cart);
 
+  updateCartLoginGate();
   renderBankDetails();
 
   const total = cartTotal();
@@ -2690,10 +2691,39 @@ function renderCart() {
   wrap.querySelectorAll("[data-remove]").forEach((b) => b.addEventListener("click", () => removeFromCart(b.dataset.remove)));
 }
 
+/* No se permite comprar como invitado -- hay que iniciar sesión o crear
+   cuenta antes de poder llenar el formulario de envío/pago, así todo
+   pedido queda ligado a una cuenta (y se puede rastrear después desde
+   "Mi cuenta"). Se llama cada vez que se abre el carrito o cambia, para
+   que reaccione al instante si se loguea con el carrito abierto. */
+function updateCartLoginGate() {
+  const gate = document.getElementById("cart-login-required");
+  const form = document.getElementById("quote-form");
+  const loggedIn = Boolean(getCustomerToken());
+  gate.classList.toggle("hidden", loggedIn);
+  form.classList.toggle("hidden", !loggedIn);
+  if (loggedIn) {
+    const nameInput = document.getElementById("customer-name");
+    const phoneInput = document.getElementById("customer-phone");
+    if (nameInput && !nameInput.value && myAccountCache.name) nameInput.value = myAccountCache.name;
+    if (phoneInput && !phoneInput.value && myAccountCache.phone) phoneInput.value = myAccountCache.phone;
+  }
+}
+
+/* Si se loguea/registra viniendo del aviso de "inicia sesión para
+   comprar" (con productos ya en el carrito), regresa directo al carrito
+   en vez de dejarla parada en "Mis pedidos". */
+function resumeCheckoutIfPending() {
+  if (!Object.keys(cart).length) return;
+  closeAccountPanel();
+  openCart();
+}
+
 /* ======================================================================
    Drawer del carrito
    ====================================================================== */
 function openCart() {
+  updateCartLoginGate();
   document.getElementById("cart-drawer").classList.remove("translate-x-full");
   const overlay = document.getElementById("cart-overlay");
   overlay.classList.remove("opacity-0", "pointer-events-none");
@@ -2732,6 +2762,12 @@ function getCustomerFields() {
 async function sendQuote(e) {
   e.preventDefault();
   if (!Object.keys(cart).length) return;
+  // El formulario está oculto sin sesión (ver updateCartLoginGate), esto
+  // es nomás por si acaso -- nunca debería llegar hasta aquí sin token.
+  if (!getCustomerToken()) {
+    setStatus("Inicia sesión para continuar tu compra.");
+    return;
+  }
 
   const hasNonStockItems = Object.values(cart).some((it) => !it.product.enStock);
   if (hasNonStockItems && cartTotalNonStock() < minOrderMXN()) {
@@ -2953,6 +2989,12 @@ function cartItemsForOrder({ useTarjetaPrice = false } = {}) {
    ====================================================================== */
 async function payWithMercadoPago() {
   if (!Object.keys(cart).length) return;
+  // El formulario está oculto sin sesión (ver updateCartLoginGate), esto
+  // es nomás por si acaso -- nunca debería llegar hasta aquí sin token.
+  if (!getCustomerToken()) {
+    setStatus("Inicia sesión para continuar tu compra.");
+    return;
+  }
 
   // El comprobante de transferencia (obligatorio con "required" en el
   // HTML) vive en este mismo formulario, pero no aplica a Mercado Pago
@@ -3150,7 +3192,8 @@ async function handleLoginSubmit(e) {
     setCustomerToken(data.token);
     document.getElementById("login-form").reset();
     showAccountView("orders");
-    loadMyOrders();
+    await loadMyOrders();
+    resumeCheckoutIfPending();
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.remove("hidden");
@@ -3180,7 +3223,8 @@ async function handleSignupSubmit(e) {
     setCustomerToken(data.token);
     document.getElementById("signup-form").reset();
     showAccountView("orders");
-    loadMyOrders();
+    await loadMyOrders();
+    resumeCheckoutIfPending();
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.remove("hidden");
@@ -3715,6 +3759,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("cart-close").addEventListener("click", closeCart);
   document.getElementById("cart-overlay").addEventListener("click", closeCart);
+  document.getElementById("cart-login-cta").addEventListener("click", () => {
+    closeCart();
+    openAccountPanelDefault();
+  });
 
   document.getElementById("currency-toggle").addEventListener("click", () => {
     localStorage.setItem("displayCurrency", displayCurrency === "USD" ? "MXN" : "USD");
