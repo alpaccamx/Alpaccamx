@@ -556,6 +556,177 @@ function initRestock() {
   document.getElementById("restock-form").addEventListener("submit", handleRestockSubmit);
 }
 
+/* ======================================================================
+   Calificaciones de producto -- solo clientas con cuenta que ya tienen
+   un pedido PAGADO con ese SKU pueden calificar (lo valida el servidor,
+   ver customer-submit-review.js). Guardar de nuevo actualiza tu propia
+   reseña en vez de crear otra.
+   ====================================================================== */
+const STAR_PATH = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
+
+function starIconHTML(filled, sizeClass = "w-3.5 h-3.5") {
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="${sizeClass} ${filled ? "text-amber-400" : "text-ink/20"}" viewBox="0 0 24 24" fill="currentColor"><path d="${STAR_PATH}"/></svg>`;
+}
+
+/* Mapa sku -> { avg, count }, para las estrellas de las tarjetas de
+   producto -- se carga una vez al inicio (product-reviews.js sin
+   parámetro "sku" regresa el resumen de TODOS los productos con alguna
+   reseña). */
+let reviewSummaries = new Map();
+
+async function loadReviewSummaries() {
+  try {
+    const res = await fetch("/.netlify/functions/product-reviews", { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    reviewSummaries = new Map(Object.entries(data.summaries || {}));
+    renderAll();
+  } catch (err) {
+    console.warn("No se pudieron cargar las reseñas:", err);
+  }
+}
+
+/* Línea chiquita de "⭐ 4.8 (12)" para una tarjeta de producto -- vacío
+   si todavía no tiene ninguna reseña (no se muestra "0 reseñas"). Usa
+   p.stockSku si es un producto de Stock (ver cartItemsForOrder), porque
+   es el mismo sku con el que se guardan sus reseñas. */
+function productReviewSummaryHTML(p) {
+  const sku = p.stockSku || p.id;
+  const summary = reviewSummaries.get(sku);
+  if (!summary || !summary.count) return "";
+  return `
+    <button type="button" data-view-reviews="${escapeAttr(sku)}" data-view-reviews-name="${escapeAttr(p.nombre)}"
+      class="flex items-center gap-1 text-[11px] text-ink/60 hover:text-ink mt-0.5">
+      ${starIconHTML(true, "w-3 h-3")}
+      <span class="font-semibold">${summary.avg}</span>
+      <span class="text-ink/40">(${summary.count})</span>
+    </button>`;
+}
+
+async function openReviewsListModal(sku, productName) {
+  document.getElementById("reviews-list-title").textContent = `⭐ Reseñas de ${productName}`;
+  document.getElementById("reviews-list-summary").textContent = "Cargando…";
+  document.getElementById("reviews-list-items").innerHTML = "";
+  document.getElementById("reviews-list-overlay").classList.remove("opacity-0", "pointer-events-none");
+  try {
+    const res = await fetch(`/.netlify/functions/product-reviews?sku=${encodeURIComponent(sku)}`, { cache: "no-store" });
+    const data = await res.json();
+    document.getElementById("reviews-list-summary").textContent = data.count
+      ? `${data.avg} ⭐ · ${data.count} reseña${data.count === 1 ? "" : "s"}`
+      : "Todavía no hay reseñas para este producto.";
+    document.getElementById("reviews-list-items").innerHTML = (data.reviews || [])
+      .map(
+        (r) => `
+        <div class="border-t border-ink/10 pt-3">
+          <div class="flex items-center gap-0.5">${[1, 2, 3, 4, 5].map((n) => starIconHTML(n <= r.rating, "w-3.5 h-3.5")).join("")}</div>
+          <p class="text-xs font-semibold text-ink mt-1">${escapeHtml(r.customerName || "Clienta Alpacca")}</p>
+          ${r.comment ? `<p class="text-sm text-ink/70 mt-0.5">${escapeHtml(r.comment)}</p>` : ""}
+        </div>`
+      )
+      .join("");
+  } catch (err) {
+    document.getElementById("reviews-list-summary").textContent = "No se pudieron cargar las reseñas.";
+  }
+}
+
+function closeReviewsListModal() {
+  document.getElementById("reviews-list-overlay").classList.add("opacity-0", "pointer-events-none");
+}
+
+let reviewContext = null;
+let reviewRating = 0;
+
+function renderReviewStarsPicker() {
+  const wrap = document.getElementById("review-stars");
+  wrap.innerHTML = [1, 2, 3, 4, 5]
+    .map(
+      (n) => `
+      <button type="button" data-star="${n}" aria-label="${n} estrella${n === 1 ? "" : "s"}" class="p-0.5">
+        ${starIconHTML(n <= reviewRating, "w-6 h-6")}
+      </button>`
+    )
+    .join("");
+  wrap.querySelectorAll("[data-star]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      reviewRating = Number(btn.dataset.star);
+      renderReviewStarsPicker();
+    });
+  });
+}
+
+function openReviewModal({ sku, productName }) {
+  reviewContext = { sku, productName };
+  reviewRating = 0;
+  document.getElementById("review-product-name").textContent = productName;
+  document.getElementById("review-comment").value = "";
+  document.getElementById("review-error").classList.add("hidden");
+  document.getElementById("review-success").classList.add("hidden");
+  document.getElementById("review-fields").classList.remove("hidden");
+  renderReviewStarsPicker();
+  document.getElementById("review-overlay").classList.remove("opacity-0", "pointer-events-none");
+}
+
+function closeReviewModal() {
+  document.getElementById("review-overlay").classList.add("opacity-0", "pointer-events-none");
+}
+
+async function handleReviewSubmit(e) {
+  e.preventDefault();
+  const errorEl = document.getElementById("review-error");
+  const btn = document.getElementById("review-submit");
+  errorEl.classList.add("hidden");
+  if (!reviewRating) {
+    errorEl.textContent = "Selecciona cuántas estrellas le das.";
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  const comment = document.getElementById("review-comment").value.trim();
+  const token = getCustomerToken();
+  btn.disabled = true;
+  try {
+    const res = await fetch("/.netlify/functions/customer-submit-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ sku: reviewContext.sku, rating: reviewRating, comment }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "No se pudo guardar tu calificación.");
+    document.getElementById("review-fields").classList.add("hidden");
+    document.getElementById("review-success").classList.remove("hidden");
+    loadReviewSummaries();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function initReviews() {
+  document.addEventListener("click", (e) => {
+    const viewBtn = e.target.closest("[data-view-reviews]");
+    if (viewBtn) {
+      e.preventDefault();
+      openReviewsListModal(viewBtn.dataset.viewReviews, viewBtn.dataset.viewReviewsName);
+      return;
+    }
+    const reviewBtn = e.target.closest("[data-review]");
+    if (reviewBtn) {
+      e.preventDefault();
+      openReviewModal({ sku: reviewBtn.dataset.review, productName: reviewBtn.dataset.reviewName });
+    }
+  });
+  document.getElementById("review-close").addEventListener("click", closeReviewModal);
+  document.getElementById("review-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "review-overlay") closeReviewModal();
+  });
+  document.getElementById("review-form").addEventListener("submit", handleReviewSubmit);
+  document.getElementById("reviews-list-close").addEventListener("click", closeReviewsListModal);
+  document.getElementById("reviews-list-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "reviews-list-overlay") closeReviewsListModal();
+  });
+}
+
 /* El carrito guarda en localStorage una copia completa de cada producto
    (precio, precio con tarjeta, peso...) tal como estaba cuando se agregó,
    y el carrito no se vacía solo -- puede quedarse ahí días. Si Mae
@@ -1582,6 +1753,7 @@ function productCardHTML(p, { rank } = {}) {
         </div>
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
         <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5">${escapeHtml(p.nombre)}</h3>
+        ${productReviewSummaryHTML(p)}
         ${
           hasVariants
             ? `<select data-variant-select
@@ -3494,11 +3666,22 @@ function orderTimelineHTML(o) {
 }
 
 function orderItemsDetailHTML(o) {
+  // Solo se puede calificar lo que ya se pagó de verdad -- lo revalida
+  // también el servidor en customer-submit-review.js.
+  const canReview = o.status === "paid";
   return (o.items || [])
     .map(
       (it) => `
       <li class="flex justify-between gap-3 text-sm">
-        <span class="text-ink/80">${escapeHtml(it.nombre)} <span class="text-ink/40">x${it.qty}</span></span>
+        <span class="text-ink/80">
+          ${escapeHtml(it.nombre)} <span class="text-ink/40">x${it.qty}</span>
+          ${
+            canReview && it.sku
+              ? `<button type="button" data-review="${escapeAttr(it.sku)}" data-review-name="${escapeAttr(it.nombre)}"
+                  class="block text-[11px] text-rose font-semibold hover:underline mt-0.5">⭐ Calificar</button>`
+              : ""
+          }
+        </span>
         <span class="text-ink/60 shrink-0">${formatPrice((it.precio || 0) * it.qty)}</span>
       </li>`
     )
@@ -4015,6 +4198,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initAccountPanel();
   initWishlist();
   initRestock();
+  initReviews();
 
   // Por si alguien traía carritos de ambas colecciones guardados de antes
   // de que el carrito fuera uno solo: se queda el de Skincare Coreano.
@@ -4028,6 +4212,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadShippingKoreaRates();
   loadShippingNacionalRates();
   loadStockData();
+  loadReviewSummaries();
   renderCart();
 
   loadAmericanoProducts();

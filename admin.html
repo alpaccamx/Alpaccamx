@@ -186,6 +186,7 @@
     <button class="btn-secondary" id="add-stock-toggle">➕ Agregar producto en Stock</button>
     <button class="btn-secondary" id="brand-logo-toggle">🎨 Logo de marca</button>
     <button class="btn-secondary" id="restock-requests-toggle">🔔 Avisos de restock<span id="restock-requests-badge" style="display:none;"></span></button>
+    <button class="btn-secondary" id="reviews-toggle">⭐ Reseñas</button>
     <button class="btn-secondary" id="logout-btn">Salir</button>
   </div>
 
@@ -264,6 +265,14 @@
     <div id="restock-requests-list"></div>
     <p id="restock-requests-empty" style="display:none;color:#777;font-size:14px;">No hay avisos pendientes por ahora.</p>
     <p id="restock-requests-loading" style="color:#777;font-size:14px;">Cargando...</p>
+  </div>
+
+  <div class="filters" id="reviews-panel" style="display:none;">
+    <label class="filters-label">⭐ Reseñas de producto</label>
+    <p style="font-size:13px;color:#777;margin:0;">Solo pueden calificar clientas que ya pagaron ese producto. No hay revisión antes de publicarse -- si alguna reseña es inapropiada o falsa, bórrala aquí.</p>
+    <div id="reviews-list"></div>
+    <p id="reviews-empty" style="display:none;color:#777;font-size:14px;">Todavía no hay ninguna reseña.</p>
+    <p id="reviews-loading" style="color:#777;font-size:14px;">Cargando...</p>
   </div>
 
   <p id="status" style="display:none;"></p>
@@ -1561,6 +1570,96 @@
     }
   }
 
+  /* ======================================================================
+     Reseñas de producto (ver product-reviews.js / admin-reviews.js /
+     customer-submit-review.js) -- solo para moderar (borrar) las que sean
+     inapropiadas o falsas; no hay cola de aprobación previa.
+     ====================================================================== */
+  let reviewsLoaded = false;
+
+  function toggleReviewsPanel() {
+    const panel = document.getElementById("reviews-panel");
+    const opening = panel.style.display === "none";
+    panel.style.display = opening ? "flex" : "none";
+    if (opening && !reviewsLoaded) loadReviews();
+  }
+
+  async function loadReviews() {
+    const listEl = document.getElementById("reviews-list");
+    const emptyEl = document.getElementById("reviews-empty");
+    const loadingEl = document.getElementById("reviews-loading");
+    listEl.innerHTML = "";
+    emptyEl.style.display = "none";
+    loadingEl.style.display = "block";
+    try {
+      const res = await fetch("/.netlify/functions/admin-reviews", {
+        headers: { "x-admin-key": adminKey },
+      });
+      const data = await res.json();
+      loadingEl.style.display = "none";
+      if (!res.ok) {
+        setStatus(data.error || "No se pudieron cargar las reseñas.");
+        return;
+      }
+      reviewsLoaded = true;
+      renderReviews(data.reviews || []);
+    } catch (err) {
+      loadingEl.style.display = "none";
+      setStatus("No se pudo conectar con el servidor.");
+    }
+  }
+
+  function renderReviews(reviews) {
+    const listEl = document.getElementById("reviews-list");
+    const emptyEl = document.getElementById("reviews-empty");
+
+    if (!reviews.length) {
+      listEl.innerHTML = "";
+      emptyEl.style.display = "block";
+      return;
+    }
+    emptyEl.style.display = "none";
+
+    listEl.innerHTML = reviews.map((r) => {
+      const stars = "★".repeat(r.rating) + "☆".repeat(5 - r.rating);
+      const fecha = r.createdAt ? new Date(r.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" }) : "";
+      return `
+        <div class="order-card" style="border-left-color:#f0ad4e;">
+          <div class="top">
+            <span><strong>${escapeHtml(r.sku || "")}</strong> · <span style="color:#e0a300;">${stars}</span></span>
+            <span class="fecha">${fecha}</span>
+          </div>
+          <p style="font-size:14px;color:#444;margin:8px 0 0;">${escapeHtml(r.customerName || "")} · ${escapeHtml(r.customerEmail || "")}</p>
+          ${r.comment ? `<p style="font-size:14px;color:#444;margin:6px 0 0;">${escapeHtml(r.comment)}</p>` : ""}
+          <div class="actions">
+            <button class="btn-danger" data-review-delete="${escapeHtml(r.id)}">🗑️ Borrar reseña</button>
+          </div>
+        </div>`;
+    }).join("");
+
+    listEl.querySelectorAll("[data-review-delete]").forEach((btn) => {
+      btn.addEventListener("click", () => deleteReview(btn.dataset.reviewDelete));
+    });
+  }
+
+  async function deleteReview(id) {
+    try {
+      const res = await fetch("/.netlify/functions/admin-reviews", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus(data.error || "No se pudo borrar la reseña.");
+        return;
+      }
+      loadReviews();
+    } catch (err) {
+      setStatus("No se pudo conectar con el servidor.");
+    }
+  }
+
   function escapeHtml(str) {
     return String(str ?? "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -1652,6 +1751,8 @@
     document.getElementById("brand-logo-form").style.display = "none";
     document.getElementById("restock-requests-panel").style.display = "none";
     restockRequestsLoaded = false;
+    document.getElementById("reviews-panel").style.display = "none";
+    reviewsLoaded = false;
     resetTabs();
   }
 
@@ -1667,6 +1768,7 @@
   document.getElementById("brand-logo-toggle").addEventListener("click", toggleBrandLogoForm);
   document.getElementById("brand-logo-submit").addEventListener("click", submitBrandLogo);
   document.getElementById("restock-requests-toggle").addEventListener("click", toggleRestockPanel);
+  document.getElementById("reviews-toggle").addEventListener("click", toggleReviewsPanel);
   filterSearchEl.addEventListener("input", applyFilters);
 
   statusTabsEl.querySelectorAll(".tab").forEach((btn) => {
