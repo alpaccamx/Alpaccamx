@@ -178,6 +178,21 @@ const CONFIG = {
     { key: "hidratacion", label: "Hidratación profunda", emoji: "💧", keywords: ["deshidratada"] },
   ],
 
+  // Oferta por tiempo limitado -- banner oscuro con cuenta regresiva y
+  // una fila de productos en oferta, arriba de "Best Seller". Se oculta
+  // sola si "enabled" es false, si ya pasó "endsAt", o si ninguno de los
+  // "productIds" existe ahorita en el catálogo. "productIds" son los SKU
+  // tal como vienen en tu Sheet (columna SKU). Para activar una oferta,
+  // dime qué productos y hasta cuándo, y yo actualizo esto -- igual que
+  // con las imágenes del carrusel.
+  TIME_DEAL: {
+    enabled: false,
+    title: "",
+    subtitle: "",
+    endsAt: "", // ej. "2026-10-05T23:59:59-06:00"
+    productIds: [],
+  },
+
   // Franja promocional ancha, entre las colecciones y las marcas.
   PROMO_BANNER: {
     title: "Skincare asiático que tus clientes van a querer",
@@ -1829,6 +1844,63 @@ function renderAmericanoSection() {
    "Destacado" incluye la etiqueta "Best Seller" (hasta 6, en el orden
    del Google Sheet). Si no hay ninguno, la sección se oculta.
    ====================================================================== */
+/* ======================================================================
+   Oferta por tiempo limitado -- ver CONFIG.TIME_DEAL arriba.
+   ====================================================================== */
+let timeDealTimer = null;
+
+function renderTimeDeal() {
+  clearInterval(timeDealTimer);
+  timeDealTimer = null;
+
+  const section = document.getElementById("time-deal-section");
+  const deal = CONFIG.TIME_DEAL || {};
+  const endsAt = deal.endsAt ? new Date(deal.endsAt) : null;
+  const items = groupVariants(products.filter((p) => !p.enStock && (deal.productIds || []).includes(p.id)));
+
+  if (!deal.enabled || !endsAt || Number.isNaN(endsAt.getTime()) || endsAt <= new Date() || !items.length) {
+    section.classList.add("hidden");
+    return;
+  }
+
+  document.getElementById("time-deal-title").textContent = deal.title || "Oferta por tiempo limitado";
+  document.getElementById("time-deal-subtitle").textContent = deal.subtitle || "";
+
+  const row = document.getElementById("time-deal-row");
+  row.innerHTML = items.map((p) => `<div class="w-40 sm:w-48 flex-shrink-0 snap-start">${productCardHTML(p)}</div>`).join("");
+  wireAddButtons(row);
+  wireVariantSelectors(row);
+
+  const updateCountdown = () => {
+    const diffMs = endsAt - new Date();
+    if (diffMs <= 0) {
+      section.classList.add("hidden");
+      clearInterval(timeDealTimer);
+      return;
+    }
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const units = [
+      { label: "días", value: Math.floor(totalSeconds / 86400) },
+      { label: "hrs", value: Math.floor((totalSeconds % 86400) / 3600) },
+      { label: "min", value: Math.floor((totalSeconds % 3600) / 60) },
+      { label: "seg", value: totalSeconds % 60 },
+    ];
+    document.getElementById("time-deal-countdown").innerHTML = units
+      .map(
+        (u) => `
+        <div class="flex flex-col items-center">
+          <span class="bg-cream/10 rounded-lg px-2.5 py-1.5 text-lg font-bold font-mono min-w-[2.75rem] text-center">${String(u.value).padStart(2, "0")}</span>
+          <span class="text-[10px] text-cream/60 mt-0.5">${u.label}</span>
+        </div>`
+      )
+      .join("");
+  };
+
+  updateCountdown();
+  timeDealTimer = setInterval(updateCountdown, 1000);
+  section.classList.remove("hidden");
+}
+
 function renderBestSellers() {
   const section = document.getElementById("featured-section");
   const items = groupVariants(products.filter((p) => !p.enStock && (p.destacado || []).includes("Best Seller"))).slice(0, 6);
@@ -2320,6 +2392,7 @@ function renderBenefits() {
 function renderAll() {
   // El orden importa: renderCategoryNav/renderMobileMenu leen qué secciones
   // quedaron visibles, así que corren después de decidir esa visibilidad.
+  renderTimeDeal();
   renderBestSellers();
   renderConcernTiles();
   renderSkinTypeSection();
