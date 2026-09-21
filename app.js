@@ -2931,7 +2931,7 @@ function closeAccountPanel() {
   overlay.classList.add("opacity-0", "pointer-events-none");
 }
 
-const ACCOUNT_VIEWS = ["login", "signup", "forgot", "reset", "orders"];
+const ACCOUNT_VIEWS = ["login", "signup", "forgot", "reset", "orders", "settings"];
 function showAccountView(view) {
   ACCOUNT_VIEWS.forEach((v) => {
     document.getElementById(`account-view-${v}`).classList.toggle("hidden", v !== view);
@@ -3214,6 +3214,121 @@ function myOrderCardHTML(o) {
    tener que volver a pedirle los datos al servidor. */
 let myOrdersCache = [];
 
+/* Datos de la cuenta (nombre/teléfono/correo) ya cargados, para
+   precargar el formulario de "Editar mis datos" sin otra llamada. */
+let myAccountCache = { name: "", phone: "", email: "" };
+
+/* Filtro activo de la lista de pedidos: por estatus y por rango de
+   fecha -- ver orderBucket() y ACCOUNT_ORDERS_RANGES más abajo. */
+let accountOrdersStatusFilter = "all";
+let accountOrdersRangeFilter = "all";
+
+/* Agrupa un pedido en una de las 4 categorías que se muestran en el
+   resumen -- "paid" se separa en "pagado" (todavía sin guía) y
+   "enviado" (ya tiene guía), que es como Mae marca sus pedidos en
+   /admin.html. No hay un estatus "entregado" separado todavía, así que
+   no se muestra esa categoría (siempre saldría en cero). */
+function orderBucket(o) {
+  if (o.status === "pending") return "pending";
+  if (o.status === "cancelled" || o.status === "failed") return "cancelled";
+  if (o.status === "paid" && o.trackingNumber) return "shipped";
+  if (o.status === "paid") return "paid";
+  return "other";
+}
+
+const ACCOUNT_ORDERS_STATS = [
+  { key: "pending", label: "Pendientes", icon: "⏳" },
+  { key: "paid", label: "Pagados", icon: "✅" },
+  { key: "shipped", label: "Enviados", icon: "🚚" },
+  { key: "cancelled", label: "Cancelados", icon: "✕" },
+];
+
+const ACCOUNT_ORDERS_RANGES = [
+  { key: "all", label: "Todo" },
+  { key: "month", label: "Este mes" },
+  { key: "3months", label: "Últimos 3 meses" },
+];
+
+function accountOrdersRangeBounds(rangeKey) {
+  if (rangeKey === "all") return null;
+  const days = rangeKey === "month" ? 30 : 90;
+  const from = new Date();
+  from.setDate(from.getDate() - days);
+  return from;
+}
+
+function renderAccountOrdersStats(orders) {
+  const el = document.getElementById("account-orders-stats");
+  const counts = { pending: 0, paid: 0, shipped: 0, cancelled: 0 };
+  orders.forEach((o) => {
+    const bucket = orderBucket(o);
+    if (counts[bucket] != null) counts[bucket]++;
+  });
+  el.innerHTML = ACCOUNT_ORDERS_STATS.map((s) => {
+    const active = accountOrdersStatusFilter === s.key;
+    return `
+      <button type="button" data-stat-filter="${s.key}"
+        class="flex flex-col items-center gap-0.5 rounded-lg py-2 transition ${active ? "bg-rose text-cream" : "bg-ink/5 text-ink hover:bg-ink/10"}">
+        <span class="text-base font-bold">${counts[s.key]}</span>
+        <span class="text-[10px] font-semibold ${active ? "text-cream/90" : "text-ink/50"}">${s.icon} ${s.label}</span>
+      </button>`;
+  }).join("");
+  el.classList.remove("hidden");
+  el.querySelectorAll("[data-stat-filter]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      accountOrdersStatusFilter = accountOrdersStatusFilter === btn.dataset.statFilter ? "all" : btn.dataset.statFilter;
+      renderAccountOrdersStats(orders);
+      applyAccountOrdersFilter();
+    });
+  });
+}
+
+function renderAccountOrdersRangeChips() {
+  const el = document.getElementById("account-orders-range");
+  el.innerHTML = ACCOUNT_ORDERS_RANGES.map((r) => {
+    const active = accountOrdersRangeFilter === r.key;
+    return `
+      <button type="button" data-range-filter="${r.key}"
+        class="rounded-full px-3 py-1.5 text-xs font-semibold transition ${active ? "bg-ink text-cream" : "bg-ink/5 text-ink/60 hover:bg-ink/10"}">
+        ${r.label}
+      </button>`;
+  }).join("");
+  el.classList.remove("hidden");
+  el.querySelectorAll("[data-range-filter]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      accountOrdersRangeFilter = btn.dataset.rangeFilter;
+      renderAccountOrdersRangeChips();
+      applyAccountOrdersFilter();
+    });
+  });
+}
+
+/* Aplica el filtro de estatus + rango de fecha sobre myOrdersCache y
+   vuelve a pintar la lista -- se llama al cargar los pedidos y cada vez
+   que se toca un filtro. */
+function applyAccountOrdersFilter() {
+  const listEl = document.getElementById("account-orders-list");
+  const filteredEmptyEl = document.getElementById("account-orders-filtered-empty");
+  const bounds = accountOrdersRangeBounds(accountOrdersRangeFilter);
+
+  const filtered = myOrdersCache.filter((o) => {
+    if (accountOrdersStatusFilter !== "all" && orderBucket(o) !== accountOrdersStatusFilter) return false;
+    if (bounds && (!o.createdAt || new Date(o.createdAt) < bounds)) return false;
+    return true;
+  });
+
+  const sorted = filtered.slice().sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  listEl.innerHTML = sorted.map(myOrderCardHTML).join("");
+  listEl.querySelectorAll("[data-reorder]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      reorderFromOrder(btn.dataset.reorder);
+    });
+  });
+
+  filteredEmptyEl.classList.toggle("hidden", sorted.length > 0 || myOrdersCache.length === 0);
+}
+
 /* Busca cada producto del pedido en el catálogo actual (por SKU) y lo
    agrega al carrito con la misma cantidad -- respetando el stock
    disponible si es un producto "en stock". Los que ya no existan o no
@@ -3265,14 +3380,22 @@ function reorderFromOrder(orderId) {
 async function loadMyOrders() {
   const listEl = document.getElementById("account-orders-list");
   const emptyEl = document.getElementById("account-orders-empty");
+  const filteredEmptyEl = document.getElementById("account-orders-filtered-empty");
   const loadingEl = document.getElementById("account-orders-loading");
   const summaryEl = document.getElementById("account-orders-summary");
   const statusEl = document.getElementById("account-orders-status");
+  const statsEl = document.getElementById("account-orders-stats");
+  const rangeEl = document.getElementById("account-orders-range");
   listEl.innerHTML = "";
   emptyEl.classList.add("hidden");
+  filteredEmptyEl.classList.add("hidden");
   summaryEl.classList.add("hidden");
   statusEl.classList.add("hidden");
+  statsEl.classList.add("hidden");
+  rangeEl.classList.add("hidden");
   loadingEl.classList.remove("hidden");
+  accountOrdersStatusFilter = "all";
+  accountOrdersRangeFilter = "all";
 
   const token = getCustomerToken();
   if (!token) {
@@ -3295,6 +3418,7 @@ async function loadMyOrders() {
     if (!res.ok) throw new Error(data.error || "No se pudieron cargar tus pedidos.");
 
     document.getElementById("account-name").textContent = data.name || "";
+    myAccountCache = { name: data.name || "", phone: data.phone || "", email: data.email || "" };
     const orders = data.orders || [];
     myOrdersCache = orders;
     if (!orders.length) {
@@ -3309,19 +3433,66 @@ async function loadMyOrders() {
       summaryEl.classList.remove("hidden");
     }
 
-    // Más reciente primero.
-    const sorted = orders.slice().sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    listEl.innerHTML = sorted.map(myOrderCardHTML).join("");
-    listEl.querySelectorAll("[data-reorder]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        reorderFromOrder(btn.dataset.reorder);
-      });
-    });
+    renderAccountOrdersStats(orders);
+    renderAccountOrdersRangeChips();
+    applyAccountOrdersFilter();
   } catch (err) {
     loadingEl.classList.add("hidden");
     emptyEl.textContent = "No se pudieron cargar tus pedidos. Intenta de nuevo.";
     emptyEl.classList.remove("hidden");
+  }
+}
+
+/* Abre "Editar mis datos" precargado con lo que ya se cargó en
+   loadMyOrders() (myAccountCache) -- no hace falta otra llamada. */
+function openAccountSettings() {
+  document.getElementById("settings-email").value = myAccountCache.email;
+  document.getElementById("settings-name").value = myAccountCache.name;
+  document.getElementById("settings-phone").value = myAccountCache.phone;
+  document.getElementById("settings-current-password").value = "";
+  document.getElementById("settings-new-password").value = "";
+  document.getElementById("settings-error").classList.add("hidden");
+  document.getElementById("settings-success").classList.add("hidden");
+  showAccountView("settings");
+}
+
+async function handleSettingsSubmit(e) {
+  e.preventDefault();
+  const token = getCustomerToken();
+  const name = document.getElementById("settings-name").value.trim();
+  const phone = document.getElementById("settings-phone").value.trim();
+  const currentPassword = document.getElementById("settings-current-password").value;
+  const newPassword = document.getElementById("settings-new-password").value;
+  const errorEl = document.getElementById("settings-error");
+  const successEl = document.getElementById("settings-success");
+  const btn = document.getElementById("settings-submit");
+  errorEl.classList.add("hidden");
+  successEl.classList.add("hidden");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/.netlify/functions/customer-update-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ name, phone, currentPassword, newPassword }),
+    });
+    const data = await res.json();
+    if (res.status === 401 && !currentPassword) {
+      clearCustomerToken();
+      showAccountView("login");
+      return;
+    }
+    if (!res.ok) throw new Error(data.error || "No se pudieron guardar tus datos.");
+    myAccountCache = { ...myAccountCache, name: data.name, phone: data.phone };
+    document.getElementById("settings-current-password").value = "";
+    document.getElementById("settings-new-password").value = "";
+    document.getElementById("account-name").textContent = data.name || "";
+    successEl.textContent = "✅ Tus datos se guardaron.";
+    successEl.classList.remove("hidden");
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -3334,7 +3505,10 @@ function initAccountPanel() {
   document.getElementById("signup-form").addEventListener("submit", handleSignupSubmit);
   document.getElementById("forgot-form").addEventListener("submit", handleForgotSubmit);
   document.getElementById("reset-form").addEventListener("submit", handleResetSubmit);
+  document.getElementById("settings-form").addEventListener("submit", handleSettingsSubmit);
   document.getElementById("account-logout").addEventListener("click", logoutCustomer);
+  document.getElementById("account-settings-toggle").addEventListener("click", openAccountSettings);
+  document.getElementById("account-settings-back").addEventListener("click", () => showAccountView("orders"));
 
   document.getElementById("show-signup").addEventListener("click", () => showAccountView("signup"));
   document.getElementById("show-login-from-signup").addEventListener("click", () => showAccountView("login"));
