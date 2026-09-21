@@ -176,6 +176,16 @@
   <p id="category-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles en esta categoría por ahora.</p>
 </section>
 
+<!-- Productos de una preocupación de piel -->
+<section id="concern-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-logo text-xl sm:text-2xl text-ink" id="concern-products-title"></h2>
+    <button id="concern-products-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar</button>
+  </div>
+  <div id="concern-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <p id="concern-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles para esto por ahora.</p>
+</section>
+
 <!-- Productos de un país -->
 <section id="country-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
@@ -347,6 +357,17 @@
   </div>
   <div id="brands-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
     <!-- marcas injected by JS -->
+  </div>
+</section>
+
+<!-- Explora por preocupación de piel -->
+<section id="concerns-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
+  <div class="text-center mb-6">
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Ve directo a lo que buscas</p>
+    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Explora por preocupación</h2>
+  </div>
+  <div id="concerns-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-3">
+    <!-- tiles injected by JS -->
   </div>
 </section>
 
