@@ -30,7 +30,7 @@ exports.handler = async (event) => {
     const orders = phone
       ? allOrders.filter((o) => String(o.customer?.phone || "").replace(/[^0-9]/g, "") === phone)
       : [];
-    return jsonResponse(200, { orders, name: customer.name });
+    return jsonResponse(200, { orders, name: customer.name, phone: customer.phone, email: customer.email });
   } catch (err) {
     console.error("Error listando los pedidos de la clienta:", err);
     return jsonResponse(500, { error: "No se pudieron cargar tus pedidos." });
