@@ -104,6 +104,11 @@ const CONFIG = {
       imageMobile: "assets/hero/hero-anua-txa-mobile.webp",
       imageAlt: "Anua TXA: kit para una piel más luminosa y radiante -- mascarilla, sérum, tónico y almohadillas.",
     },
+    {
+      image: "assets/hero/hero-cuida-tu-piel.webp",
+      imageMobile: "assets/hero/hero-cuida-tu-piel-mobile.webp",
+      imageAlt: "Cuida tu piel en cualquier momento y lugar: base Clio, sérum y crema solar Goodal, labial Ink Velvet.",
+    },
   ],
 
   // Emojis para las etiquetas de la columna opcional "TipoPiel" del Sheet.
