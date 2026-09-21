@@ -7,6 +7,11 @@
 //   - "payment-proofs": el archivo (imagen o PDF) que el cliente sube
 //     desde el carrito como comprobante de una transferencia, uno por
 //     pedido.
+//   - "restock-requests": un registro por cada "Avísame cuando vuelva"
+//     que deja una clienta en un producto agotado, para que Mae los vea
+//     en /admin.html y le avise a mano por WhatsApp cuando vuelva a
+//     haber piezas (no hay aviso automático -- nada detecta cuándo
+//     cambia el stock en el Sheet).
 //
 // Netlify Blobs normalmente se configura solo, sin nada que hacer -- pero
 // en este sitio en particular el entorno no le pasa esas credenciales a
@@ -43,6 +48,10 @@ function getStockSoldStore() {
 
 function getPaymentProofsStore() {
   return getStore({ name: "payment-proofs", consistency: "strong", ...blobsClientOptions() });
+}
+
+function getRestockRequestsStore() {
+  return getStore({ name: "restock-requests", consistency: "strong", ...blobsClientOptions() });
 }
 
 const SOLD_MAP_KEY = "sold-map";
@@ -186,6 +195,28 @@ async function getPaymentProof(orderId) {
   return store.getWithMetadata(orderId, { type: "arrayBuffer" });
 }
 
+async function saveRestockRequest(request) {
+  const store = getRestockRequestsStore();
+  await store.setJSON(request.id, request);
+}
+
+async function listRestockRequests() {
+  const store = getRestockRequestsStore();
+  const { blobs } = await store.list();
+  const requests = [];
+  for (const b of blobs) {
+    const r = await store.get(b.key, { type: "json" });
+    if (r) requests.push(r);
+  }
+  requests.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return requests;
+}
+
+async function deleteRestockRequest(id) {
+  const store = getRestockRequestsStore();
+  await store.delete(id);
+}
+
 module.exports = {
   blobsClientOptions,
   getSoldMap,
@@ -199,4 +230,7 @@ module.exports = {
   updateOrderFields,
   savePaymentProof,
   getPaymentProof,
+  saveRestockRequest,
+  listRestockRequests,
+  deleteRestockRequest,
 };
