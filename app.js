@@ -109,6 +109,11 @@ const CONFIG = {
       imageMobile: "assets/hero/hero-cuida-tu-piel-mobile.webp",
       imageAlt: "Cuida tu piel en cualquier momento y lugar: base Clio, sérum y crema solar Goodal, labial Ink Velvet.",
     },
+    {
+      image: "assets/hero/hero-anua-100-serum.webp",
+      imageMobile: "assets/hero/hero-anua-100-serum-mobile.webp",
+      imageAlt: "Anua 100+ PDRN: el sérum No.1 de Corea -- rutina con sérum, crema y discos iluminadores para una piel más firme e hidratada.",
+    },
   ],
 
   // Emojis para las etiquetas de la columna opcional "TipoPiel" del Sheet.
