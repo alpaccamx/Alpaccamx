@@ -1367,6 +1367,7 @@ async function loadStockData() {
     applyStockData();
     syncCartWithProducts();
     renderAll();
+    refreshCurrentView();
   } catch (err) {
     console.warn("No se pudo cargar la tabla de stock:", err);
   }
@@ -1412,6 +1413,7 @@ async function loadProducts() {
     applyStockData();
     syncCartWithProducts();
     renderAll();
+    refreshCurrentView();
     return;
   }
 
@@ -1424,6 +1426,7 @@ async function loadProducts() {
         applyStockData();
         syncCartWithProducts();
         renderAll();
+        refreshCurrentView();
       }
     } catch (err) {
       // Copia guardada corrupta -- se ignora, sigue con el fetch normal.
@@ -1452,6 +1455,7 @@ async function loadProducts() {
   applyStockData();
   syncCartWithProducts();
   renderAll();
+  refreshCurrentView();
 }
 
 /* ======================================================================
@@ -2494,7 +2498,13 @@ function normalizeForSearch(s) {
 /* Solo una de estas vistas está visible a la vez: el home normal, los
    resultados de búsqueda, el catálogo completo, o los productos de una
    marca. Header, barra de categorías y footer siempre se quedan visibles. */
+/* Qué vista está abierta ahorita -- para poder refrescarla en su lugar
+   (sin scroll ni resetear el buscador) cuando llegan datos nuevos, ver
+   refreshCurrentView() más abajo. */
+let currentHomeView = "home";
+
 function showHomeView(view) {
+  currentHomeView = view;
   document.getElementById("homepage-sections").classList.toggle("hidden", view !== "home");
   document.getElementById("search-results-section").classList.toggle("hidden", view !== "search");
   document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
@@ -2544,9 +2554,7 @@ function renderSearchResults(query) {
 /* ======================================================================
    Catálogo completo -- todos los productos del Sheet, sin filtrar.
    ====================================================================== */
-function openFullCatalog() {
-  document.getElementById("search-input").value = "";
-
+function renderCatalogGrid() {
   const items = groupVariants(products.filter((p) => !p.enStock));
   const grid = document.getElementById("catalog-grid");
   const empty = document.getElementById("catalog-empty");
@@ -2559,17 +2567,24 @@ function openFullCatalog() {
     wireAddButtons(grid);
     wireVariantSelectors(grid);
   }
+}
 
+function openFullCatalog() {
+  document.getElementById("search-input").value = "";
+  renderCatalogGrid();
   showHomeView("catalog");
   document.getElementById("catalog-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /* ======================================================================
-   En stock -- solo los productos marcados como entrega inmediata.
+   En stock -- solo los productos marcados como entrega inmediata. Esta es
+   la sección que más rápido se espera ver (es la promesa de "entrega
+   inmediata"), pero sus tarjetas dependen de que el catálogo principal
+   ya haya cargado (ver applyStockData) -- si alguien la abre antes de
+   que termine, refreshCurrentView() la vuelve a pintar en cuanto llegan
+   más datos, sin que tenga que salir y volver a entrar.
    ====================================================================== */
-function openStockSection() {
-  document.getElementById("search-input").value = "";
-
+function renderStockGrid() {
   const items = groupVariants(products.filter((p) => p.enStock));
   const grid = document.getElementById("stock-grid");
   const empty = document.getElementById("stock-empty");
@@ -2582,9 +2597,23 @@ function openStockSection() {
     wireAddButtons(grid);
     wireVariantSelectors(grid);
   }
+}
 
+function openStockSection() {
+  document.getElementById("search-input").value = "";
+  renderStockGrid();
   showHomeView("stock");
   document.getElementById("stock-section").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* Se llama cada vez que llegan datos nuevos (catálogo, stock) para
+   refrescar EN SU LUGAR la vista que esté abierta ahorita -- sin esto,
+   si alguien abre "En stock" o "Catálogo completo" antes de que termine
+   de cargar todo, se queda pegada con lo poco que había en ese momento
+   (o vacía) para siempre, aunque los datos completos ya hayan llegado. */
+function refreshCurrentView() {
+  if (currentHomeView === "stock") renderStockGrid();
+  else if (currentHomeView === "catalog") renderCatalogGrid();
 }
 
 /* ======================================================================
