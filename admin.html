@@ -120,6 +120,22 @@
   .edit-item-row input[type="number"] { flex: 1 1 70px; min-width: 60px; }
   .edit-item-row label.edit-stock-label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #777; white-space: nowrap; }
   .edit-item-row .btn-danger { padding: 8px 10px; font-size: 12px; }
+  #product-autocomplete {
+    position: fixed;
+    z-index: 1000;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    max-height: 260px;
+    overflow-y: auto;
+    display: none;
+  }
+  #product-autocomplete .ac-item { padding: 8px 10px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f2f2f2; }
+  #product-autocomplete .ac-item:last-child { border-bottom: none; }
+  #product-autocomplete .ac-item:hover, #product-autocomplete .ac-item.active { background: #fdf1f4; }
+  #product-autocomplete .ac-item .ac-nombre { font-weight: 700; color: #333; }
+  #product-autocomplete .ac-item .ac-meta { color: #999; font-size: 11px; }
   .edit-hint { font-size: 12px; color: #999; }
   .edit-hint button { background: none; border: none; padding: 0; color: #0b6bc2; font-weight: 700; font-size: 12px; cursor: pointer; }
   #empty, #status { text-align: center; color: #888; font-size: 15px; margin-top: 30px; }
@@ -292,6 +308,8 @@
   <option value="5"></option>
 </datalist>
 
+<div id="product-autocomplete"></div>
+
 <script>
   const KEY_STORAGE = "alpacca_admin_key";
   let adminKey = "";
@@ -331,6 +349,15 @@
   const STOCK_CSV_URL_FOR_MARCA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=1208388065&single=true&output=csv";
   let skuToInfo = new Map();
 
+  // Lista para el autocompletado de "+ Agregar producto" (ver
+  // editItemRowHTML / initProductAutocomplete más abajo) -- se arma con
+  // los mismos dos CSV de arriba, sin pedir nada extra por separado.
+  let productSearchList = [];
+
+  function normalizeForSearch(s) {
+    return (s || "").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  }
+
   function parseCSVForMarca(text) {
     const rows = [];
     let row = [], field = "", inQuotes = false;
@@ -349,7 +376,7 @@
     return rows.filter((r) => r.some((f) => f.trim() !== ""));
   }
 
-  function addSkuInfoFromCSV(text) {
+  function addSkuInfoFromCSV(text, { isStock = false } = {}) {
     const rows = parseCSVForMarca(text);
     if (!rows.length) return;
     const headers = rows[0].map((h) => h.trim().toLowerCase());
@@ -357,6 +384,7 @@
     const iMarca = headers.findIndex((h) => ["marca", "brand", "marca (opcional)"].includes(h));
     const iPrecio = headers.findIndex((h) => ["precio", "precio mxn", "price"].includes(h));
     const iPeso = headers.findIndex((h) => ["peso", "peso (kg)", "peso kg", "peso kg (opcional)"].includes(h));
+    const iNombre = headers.findIndex((h) => ["nombre", "producto", "nombre (solo si es producto nuevo)"].includes(h));
     if (iSku < 0) return;
     rows.slice(1).forEach((r) => {
       const sku = (r[iSku] || "").trim();
@@ -372,6 +400,11 @@
         precio: precio || prev.precio || 0,
         peso: peso || prev.peso || 0,
       });
+
+      const nombre = iNombre >= 0 ? (r[iNombre] || "").trim() : "";
+      if (nombre) {
+        productSearchList.push({ nombre, sku, marca, precio, enStock: isStock });
+      }
     });
   }
 
@@ -383,9 +416,9 @@
       fetch(CATALOG_CSV_URL_FOR_MARCA, { cache: "no-store" }).then((r) => (r.ok ? r.text() : null)),
       fetch(STOCK_CSV_URL_FOR_MARCA, { cache: "no-store" }).then((r) => (r.ok ? r.text() : null)),
     ]);
-    results.forEach((r) => {
-      if (r.status === "fulfilled" && r.value) addSkuInfoFromCSV(r.value);
-    });
+    productSearchList = [];
+    if (results[0].status === "fulfilled" && results[0].value) addSkuInfoFromCSV(results[0].value, { isStock: false });
+    if (results[1].status === "fulfilled" && results[1].value) addSkuInfoFromCSV(results[1].value, { isStock: true });
     // Ya con el mapa listo, se vuelve a pintar lo que esté en pantalla
     // para que los pedidos viejos (sin marca/precio base guardados) los
     // muestren.
@@ -826,6 +859,152 @@
       btn.disabled = false;
       btn.textContent = originalText;
     }
+  }
+
+  /* ======================================================================
+     Autocompletar "Nombre del producto" en "+ Agregar producto" (y al
+     editar cualquier renglón ya existente) -- busca en productSearchList
+     (el mismo catálogo + Stock que ya se carga para las marcas, ver
+     loadSkuMarcaMap más arriba) y, al elegir una opción, llena marca/SKU/
+     precio/en stock del renglón sola. Un solo dropdown compartido
+     (#product-autocomplete) que se reposiciona bajo el input que esté
+     activo -- funciona para cualquier renglón de cualquier pedido, sin
+     tener que "wire-ar" cada uno por separado. */
+  let autocompleteActiveInput = null;
+  let autocompleteMatches = [];
+  let autocompleteIndex = -1;
+
+  function searchProductAutocomplete(query) {
+    const q = normalizeForSearch(query).trim();
+    if (q.length < 2) return [];
+    const seen = new Set();
+    const matches = [];
+    for (const p of productSearchList) {
+      if (normalizeForSearch(p.nombre).includes(q) || normalizeForSearch(p.marca).includes(q)) {
+        const key = p.sku + "|" + p.enStock;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        matches.push(p);
+        if (matches.length >= 20) break;
+      }
+    }
+    return matches;
+  }
+
+  function positionAutocomplete(input) {
+    const dropdown = document.getElementById("product-autocomplete");
+    const rect = input.getBoundingClientRect();
+    dropdown.style.left = `${rect.left}px`;
+    dropdown.style.top = `${rect.bottom + 4}px`;
+    dropdown.style.width = `${Math.max(rect.width, 240)}px`;
+  }
+
+  function renderAutocompleteList() {
+    const dropdown = document.getElementById("product-autocomplete");
+    if (!autocompleteMatches.length) {
+      dropdown.style.display = "none";
+      return;
+    }
+    dropdown.innerHTML = autocompleteMatches
+      .map(
+        (p, i) => `
+        <div class="ac-item${i === autocompleteIndex ? " active" : ""}" data-ac-index="${i}">
+          <div class="ac-nombre">${escapeHtml(p.nombre)}</div>
+          <div class="ac-meta">${escapeHtml(p.marca || "sin marca")} · ${escapeHtml(p.sku)}${p.enStock ? " · en stock" : ""}</div>
+        </div>`
+      )
+      .join("");
+    dropdown.style.display = "block";
+    // mousedown (no click) para que dispare ANTES de que el blur del
+    // input esconda el dropdown.
+    dropdown.querySelectorAll("[data-ac-index]").forEach((el) => {
+      el.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        selectAutocompleteMatch(Number(el.dataset.acIndex));
+      });
+    });
+  }
+
+  function selectAutocompleteMatch(index) {
+    const entry = autocompleteMatches[index];
+    const input = autocompleteActiveInput;
+    if (!entry || !input) return;
+    const row = input.closest(".edit-item-row");
+    if (row) {
+      row.querySelector(".edit-item-nombre").value = entry.nombre;
+      row.querySelector(".edit-item-marca").value = entry.marca;
+      row.querySelector(".edit-item-sku").value = entry.sku;
+      if (entry.precio) row.querySelector(".edit-item-precio").value = entry.precio;
+      row.querySelector(".edit-item-enstock").checked = entry.enStock;
+      const form = row.closest('[id^="edit-form-"]');
+      if (form) updateEditComputedTotal(form.id.replace("edit-form-", ""));
+    }
+    hideProductAutocomplete();
+  }
+
+  function hideProductAutocomplete() {
+    document.getElementById("product-autocomplete").style.display = "none";
+    autocompleteActiveInput = null;
+    autocompleteMatches = [];
+    autocompleteIndex = -1;
+  }
+
+  function handleProductNameInput(input) {
+    autocompleteActiveInput = input;
+    autocompleteMatches = searchProductAutocomplete(input.value);
+    autocompleteIndex = -1;
+    if (!autocompleteMatches.length) {
+      hideProductAutocomplete();
+      return;
+    }
+    positionAutocomplete(input);
+    renderAutocompleteList();
+  }
+
+  function handleProductNameKeydown(e) {
+    const dropdown = document.getElementById("product-autocomplete");
+    if (!autocompleteMatches.length || dropdown.style.display === "none") return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      autocompleteIndex = Math.min(autocompleteIndex + 1, autocompleteMatches.length - 1);
+      renderAutocompleteList();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
+      renderAutocompleteList();
+    } else if (e.key === "Enter" && autocompleteIndex >= 0) {
+      e.preventDefault();
+      selectAutocompleteMatch(autocompleteIndex);
+    } else if (e.key === "Escape") {
+      hideProductAutocomplete();
+    }
+  }
+
+  function initProductAutocomplete() {
+    document.addEventListener("input", (e) => {
+      if (e.target.matches(".edit-item-nombre")) handleProductNameInput(e.target);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.target.matches(".edit-item-nombre")) handleProductNameKeydown(e);
+    });
+    document.addEventListener(
+      "focusout",
+      (e) => {
+        if (e.target.matches(".edit-item-nombre")) {
+          // Delay chico para que el mousedown del dropdown alcance a
+          // disparar antes de que este blur lo esconda.
+          setTimeout(hideProductAutocomplete, 150);
+        }
+      },
+      true
+    );
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (autocompleteActiveInput) positionAutocomplete(autocompleteActiveInput);
+      },
+      true
+    );
   }
 
   async function quoteGuide(orderId) {
@@ -1760,6 +1939,7 @@
   document.getElementById("admin-key-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter") login();
   });
+  initProductAutocomplete();
   document.getElementById("refresh-btn").addEventListener("click", fetchOrders);
   document.getElementById("logout-btn").addEventListener("click", logout);
   document.getElementById("export-btn").addEventListener("click", exportCSV);
