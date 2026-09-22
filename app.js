@@ -1375,6 +1375,34 @@ async function loadStockData() {
 /* ======================================================================
    Carga de productos
    ====================================================================== */
+/* El catálogo son ~9,000 filas (~2 MB de CSV) que se piden con
+   "cache: no-store" para siempre traer el stock más fresco -- eso
+   significa que CADA visita descarga el CSV completo de nuevo, y
+   mientras tanto la página se ve vacía (nada se pinta hasta que termina
+   de bajar Y parsear). Para que no se sienta tan lento, se guarda la
+   última copia del CSV en localStorage: si ya existe, se pinta de
+   inmediato con esa copia (puede tener unos minutos de atraso) mientras
+   se descarga la versión fresca en segundo plano, y se vuelve a pintar
+   en cuanto llega. Solo la primerísima visita (sin nada en caché
+   todavía) se queda esperando al fetch, como antes. */
+const PRODUCTS_CSV_CACHE_KEY = "alpacca_products_csv_cache_v1";
+
+function loadCachedProductsCsv() {
+  try {
+    return localStorage.getItem(PRODUCTS_CSV_CACHE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function saveCachedProductsCsv(text) {
+  try {
+    localStorage.setItem(PRODUCTS_CSV_CACHE_KEY, text);
+  } catch {
+    // localStorage lleno o bloqueado (modo incógnito estricto, etc.) --
+    // no es grave, nada más no se guarda la copia para la próxima vez.
+  }
+}
 async function loadProducts() {
   const isPlaceholder = !CONFIG.GOOGLE_SHEET_CSV_URL || CONFIG.GOOGLE_SHEET_CSV_URL.includes("PEGA_AQUI");
 
@@ -1387,6 +1415,21 @@ async function loadProducts() {
     return;
   }
 
+  const cachedCsv = loadCachedProductsCsv();
+  if (cachedCsv) {
+    try {
+      const cachedParsed = csvToProducts(cachedCsv);
+      if (cachedParsed.length) {
+        products = cachedParsed;
+        applyStockData();
+        syncCartWithProducts();
+        renderAll();
+      }
+    } catch (err) {
+      // Copia guardada corrupta -- se ignora, sigue con el fetch normal.
+    }
+  }
+
   try {
     const res = await fetch(CONFIG.GOOGLE_SHEET_CSV_URL, { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1394,11 +1437,17 @@ async function loadProducts() {
     const parsed = csvToProducts(text);
     if (!parsed.length) throw new Error("CSV vacío o encabezados no reconocidos");
     products = parsed;
+    saveCachedProductsCsv(text);
     hideStatus();
   } catch (err) {
     console.warn("No se pudo cargar el Google Sheet, usando catálogo de ejemplo:", err);
-    products = DEMO_PRODUCTS;
-    setStatus("No se pudo conectar con Google Sheets en este momento — mostrando catálogo de ejemplo.");
+    // Si ya había una copia en caché, se deja lo que ya se pintó -- es
+    // mejor un catálogo real un poco desactualizado que reemplazarlo por
+    // el catálogo de ejemplo.
+    if (!cachedCsv) {
+      products = DEMO_PRODUCTS;
+      setStatus("No se pudo conectar con Google Sheets en este momento — mostrando catálogo de ejemplo.");
+    }
   }
   applyStockData();
   syncCartWithProducts();
@@ -2562,6 +2611,10 @@ function renderBenefits() {
 }
 
 function renderAll() {
+  // Ya hay productos reales (o de ejemplo) que pintar -- se acabó la
+  // espera, se quita el esqueleto de carga.
+  document.getElementById("catalog-loading-skeleton").classList.add("hidden");
+
   // El orden importa: renderCategoryNav/renderMobileMenu leen qué secciones
   // quedaron visibles, así que corren después de decidir esa visibilidad.
   renderTimeDeal();
