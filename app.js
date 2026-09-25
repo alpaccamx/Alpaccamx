@@ -7,7 +7,7 @@ const CONFIG = {
   // Google Sheets: Archivo > Compartir > Publicar en la Web > elige la
   // hoja > formato "Valores separados por comas (.csv)" > Publicar.
   // Pega aquí el link que te da Google.
-  GOOGLE_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=926701642&single=true&output=csv",
+  GOOGLE_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=114583060&single=true&output=csv",
 
   // Opcional: URL CSV publicada de una pestaña "Config" con dos columnas
   // (Clave | Valor) para el tipo de cambio USD→MXN y tu comisión. Ver
