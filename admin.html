@@ -183,6 +183,24 @@
     font-size: 14px;
     font-family: inherit;
   }
+  #usa-order-form .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  #usa-order-form input, #usa-order-form textarea {
+    flex: 1;
+    min-width: 140px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .usa-order-card select.usa-status-select {
+    border-radius: 999px;
+    border: 1px solid #ddd;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
   .filters-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   #filter-count { font-size: 13px; color: #999; }
 </style>
@@ -203,6 +221,7 @@
     <button class="btn-secondary" id="brand-logo-toggle">🎨 Logo de marca</button>
     <button class="btn-secondary" id="restock-requests-toggle">🔔 Avisos de restock<span id="restock-requests-badge" style="display:none;"></span></button>
     <button class="btn-secondary" id="reviews-toggle">⭐ Reseñas</button>
+    <button class="btn-secondary" id="usa-orders-toggle">🛍️ Encargos USA<span id="usa-orders-badge" style="display:none;"></span></button>
     <button class="btn-secondary" id="logout-btn">Salir</button>
   </div>
 
@@ -289,6 +308,46 @@
     <div id="reviews-list"></div>
     <p id="reviews-empty" style="display:none;color:#777;font-size:14px;">Todavía no hay ninguna reseña.</p>
     <p id="reviews-loading" style="color:#777;font-size:14px;">Cargando...</p>
+  </div>
+
+  <div class="filters" id="usa-orders-panel" style="display:none;">
+    <label class="filters-label">🛍️ Encargos USA (personal shopper)</label>
+    <p style="font-size:13px;color:#777;margin:0;">Control privado de lo que tus clientas te piden comprarles en tiendas de Estados Unidos (Sephora, Ulta, Target, Amazon, etc.) -- no tiene nada que ver con tu catálogo ni con tus pedidos normales, es solo para que no se te olvide nada.</p>
+
+    <div class="filters-row">
+      <button class="btn-primary" id="usa-order-new-toggle">➕ Nuevo encargo</button>
+      <div class="tabs" id="usa-orders-status-tabs" style="flex:1;">
+        <button class="tab active" data-usa-status="">Todos</button>
+        <button class="tab" data-usa-status="por_comprar">🛒 Por comprar</button>
+        <button class="tab" data-usa-status="comprado">✅ Comprado</button>
+        <button class="tab" data-usa-status="en_camino">📦 En camino</button>
+        <button class="tab" data-usa-status="entregado">🎁 Entregado</button>
+      </div>
+    </div>
+
+    <div id="usa-order-form" style="display:none;flex-direction:column;gap:8px;">
+      <div class="row">
+        <input type="text" id="usa-order-cliente" placeholder="Nombre de la clienta *" />
+        <input type="text" id="usa-order-telefono" placeholder="Teléfono (WhatsApp, opcional)" />
+      </div>
+      <textarea id="usa-order-producto" placeholder="¿Qué le vas a comprar? *" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
+      <div class="row">
+        <input type="text" id="usa-order-tienda" placeholder="Tienda (ej. Sephora, Target)" />
+        <input type="number" id="usa-order-cantidad" placeholder="Cantidad" min="1" step="1" />
+        <input type="number" id="usa-order-precio" placeholder="Precio estimado (USD)" min="0" step="0.01" />
+      </div>
+      <input type="text" id="usa-order-link" placeholder="Link del producto (opcional)" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;" />
+      <textarea id="usa-order-notas" placeholder="Notas (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
+      <div class="guide-error" id="usa-order-error"></div>
+      <div class="filters-row">
+        <button class="btn-primary" id="usa-order-submit">Agregar encargo</button>
+        <button class="btn-secondary" id="usa-order-cancel">Cancelar</button>
+      </div>
+    </div>
+
+    <div id="usa-orders-list"></div>
+    <p id="usa-orders-empty" style="display:none;color:#777;font-size:14px;">No tienes encargos por ahora.</p>
+    <p id="usa-orders-loading" style="color:#777;font-size:14px;">Cargando...</p>
   </div>
 
   <p id="status" style="display:none;"></p>
@@ -1839,6 +1898,255 @@
     }
   }
 
+  /* ======================================================================
+     Encargos USA (ver admin-usa-orders.js / lib/usa-orders-store.js) --
+     control privado de lo que las clientas le piden a Mae comprarles en
+     tiendas de Estados Unidos (personal shopper). Mae crea, edita, cambia
+     el estatus y borra estos encargos ella misma desde aquí -- no hay
+     nada del lado de la clienta ni del catálogo involucrado.
+     ====================================================================== */
+  let usaOrdersLoaded = false;
+  let usaOrders = [];
+  let usaOrdersStatusFilter = "";
+  let editingUsaOrderId = null;
+
+  const USA_STATUS_LABELS = {
+    por_comprar: "🛒 Por comprar",
+    comprado: "✅ Comprado",
+    en_camino: "📦 En camino a México",
+    entregado: "🎁 Entregado",
+  };
+  const USA_STATUS_COLORS = {
+    por_comprar: "#f0ad4e",
+    comprado: "#4a90d9",
+    en_camino: "#9b59b6",
+    entregado: "#2fa968",
+  };
+
+  function toggleUsaOrdersPanel() {
+    const panel = document.getElementById("usa-orders-panel");
+    const opening = panel.style.display === "none";
+    panel.style.display = opening ? "flex" : "none";
+    if (!opening) closeUsaOrderForm();
+    if (opening && !usaOrdersLoaded) loadUsaOrders();
+  }
+
+  async function loadUsaOrders() {
+    const listEl = document.getElementById("usa-orders-list");
+    const emptyEl = document.getElementById("usa-orders-empty");
+    const loadingEl = document.getElementById("usa-orders-loading");
+    listEl.innerHTML = "";
+    emptyEl.style.display = "none";
+    loadingEl.style.display = "block";
+    try {
+      const res = await fetch("/.netlify/functions/admin-usa-orders", {
+        headers: { "x-admin-key": adminKey },
+      });
+      const data = await res.json();
+      loadingEl.style.display = "none";
+      if (!res.ok) {
+        setStatus(data.error || "No se pudieron cargar los encargos USA.");
+        return;
+      }
+      usaOrdersLoaded = true;
+      usaOrders = data.orders || [];
+      renderUsaOrdersList();
+    } catch (err) {
+      loadingEl.style.display = "none";
+      setStatus("No se pudo conectar con el servidor.");
+    }
+  }
+
+  function renderUsaOrdersList() {
+    const listEl = document.getElementById("usa-orders-list");
+    const emptyEl = document.getElementById("usa-orders-empty");
+    const badgeEl = document.getElementById("usa-orders-badge");
+
+    const pendientes = usaOrders.filter((o) => o.estatus !== "entregado").length;
+    badgeEl.textContent = pendientes ? ` (${pendientes})` : "";
+    badgeEl.style.display = pendientes ? "inline" : "none";
+
+    const visible = usaOrdersStatusFilter
+      ? usaOrders.filter((o) => o.estatus === usaOrdersStatusFilter)
+      : usaOrders;
+
+    if (!visible.length) {
+      listEl.innerHTML = "";
+      emptyEl.style.display = "block";
+      return;
+    }
+    emptyEl.style.display = "none";
+
+    listEl.innerHTML = visible.map((o) => {
+      const phoneDigits = (o.clienteTelefono || "").replace(/[^0-9]/g, "");
+      const waNumber = phoneDigits.length === 10 ? "521" + phoneDigits : phoneDigits;
+      const waLink = waNumber ? `https://wa.me/${waNumber}` : "";
+      const fecha = o.createdAt ? new Date(o.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" }) : "";
+      const detalles = [];
+      if (o.tienda) detalles.push(escapeHtml(o.tienda));
+      if (o.cantidad && o.cantidad !== 1) detalles.push(`x${o.cantidad}`);
+      if (o.precioEstimadoUSD != null) detalles.push(`~$${o.precioEstimadoUSD.toLocaleString("en-US")} USD`);
+      const statusOptions = Object.keys(USA_STATUS_LABELS).map((key) =>
+        `<option value="${key}" ${key === o.estatus ? "selected" : ""}>${USA_STATUS_LABELS[key]}</option>`
+      ).join("");
+      return `
+        <div class="order-card usa-order-card" style="border-left-color:${USA_STATUS_COLORS[o.estatus] || "#ddd"};">
+          <div class="top">
+            <span><strong>${escapeHtml(o.clienteNombre || "")}</strong>${o.clienteTelefono ? ` · ${escapeHtml(o.clienteTelefono)}` : ""}</span>
+            <span class="fecha">${fecha}</span>
+          </div>
+          <p style="font-size:14px;color:#444;margin:8px 0 0;white-space:pre-wrap;">${escapeHtml(o.producto || "")}</p>
+          ${detalles.length ? `<p style="font-size:13px;color:#888;margin:4px 0 0;">${detalles.join(" · ")}</p>` : ""}
+          ${o.link ? `<p style="font-size:13px;margin:4px 0 0;"><a href="${escapeHtml(o.link)}" target="_blank" rel="noopener" style="color:#0b6bc2;">🔗 Ver producto</a></p>` : ""}
+          ${o.notas ? `<p style="font-size:13px;color:#777;margin:6px 0 0;">📝 ${escapeHtml(o.notas)}</p>` : ""}
+          <div class="actions">
+            <select class="usa-status-select" data-usa-status-select="${escapeHtml(o.id)}">${statusOptions}</select>
+            ${waLink ? `<a class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;" href="${escapeHtml(waLink)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ""}
+            <button class="btn-secondary" data-usa-edit="${escapeHtml(o.id)}">✏️ Editar</button>
+            <button class="btn-danger" data-usa-delete="${escapeHtml(o.id)}">🗑️ Borrar</button>
+          </div>
+        </div>`;
+    }).join("");
+
+    listEl.querySelectorAll("[data-usa-status-select]").forEach((sel) => {
+      sel.style.borderColor = USA_STATUS_COLORS[sel.value] || "#ddd";
+      sel.addEventListener("change", () => updateUsaOrderStatus(sel.dataset.usaStatusSelect, sel.value));
+    });
+    listEl.querySelectorAll("[data-usa-edit]").forEach((btn) => {
+      btn.addEventListener("click", () => openUsaOrderForm(btn.dataset.usaEdit));
+    });
+    listEl.querySelectorAll("[data-usa-delete]").forEach((btn) => {
+      btn.addEventListener("click", () => deleteUsaOrderEntry(btn.dataset.usaDelete));
+    });
+  }
+
+  async function updateUsaOrderStatus(id, estatus) {
+    try {
+      const res = await fetch("/.netlify/functions/admin-usa-orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ id, estatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus(data.error || "No se pudo actualizar el estatus.");
+        return;
+      }
+      const idx = usaOrders.findIndex((o) => o.id === id);
+      if (idx >= 0) usaOrders[idx] = data.order;
+      renderUsaOrdersList();
+    } catch (err) {
+      setStatus("No se pudo conectar con el servidor.");
+    }
+  }
+
+  async function deleteUsaOrderEntry(id) {
+    if (!window.confirm("¿Borrar este encargo? No se puede deshacer.")) return;
+    try {
+      const res = await fetch("/.netlify/functions/admin-usa-orders", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus(data.error || "No se pudo borrar el encargo.");
+        return;
+      }
+      usaOrders = usaOrders.filter((o) => o.id !== id);
+      renderUsaOrdersList();
+    } catch (err) {
+      setStatus("No se pudo conectar con el servidor.");
+    }
+  }
+
+  function openUsaOrderForm(editId) {
+    editingUsaOrderId = editId || null;
+    const form = document.getElementById("usa-order-form");
+    const submitBtn = document.getElementById("usa-order-submit");
+    document.getElementById("usa-order-error").textContent = "";
+
+    if (editingUsaOrderId) {
+      const o = usaOrders.find((x) => x.id === editingUsaOrderId);
+      if (!o) return;
+      document.getElementById("usa-order-cliente").value = o.clienteNombre || "";
+      document.getElementById("usa-order-telefono").value = o.clienteTelefono || "";
+      document.getElementById("usa-order-producto").value = o.producto || "";
+      document.getElementById("usa-order-tienda").value = o.tienda || "";
+      document.getElementById("usa-order-cantidad").value = o.cantidad || "";
+      document.getElementById("usa-order-precio").value = o.precioEstimadoUSD != null ? o.precioEstimadoUSD : "";
+      document.getElementById("usa-order-link").value = o.link || "";
+      document.getElementById("usa-order-notas").value = o.notas || "";
+      submitBtn.textContent = "Guardar cambios";
+    } else {
+      ["usa-order-cliente", "usa-order-telefono", "usa-order-producto", "usa-order-tienda",
+        "usa-order-cantidad", "usa-order-precio", "usa-order-link", "usa-order-notas"].forEach((id) => {
+        document.getElementById(id).value = "";
+      });
+      submitBtn.textContent = "Agregar encargo";
+    }
+    form.style.display = "flex";
+    document.getElementById("usa-order-cliente").focus();
+  }
+
+  function closeUsaOrderForm() {
+    editingUsaOrderId = null;
+    document.getElementById("usa-order-form").style.display = "none";
+    document.getElementById("usa-order-error").textContent = "";
+  }
+
+  async function submitUsaOrderForm() {
+    const errorEl = document.getElementById("usa-order-error");
+    errorEl.textContent = "";
+
+    const clienteNombre = document.getElementById("usa-order-cliente").value.trim();
+    const producto = document.getElementById("usa-order-producto").value.trim();
+    if (!clienteNombre) { errorEl.textContent = "Falta el nombre de la clienta."; return; }
+    if (!producto) { errorEl.textContent = "Falta qué le vas a comprar."; return; }
+
+    const payload = {
+      clienteNombre,
+      clienteTelefono: document.getElementById("usa-order-telefono").value.trim(),
+      producto,
+      tienda: document.getElementById("usa-order-tienda").value.trim(),
+      link: document.getElementById("usa-order-link").value.trim(),
+      cantidad: document.getElementById("usa-order-cantidad").value ? Number(document.getElementById("usa-order-cantidad").value) : 1,
+      precioEstimadoUSD: document.getElementById("usa-order-precio").value ? Number(document.getElementById("usa-order-precio").value) : null,
+      notas: document.getElementById("usa-order-notas").value.trim(),
+    };
+
+    const submitBtn = document.getElementById("usa-order-submit");
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Guardando...";
+    try {
+      const isEditing = !!editingUsaOrderId;
+      const res = await fetch("/.netlify/functions/admin-usa-orders", {
+        method: isEditing ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify(isEditing ? { id: editingUsaOrderId, ...payload } : payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        errorEl.textContent = data.error || "No se pudo guardar el encargo.";
+        return;
+      }
+      if (isEditing) {
+        const idx = usaOrders.findIndex((o) => o.id === editingUsaOrderId);
+        if (idx >= 0) usaOrders[idx] = data.order;
+      } else {
+        usaOrders.unshift(data.order);
+      }
+      closeUsaOrderForm();
+      renderUsaOrdersList();
+    } catch (err) {
+      errorEl.textContent = "No se pudo conectar con el servidor.";
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+  }
+
   function escapeHtml(str) {
     return String(str ?? "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -1932,6 +2240,10 @@
     restockRequestsLoaded = false;
     document.getElementById("reviews-panel").style.display = "none";
     reviewsLoaded = false;
+    document.getElementById("usa-orders-panel").style.display = "none";
+    closeUsaOrderForm();
+    usaOrdersLoaded = false;
+    usaOrders = [];
     resetTabs();
   }
 
@@ -1949,6 +2261,19 @@
   document.getElementById("brand-logo-submit").addEventListener("click", submitBrandLogo);
   document.getElementById("restock-requests-toggle").addEventListener("click", toggleRestockPanel);
   document.getElementById("reviews-toggle").addEventListener("click", toggleReviewsPanel);
+  document.getElementById("usa-orders-toggle").addEventListener("click", toggleUsaOrdersPanel);
+  document.getElementById("usa-order-new-toggle").addEventListener("click", () => openUsaOrderForm(null));
+  document.getElementById("usa-order-cancel").addEventListener("click", closeUsaOrderForm);
+  document.getElementById("usa-order-submit").addEventListener("click", submitUsaOrderForm);
+  document.getElementById("usa-orders-status-tabs").querySelectorAll(".tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      usaOrdersStatusFilter = btn.dataset.usaStatus;
+      document.getElementById("usa-orders-status-tabs").querySelectorAll(".tab").forEach((b) => {
+        b.classList.toggle("active", b === btn);
+      });
+      renderUsaOrdersList();
+    });
+  });
   filterSearchEl.addEventListener("input", applyFilters);
 
   statusTabsEl.querySelectorAll(".tab").forEach((btn) => {
