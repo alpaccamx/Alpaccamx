@@ -110,9 +110,19 @@ function columnIndexToLetter(index) {
   return letter;
 }
 
+/* Además del match exacto, prueba el encabezado sin su explicación entre
+   paréntesis al final (ej. "Peso kg (opcional)" -> "peso kg"). Así
+   funcionan tal cual los encabezados de las plantillas que se entregan
+   (ver findCol en app.js, que hace exactamente esto para leer -- aquí es
+   la misma lógica pero para escribir). Sin esto, columnas como "Nombre
+   (solo si es producto nuevo)" o "Marca (opcional)" nunca hacían match y
+   se quedaban vacías al agregar un producto desde /admin.html. */
 function findColumnIndex(headers, aliases) {
   const normalized = headers.map((h) => String(h || "").trim().toLowerCase());
-  return normalized.findIndex((h) => aliases.includes(h));
+  const exact = normalized.findIndex((h) => aliases.includes(h));
+  if (exact >= 0) return exact;
+  const stripParens = (h) => h.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  return normalized.findIndex((h) => aliases.includes(stripParens(h)));
 }
 
 /* Lee cualquier pestaña del Sheet (encabezados + filas) por nombre.
