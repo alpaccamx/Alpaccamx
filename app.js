@@ -951,7 +951,6 @@ let shippingKoreaRates = { tiers: [], extraPerKgUSD: 0, extraPerKgTarjetaUSD: nu
 let shippingNacionalRates = [];
 let stockData = new Map(); // SKU -> { piezas, precioMXN }
 let soldStock = new Map(); // SKU -> piezas ya vendidas y pagadas (se resta de stockData)
-let brandLogos = new Map(); // marca (minúsculas) -> URL del logo, ver csvToBrandLogos
 
 const SHIPPING_SETTING_ALIASES = {
   exchangeRate: ["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"],
@@ -988,35 +987,6 @@ function csvToShippingSettings(text) {
     }
   });
   return settings;
-}
-
-/* Mini tabla opcional de "Marca" / "Logo" dentro de la misma pestaña
-   Config, normalmente en la columna A debajo de tu lista de Clave/Valor
-   -- para que "Marcas en el catálogo" muestre el logo real de cada
-   marca en vez de solo el nombre en texto. Se llena sola desde
-   /admin.html ("🎨 Logo de marca"), o a mano si prefieres. */
-function csvToBrandLogos(text) {
-  const rows = parseCSV(text);
-  const logos = new Map();
-  if (!rows.length) return logos;
-  const logoAliases = ["logo", "logo marca", "logo de marca", "logomarca", "brand logo"];
-  // El encabezado "Marca"/"Logo" puede estar en cualquier fila -- normalmente
-  // va debajo de tu lista de Clave/Valor, no en la fila 1.
-  const headerRowIndex = rows.findIndex((r) => {
-    const cells = r.map((c) => (c || "").trim().toLowerCase());
-    return cells.includes("marca") && cells.some((c) => logoAliases.includes(c));
-  });
-  if (headerRowIndex < 0) return logos;
-  const headers = rows[headerRowIndex].map((h) => h.trim().toLowerCase());
-  const iMarca = findCol(headers, ["marca", "brand"]);
-  const iLogo = findCol(headers, logoAliases);
-  if (iMarca < 0 || iLogo < 0) return logos;
-  rows.slice(headerRowIndex + 1).forEach((r) => {
-    const marca = (r[iMarca] || "").trim();
-    const logo = (r[iLogo] || "").trim();
-    if (marca && logo) logos.set(marca.toLowerCase(), logo);
-  });
-  return logos;
 }
 
 function csvToNacionalRates(text) {
@@ -1184,7 +1154,6 @@ async function loadShippingSettings() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const text = await res.text();
     shippingSettings = csvToShippingSettings(text);
-    brandLogos = csvToBrandLogos(text);
     updateCurrencyToggleButton();
     renderFaqMinOrder();
     renderCart();
@@ -2281,10 +2250,7 @@ function renderPromoBanner() {
 }
 
 /* ======================================================================
-   Marcas — derivadas de la columna Marca del catálogo. Si la marca
-   tiene logo en la mini tabla "Marca"/"Logo" de la pestaña Config (ver
-   csvToBrandLogos), se muestra ese logo en vez de solo el nombre en
-   texto.
+   Marcas — derivadas de la columna Marca del catálogo.
    ====================================================================== */
 const BRANDS_PREVIEW_COUNT_DEFAULT = 5;
 
@@ -2306,15 +2272,8 @@ function renderBrands(showAll = false) {
   const brands = [...featured, ...rest];
   const previewCount = featured.length || BRANDS_PREVIEW_COUNT_DEFAULT;
 
-  const brandButton = (b) => {
-    const logo = brandLogos.get(b.toLowerCase());
-    const content = logo
-      ? `<img src="${escapeAttr(logo)}" alt="${escapeAttr(b)}" class="h-6 max-w-full object-contain mx-auto"
-          onerror="this.replaceWith(document.createTextNode(this.closest('button').dataset.brand))" />`
-      : `<span>${escapeHtml(b)}</span>`;
-    return `<button type="button" data-brand="${escapeAttr(b)}"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition">${content}</button>`;
-  };
+  const brandButton = (b) => `<button type="button" data-brand="${escapeAttr(b)}"
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition"><span>${escapeHtml(b)}</span></button>`;
 
   const hasMore = !showAll && brands.length > previewCount;
   const visibleBrands = hasMore ? brands.slice(0, previewCount) : brands;

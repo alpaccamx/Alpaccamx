@@ -43,9 +43,6 @@ const IMAGEN_ALIASES = ["imagen", "image", "foto", "imagen url"];
 const DESCRIPCION_ALIASES = ["descripcion", "descripción", "description"];
 const CATEGORIA_ALIASES = ["categoria", "categoría", "category"];
 const PESO_ALIASES = ["peso", "peso (kg)", "peso kg", "weight", "pesokg"];
-const LOGO_MARCA_ALIASES = ["logo", "logo marca", "logo de marca", "logomarca", "brand logo"];
-const MARCA_HEADER = "Marca"; // se escribe así si hay que crear la columna
-const LOGO_MARCA_HEADER = "Logo"; // se escribe así si hay que crear la columna
 
 let cachedToken = null; // { token, expiresAt } -- se reusa mientras no venza
 
@@ -305,71 +302,4 @@ async function applySheetStockDelta(deltaBySku) {
   }
 }
 
-/* Guarda el link del logo de una marca en una mini tabla "Marca"/"Logo"
-   dentro de la pestaña Config (la misma que ya lee csvToBrandLogos en
-   app.js) -- una fila por marca, no por producto. Si esa tabla no
-   existe todavía, se crea en la columna A, debajo de tu lista de
-   Clave/Valor (con una fila en blanco de separación), no a un lado.
-   Si la marca ya tenía fila, se actualiza; si no, se agrega una nueva.
-   Regresa { ok: true } o { ok: false, error } -- nunca truena. */
-async function updateBrandLogo(marca, logoUrl) {
-  const tabName = process.env.GOOGLE_SHEETS_CONFIG_TAB || "Config";
-  const sheet = await readTab(tabName, { label: "Config" });
-  if (!sheet) {
-    return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
-  }
-  const { spreadsheetId, tab, token, rows } = sheet;
-
-  // Busca la fila de encabezado "Marca"/"Logo" en cualquier parte de la
-  // hoja (no tiene que ser la fila 1) -- así puede ir debajo de tu lista
-  // de Clave/Valor, en la columna A, en vez de a un lado a media hoja.
-  const isLogoAliasCell = (cell) => LOGO_MARCA_ALIASES.includes(String(cell || "").trim().toLowerCase());
-  const headerRowIndex = rows.findIndex((row) => {
-    const cells = (row || []).map((c) => String(c || "").trim().toLowerCase());
-    return cells.includes("marca") && cells.some(isLogoAliasCell);
-  });
-
-  const updates = [];
-  let iMarca, iLogo, targetRow;
-
-  if (headerRowIndex < 0) {
-    // No existe todavía -- se crea en la columna A, dejando una fila en
-    // blanco de separación después de lo último que ya tengas ahí.
-    const headerRow = rows.length + 2;
-    iMarca = 0;
-    iLogo = 1;
-    updates.push({ range: `${tab}!A${headerRow}:B${headerRow}`, values: [[MARCA_HEADER, LOGO_MARCA_HEADER]] });
-    targetRow = headerRow + 1;
-  } else {
-    const headerCells = rows[headerRowIndex].map((c) => String(c || "").trim().toLowerCase());
-    iMarca = headerCells.indexOf("marca");
-    iLogo = headerCells.findIndex(isLogoAliasCell);
-    const targetMarca = String(marca || "").trim().toLowerCase();
-    const existingRowIndex = rows.findIndex(
-      (row, i) => i > headerRowIndex && String(row[iMarca] || "").trim().toLowerCase() === targetMarca
-    );
-    targetRow = existingRowIndex >= 0 ? existingRowIndex + 1 : rows.length + 1;
-  }
-
-  updates.push({ range: `${tab}!${columnIndexToLetter(iMarca)}${targetRow}`, values: [[marca]] });
-  updates.push({ range: `${tab}!${columnIndexToLetter(iLogo)}${targetRow}`, values: [[logoUrl]] });
-
-  try {
-    const batchRes = await fetch(`${SHEETS_API}/${spreadsheetId}/values:batchUpdate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ valueInputOption: "RAW", data: updates }),
-    });
-    const batchData = await batchRes.json();
-    if (!batchRes.ok) {
-      console.error("Error guardando el logo de marca:", batchData);
-      return { ok: false, error: "Google rechazó la escritura -- revisa que el Sheet esté compartido con la cuenta de servicio." };
-    }
-    return { ok: true };
-  } catch (err) {
-    console.error("Error de red guardando el logo de marca:", err);
-    return { ok: false, error: "No se pudo conectar con Google Sheets. Intenta de nuevo." };
-  }
-}
-
-module.exports = { applySheetStockDelta, deltaFromItems, appendStockProduct, updateBrandLogo };
+module.exports = { applySheetStockDelta, deltaFromItems, appendStockProduct };
