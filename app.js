@@ -1268,6 +1268,14 @@ function applyStockData() {
         // se registre y se descuente del stock con la clave correcta.
         clone = { ...original, id: stockId, stockSku: sku, destacado: [] };
         products.push(clone);
+      } else {
+        // Aunque el clone ya existiera de una vuelta anterior de
+        // applyStockData() en esta misma sesión, sus datos "de catálogo"
+        // (imagen, nombre, marca, descripción, etc.) se refrescan siempre
+        // desde el original -- si no, corregir por ejemplo una foto en
+        // "Productos Corea" no se reflejaba en "En stock" hasta recargar
+        // la página desde cero.
+        Object.assign(clone, original, { id: stockId, stockSku: sku, destacado: [] });
       }
       clone.enStock = true;
       clone.stockPiezas = stockPiezas;
@@ -1279,13 +1287,20 @@ function applyStockData() {
 
     // SKU que no existe en el catálogo principal: es un producto que solo
     // vendes en stock. Si ya se había creado en una carga anterior, se
-    // actualiza in place; si no, se crea desde las columnas opcionales
-    // (Nombre, Marca, Imagen, Descripcion, Categoria, Peso).
+    // actualiza in place (mismo motivo que arriba: para que un cambio en
+    // las columnas opcionales del Sheet se refleje sin recargar desde
+    // cero); si no, se crea desde cero.
     const existingStockOnly = products.find((p) => p.id === sku && p.enStock);
     if (existingStockOnly) {
       existingStockOnly.stockPiezas = stockPiezas;
       existingStockOnly.precio = entry.precioMXN || existingStockOnly.precio;
       existingStockOnly.precioTarjeta = entry.precioTarjetaMXN || existingStockOnly.precio;
+      if (entry.nombre) existingStockOnly.nombre = entry.nombre;
+      if (entry.categoria) existingStockOnly.categoria = entry.categoria;
+      if (entry.marca) existingStockOnly.marca = entry.marca;
+      if (entry.imagen) existingStockOnly.imagen = entry.imagen;
+      if (entry.descripcion) existingStockOnly.descripcion = entry.descripcion;
+      if (entry.pesoKg) existingStockOnly.peso = entry.pesoKg;
       return;
     }
 
