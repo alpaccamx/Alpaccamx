@@ -842,6 +842,7 @@ function csvToProducts(text) {
   const iTipoPiel = findCol(headers, ["tipopiel", "tipo de piel", "piel", "skintype"]);
   const iPeso = findCol(headers, ["peso", "peso (kg)", "peso kg", "weight", "pesokg"]);
   const iPresentacion = findCol(headers, ["presentacion", "presentación", "empaque", "variante", "unidad"]);
+  const iCapacidad = findCol(headers, ["capacidad", "contenido", "tamaño", "tamano", "capacity"]);
 
   return rows
     .slice(1)
@@ -867,6 +868,7 @@ function csvToProducts(text) {
         precioTarjeta,
         peso: parseFloat(pesoRaw) || 0,
         presentacion: get(iPresentacion),
+        capacidad: get(iCapacidad),
         imagen: get(iImagen),
         descripcion: get(iDescripcion),
         disponible,
@@ -1790,6 +1792,7 @@ function productCardHTML(p, { rank } = {}) {
         </div>
         <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
         <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5">${escapeHtml(p.nombre)}</h3>
+        ${p.capacidad ? `<span class="text-[11px] text-ink/40">${escapeHtml(p.capacidad)}</span>` : ""}
         ${productReviewSummaryHTML(p)}
         ${
           hasVariants
