@@ -1148,13 +1148,37 @@ function shippingEstimate(pesoKg, cp, koreaPesoKg = pesoKg) {
   };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/* Descarga el texto de una URL con reintentos -- Google a veces regresa
+   "400 Bad Request" cuando varias pestañas PUBLICADAS del mismo Google
+   Sheet se piden casi al mismo tiempo, que es justo lo que hace esta
+   página al cargar (catálogo, stock, tarifas de envío, config, Cosmético
+   Americano -- todas del mismo archivo). Sin este reintento, cualquiera
+   de esas hojas se podía quedar sin datos toda la visita aunque los
+   datos y los permisos estuvieran perfectamente bien. */
+async function fetchTextWithRetry(url, { retries = 2, delayMs = 700 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return await res.text();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await sleep(delayMs * (attempt + 1));
+    }
+  }
+  throw lastErr;
+}
+
 async function loadShippingSettings() {
   const isPlaceholder = !CONFIG.SHIPPING_CONFIG_CSV_URL || CONFIG.SHIPPING_CONFIG_CSV_URL.includes("PEGA_AQUI");
   if (isPlaceholder) return;
   try {
-    const res = await fetch(CONFIG.SHIPPING_CONFIG_CSV_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const text = await res.text();
+    const text = await fetchTextWithRetry(CONFIG.SHIPPING_CONFIG_CSV_URL);
     shippingSettings = csvToShippingSettings(text);
     updateCurrencyToggleButton();
     renderFaqMinOrder();
@@ -1169,9 +1193,7 @@ async function loadShippingKoreaRates() {
   const isPlaceholder = !CONFIG.SHIPPING_KOREA_RATES_CSV_URL || CONFIG.SHIPPING_KOREA_RATES_CSV_URL.includes("PEGA_AQUI");
   if (isPlaceholder) return;
   try {
-    const res = await fetch(CONFIG.SHIPPING_KOREA_RATES_CSV_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const text = await res.text();
+    const text = await fetchTextWithRetry(CONFIG.SHIPPING_KOREA_RATES_CSV_URL);
     shippingKoreaRates = csvToKoreaShippingTiers(text);
     renderCart();
   } catch (err) {
@@ -1183,9 +1205,7 @@ async function loadShippingNacionalRates() {
   const isPlaceholder = !CONFIG.SHIPPING_NACIONAL_CSV_URL || CONFIG.SHIPPING_NACIONAL_CSV_URL.includes("PEGA_AQUI");
   if (isPlaceholder) return;
   try {
-    const res = await fetch(CONFIG.SHIPPING_NACIONAL_CSV_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const text = await res.text();
+    const text = await fetchTextWithRetry(CONFIG.SHIPPING_NACIONAL_CSV_URL);
     shippingNacionalRates = csvToNacionalRates(text);
     renderCart();
   } catch (err) {
@@ -1345,9 +1365,7 @@ async function loadStockData() {
   const isPlaceholder = !CONFIG.STOCK_CSV_URL || CONFIG.STOCK_CSV_URL.includes("PEGA_AQUI");
   if (isPlaceholder) return;
   try {
-    const res = await fetch(CONFIG.STOCK_CSV_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const text = await res.text();
+    const text = await fetchTextWithRetry(CONFIG.STOCK_CSV_URL);
     await loadSoldStock();
     stockData = csvToStockData(text);
     applyStockData();
@@ -1420,9 +1438,7 @@ async function loadProducts() {
   }
 
   try {
-    const res = await fetch(CONFIG.GOOGLE_SHEET_CSV_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const text = await res.text();
+    const text = await fetchTextWithRetry(CONFIG.GOOGLE_SHEET_CSV_URL);
     const parsed = csvToProducts(text);
     if (!parsed.length) throw new Error("CSV vacío o encabezados no reconocidos");
     products = parsed;
@@ -1454,9 +1470,7 @@ async function loadAmericanoProducts() {
   if (isPlaceholder) return;
 
   try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const text = await res.text();
+    const text = await fetchTextWithRetry(url);
     americanoProducts = csvToAmericanoProducts(text);
   } catch (err) {
     console.warn("No se pudo cargar el catálogo de Cosmético Americano:", err);
