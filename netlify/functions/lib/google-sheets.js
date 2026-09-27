@@ -23,6 +23,10 @@
 //                                   la web" que usa el sitio para leer
 //   GOOGLE_SHEETS_STOCK_TAB      -> nombre EXACTO de la pestaña de Stock
 //                                   (ej. "Stock")
+//   GOOGLE_SHEETS_BANK_TAB       -> (opcional) nombre EXACTO de la pestaña
+//                                   con tus datos de depósito/transferencia
+//                                   (ej. "DatosBancarios"), ver
+//                                   readBankDetailsTab() más abajo
 //
 // Además, tienes que compartir tu Sheet (botón "Compartir") con el
 // correo de la cuenta de servicio (GOOGLE_SHEETS_CLIENT_EMAIL) dándole
@@ -158,6 +162,42 @@ async function readTab(tab, { label = tab } = {}) {
    restar piezas vendidas como para agregar productos nuevos. */
 async function readStockTab() {
   return readTab(process.env.GOOGLE_SHEETS_STOCK_TAB, { label: "Stock" });
+}
+
+const BANK_ALIASES = {
+  bankName: ["banco", "nombre del banco", "bank"],
+  bankHolder: ["titular", "beneficiario", "nombre titular", "accountholder"],
+  bankClabe: ["clabe", "clabe interbancaria"],
+  bankAccount: ["numero de cuenta", "cuenta", "numero cuenta", "accountnumber"],
+  bankNote: ["concepto sugerido", "referencia", "nota bancaria", "instrucciones deposito"],
+};
+
+/* Lee tus datos de depósito/transferencia (Banco, Titular, CLABE, Cuenta,
+   Referencia) de una pestaña Clave/Valor (igual formato que "Config")
+   que NO está publicada en la web -- a diferencia del resto de este
+   archivo, esta pestaña se lee vía la API con la cuenta de servicio
+   (que ya tiene permiso de Editor) en vez de un CSV público, para que tu
+   CLABE/cuenta no queden como un link abierto que cualquiera puede ver
+   sin pasar por tu carrito. Ver GOOGLE_SHEETS_BANK_TAB arriba.
+   Si falta la variable de entorno o falla la lectura, regresa {} --
+   nunca truena, el carrito simplemente no muestra el bloque de
+   transferencia (ver bank-details.js). */
+async function readBankDetailsTab() {
+  const tabName = process.env.GOOGLE_SHEETS_BANK_TAB;
+  if (!tabName) return {};
+  const sheet = await readTab(tabName, { label: "Datos bancarios" });
+  if (!sheet) return {};
+
+  const details = {};
+  sheet.rows.forEach((row) => {
+    const key = String(row[0] || "").trim().toLowerCase();
+    const value = String(row[1] || "").trim();
+    if (!key || !value) return;
+    for (const field in BANK_ALIASES) {
+      if (BANK_ALIASES[field].includes(key)) details[field] = value;
+    }
+  });
+  return details;
 }
 
 /* Genera un SKU corto y legible que no choque con ninguno ya existente
@@ -312,4 +352,4 @@ async function applySheetStockDelta(deltaBySku) {
   }
 }
 
-module.exports = { applySheetStockDelta, deltaFromItems, appendStockProduct };
+module.exports = { applySheetStockDelta, deltaFromItems, appendStockProduct, readBankDetailsTab };
