@@ -231,7 +231,7 @@ const CONFIG = {
     // Sheet que convierte Precio USD con el tipo de cambio de Config y le
     // suma SU PROPIA comisión — no la misma que la del catálogo coreano).
     SHEET_CSV_URL:
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=1261141661&single=true&output=csv",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=1986930023&single=true&output=csv",
 
     // Número de WhatsApp para pedidos de esta colección (puede ser el
     // mismo que CONFIG.WHATSAPP_NUMBER o uno distinto).
