@@ -8,14 +8,14 @@
 // DELETE: body { id } -- borra esa reseña.
 
 const { listAllReviews, deleteReview } = require("./lib/review-store.js");
+const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
-  const adminKey = process.env.ADMIN_KEY;
-  if (!adminKey) {
+  const auth = checkAdminKey(event);
+  if (!auth.configured) {
     return jsonResponse(500, { error: "Falta configurar ADMIN_KEY en Netlify." });
   }
-  const providedKey = event.headers && (event.headers["x-admin-key"] || event.headers["X-Admin-Key"]);
-  if (providedKey !== adminKey) {
+  if (!auth.valid) {
     return jsonResponse(401, { error: "Clave de administrador incorrecta." });
   }
 

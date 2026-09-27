@@ -12,6 +12,7 @@
 // pedido.
 
 const { getOrder, updateOrderFields, savePaymentProof } = require("./lib/blob-store.js");
+const { detectFileType } = require("./lib/file-signature.js");
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -32,12 +33,6 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "Faltan orderId o el archivo." });
   }
 
-  const isImage = typeof contentType === "string" && contentType.startsWith("image/");
-  const isPdf = contentType === "application/pdf";
-  if (!isImage && !isPdf) {
-    return jsonResponse(400, { error: "Solo se aceptan imágenes o archivos PDF." });
-  }
-
   let buffer;
   try {
     buffer = Buffer.from(dataBase64, "base64");
@@ -48,15 +43,35 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "El archivo debe pesar menos de 5MB." });
   }
 
+  // No confiamos en el "contentType" que manda el navegador (es fácil de
+  // falsificar) -- se verifica el contenido real del archivo por sus
+  // primeros bytes. Ver lib/file-signature.js.
+  const realType = detectFileType(buffer);
+  if (!realType) {
+    return jsonResponse(400, { error: "Solo se aceptan imágenes o archivos PDF." });
+  }
+
+  // El contentType que se guarda (para servirlo luego con el header
+  // correcto en admin-payment-proof.js) también se sanea: si el archivo
+  // sí es un PDF/imagen real, se usa el que mandó el navegador solo si
+  // "hace juego" con lo que se detectó en los bytes; si no, un valor
+  // genérico seguro para ese tipo.
+  const safeContentType =
+    realType === "pdf"
+      ? "application/pdf"
+      : typeof contentType === "string" && /^image\/[a-z0-9.+-]+$/i.test(contentType)
+        ? contentType
+        : "image/jpeg";
+
   try {
     const order = await getOrder(orderId);
     if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
 
-    await savePaymentProof(orderId, buffer, { contentType, filename: String(filename || "comprobante") });
+    await savePaymentProof(orderId, buffer, { contentType: safeContentType, filename: String(filename || "comprobante") });
     await updateOrderFields(orderId, {
       hasPaymentProof: true,
       proofFilename: String(filename || "comprobante"),
-      proofContentType: contentType,
+      proofContentType: safeContentType,
       proofUploadedAt: new Date().toISOString(),
     });
 

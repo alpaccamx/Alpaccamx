@@ -37,12 +37,21 @@
 const { randomUUID } = require("crypto");
 const { saveNewOrder, transitionOrder } = require("./lib/blob-store.js");
 const { notifySellerWhatsApp, orderCreatedMessage } = require("./lib/whatsapp.js");
+const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
 const MP_API = "https://api.mercadopago.com";
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
+  }
+
+  // Máximo 15 pedidos por hora por IP -- de sobra para una clienta real
+  // (incluso mayorista) haciendo varios pedidos, pero frena un envío
+  // automatizado masivo de pedidos falsos.
+  const rateLimit = await checkRateLimit(`create-order:${getClientIp(event)}`, { max: 15, windowMs: 60 * 60 * 1000 });
+  if (!rateLimit.allowed) {
+    return jsonResponse(429, { error: "Demasiados pedidos en poco tiempo. Espera un poco e intenta de nuevo." }, rateLimit.retryAfterSeconds);
   }
 
   let body;
@@ -200,10 +209,8 @@ exports.handler = async (event) => {
   }
 };
 
-function jsonResponse(statusCode, obj) {
-  return {
-    statusCode,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(obj),
-  };
+function jsonResponse(statusCode, obj, retryAfterSeconds) {
+  const headers = { "Content-Type": "application/json" };
+  if (retryAfterSeconds) headers["Retry-After"] = String(retryAfterSeconds);
+  return { statusCode, headers, body: JSON.stringify(obj) };
 }

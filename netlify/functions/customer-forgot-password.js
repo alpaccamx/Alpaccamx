@@ -10,12 +10,22 @@
 const { randomBytes } = require("crypto");
 const { getCustomerByEmail, updateCustomerFields, normalizeEmail } = require("./lib/customer-store.js");
 const { sendEmail, resetPasswordEmailHTML } = require("./lib/email.js");
+const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
+  }
+
+  // Máximo 5 solicitudes por hora por IP -- sin esto, alguien podría
+  // automatizar este endpoint para saturar de correos "restablece tu
+  // contraseña" a quien quiera (usa tu cuota de correo y molesta a la
+  // víctima), aunque no exista una cuenta con ese correo.
+  const ipLimit = await checkRateLimit(`forgot-password-ip:${getClientIp(event)}`, { max: 5, windowMs: 60 * 60 * 1000 });
+  if (!ipLimit.allowed) {
+    return jsonResponse(429, { error: "Demasiadas solicitudes. Espera un poco e intenta de nuevo." }, ipLimit.retryAfterSeconds);
   }
 
   let body;
@@ -27,6 +37,16 @@ exports.handler = async (event) => {
 
   const email = normalizeEmail(body.email);
   if (!email) return jsonResponse(400, { error: "Falta el correo." });
+
+  // Además del límite por IP, uno por correo -- así, aunque alguien use
+  // muchas IPs distintas, no puede bombardear repetidamente la bandeja
+  // de UNA sola persona. Se revisa ANTES de saber si la cuenta existe,
+  // para no delatar por status/tiempo de respuesta si el correo tiene
+  // cuenta o no (ver nota arriba del archivo).
+  const emailLimit = await checkRateLimit(`forgot-password-email:${email}`, { max: 3, windowMs: 60 * 60 * 1000 });
+  if (!emailLimit.allowed) {
+    return jsonResponse(200, { ok: true });
+  }
 
   const customer = await getCustomerByEmail(email).catch(() => null);
   if (customer) {
@@ -50,10 +70,8 @@ exports.handler = async (event) => {
   return jsonResponse(200, { ok: true });
 };
 
-function jsonResponse(statusCode, obj) {
-  return {
-    statusCode,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(obj),
-  };
+function jsonResponse(statusCode, obj, retryAfterSeconds) {
+  const headers = { "Content-Type": "application/json" };
+  if (retryAfterSeconds) headers["Retry-After"] = String(retryAfterSeconds);
+  return { statusCode, headers, body: JSON.stringify(obj) };
 }

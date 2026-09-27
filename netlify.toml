@@ -15,3 +15,24 @@
 
 [build.environment]
   SECRETS_SCAN_OMIT_KEYS = "NOTIFY_WHATSAPP_NUMBER,GOOGLE_SHEETS_STOCK_TAB,GOOGLE_SHEETS_CONFIG_TAB"
+
+# "Candados" de navegador estándar -- protegen contra que alguien
+# incruste el sitio en otra página (clickjacking), fuerzan HTTPS, y
+# limitan de dónde se puede cargar código/estilos/imágenes (CSP). Todos
+# los <script> del sitio ya son archivos externos (app.js, admin.js,
+# scroll-fix.js, legal-year.js) para poder usar script-src 'self' sin
+# 'unsafe-inline'. style-src sí necesita 'unsafe-inline' porque
+# admin.html usa varios atributos style="" en línea.
+#
+# connect-src incluye docs.google.com porque el catálogo y el stock se
+# leen directo desde el navegador del cliente (CSV publicado de Google
+# Sheets), no a través de una función de Netlify.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
