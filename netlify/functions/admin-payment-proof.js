@@ -2,30 +2,30 @@
 // un pedido, para que puedas verlo desde /admin.html antes de confirmar
 // el pago.
 //
-// Requiere el header "x-admin-key" o "?key=" en la URL con el valor de
-// ADMIN_KEY (se usa como <img src>/<a href>, por eso también acepta el
-// query param, igual que admin-orders.js).
+// Requiere el header "x-admin-key" con el valor de ADMIN_KEY. El panel
+// lo pide con fetch() + header (no como <img src>/<a href> directo,
+// para que la clave nunca quede en la URL -- ver viewPaymentProof() en
+// admin.js) y abre el resultado como blob URL en una pestaña nueva.
 //
-// GET /.netlify/functions/admin-payment-proof?orderId=...&key=...
+// GET /.netlify/functions/admin-payment-proof?orderId=...
 
 const { getPaymentProof } = require("./lib/blob-store.js");
+const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  const adminKey = process.env.ADMIN_KEY;
-  if (!adminKey) {
+  const auth = checkAdminKey(event);
+  if (!auth.configured) {
     return { statusCode: 500, body: "Falta configurar ADMIN_KEY en Netlify." };
   }
-
-  const params = event.queryStringParameters || {};
-  const providedKey = (event.headers && (event.headers["x-admin-key"] || event.headers["X-Admin-Key"])) || params.key;
-  if (providedKey !== adminKey) {
+  if (!auth.valid) {
     return { statusCode: 401, body: "Clave de administrador incorrecta." };
   }
 
+  const params = event.queryStringParameters || {};
   const orderId = params.orderId;
   if (!orderId) {
     return { statusCode: 400, body: "Falta orderId." };

@@ -3,24 +3,22 @@
 // (los que necesitan que confirmes a mano) y "Historial de pedidos"
 // (todo, de más reciente a más antiguo).
 //
-// Requiere el header "x-admin-key" (o ?key= en la URL) con el valor de la
-// variable de entorno ADMIN_KEY configurada en Netlify.
+// Requiere el header "x-admin-key" con el valor de la variable de
+// entorno ADMIN_KEY configurada en Netlify.
 
 const { listOrders } = require("./lib/blob-store.js");
+const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  const adminKey = process.env.ADMIN_KEY;
-  if (!adminKey) {
+  const auth = checkAdminKey(event);
+  if (!auth.configured) {
     return jsonResponse(500, { error: "Falta configurar ADMIN_KEY en Netlify." });
   }
-
-  const params = event.queryStringParameters || {};
-  const providedKey = (event.headers && (event.headers["x-admin-key"] || event.headers["X-Admin-Key"])) || params.key;
-  if (providedKey !== adminKey) {
+  if (!auth.valid) {
     return jsonResponse(401, { error: "Clave de administrador incorrecta." });
   }
 

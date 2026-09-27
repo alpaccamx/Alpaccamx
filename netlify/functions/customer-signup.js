@@ -9,12 +9,20 @@
 const bcrypt = require("bcryptjs");
 const { createCustomer, getCustomerByEmail, normalizeEmail } = require("./lib/customer-store.js");
 const { signCustomerToken } = require("./lib/customer-auth.js");
+const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
+  }
+
+  // Máximo 5 cuentas nuevas por hora desde la misma IP -- frena la
+  // creación masiva de cuentas falsas.
+  const rateLimit = await checkRateLimit(`signup:${getClientIp(event)}`, { max: 5, windowMs: 60 * 60 * 1000 });
+  if (!rateLimit.allowed) {
+    return jsonResponse(429, { error: "Demasiados intentos. Espera un poco e intenta de nuevo." }, rateLimit.retryAfterSeconds);
   }
 
   let body;
@@ -57,10 +65,8 @@ exports.handler = async (event) => {
   return jsonResponse(200, { token, name });
 };
 
-function jsonResponse(statusCode, obj) {
-  return {
-    statusCode,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(obj),
-  };
+function jsonResponse(statusCode, obj, retryAfterSeconds) {
+  const headers = { "Content-Type": "application/json" };
+  if (retryAfterSeconds) headers["Retry-After"] = String(retryAfterSeconds);
+  return { statusCode, headers, body: JSON.stringify(obj) };
 }

@@ -13,19 +13,18 @@ const { notifySellerWhatsApp, notifyCustomerOrderConfirmed, orderPaidMessage } =
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { sendEmail, orderCancelledEmailHTML } = require("./lib/email.js");
+const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  const adminKey = process.env.ADMIN_KEY;
-  if (!adminKey) {
+  const auth = checkAdminKey(event);
+  if (!auth.configured) {
     return jsonResponse(500, { error: "Falta configurar ADMIN_KEY en Netlify." });
   }
-
-  const providedKey = event.headers && (event.headers["x-admin-key"] || event.headers["X-Admin-Key"]);
-  if (providedKey !== adminKey) {
+  if (!auth.valid) {
     return jsonResponse(401, { error: "Clave de administrador incorrecta." });
   }
 
