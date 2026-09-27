@@ -128,24 +128,43 @@ publícala como CSV aparte (mismos pasos de arriba, eligiendo esa pestaña):
 
 ### Datos de depósito/transferencia (opcional)
 
-Si agregas estas filas a la misma pestaña **"Config"**, el carrito
-muestra un bloque "🏦 Datos para tu depósito o transferencia" junto al
-botón "Confirmar pedido por transferencia", para que el cliente sepa a
-dónde transferir sin tener que preguntarlo por chat:
+El carrito puede mostrar un bloque "🏦 Datos para tu depósito o
+transferencia" junto al botón "Confirmar pedido por transferencia", para
+que el cliente sepa a dónde transferir sin tener que preguntarlo por
+chat.
 
-| Clave | Valor |
-|-------|-------|
-| Banco | BBVA |
-| Titular | Tu nombre o el de tu negocio |
-| CLABE | 012180001234567895 |
-| Cuenta | (opcional, si prefieres dar número de cuenta en vez de CLABE) |
-| Referencia | (opcional, ej. "Referencia de la transferencia: Tu nombre completo") |
+**A diferencia del resto de esta sección, estos datos NO van en la
+pestaña "Config"** (que es pública, cualquiera con su link puede abrirla)
+-- van en una pestaña aparte que no se publica, y el sitio la lee por un
+camino privado (requiere haber configurado la sección 6 de este README,
+"Google Sheets API"):
 
-Puedes agregar cualquiera de estas filas (no hace falta llenarlas todas)
-en cualquier lugar de la pestaña "Config", junto a las de arriba — a
-diferencia de Tipo de cambio/Comisión/Arancel, estas no dependen de una
-celda fija. Si no agregas ninguna, el bloque simplemente no aparece y el
-resto del sitio sigue funcionando igual.
+1. Crea una pestaña nueva en tu Sheet (el nombre no importa, ej.
+   `DatosBancarios`) con dos columnas, **Clave** y **Valor**, igual que
+   "Config":
+
+   | Clave | Valor |
+   |-------|-------|
+   | Banco | BBVA |
+   | Titular | Tu nombre o el de tu negocio |
+   | CLABE | 012180001234567895 |
+   | Cuenta | (opcional, si prefieres dar número de cuenta en vez de CLABE) |
+   | Referencia | (opcional, ej. "Referencia de la transferencia: Tu nombre completo") |
+
+   Puedes agregar cualquiera de estas filas (no hace falta llenarlas
+   todas). Si no agregas ninguna, el bloque simplemente no aparece y el
+   resto del sitio sigue funcionando igual.
+2. **NO** publiques esta pestaña en la web (no hace falta -- se lee vía
+   la API con la cuenta de servicio, no como CSV público).
+3. En Netlify → Site settings → Environment variables, agrega
+   `GOOGLE_SHEETS_BANK_TAB` con el nombre EXACTO de esa pestaña (ver
+   sección 6 para las otras 3 variables que también necesitas:
+   `GOOGLE_SHEETS_CLIENT_EMAIL`, `GOOGLE_SHEETS_PRIVATE_KEY`,
+   `GOOGLE_SHEETS_SPREADSHEET_ID`).
+
+Si no configuras `GOOGLE_SHEETS_BANK_TAB` (o falta cualquiera de las
+otras 3 variables), el bloque de transferencia simplemente no aparece --
+no rompe nada más del sitio.
 
 Si además quieres que el sitio calcule el **costo real de envío**
 (Corea→EE.UU. y/o nacional en México) y lo sume al total que paga el
@@ -862,6 +881,10 @@ el que de verdad queda, sin que tengas que restarlo tú a mano.
    - `GOOGLE_SHEETS_STOCK_TAB` → el nombre EXACTO de la pestaña de Stock
      tal cual aparece abajo en tu Sheet (ej. `Stock`).
 9. Dispara un nuevo deploy.
+
+Con estas 4 variables ya configuradas, también puedes agregar
+`GOOGLE_SHEETS_BANK_TAB` (ver "Datos de depósito/transferencia" arriba)
+sin repetir los pasos 1-7 -- usa las mismas credenciales.
 
 Si falta cualquiera de estas 4 variables, o el Sheet no está compartido
 con la cuenta de servicio, o el nombre de la pestaña no coincide, esto

@@ -962,30 +962,15 @@ const SHIPPING_SETTING_ALIASES = {
   transferDiscountPct: ["descuentoportransferencia", "descuentotransferencia", "descuentoportransferenciaporciento"],
 };
 
-// Datos de depósito/transferencia (opcionales) que se muestran en el
-// carrito junto al botón "Confirmar pedido por transferencia", para que
-// el cliente sepa a dónde transferir sin tener que preguntarlo por chat.
-// Se leen de la misma pestaña "Config" del Sheet, ver README sección 4.
-const BANK_DETAIL_ALIASES = {
-  bankName: ["banco", "nombredelbanco", "bank"],
-  bankHolder: ["titular", "beneficiario", "nombretitular", "accountholder"],
-  bankClabe: ["clabe", "clabeinterbancaria"],
-  bankAccount: ["numerodecuenta", "cuenta", "numerocuenta", "accountnumber"],
-  bankNote: ["conceptosugerido", "referencia", "notabancaria", "instruccionesdeposito"],
-};
-
 function csvToShippingSettings(text) {
   const rows = parseCSV(text);
-  const settings = { exchangeRate: 0, transferDiscountPct: 0, ...BANK_DETAILS_DEFAULTS };
+  const settings = { exchangeRate: 0, transferDiscountPct: 0 };
   rows.forEach((r) => {
     const key = normalizeKey(r[0]);
     const rawValue = (r[1] || "").trim();
     const numValue = parseFloat(rawValue.replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0;
     for (const field in SHIPPING_SETTING_ALIASES) {
       if (SHIPPING_SETTING_ALIASES[field].includes(key)) settings[field] = numValue;
-    }
-    for (const field in BANK_DETAIL_ALIASES) {
-      if (BANK_DETAIL_ALIASES[field].includes(key)) settings[field] = rawValue;
     }
   });
   return settings;
@@ -1179,13 +1164,36 @@ async function loadShippingSettings() {
   if (isPlaceholder) return;
   try {
     const text = await fetchTextWithRetry(CONFIG.SHIPPING_CONFIG_CSV_URL);
-    shippingSettings = csvToShippingSettings(text);
+    // Object.assign en vez de reasignar "shippingSettings" completo -- así
+    // no se pisan los datos bancarios si loadBankDetails() (que llega por
+    // otro camino, ver más abajo) ya había resuelto primero.
+    Object.assign(shippingSettings, csvToShippingSettings(text));
     updateCurrencyToggleButton();
     renderFaqMinOrder();
     renderCart();
     renderBrands();
   } catch (err) {
     console.warn("No se pudo cargar la configuración de envíos:", err);
+  }
+}
+
+/* Datos de depósito/transferencia -- a diferencia del resto de la
+   configuración, estos YA NO se leen del CSV público de "Config" (ver
+   README sección 4): se piden a una función de Netlify que los lee de
+   una pestaña privada con la cuenta de servicio, para que tu CLABE/
+   cuenta no queden como un link abierto que cualquiera puede ver sin
+   pasar por tu carrito. Si no configuraste esa función, simplemente no
+   se muestra el bloque de transferencia, igual que antes cuando no
+   llenabas esas filas. */
+async function loadBankDetails() {
+  try {
+    const res = await fetch("/.netlify/functions/bank-details", { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    Object.assign(shippingSettings, BANK_DETAILS_DEFAULTS, data);
+    renderCart();
+  } catch (err) {
+    console.warn("No se pudieron cargar los datos de depósito:", err);
   }
 }
 
@@ -4282,6 +4290,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadProducts();
   loadShippingSettings();
+  loadBankDetails();
   loadShippingKoreaRates();
   loadShippingNacionalRates();
   loadStockData();
