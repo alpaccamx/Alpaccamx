@@ -2031,9 +2031,42 @@
     }
   }
 
-  function login() {
+  // Antes esto mostraba el panel (toolbar) de inmediato y solo lo
+  // ocultaba de nuevo si la clave resultaba incorrecta (fetchOrders()
+  // hace logout() en un 401) -- eso dejaba un momento confuso donde el
+  // panel se veía "abierto" con una clave todavía sin confirmar.  Ahora
+  // primero se verifica la clave con una llamada real, y el panel solo
+  // se muestra si esa llamada regresa 200.
+  async function login() {
     const value = document.getElementById("admin-key-input").value.trim();
     if (!value) return;
+
+    const loginBtn = document.getElementById("login-btn");
+    const originalLabel = loginBtn.textContent;
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Verificando...";
+    setStatus("");
+
+    try {
+      const res = await fetch("/.netlify/functions/admin-orders", {
+        headers: { "x-admin-key": value },
+      });
+      if (res.status === 401) {
+        setStatus("Clave incorrecta.");
+        return;
+      }
+      if (!res.ok) {
+        setStatus("No se pudo verificar la clave. Intenta de nuevo.");
+        return;
+      }
+    } catch (err) {
+      setStatus("No se pudo conectar con el servidor.");
+      return;
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = originalLabel;
+    }
+
     adminKey = value;
     sessionStorage.setItem(KEY_STORAGE, value);
     loginBox.style.display = "none";
