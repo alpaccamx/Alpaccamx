@@ -437,7 +437,7 @@ function wishlistButtonHTML(id) {
   const active = isWishlisted(id);
   return `
     <button type="button" data-wishlist="${escapeAttr(id)}" aria-label="${active ? "Quitar de favoritos" : "Guardar en favoritos"}"
-      class="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow transition ${active ? "text-rose" : "text-ink/40 hover:text-rose"}">
+      class="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow transition ${active ? "text-rose" : "text-ink/75 hover:text-rose"}">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="${active ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
     </button>`;
 }
@@ -454,7 +454,7 @@ function initWishlist() {
     const id = btn.dataset.wishlist;
     const active = toggleWishlist(id);
     btn.classList.toggle("text-rose", active);
-    btn.classList.toggle("text-ink/40", !active);
+    btn.classList.toggle("text-ink/75", !active);
     btn.classList.toggle("hover:text-rose", !active);
     btn.setAttribute("aria-label", active ? "Quitar de favoritos" : "Guardar en favoritos");
     btn.querySelector("svg").setAttribute("fill", active ? "currentColor" : "none");
@@ -596,10 +596,10 @@ function productReviewSummaryHTML(p) {
   if (!summary || !summary.count) return "";
   return `
     <button type="button" data-view-reviews="${escapeAttr(sku)}" data-view-reviews-name="${escapeAttr(p.nombre)}"
-      class="flex items-center gap-1 text-[11px] text-ink/60 hover:text-ink mt-0.5">
+      class="flex items-center gap-1 text-[11px] text-ink/75 hover:text-ink mt-0.5">
       ${starIconHTML(true, "w-3 h-3")}
       <span class="font-semibold">${summary.avg}</span>
-      <span class="text-ink/40">(${summary.count})</span>
+      <span class="text-ink/75">(${summary.count})</span>
     </button>`;
 }
 
@@ -1654,30 +1654,30 @@ function menuItemHTML(item, variant) {
     const dropdownOptions = item.options
       .map(
         (v) =>
-          `<button type="button" ${optionAttr}="${escapeAttr(v)}"
+          `<button type="button" role="menuitem" ${optionAttr}="${escapeAttr(v)}"
             class="block w-full text-left px-4 py-2 text-sm text-ink/70 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(v)}</button>`
       )
       .join("");
     if (isHorizontal) {
       return `<div class="relative" data-${key}-dropdown>
-        <button type="button" data-${key}-toggle
+        <button type="button" data-${key}-toggle aria-haspopup="true" aria-expanded="false"
           class="${base} text-ink/80 hover:text-ink transition inline-flex items-center gap-1">
           ${escapeHtml(item.label)}
           <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-        <div data-${key}-panel
+        <div data-${key}-panel role="menu"
           class="hidden fixed w-52 max-h-80 overflow-y-auto rounded-xl border border-ink/10 bg-cream shadow-lg py-2 z-50">
           ${dropdownOptions}
         </div>
       </div>`;
     }
     return `<div data-${key}-dropdown>
-      <button type="button" data-${key}-toggle
+      <button type="button" data-${key}-toggle aria-haspopup="true" aria-expanded="false"
         class="${base} w-full text-left text-ink/80 hover:text-ink transition inline-flex items-center justify-between">
         ${escapeHtml(item.label)}
         <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <div data-${key}-panel class="hidden bg-blush/10">${dropdownOptions}</div>
+      <div data-${key}-panel role="menu" class="hidden bg-blush/10">${dropdownOptions}</div>
     </div>`;
   }
   return `<a href="${escapeAttr(item.href)}" data-menu-link
@@ -1709,7 +1709,9 @@ function wireMenuItems(container, onNavigate) {
         panel.style.left = `${rect.left}px`;
       }
       panel.classList.toggle("hidden");
+      toggle.setAttribute("aria-expanded", String(!panel.classList.contains("hidden")));
     });
+    panel.__toggle = toggle;
     panel.querySelectorAll("[data-menu-brand]").forEach((btn) => {
       btn.addEventListener("click", () => {
         panel.classList.add("hidden");
@@ -1737,7 +1739,22 @@ function wireMenuItems(container, onNavigate) {
 document.addEventListener("click", (e) => {
   document.querySelectorAll("[data-brands-panel], [data-categories-panel], [data-country-panel]").forEach((panel) => {
     const owner = panel.__trigger || panel.parentElement;
-    if (!panel.contains(e.target) && !owner.contains(e.target)) panel.classList.add("hidden");
+    if (!panel.contains(e.target) && !owner.contains(e.target)) {
+      panel.classList.add("hidden");
+      if (panel.__toggle) panel.__toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  document.querySelectorAll("[data-brands-panel], [data-categories-panel], [data-country-panel]").forEach((panel) => {
+    if (panel.classList.contains("hidden")) return;
+    panel.classList.add("hidden");
+    if (panel.__toggle) {
+      panel.__toggle.setAttribute("aria-expanded", "false");
+      panel.__toggle.focus();
+    }
   });
 });
 
@@ -1812,9 +1829,9 @@ function productCardHTML(p, { rank } = {}) {
               : ""
           }
         </div>
-        <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca || p.categoria)}</span>
+        <span class="text-[11px] uppercase tracking-wide text-ink/75">${escapeHtml(p.marca || p.categoria)}</span>
         <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5">${escapeHtml(p.nombre)}</h3>
-        ${p.capacidad ? `<span class="text-[11px] text-ink/40">${escapeHtml(p.capacidad)}</span>` : ""}
+        ${p.capacidad ? `<span class="text-[11px] text-ink/75">${escapeHtml(p.capacidad)}</span>` : ""}
         ${productReviewSummaryHTML(p)}
         ${
           hasVariants
@@ -1833,7 +1850,7 @@ function productCardHTML(p, { rank } = {}) {
             <span data-card-unit>${boxUnitPriceHTML(p)}</span>
             ${
               p.precioTarjeta && p.precioTarjeta > p.precio + 0.5
-                ? `<span class="block text-[10px] text-ink/40">🏦 Descuento por transferencia <span class="text-lilac font-semibold">(con tarjeta: ${formatPrice(p.precioTarjeta)})</span></span>`
+                ? `<span class="block text-[10px] text-ink/75">🏦 Descuento por transferencia <span class="text-lilac font-semibold">(con tarjeta: ${formatPrice(p.precioTarjeta)})</span></span>`
                 : ""
             }
           </div>
@@ -1947,7 +1964,7 @@ function boxUnitPriceHTML(p) {
   if (!match) return "";
   const qty = Number(match[1]);
   if (!qty) return "";
-  return `<span class="block text-[10px] text-ink/40">${formatPrice(p.precio / qty)} c/u</span>`;
+  return `<span class="block text-[10px] text-ink/75">${formatPrice(p.precio / qty)} c/u</span>`;
 }
 
 function wireAddButtons(container) {
@@ -1974,7 +1991,7 @@ function americanoProductCardHTML(p) {
       </div>
       <div class="p-3 flex flex-col flex-1">
         <span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1 bg-ink/10 text-ink/70" data-card-moq>Mínimo de compra: ${p.moq}</span>
-        <span class="text-[11px] uppercase tracking-wide text-ink/40">${escapeHtml(p.marca)}</span>
+        <span class="text-[11px] uppercase tracking-wide text-ink/75">${escapeHtml(p.marca)}</span>
         <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5">${escapeHtml(p.nombre)}</h3>
         ${
           hasVariants
@@ -1990,7 +2007,7 @@ function americanoProductCardHTML(p) {
         <div class="mt-auto pt-2 flex items-center justify-between gap-2">
           <div class="leading-tight">
             <span data-card-price class="font-display text-ink block">${formatPrice(p.precio)}</span>
-            ${hasDiscount ? `<span data-card-original class="flex items-center gap-1 text-[10px]"><span class="text-ink/40">Precio Sephora</span><span class="text-red-500 line-through">${formatPrice(p.precioOriginal)}</span></span>` : `<span data-card-original class="hidden"></span>`}
+            ${hasDiscount ? `<span data-card-original class="flex items-center gap-1 text-[10px]"><span class="text-ink/75">Precio Sephora</span><span class="text-red-500 line-through">${formatPrice(p.precioOriginal)}</span></span>` : `<span data-card-original class="hidden"></span>`}
           </div>
           <button data-americano-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
             class="rounded-full bg-ink text-cream text-xs font-semibold px-3 py-1.5 hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
@@ -2031,7 +2048,7 @@ function wireAmericanoVariantSelectors(container) {
         const hasDiscount = variant.precioOriginal > variant.precio;
         originalEl.className = hasDiscount ? "flex items-center gap-1 text-[10px]" : "hidden";
         originalEl.innerHTML = hasDiscount
-          ? `<span class="text-ink/40">Precio Sephora</span><span class="text-red-500 line-through">${formatPrice(variant.precioOriginal)}</span>`
+          ? `<span class="text-ink/75">Precio Sephora</span><span class="text-red-500 line-through">${formatPrice(variant.precioOriginal)}</span>`
           : "";
       }
 
@@ -2770,7 +2787,7 @@ function renderAmericanoCart() {
             <button data-americano-dec="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">−</button>
             <span class="text-sm w-5 text-center">${it.qty}</span>
             <button data-americano-inc="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">+</button>
-            <button data-americano-remove="${escapeAttr(id)}" class="ml-2 text-xs text-ink/40 hover:text-ink/70 underline">quitar</button>
+            <button data-americano-remove="${escapeAttr(id)}" class="ml-2 text-xs text-ink/75 hover:text-ink/70 underline">quitar</button>
           </div>
         </div>
         <span class="text-sm font-semibold text-ink whitespace-nowrap">${formatPrice(it.product.precio * it.qty)}</span>
@@ -3085,7 +3102,7 @@ function renderCart() {
             <button data-dec="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">−</button>
             <span class="text-sm w-5 text-center">${it.qty}</span>
             <button data-inc="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">+</button>
-            <button data-remove="${escapeAttr(id)}" class="ml-2 text-xs text-ink/40 hover:text-ink/70 underline">quitar</button>
+            <button data-remove="${escapeAttr(id)}" class="ml-2 text-xs text-ink/75 hover:text-ink/70 underline">quitar</button>
           </div>
         </div>
         <span class="text-sm font-semibold text-ink whitespace-nowrap">${formatPrice(it.product.precio * it.qty)}</span>
@@ -3723,7 +3740,7 @@ function orderNumber(o) {
    tiene sentido un avance "recibido -> pagado -> enviado" para esos). */
 function orderTimelineHTML(o) {
   if (o.status === "cancelled") {
-    return `<p class="text-xs font-semibold text-ink/60 bg-ink/5 rounded-lg px-3 py-2">✕ Este pedido fue cancelado.</p>`;
+    return `<p class="text-xs font-semibold text-ink/75 bg-ink/5 rounded-lg px-3 py-2">✕ Este pedido fue cancelado.</p>`;
   }
   if (o.status === "failed") {
     return `<p class="text-xs font-semibold text-rose bg-rose/10 rounded-lg px-3 py-2">⚠️ No se pudo procesar el pago de este pedido. Si crees que es un error, contáctanos.</p>`;
@@ -3739,7 +3756,7 @@ function orderTimelineHTML(o) {
       ${i > 0 ? `<div class="flex-1 h-0.5 ${s.done ? "bg-rose" : "bg-ink/15"}"></div>` : ""}
       <div class="flex flex-col items-center gap-1 shrink-0">
         <div class="w-2.5 h-2.5 rounded-full ${s.done ? "bg-rose" : "bg-ink/15"}"></div>
-        <span class="text-[10px] ${s.done ? "text-ink font-semibold" : "text-ink/40"} whitespace-nowrap">${s.label}</span>
+        <span class="text-[10px] ${s.done ? "text-ink font-semibold" : "text-ink/75"} whitespace-nowrap">${s.label}</span>
       </div>`
     )
     .join("");
@@ -3755,7 +3772,7 @@ function orderItemsDetailHTML(o) {
       (it) => `
       <li class="flex justify-between gap-3 text-sm">
         <span class="text-ink/80">
-          ${escapeHtml(it.nombre)} <span class="text-ink/40">x${it.qty}</span>
+          ${escapeHtml(it.nombre)} <span class="text-ink/75">x${it.qty}</span>
           ${
             canReview && it.sku
               ? `<button type="button" data-review="${escapeAttr(it.sku)}" data-review-name="${escapeAttr(it.nombre)}"
@@ -3763,7 +3780,7 @@ function orderItemsDetailHTML(o) {
               : ""
           }
         </span>
-        <span class="text-ink/60 shrink-0">${formatPrice((it.precio || 0) * it.qty)}</span>
+        <span class="text-ink/75 shrink-0">${formatPrice((it.precio || 0) * it.qty)}</span>
       </li>`
     )
     .join("");
@@ -3811,7 +3828,7 @@ function orderWhatsAppButtonHTML(o) {
 
 function myOrderCardHTML(o) {
   const statusLabel = ORDER_STATUS_LABELS[o.status] || o.status;
-  const badgeClass = ORDER_STATUS_BADGE_CLASSES[o.status] || "bg-ink/10 text-ink/60";
+  const badgeClass = ORDER_STATUS_BADGE_CLASSES[o.status] || "bg-ink/10 text-ink/75";
   const fecha = o.createdAt
     ? new Date(o.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })
     : "";
@@ -3824,7 +3841,7 @@ function myOrderCardHTML(o) {
     <details class="rounded-xl border border-ink/10 overflow-hidden bg-white/40">
       <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-3 p-3 hover:bg-ink/5 transition">
         <div class="min-w-0 flex-1">
-          <p class="text-[11px] text-ink/40">#${orderNumber(o)} · ${fecha}</p>
+          <p class="text-[11px] text-ink/75">#${orderNumber(o)} · ${fecha}</p>
           <p class="text-sm font-semibold text-ink truncate">${escapeHtml(itemsSummary)}</p>
         </div>
         <div class="flex flex-col items-end gap-1 shrink-0">
@@ -3835,7 +3852,7 @@ function myOrderCardHTML(o) {
       <div class="border-t border-ink/10 p-3 space-y-3">
         ${orderTimelineHTML(o)}
         <ul class="space-y-1">${orderItemsDetailHTML(o)}</ul>
-        <div class="text-xs text-ink/60 space-y-0.5 pt-2 border-t border-ink/10">
+        <div class="text-xs text-ink/75 space-y-0.5 pt-2 border-t border-ink/10">
           <div class="flex justify-between"><span>Subtotal</span><span>${formatPrice(subtotal)}</span></div>
           ${shippingMXN > 0 ? `<div class="flex justify-between"><span>Envío</span><span>${formatPrice(shippingMXN)}</span></div>` : ""}
           <div class="flex justify-between text-ink font-bold text-sm pt-1"><span>Total</span><span>${formatPrice(o.grandTotal)}</span></div>
@@ -3932,7 +3949,7 @@ function renderAccountOrdersRangeChips() {
     const active = accountOrdersRangeFilter === r.key;
     return `
       <button type="button" data-range-filter="${r.key}"
-        class="rounded-full px-3 py-1.5 text-xs font-semibold transition ${active ? "bg-ink text-cream" : "bg-ink/5 text-ink/60 hover:bg-ink/10"}">
+        class="rounded-full px-3 py-1.5 text-xs font-semibold transition ${active ? "bg-ink text-cream" : "bg-ink/5 text-ink/75 hover:bg-ink/10"}">
         ${r.label}
       </button>`;
   }).join("");
