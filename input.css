@@ -2,15 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tipografía de marca en dos partes (antes era un solo TTF de 145 KB):
+   - ReadyToParty-latin.woff2 (22 KB): letras latinas básicas, acentos,
+     ñ, ¿¡ y puntuación -- todo lo que usan los títulos en español. Se
+     precarga en index.html.
+   - ReadyToParty.woff2 (32 KB): la fuente completa; el navegador solo la
+     descarga si un título trae una letra fuera del primer grupo (ej. una
+     marca con "ł").
+   El TTF original se queda como último respaldo para navegadores viejos.
+   Para regenerarlas: pyftsubset (fonttools) -- ver README. */
 @font-face {
   font-family: "Ready to Party";
-  src: url("./fonts/ReadyToParty.ttf") format("truetype");
+  src: url("./fonts/ReadyToParty-latin.woff2") format("woff2"),
+    url("./fonts/ReadyToParty.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2122, U+2190-21FF;
+}
+@font-face {
+  font-family: "Ready to Party";
+  src: url("./fonts/ReadyToParty.woff2") format("woff2"),
+    url("./fonts/ReadyToParty.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  /* Solo las letras extra que de verdad trae la fuente (latinas extendidas).
+     Un rango más amplio hacía que los emojis de los títulos ("✅ En stock")
+     bajaran este archivo aunque la fuente no los dibuja. */
+  unicode-range: U+0100-0131, U+0134-0137, U+0139-0148, U+014C-017E, U+02C6-02C7, U+02D8-02DD;
+}
+
+/* El gris por defecto de Tailwind (#9ca3af) quedaba en 2.5:1 sobre los
+   campos; tinta al 72% llega a 4.8:1 y sigue viéndose más clara que el
+   texto que escribe la clienta. */
+@layer base {
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(61 58 66 / 0.72);
+  }
 }
 
 @layer utilities {
+  /* Área de toque de al menos 44×44 px sin cambiar cómo se ve el
+     control: un pseudo-elemento invisible centrado sobre él. Para
+     controles que ya son absolute, se usa su propia posición. */
+  .tap:not(.absolute):not(.fixed) {
+    position: relative;
+  }
+  .tap::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -29,4 +78,174 @@ html {
   html {
     scroll-padding-top: 7.5rem;
   }
+}
+
+/* En pantallas táctiles los campos van siempre a 16 px: con menos, el
+   iPhone hace zoom a toda la página al tocar un campo (pasaba con el
+   celular acostado, que ya cuenta como "sm" y bajaba a 14 px).
+   [class] sube la especificidad sobre sm:text-sm. */
+@media (pointer: coarse) {
+  :is(input, select, textarea)[class] {
+    font-size: 16px;
+  }
+}
+
+/* Celular acostado (pantalla ancha pero muy baja): el header fijo con
+   la segunda fila de categorías ocupaba casi un tercio de la pantalla.
+   Aquí se usa la navegación de celular (☰ + panel) y el header queda en
+   una sola fila. Los IDs ganan sobre las clases sm:hidden / sm:block. */
+@media (min-width: 640px) and (max-height: 520px) {
+  #category-nav-row {
+    display: none;
+  }
+  #menu-toggle {
+    display: inline-block;
+  }
+  #mobile-menu {
+    display: flex;
+    max-width: 24rem;
+  }
+  #menu-overlay {
+    display: block;
+  }
+  html {
+    scroll-padding-top: 4.5rem;
+  }
+}
+
+/* Foco visible al navegar con teclado. El anillo del navegador cambia
+   según el equipo y el blush de antes casi no se veía sobre crema
+   (1.4:1); lilac se lee a 3.4:1 sobre crema y 3.2:1 sobre el panel
+   oscuro. Sobre las franjas lilac el anillo va en crema. Los campos de
+   formulario siguen usando su propio anillo (focus:ring-lilac). */
+:focus-visible {
+  outline: 2px solid theme("colors.lilac.DEFAULT");
+  outline-offset: 2px;
+}
+.bg-lilac-band :focus-visible {
+  outline-color: theme("colors.cream");
+}
+
+/* ======================================================================
+   Movimiento
+   Entradas con desaceleración natural; salidas más cortas que las
+   entradas (lo que se va no hace esperar a nadie).
+   ====================================================================== */
+
+/* Paneles laterales (carritos, Mi cuenta, menú móvil). La clase cerrada
+   (translate-x-full) marca la salida: más rápida y acelerando. */
+.drawer {
+  transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out;
+}
+.drawer.translate-x-full,
+.drawer.-translate-x-full {
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Fondos oscuros detrás de paneles y ventanas. */
+.scrim {
+  transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scrim.opacity-0 {
+  transition-duration: 180ms;
+}
+
+/* Ventanas (Avísame, calificar, reseñas): la tarjeta sube un poco al
+   aparecer, así se lee como "algo que llega" y no un corte. */
+.modal-card {
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.opacity-0 > .modal-card {
+  transform: translateY(12px) scale(0.98);
+  transition-duration: 180ms;
+}
+
+/* Banner: fundido cruzado entre slides (ver renderHeroSlide en app.js). */
+.hero-slide {
+  transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hero-slide.is-entering {
+  opacity: 0;
+}
+
+/* Barra deslizante: se detiene con el mouse encima, con el foco del
+   teclado, con su botón de pausa o fuera de pantalla. */
+#ticker:hover .animate-marquee,
+#ticker:focus-within .animate-marquee,
+#ticker[data-paused] .animate-marquee,
+#ticker[data-offscreen] .animate-marquee {
+  animation-play-state: paused;
+}
+
+/* Menos movimiento: nada se desliza ni se mueve solo; lo que comunica
+   un cambio de estado (fundidos, color) se conserva, más corto. */
+@media (prefers-reduced-motion: reduce) {
+  .drawer {
+    transition: opacity 160ms ease-out;
+  }
+  .drawer.translate-x-full,
+  .drawer.-translate-x-full {
+    opacity: 0;
+    transition-duration: 0s;
+  }
+  .opacity-0 > .modal-card {
+    transform: none;
+  }
+  .hero-slide {
+    transition-duration: 200ms;
+  }
+  /* "html" sube la especificidad: Tailwind escribe sus reglas hover:
+     al final del archivo, después de este bloque. */
+  html .group:hover .group-hover\:scale-105 {
+    transform: none;
+  }
+  /* El ticker se queda quieto: una sola copia de los mensajes en una
+     línea, centrada si cabe; si no (celular), se desliza con el dedo al
+     ritmo de quien lee. */
+  .animate-marquee {
+    animation: none;
+    justify-content: safe center;
+    column-gap: 2rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-inline: 1rem;
+  }
+  .ticker-dup,
+  #ticker-pause {
+    display: none;
+  }
+  .animate-pulse {
+    animation-duration: 3s;
+  }
+}
+
+/* Partes que dibuja el navegador, con los colores de la marca (antes
+   salían en azul del sistema): selección de texto, casillas de
+   verificación, cursor de los campos y la "×" para borrar la búsqueda. */
+::selection {
+  background: theme("colors.blush");
+  color: theme("colors.ink");
+}
+:root {
+  accent-color: theme("colors.rose.deep");
+}
+input,
+textarea {
+  caret-color: theme("colors.rose.deep");
+}
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  background: center / 14px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d3a42' stroke-opacity='.75' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E");
+}
+
+/* Los paneles (carrito, Mi cuenta, menú...) reciben el foco al abrirse
+   solo para que el lector anuncie su título; no llevan anillo. */
+[role="dialog"]:focus {
+  outline: none;
 }

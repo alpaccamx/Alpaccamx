@@ -1,0 +1,508 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-28T16:34:06.975Z",
+  "title": "Design System: Alpacca",
+  "extensions": {
+    "colorMeta": {
+      "peony-rose": {
+        "role": "primary",
+        "displayName": "Peony Rose (fills only)",
+        "canonical": "#ee6c92",
+        "tonalRamp": [
+          "oklch(15% 0.05 358)",
+          "oklch(27% 0.09 358)",
+          "oklch(39% 0.13 358)",
+          "oklch(51% 0.16 358)",
+          "oklch(63% 0.17 358)",
+          "oklch(70% 0.16 358)",
+          "oklch(83% 0.09 358)",
+          "oklch(95% 0.03 358)"
+        ]
+      },
+      "deep-peony": {
+        "role": "primary",
+        "displayName": "Deep Peony",
+        "canonical": "#c4466e",
+        "tonalRamp": [
+          "oklch(15% 0.060 4)",
+          "oklch(27% 0.150 4)",
+          "oklch(39% 0.150 4)",
+          "oklch(51% 0.150 4)",
+          "oklch(63% 0.150 4)",
+          "oklch(75% 0.150 4)",
+          "oklch(85% 0.150 4)",
+          "oklch(95% 0.060 4)"
+        ]
+      },
+      "peony-ink": {
+        "role": "primary",
+        "displayName": "Peony Ink",
+        "canonical": "#b33660"
+      },
+      "dusk-lilac": {
+        "role": "secondary",
+        "displayName": "Dusk Lilac",
+        "canonical": "#8b84ac",
+        "tonalRamp": [
+          "oklch(15% 0.03 290)",
+          "oklch(27% 0.045 290)",
+          "oklch(39% 0.055 290)",
+          "oklch(51% 0.06 290)",
+          "oklch(63% 0.06 290)",
+          "oklch(74% 0.05 290)",
+          "oklch(85% 0.035 290)",
+          "oklch(95% 0.015 290)"
+        ]
+      },
+      "dusk-lilac-band": {
+        "role": "secondary",
+        "displayName": "Dusk Lilac Band",
+        "canonical": "#766f96"
+      },
+      "lilac-ink": {
+        "role": "secondary",
+        "displayName": "Lilac Ink",
+        "canonical": "#696288"
+      },
+      "blush": {
+        "role": "tertiary",
+        "displayName": "Blush",
+        "canonical": "#f6cadb",
+        "tonalRamp": [
+          "oklch(15% 0.03 355)",
+          "oklch(27% 0.05 355)",
+          "oklch(39% 0.07 355)",
+          "oklch(51% 0.08 355)",
+          "oklch(63% 0.08 355)",
+          "oklch(75% 0.07 355)",
+          "oklch(88% 0.05 355)",
+          "oklch(95% 0.02 355)"
+        ]
+      },
+      "petal-bar": {
+        "role": "tertiary",
+        "displayName": "Petal Bar",
+        "canonical": "#fdd2de"
+      },
+      "cream-paper": {
+        "role": "neutral",
+        "displayName": "Cream Paper",
+        "canonical": "#fffcf4",
+        "tonalRamp": [
+          "oklch(15% 0.01 90)",
+          "oklch(27% 0.012 90)",
+          "oklch(39% 0.014 90)",
+          "oklch(51% 0.015 90)",
+          "oklch(63% 0.015 90)",
+          "oklch(75% 0.015 90)",
+          "oklch(88% 0.014 90)",
+          "oklch(99% 0.012 90)"
+        ]
+      },
+      "plum-ink": {
+        "role": "neutral",
+        "displayName": "Plum Ink",
+        "canonical": "#3d3a42",
+        "tonalRamp": [
+          "oklch(15% 0.012 300)",
+          "oklch(25% 0.013 300)",
+          "oklch(35% 0.013 300)",
+          "oklch(47% 0.012 300)",
+          "oklch(59% 0.011 300)",
+          "oklch(72% 0.009 300)",
+          "oklch(85% 0.006 300)",
+          "oklch(95% 0.003 300)"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "canonical": "rgba(61, 58, 66, 0.75)"
+      },
+      "ink-placeholder": {
+        "role": "neutral",
+        "displayName": "Ink Placeholder",
+        "canonical": "rgba(61, 58, 66, 0.72)"
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "rgba(61, 58, 66, 0.1)"
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "Field Border",
+        "canonical": "rgba(61, 58, 66, 0.2)"
+      },
+      "card-surface": {
+        "role": "neutral",
+        "displayName": "Card Surface",
+        "canonical": "rgba(255, 255, 255, 0.6)"
+      },
+      "field-surface": {
+        "role": "neutral",
+        "displayName": "Field Surface",
+        "canonical": "rgba(255, 255, 255, 0.7)"
+      },
+      "in-stock-bg": {
+        "role": "status",
+        "displayName": "In Stock Tint",
+        "canonical": "#dcfce7"
+      },
+      "in-stock-text": {
+        "role": "status",
+        "displayName": "In Stock Green",
+        "canonical": "#15803d"
+      },
+      "sold-out-bg": {
+        "role": "status",
+        "displayName": "Sold Out Tint",
+        "canonical": "#fee2e2"
+      },
+      "sold-out-text": {
+        "role": "status",
+        "displayName": "Sold Out Red",
+        "canonical": "#b91c1c"
+      },
+      "whatsapp-green": {
+        "role": "third-party",
+        "displayName": "WhatsApp Green",
+        "canonical": "#25d366"
+      },
+      "mercadopago-blue": {
+        "role": "third-party",
+        "displayName": "Mercado Pago Blue (AA-tuned)",
+        "canonical": "#0074c2"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Promo band headline and text-only hero slides."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Every section title, drawer titles, quiz result."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Product names, tile headings, FAQ questions."
+      },
+      "price": {
+        "displayName": "Price",
+        "purpose": "Card price: Josefin 600, 18px, tabular figures."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions, tile copy, FAQ answers."
+      },
+      "eyebrow": {
+        "displayName": "Eyebrow",
+        "purpose": "Uppercase line above every homepage section headline."
+      },
+      "label": {
+        "displayName": "Brand Label",
+        "purpose": "Uppercase brand name above product titles."
+      },
+      "chip": {
+        "displayName": "Chip",
+        "purpose": "Presentation, stock, MOQ chips and status badges (12px)."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "12px lines under the price and helper text; one fact per line."
+      }
+    },
+    "shadows": [
+      {
+        "name": "hover-lift",
+        "value": "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
+        "purpose": "Product cards on hover, paired with a rose-tinted border and 105% image zoom."
+      },
+      {
+        "name": "floating",
+        "value": "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
+        "purpose": "Dropdown menus and the WhatsApp floating button."
+      },
+      {
+        "name": "overlay",
+        "value": "0 25px 50px -12px rgba(0,0,0,0.25)",
+        "purpose": "Cart and menu drawers."
+      },
+      {
+        "name": "badge",
+        "value": "0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)",
+        "purpose": "Rank number over Best Seller images."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-arrive",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Every entrance: drawers, backdrops, modal cards, hero crossfade, cart acknowledgment."
+      },
+      {
+        "name": "ease-exit",
+        "value": "cubic-bezier(0.4, 0, 1, 1)",
+        "purpose": "Drawer exits: short and accelerating."
+      },
+      {
+        "name": "ease-default",
+        "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Hover color and opacity changes on buttons and links."
+      },
+      {
+        "name": "cart-ack-wash",
+        "value": "1100ms ease-arrive, blush 75% to 0",
+        "purpose": "The changed cart line after add or quantity change (kept under reduced motion)."
+      },
+      {
+        "name": "cart-ack-pop",
+        "value": "320ms ease-arrive, scale 1 to 1.35 to 1",
+        "purpose": "Header cart count after a change (skipped under reduced motion)."
+      },
+      {
+        "name": "drawer-in",
+        "value": "380ms ease-arrive",
+        "purpose": "Cart, account and menu drawers opening."
+      },
+      {
+        "name": "drawer-out",
+        "value": "220ms ease-exit",
+        "purpose": "Drawers closing."
+      },
+      {
+        "name": "scrim",
+        "value": "280ms in / 180ms out",
+        "purpose": "Backdrop fades."
+      },
+      {
+        "name": "modal-rise",
+        "value": "320ms ease-arrive, translateY(12px) scale(0.98) to none",
+        "purpose": "Restock, review and reviews-list cards."
+      },
+      {
+        "name": "card-hover",
+        "value": "300ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Card shadow lift and 105% image zoom (zoom off under reduced motion)."
+      },
+      {
+        "name": "hero-crossfade",
+        "value": "700ms ease-arrive (200ms reduced)",
+        "purpose": "Banner slide change, after the next image loads."
+      },
+      {
+        "name": "hero-rotate",
+        "value": "6000ms",
+        "purpose": "Banner auto-advance; pauses on hover, keyboard focus, off-screen, hidden tab or pause button; off by default under reduced motion."
+      },
+      {
+        "name": "marquee",
+        "value": "22s linear infinite",
+        "purpose": "Ticker loop; pauses on hover, focus, off-screen or pause button; static and swipeable under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "container",
+        "value": "1280px"
+      },
+      {
+        "name": "short-landscape",
+        "value": "(min-width: 640px) and (max-height: 520px)",
+        "purpose": "Phone on its side: phone navigation, one-row header."
+      },
+      {
+        "name": "coarse",
+        "value": "(pointer: coarse)",
+        "purpose": "Touch input: larger steppers, 44px rows, 16px fields."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Peony rose pill for every primary action.",
+      "html": "<button class=\"ds-btn-primary\">Explorar catálogo</button>",
+      "css": ".ds-btn-primary { background: #c4466e; color: #fffcf4; font-family: Nunito, sans-serif; font-weight: 600; font-size: 16px; padding: 12px 24px; border: none; border-radius: 9999px; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: #b33660; } .ds-btn-primary:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
+    },
+    {
+      "name": "Card Add Button",
+      "kind": "button",
+      "refersTo": "button-card",
+      "description": "Full-width Agregar on product cards; disabled until a shade is chosen.",
+      "html": "<div style=\"display:flex;gap:8px\"><button class=\"ds-btn-add\">Agregar</button><button class=\"ds-btn-add\" disabled>Agregar</button></div>",
+      "css": ".ds-btn-add { background: #c4466e; color: #fffcf4; font-family: Nunito, sans-serif; font-weight: 600; font-size: 14px; padding: 8px 12px; width: 100%; border: none; border-radius: 9999px; cursor: pointer; transition: background-color 150ms; } .ds-btn-add:hover { background: #b33660; } .ds-btn-add:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; } .ds-btn-add:disabled { opacity: 0.3; cursor: not-allowed; } .ds-btn-add { position: relative; } .ds-btn-add::after { content: \"\"; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }"
+    },
+    {
+      "name": "Outline Rose Button",
+      "kind": "button",
+      "refersTo": "button-outline-rose",
+      "description": "'Avísame' restock request on sold-out cards.",
+      "html": "<button class=\"ds-btn-outline\">🔔 Avísame</button>",
+      "css": ".ds-btn-outline { background: transparent; color: #b33660; border: 1px solid #c4466e; font-family: Nunito, sans-serif; font-weight: 600; font-size: 12px; padding: 6px 12px; border-radius: 9999px; cursor: pointer; transition: background-color 150ms; } .ds-btn-outline:hover { background: rgba(238,108,146,0.1); } .ds-btn-outline:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary CTA; turns rose on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Escríbenos</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #3d3a42; border: 1px solid rgba(61,58,66,0.2); font-family: Nunito, sans-serif; font-weight: 600; font-size: 16px; padding: 12px 24px; border-radius: 9999px; cursor: pointer; transition: color 150ms, border-color 150ms; } .ds-btn-ghost:hover { color: #b33660; border-color: #c4466e; } .ds-btn-ghost:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "Header pill search with inset round icon button.",
+      "html": "<form class=\"ds-search\"><input class=\"ds-search-input\" type=\"search\" placeholder=\"Buscar productos...\" aria-label=\"Buscar productos\"><button class=\"ds-search-btn\" type=\"submit\" aria-label=\"Buscar\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/></svg></button></form>",
+      "css": ".ds-search { position: relative; max-width: 448px; } .ds-search-input { width: 100%; font-family: Nunito, sans-serif; font-size: 14px; color: #3d3a42; background: rgba(255,255,255,0.7); border: 1px solid rgba(61,58,66,0.2); border-radius: 9999px; padding: 8px 40px 8px 16px; } .ds-search-input:focus { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; } .ds-search-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; border-radius: 9999px; background: transparent; color: rgba(61,58,66,0.75); cursor: pointer; transition: color 150ms, background-color 150ms; } .ds-search-btn:hover { color: #3d3a42; background: rgba(61,58,66,0.05); } ::placeholder { color: rgba(61,58,66,0.72); }"
+    },
+    {
+      "name": "Form Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Checkout field with a label above it and a blush focus ring.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-cp\">Código postal *</label><input class=\"ds-field-input\" id=\"ds-cp\" placeholder=\"Ej. 06700\"></div>",
+      "css": ".ds-field { max-width: 280px; } .ds-field-label { display: block; font-family: Nunito, sans-serif; font-size: 12px; font-weight: 600; color: rgba(61,58,66,0.75); margin-bottom: 4px; } .ds-field-input { width: 100%; font-family: Nunito, sans-serif; font-size: 14px; color: #3d3a42; background: rgba(255,255,255,0.7); border: 1px solid rgba(61,58,66,0.2); border-radius: 8px; padding: 8px 12px; } .ds-field-input:focus { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; } ::placeholder { color: rgba(61,58,66,0.72); }"
+    },
+    {
+      "name": "Category Nav",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Desktop horizontal section links under the header.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\">Skincare en nuestra bodega en Corea 🇰🇷</a><a href=\"#\">✅ En stock</a><button type=\"button\">Marcas <svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 9l6 6 6-6\"/></svg></button></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 24px; height: 44px; padding: 0 16px; background: #fffcf4; border-top: 1px solid rgba(61,58,66,0.1); white-space: nowrap; overflow-x: auto; } .ds-nav a, .ds-nav button { font-family: Nunito, sans-serif; font-size: 14px; font-weight: 600; color: rgba(61,58,66,0.8); text-decoration: none; background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: color 150ms; } .ds-nav a:hover, .ds-nav button:hover { color: #3d3a42; } .ds-nav a:focus-visible, .ds-nav button:focus-visible { outline: 2px solid #8b84ac; outline-offset: 2px; border-radius: 4px; }"
+    },
+    {
+      "name": "Presentation Chips",
+      "kind": "chip",
+      "refersTo": "chip-presentation",
+      "description": "Single unit vs. box vs. in-stock status chips on product cards.",
+      "html": "<div class=\"ds-chips\"><span class=\"ds-chip ds-chip-unit\">Pieza individual</span><span class=\"ds-chip ds-chip-box\">Caja con 12 piezas</span><span class=\"ds-chip ds-chip-stock\">✅ Entrega inmediata · 4 piezas disponibles</span><span class=\"ds-badge-soldout\">Agotado</span></div>",
+      "css": ".ds-chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; } .ds-chip { display: inline-block; font-family: Nunito, sans-serif; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; } .ds-chip-unit { background: rgba(246,202,219,0.5); color: rgba(61,58,66,0.8); } .ds-chip-box { background: rgba(139,132,172,0.2); color: #696288; } .ds-chip-stock { background: #dcfce7; color: #15803d; } .ds-badge-soldout { font-family: Nunito, sans-serif; background: #3d3a42; color: #fffcf4; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 9999px; }"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "product-card",
+      "description": "The workhorse card: photo well, chips, brand, name, 18px price with 12px meta lines, full-width Agregar; lifts on hover.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-img\"><span class=\"ds-rank\">1</span></div><div class=\"ds-card-body\"><span class=\"ds-chip-box\">Caja con 12 piezas</span><span class=\"ds-card-brand\">Anua</span><h3 class=\"ds-card-name\">Heartleaf 77% Soothing Toner</h3><span class=\"ds-card-meta\">250ml</span><div class=\"ds-card-foot\"><span class=\"ds-card-price\">$3,450.00</span><span class=\"ds-card-meta\">$287.50 c/u</span><span class=\"ds-card-meta\">🏦 Por transferencia</span><span class=\"ds-card-meta ds-card-tarjeta\">Con tarjeta: $3,660.00</span><button class=\"ds-card-add\">Agregar</button></div></div></div>",
+      "css": ".ds-card { width: 220px; display: flex; flex-direction: column; background: rgba(255,255,255,0.6); border: 1px solid rgba(61,58,66,0.1); border-radius: 16px; overflow: hidden; font-family: Nunito, sans-serif; transition: box-shadow 300ms, border-color 300ms; } .ds-card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); border-color: rgba(238,108,146,0.3); } .ds-card-img { position: relative; aspect-ratio: 1; background: rgba(246,202,219,0.2); } .ds-rank { position: absolute; top: 8px; left: 8px; width: 32px; height: 32px; border-radius: 9999px; background: #c4466e; color: #fffcf4; display: flex; align-items: center; justify-content: center; font-family: 'Ready to Party', sans-serif; font-size: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); } .ds-card-body { padding: 12px; display: flex; flex-direction: column; gap: 2px; } .ds-chip-box { width: fit-content; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; background: rgba(139,132,172,0.2); color: #696288; margin-bottom: 4px; } .ds-card-brand { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(61,58,66,0.75); } .ds-card-name { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.375; color: #3d3a42; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; } .ds-card-foot { margin-top: 12px; display: flex; flex-direction: column; line-height: 1.25; font-variant-numeric: tabular-nums; } .ds-card-price { font-family: 'Josefin Sans', sans-serif; font-weight: 600; font-size: 18px; color: #3d3a42; } .ds-card-meta { font-size: 12px; color: rgba(61,58,66,0.75); margin-top: 2px; } .ds-card-tarjeta { color: #696288; font-weight: 600; } .ds-card-add { margin-top: 8px; width: 100%; font-size: 14px; padding: 8px 12px;  background: #c4466e; color: #fffcf4; border: none; border-radius: 9999px; font-family: Nunito, sans-serif; font-weight: 600; cursor: pointer; transition: background-color 150ms; } .ds-card-add:hover { background: #b33660; } .ds-card-add:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
+    },
+    {
+      "name": "Info Tile",
+      "kind": "custom",
+      "refersTo": "info-tile",
+      "description": "'Por qué Alpacca' / benefit tile with a rose-tint icon circle.",
+      "html": "<div class=\"ds-tile\"><span class=\"ds-tile-icon\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 8h12l-1 12H7L6 8z\"/><path d=\"M9 8V6a3 3 0 0 1 6 0v2\"/></svg></span><p class=\"ds-tile-title\">Mayoreo real</p><p class=\"ds-tile-text\">Precios y presentaciones pensados para revender y obtener ganancias.</p></div>",
+      "css": ".ds-tile { max-width: 260px; background: rgba(255,255,255,0.6); border: 1px solid rgba(61,58,66,0.1); border-radius: 16px; padding: 20px; font-family: Nunito, sans-serif; } .ds-tile-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 9999px; background: rgba(238,108,146,0.1); color: #ee6c92; } .ds-tile-title { margin: 8px 0 0; font-weight: 600; color: #3d3a42; } .ds-tile-text { margin: 4px 0 0; font-size: 14px; color: rgba(61,58,66,0.75); }"
+    },
+    {
+      "name": "Feature Band",
+      "kind": "custom",
+      "refersTo": "feature-band",
+      "description": "Wide lilac promo band with a Ready to Party headline and rose CTA.",
+      "html": "<section class=\"ds-band\"><h2 class=\"ds-band-title\">Skincare asiático que tus clientes van a querer</h2><p class=\"ds-band-sub\">Productos coreanos seleccionados para tu negocio.</p><a class=\"ds-band-cta\" href=\"#\">Explorar catálogo</a></section>",
+      "css": ".ds-band { background: #766f96; color: #fffcf4; border-radius: 24px; padding: 48px 24px; text-align: center; font-family: Nunito, sans-serif; } .ds-band-title { margin: 0; font-family: 'Ready to Party', sans-serif; font-weight: 400; font-size: 36px; line-height: 1.1; } .ds-band-sub { margin: 8px auto 0; max-width: 32rem; color: #fffcf4; } .ds-band-cta { display: inline-block; margin-top: 24px; background: #c4466e; color: #fffcf4; font-weight: 600; padding: 12px 24px; border-radius: 9999px; text-decoration: none; transition: background-color 150ms; } .ds-band-cta:hover { background: #b33660; } .ds-band-cta:focus-visible { outline: 2px solid #fffcf4; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Friendly Wholesale Counter",
+    "overview": "Alpacca looks like a small shop counter run by someone who knows you. The surface is warm and a little playful: cream paper, peony-rose buttons, the alpaca mascot, and headings set in a rounded hand-lettered display face. Underneath, the job is practical. A reseller comes here to do the math: unit vs. box, transfer vs. card price, shipping by weight and zip code, and how far they are from the order minimum. The friendliness puts people at ease; the numbers are what they came for.\n\nThe system is soft and flat. Surfaces are translucent white cards on cream with hairline plum borders, and depth appears only on hover. Rose is the single action color. Lilac provides calm contrast bands. Blush and the petal bar are backgrounds and never compete with actions. Density is moderate: two-column product grids on phones, up to six on desktop, with generous 56px pauses between homepage sections.\n\nPersonality comes from a few specific details rather than decoration: the Ready to Party headings, numbered rank badges, the mascot in empty states, and emoji used as inline signposts in operational copy (✅ En stock, ✈️ Envío Corea→México, 🏦 transferencia).",
+    "keyCharacteristics": [
+      "Cream paper ground (never pure white) with plum ink text (never pure black).",
+      "One action color: Deep Peony on every \"Agregar\", cart and CTA; the bright Peony Rose only where no text sits.",
+      "Pill shapes for anything you tap; rounded 16px cards for anything you read.",
+      "Flat at rest; a shadow and a rose border tint appear on hover.",
+      "A playful display face for headings, a plain sans for everything else, and Josefin Sans for prices.",
+      "Emoji as functional signposts in commerce copy, not as decoration."
+    ],
+    "rules": [
+      {
+        "name": "The One Rose Rule",
+        "body": "Rose means \"do something\". Don't use it for decoration, section backgrounds or large text blocks. If an element isn't tappable, it doesn't get rose (step numerals and icon tints are the only exceptions).",
+        "section": "colors"
+      },
+      {
+        "name": "The Cream, Not White Rule",
+        "body": "The page is always cream paper. White appears only as a translucent layer (60–70%) on cards and fields, so the warmth shows through.",
+        "section": "colors"
+      },
+      {
+        "name": "The Text Gets the Deep Shade Rule",
+        "body": "Any rose or lilac that carries text, or has text on it, uses its deep shade: Deep Peony or Peony Ink, Lilac Band or Lilac Ink. The bright Peony Rose and Dusk Lilac never sit behind or in front of words. Every text pair meets WCAG AA (4.5:1, or 3:1 at 24px and up).",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink Floor Rule",
+        "body": "Text is never lighter than `ink-muted` (plum at 75%). Fainter ink is for borders and dividers only.",
+        "section": "colors"
+      },
+      {
+        "name": "The 12px Floor Rule",
+        "body": "No text is smaller than 12px (`text-xs`), and anything a reseller uses to calculate (prices, per-piece price, card price, stock counts, minimums) is at least 12px, set in tabular figures where it sits in a column (cart totals, line prices). The only thing that may be smaller is a count inside a bubble, and even that is 12px today.",
+        "section": "typography"
+      },
+      {
+        "name": "The Party Is for Headings Rule",
+        "body": "Ready to Party is used only for section and drawer headings, rank numbers and step numerals. Never for body copy, buttons, form labels or prices.",
+        "section": "typography"
+      },
+      {
+        "name": "The Eyebrow + Headline Pair Rule",
+        "body": "Homepage sections open with a centered eyebrow over a Ready to Party headline. Utility result views (search, brand, stock) use a left-aligned headline with a quiet \"Cerrar\" text button on the right instead.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-at-Rest Rule",
+        "body": "Cards and tiles don't have a shadow until they're hovered. If something has a shadow at rest, it must be floating above the page (drawer, dropdown, floating button).",
+        "section": "elevation"
+      },
+      {
+        "name": "The Reduced Motion Rule",
+        "body": "When the visitor asks for less motion, nothing slides or moves on its own: the banner starts paused, the ticker stands still as one swipeable line, drawers fade in place, product images don't zoom, and scroll jumps are instant. Color feedback (the cart-line wash) stays, because it carries meaning.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Thumb Rule",
+        "body": "Every control is at least 44×44px to a finger. Small-looking controls (the card \"Agregar\", the favorite heart, text links like \"quitar\" or \"¿Olvidaste tu contraseña?\", \"MXN $\") keep their look and get an invisible 44px tap area from the `tap` utility. Controls that are too small to use get genuinely bigger on touch: cart −/+ are 36px circles (28px with a mouse), \"×\" close buttons are 44px circles, banner dots sit in 36×44px buttons, footer links become 44px rows, and dropdown and category rows are 44px tall. A `tap` area must never be clipped by an `overflow: hidden` parent or overlap a neighbor's; the ticker band is 44px tall on touch for that reason.",
+        "section": "layout"
+      }
+    ],
+    "dos": [
+      "Do use Deep Peony for every primary action and nothing decorative (The One Rose Rule), and give any rose or lilac that touches text its deep shade (The Text Gets the Deep Shade Rule).",
+      "Do keep text at `ink-muted` (plum 75%) or darker (The Ink Floor Rule).",
+      "Do keep the page on cream paper, with cards and fields as translucent white (60% / 70%) and 1px hairline borders.",
+      "Do make every tappable control a pill, and every reading container a 16px rounded card.",
+      "Do open homepage sections with the eyebrow + Ready to Party headline pair.",
+      "Do set prices in Josefin Sans, and show the per-unit price under any \"Caja con N piezas\" price.",
+      "Do use emoji as functional signposts in commerce copy (✅ En stock, ✈️ / 🚚 shipping legs, 🏦 transferencia, 💳 tarjeta).",
+      "Do use the 2px-stroke line icons inside rose-tint circles for benefit and feature lists.",
+      "Do use the mascot for empty and waiting states (empty cart, \"Preparando tu catálogo…\").",
+      "Do keep touch targets at 44px or larger and inputs at 16px text on mobile."
+    ],
+    "donts": [
+      "Don't use Ready to Party for body text, buttons, labels or prices.",
+      "Don't use pure white (#fff) as a page background or pure black for text; use cream paper and plum ink.",
+      "Don't add shadows to cards at rest (The Flat-at-Rest Rule).",
+      "Don't introduce a second action color; lilac is a band and tag color, not a button color.",
+      "Don't mix emoji into the line-icon tiles; they should read as one set.",
+      "Don't add review stars, testimonial blocks or payment-logo strips that the catalog data doesn't support."
+    ]
+  }
+}

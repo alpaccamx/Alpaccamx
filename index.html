@@ -20,8 +20,15 @@
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./styles.css">
+<!-- Precargas: el navegador empieza a bajar estos archivos de inmediato,
+     sin esperar a que corra app.js (que es quien pinta el banner).
+     OJO: si cambias el PRIMER slide de CONFIG.HERO_SLIDES en app.js,
+     cambia también estas dos rutas. -->
+<link rel="preload" as="image" href="./assets/hero/hero-anua-50-descuento-mobile.webp" media="(max-width: 639px)" fetchpriority="high">
+<link rel="preload" as="image" href="./assets/hero/hero-anua-50-descuento.webp" media="(min-width: 640px)" fetchpriority="high">
+<link rel="preload" as="font" type="font/woff2" href="./fonts/ReadyToParty-latin.woff2" crossorigin>
 </head>
 <body class="bg-cream text-ink font-body antialiased">
 
@@ -34,7 +41,7 @@
     <p class="flex-1 sm:flex-none text-center font-semibold truncate" id="shipping-message"></p>
     <div class="flex items-center gap-4 shrink-0">
       <button id="currency-toggle" type="button"
-        class="hidden text-ink/75 font-semibold hover:text-ink transition underline decoration-dotted underline-offset-2"
+        class="tap hidden text-ink font-semibold h-10 inline-flex items-center hover:decoration-solid transition underline decoration-dotted underline-offset-2"
         aria-label="Cambiar entre pesos y dólares">MXN $</button>
     </div>
   </div>
@@ -48,8 +55,8 @@
         class="sm:hidden text-ink -ml-2.5 p-2.5">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <a href="#top" class="block">
-        <img src="./assets/logo-wordmark.png" alt="Alpacca" class="h-8 sm:h-10 w-auto" />
+      <a href="#top" class="tap block">
+        <img src="./assets/logo-wordmark.webp" width="365" height="120" alt="Alpacca" class="h-8 sm:h-10 w-auto" />
       </a>
     </div>
 
@@ -59,9 +66,9 @@
     <form id="search-form" role="search" class="order-3 w-full sm:order-none sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-md sm:mx-4">
       <div class="relative">
         <input id="search-input" type="search" enterkeyhint="search" placeholder="Buscar productos..." aria-label="Buscar productos"
-          class="w-full rounded-full border border-ink/20 bg-white/70 pl-4 pr-10 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+          class="w-full rounded-full border border-ink/20 bg-white/70 pl-4 pr-10 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         <button type="submit" aria-label="Buscar"
-          class="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-ink/50 hover:text-ink hover:bg-ink/5 transition">
+          class="tap absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
       </div>
@@ -69,18 +76,18 @@
 
     <div class="order-2 sm:order-none flex items-center gap-1 sm:gap-2">
       <button id="wishlist-toggle" type="button" aria-label="Mis favoritos"
-        class="relative inline-flex items-center justify-center w-11 h-11 rounded-full text-ink/70 hover:text-ink hover:bg-ink/5 transition">
+        class="relative inline-flex items-center justify-center w-11 h-11 rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 transition">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <span id="wishlist-count" class="hidden absolute -top-1 -right-1 bg-blush text-ink text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
+        <span id="wishlist-count" class="hidden absolute -top-1 -right-1 bg-blush text-ink text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
       </button>
 
       <button id="account-toggle" type="button" aria-label="Mi cuenta"
-        class="inline-flex items-center justify-center w-11 h-11 rounded-full text-ink/70 hover:text-ink hover:bg-ink/5 transition">
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 transition">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </button>
 
       <button id="cart-toggle" type="button" aria-label="Abrir carrito"
-        class="relative inline-flex items-center gap-2 rounded-full bg-rose text-cream px-4 py-2 min-h-[44px] text-sm font-semibold hover:bg-rose/90 transition">
+        class="relative inline-flex items-center gap-2 rounded-full bg-rose-deep text-cream px-4 py-2 min-h-[44px] text-sm font-semibold hover:bg-rose-ink transition">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         <span class="hidden sm:inline" id="cart-total-header">$0.00</span>
         <span id="cart-count" class="absolute -top-2 -right-2 bg-blush text-ink text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
@@ -89,16 +96,16 @@
   </div>
 
   <!-- Category nav (desktop) -->
-  <div class="hidden sm:block border-t border-ink/10 relative">
+  <div id="category-nav-row" class="hidden sm:block border-t border-ink/10 relative">
     <button id="nav-prev" type="button" aria-label="Ver categorías anteriores"
-      class="flex absolute left-0 top-0 bottom-0 z-10 items-center px-2 bg-gradient-to-r from-cream to-transparent">
+      class="flex absolute left-0 top-0 bottom-0 z-10 items-center px-3.5 bg-gradient-to-r from-cream to-transparent">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <div id="category-nav" class="flex items-center gap-6 overflow-x-auto px-4 sm:px-10 h-11 whitespace-nowrap [scrollbar-width:none]">
       <!-- category links injected by JS -->
     </div>
     <button id="nav-next" type="button" aria-label="Ver más categorías"
-      class="flex absolute right-0 top-0 bottom-0 z-10 items-center px-2 bg-gradient-to-l from-cream to-transparent">
+      class="flex absolute right-0 top-0 bottom-0 z-10 items-center px-3.5 bg-gradient-to-l from-cream to-transparent">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </button>
   </div>
@@ -109,81 +116,81 @@
 <section id="search-results-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-logo text-xl sm:text-2xl text-ink" id="search-results-title"></h2>
-    <button id="search-results-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar búsqueda</button>
+    <button id="search-results-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar búsqueda</button>
   </div>
   <div id="search-results-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-  <p id="search-results-empty" class="hidden text-center text-ink/50 py-6">No encontramos productos que coincidan con tu búsqueda.</p>
+  <p id="search-results-empty" class="hidden text-center text-ink/75 py-6">No encontramos productos que coincidan con tu búsqueda.</p>
 </section>
 
 <!-- Catálogo completo -->
 <section id="catalog-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-logo text-xl sm:text-2xl text-ink">Catálogo completo</h2>
-    <button id="catalog-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar catálogo</button>
+    <button id="catalog-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar catálogo</button>
   </div>
   <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-  <p id="catalog-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles por el momento.</p>
+  <p id="catalog-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles por el momento.</p>
 </section>
 
 <!-- Mis favoritos -->
 <section id="wishlist-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-logo text-xl sm:text-2xl text-ink">💗 Mis favoritos</h2>
-    <button id="wishlist-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar</button>
+    <button id="wishlist-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
   <div id="wishlist-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-  <p id="wishlist-empty" class="hidden text-center text-ink/50 py-6">Todavía no has guardado productos — toca el ❤️ en cualquier producto para guardarlo aquí.</p>
+  <p id="wishlist-empty" class="hidden text-center text-ink/75 py-6">Todavía no has guardado productos — toca el ❤️ en cualquier producto para guardarlo aquí.</p>
 </section>
 
 <!-- En stock: entrega inmediata -->
 <section id="stock-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-logo text-xl sm:text-2xl text-ink">✅ En stock — entrega inmediata</h2>
-    <button id="stock-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar</button>
+    <button id="stock-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
-  <p class="text-xs text-ink/50 -mt-2 mb-4">Estos productos ya están en México, listos para enviarse — no pagan envío desde Corea.</p>
+  <p class="text-xs text-ink/75 -mt-2 mb-4">Estos productos ya están en México, listos para enviarse — no pagan envío desde Corea.</p>
   <div id="stock-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-  <p id="stock-empty" class="hidden text-center text-ink/50 py-6">Por el momento no hay productos en stock para entrega inmediata.</p>
+  <p id="stock-empty" class="hidden text-center text-ink/75 py-6">Por el momento no hay productos en stock para entrega inmediata.</p>
 </section>
 
 <!-- Productos de una marca -->
 <section id="brand-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-logo text-xl sm:text-2xl text-ink" id="brand-products-title"></h2>
-    <button id="brand-products-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Ver todas las marcas</button>
+    <button id="brand-products-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Ver todas las marcas</button>
   </div>
   <div id="brand-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-  <p id="brand-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles de esta marca por ahora.</p>
+  <p id="brand-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles de esta marca por ahora.</p>
 </section>
 
 <!-- Productos de una categoría -->
 <section id="category-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-logo text-xl sm:text-2xl text-ink" id="category-products-title"></h2>
-    <button id="category-products-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar categoría</button>
+    <button id="category-products-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar categoría</button>
   </div>
   <div id="category-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-  <p id="category-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles en esta categoría por ahora.</p>
+  <p id="category-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles en esta categoría por ahora.</p>
 </section>
 
 <!-- Productos de una preocupación de piel -->
 <section id="concern-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-logo text-xl sm:text-2xl text-ink" id="concern-products-title"></h2>
-    <button id="concern-products-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar</button>
+    <button id="concern-products-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
   <div id="concern-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-  <p id="concern-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles para esto por ahora.</p>
+  <p id="concern-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles para esto por ahora.</p>
 </section>
 
 <!-- Productos de un país -->
 <section id="country-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-logo text-xl sm:text-2xl text-ink" id="country-products-title"></h2>
-    <button id="country-products-clear" type="button" class="text-xs text-ink/50 hover:text-ink underline">Cerrar país</button>
+    <button id="country-products-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar país</button>
   </div>
   <div id="country-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-  <p id="country-products-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles de este país por ahora.</p>
+  <p id="country-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles de este país por ahora.</p>
 </section>
 
 <!-- Cosmético Americano — catálogo y carrito totalmente aparte (marcas de lujo,
@@ -192,25 +199,25 @@
      alguien le da clic en el menú (ver showHomeView). -->
 <section id="americano-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="relative rounded-3xl border border-ink/10 bg-white/40 p-4 sm:p-8">
-    <button id="americano-close" type="button" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-xs text-ink/50 hover:text-ink underline">Cerrar</button>
+    <button id="americano-close" type="button" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
     <div class="mb-2 pr-14">
-      <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Mayoreo</p>
+      <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Mayoreo</p>
       <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1" id="americano-section-title">Cosmético Americano</h2>
       <p class="text-sm text-ink/75 mt-1 max-w-xl" id="americano-min-order-note"></p>
       <p class="text-sm text-ink/75 mt-1 max-w-xl mb-6" id="americano-section-subtitle"></p>
     </div>
     <div id="americano-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-    <p id="americano-empty" class="hidden text-center text-ink/50 py-6">No hay productos disponibles en esta colección por el momento.</p>
+    <p id="americano-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles en esta colección por el momento.</p>
   </div>
 </section>
 
 <!-- Mobile menu overlay + drawer -->
-<div id="menu-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 sm:hidden"></div>
-<aside id="mobile-menu" aria-label="Menú"
-  class="fixed top-0 left-0 h-full w-full bg-cream z-50 shadow-2xl -translate-x-full transition-transform duration-300 flex flex-col sm:hidden">
+<div id="menu-overlay" aria-hidden="true" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim sm:hidden"></div>
+<aside id="mobile-menu" role="dialog" aria-modal="true" aria-labelledby="mobile-menu-title" tabindex="-1" inert
+  class="fixed top-0 left-0 h-full w-full bg-cream z-50 shadow-2xl -translate-x-full drawer flex flex-col sm:hidden">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
-    <h2 class="font-logo text-2xl text-ink">Menú</h2>
-    <button id="menu-close" type="button" aria-label="Cerrar menú" class="text-ink/75 hover:text-ink text-2xl leading-none">&times;</button>
+    <h2 id="mobile-menu-title" class="font-logo text-2xl text-ink">Menú</h2>
+    <button id="menu-close" type="button" aria-label="Cerrar menú" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
   </div>
   <nav id="mobile-menu-items" class="flex-1 overflow-y-auto">
     <!-- items injected by JS -->
@@ -219,16 +226,29 @@
 
 <div id="homepage-sections">
 <!-- Hero -->
-<section id="top" class="relative bg-cream overflow-hidden h-[340px] sm:h-[460px]">
+<section id="top" class="relative bg-cream overflow-hidden h-[340px] sm:h-auto sm:aspect-[2400/920] sm:max-h-[460px]">
+  <!-- Los slides del banner son imágenes, así que la página no tenía
+       título principal para lectores de pantalla ni buscadores. -->
+  <h1 class="sr-only">Alpacca — Skincare coreano y asiático al mayoreo</h1>
   <div id="hero-slides" class="absolute inset-0 flex items-center justify-center">
     <!-- slide content injected by JS -->
   </div>
-  <div id="hero-dots" class="absolute bottom-4 sm:bottom-6 left-0 right-0 z-10 flex justify-center gap-2"></div>
+  <div id="hero-dots" class="absolute bottom-0 sm:bottom-2 left-0 right-0 z-10 flex justify-center"></div>
+  <!-- Pausa/reanuda el cambio automático de slides (WCAG 2.2.2). Se
+       muestra solo si hay más de un slide (ver updateHeroPauseButton). -->
+  <button id="hero-pause" type="button" aria-label="Pausar el banner" aria-pressed="false"
+    class="hidden absolute bottom-0 right-2 sm:bottom-2 sm:right-4 z-10 w-11 h-11 items-center justify-center rounded-full text-ink/75 hover:text-ink transition-colors">
+    <span class="w-8 h-8 rounded-full bg-cream/90 shadow flex items-center justify-center"></span>
+  </button>
 </section>
 
-<!-- Scrolling ticker -->
-<div class="bg-lilac text-cream overflow-hidden py-2">
-  <div id="ticker-track" class="flex gap-12 whitespace-nowrap animate-marquee text-xs sm:text-sm font-semibold uppercase tracking-wide">
+<!-- Scrolling ticker (se pausa al pasar el mouse, con el foco o con su botón) -->
+<div id="ticker" class="relative bg-lilac-band text-cream overflow-hidden py-2 coarse:py-3.5">
+  <button id="ticker-pause" type="button" aria-label="Pausar los mensajes" aria-pressed="false"
+    class="tap absolute inset-y-0 right-0 z-10 flex items-center pl-6 pr-2 bg-gradient-to-l from-lilac-band via-lilac-band to-transparent text-cream/90 hover:text-cream">
+    <span class="w-6 h-6 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></span>
+  </button>
+  <div id="ticker-track" class="flex gap-12 whitespace-nowrap animate-marquee min-h-4 sm:min-h-5 text-xs sm:text-sm font-semibold uppercase tracking-wide">
     <!-- ticker items injected by JS (duplicated for seamless loop) -->
   </div>
 </div>
@@ -238,7 +258,7 @@
   <div class="rounded-2xl bg-ink text-cream p-5 sm:p-6">
     <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
       <div>
-        <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-rose">⏰ Oferta por tiempo limitado</p>
+        <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-blush">⏰ Oferta por tiempo limitado</p>
         <h2 class="font-logo text-xl sm:text-2xl mt-0.5" id="time-deal-title"></h2>
         <p class="text-xs sm:text-sm text-cream/60 mt-0.5" id="time-deal-subtitle"></p>
       </div>
@@ -256,56 +276,56 @@
      reales que pintar (ver renderAll() en app.js). -->
 <section id="catalog-loading-skeleton" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
   <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Un momento</p>
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Un momento</p>
     <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Preparando tu catálogo…</h2>
   </div>
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
     <div class="animate-pulse rounded-2xl bg-white/60 border border-ink/10 overflow-hidden">
       <div class="aspect-square bg-ink/10"></div>
       <div class="p-3 space-y-2">
-        <div class="h-2 bg-ink/10 rounded w-1/2"></div>
-        <div class="h-3 bg-ink/10 rounded w-3/4"></div>
-        <div class="h-3 bg-ink/10 rounded w-1/3"></div>
+        <div class="h-2 bg-ink/10 rounded-full w-1/2"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-3/4"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-1/3"></div>
       </div>
     </div>
     <div class="animate-pulse rounded-2xl bg-white/60 border border-ink/10 overflow-hidden">
       <div class="aspect-square bg-ink/10"></div>
       <div class="p-3 space-y-2">
-        <div class="h-2 bg-ink/10 rounded w-1/2"></div>
-        <div class="h-3 bg-ink/10 rounded w-3/4"></div>
-        <div class="h-3 bg-ink/10 rounded w-1/3"></div>
+        <div class="h-2 bg-ink/10 rounded-full w-1/2"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-3/4"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-1/3"></div>
       </div>
     </div>
     <div class="animate-pulse rounded-2xl bg-white/60 border border-ink/10 overflow-hidden hidden sm:block">
       <div class="aspect-square bg-ink/10"></div>
       <div class="p-3 space-y-2">
-        <div class="h-2 bg-ink/10 rounded w-1/2"></div>
-        <div class="h-3 bg-ink/10 rounded w-3/4"></div>
-        <div class="h-3 bg-ink/10 rounded w-1/3"></div>
+        <div class="h-2 bg-ink/10 rounded-full w-1/2"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-3/4"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-1/3"></div>
       </div>
     </div>
     <div class="animate-pulse rounded-2xl bg-white/60 border border-ink/10 overflow-hidden hidden lg:block">
       <div class="aspect-square bg-ink/10"></div>
       <div class="p-3 space-y-2">
-        <div class="h-2 bg-ink/10 rounded w-1/2"></div>
-        <div class="h-3 bg-ink/10 rounded w-3/4"></div>
-        <div class="h-3 bg-ink/10 rounded w-1/3"></div>
+        <div class="h-2 bg-ink/10 rounded-full w-1/2"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-3/4"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-1/3"></div>
       </div>
     </div>
     <div class="animate-pulse rounded-2xl bg-white/60 border border-ink/10 overflow-hidden hidden lg:block">
       <div class="aspect-square bg-ink/10"></div>
       <div class="p-3 space-y-2">
-        <div class="h-2 bg-ink/10 rounded w-1/2"></div>
-        <div class="h-3 bg-ink/10 rounded w-3/4"></div>
-        <div class="h-3 bg-ink/10 rounded w-1/3"></div>
+        <div class="h-2 bg-ink/10 rounded-full w-1/2"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-3/4"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-1/3"></div>
       </div>
     </div>
     <div class="animate-pulse rounded-2xl bg-white/60 border border-ink/10 overflow-hidden hidden lg:block">
       <div class="aspect-square bg-ink/10"></div>
       <div class="p-3 space-y-2">
-        <div class="h-2 bg-ink/10 rounded w-1/2"></div>
-        <div class="h-3 bg-ink/10 rounded w-3/4"></div>
-        <div class="h-3 bg-ink/10 rounded w-1/3"></div>
+        <div class="h-2 bg-ink/10 rounded-full w-1/2"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-3/4"></div>
+        <div class="h-3 bg-ink/10 rounded-full w-1/3"></div>
       </div>
     </div>
   </div>
@@ -314,7 +334,7 @@
 <!-- Featured collections (tabs) -->
 <section id="featured-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">
   <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Elegidos por nuestros clientes</p>
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Elegidos por nuestros clientes</p>
     <div class="flex items-center justify-center gap-2 flex-wrap mt-1">
       <h2 class="font-logo text-2xl sm:text-3xl text-ink">Best Seller</h2>
     </div>
@@ -327,7 +347,7 @@
 <!-- Por qué elegir Alpacca -->
 <section id="why-alpacca" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
   <div class="text-center mb-8">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Por qué Alpacca</p>
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Por qué Alpacca</p>
     <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">¿Por qué elegir Alpacca?</h2>
   </div>
   <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
@@ -350,9 +370,9 @@
         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
       </span>
       <p class="font-semibold text-ink mt-2">Te ayudamos con tu pedido</p>
-      <p class="text-sm text-ink/75 mt-1">Tu cotización la arma una persona real, no un catálogo automático.</p>
+      <p class="text-sm text-ink/75 mt-1">Mae revisa cada pedido y te acompaña por WhatsApp de principio a fin.</p>
       <a href="#" id="why-alpacca-whatsapp" target="_blank" rel="noopener"
-        class="inline-block mt-2 text-xs font-semibold text-rose hover:underline">Habla con Mae →</a>
+        class="tap inline-block mt-2 text-xs font-semibold text-rose-ink hover:underline">Habla con Mae →</a>
     </div>
     <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
       <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose/10 text-rose" aria-hidden="true">
@@ -369,7 +389,7 @@
       <p class="text-sm text-ink/75 mt-1">Coordinamos compra, envío internacional y entrega hasta la puerta de tu casa o negocio.</p>
     </div>
     <div class="rounded-2xl bg-white/60 border border-ink/10 p-5 flex items-start gap-3">
-      <img src="./assets/mascot.png" alt="" aria-hidden="true" class="w-8 h-8 object-contain flex-shrink-0" />
+      <img src="./assets/mascot.webp" width="192" height="192" loading="lazy" decoding="async" alt="" aria-hidden="true" class="w-8 h-8 object-contain flex-shrink-0" />
       <div>
         <p class="font-semibold text-ink">+4 años en esto</p>
         <p class="text-sm text-ink/75 mt-1">Ayudamos a decenas de negocios a surtirse y crecer.</p>
@@ -380,37 +400,37 @@
 
 <!-- Banner promocional -->
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14">
-  <div class="rounded-3xl bg-lilac text-cream px-6 sm:px-12 py-12 sm:py-16 text-center">
+  <div class="rounded-3xl bg-lilac-band text-cream px-6 sm:px-12 py-12 sm:py-16 text-center">
     <h2 id="promo-title" class="font-logo text-2xl sm:text-4xl"></h2>
-    <p id="promo-subtitle" class="mt-2 text-cream/70 max-w-lg mx-auto"></p>
-    <a id="promo-cta" href="#" class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition"></a>
+    <p id="promo-subtitle" class="mt-2 text-cream max-w-lg mx-auto"></p>
+    <a id="promo-cta" href="#" class="inline-block mt-6 rounded-full bg-rose-deep text-cream font-semibold px-6 py-3 hover:bg-rose-ink transition"></a>
   </div>
 </section>
 
 <!-- Cómo comprar -->
 <section id="how-to-buy" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
   <div class="text-center mb-8">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Así de sencillo</p>
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Así de sencillo</p>
     <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Comprar en Alpacca es fácil</h2>
   </div>
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
     <div>
-      <span class="font-logo text-3xl sm:text-4xl text-rose">01</span>
+      <span class="font-logo text-3xl sm:text-4xl text-rose-deep">01</span>
       <p class="font-semibold text-ink mt-1">Elige tus productos</p>
       <p class="text-sm text-ink/75 mt-1">Explora el catálogo y agrega los productos que te interesan.</p>
     </div>
     <div>
-      <span class="font-logo text-3xl sm:text-4xl text-rose">02</span>
+      <span class="font-logo text-3xl sm:text-4xl text-rose-deep">02</span>
       <p class="font-semibold text-ink mt-1">Arma tu pedido</p>
       <p class="text-sm text-ink/75 mt-1">Selecciona cantidades y presentaciones.</p>
     </div>
     <div>
-      <span class="font-logo text-3xl sm:text-4xl text-rose">03</span>
+      <span class="font-logo text-3xl sm:text-4xl text-rose-deep">03</span>
       <p class="font-semibold text-ink mt-1">Elige cómo pagar</p>
       <p class="text-sm text-ink/75 mt-1">Con tarjeta (Mercado Pago) o por transferencia, con descuento.</p>
     </div>
     <div>
-      <span class="font-logo text-3xl sm:text-4xl text-rose">04</span>
+      <span class="font-logo text-3xl sm:text-4xl text-rose-deep">04</span>
       <p class="font-semibold text-ink mt-1">Confirmamos tu pedido</p>
       <p class="text-sm text-ink/75 mt-1">Revisamos tu pago y armamos tu envío.</p>
     </div>
@@ -420,7 +440,7 @@
 <!-- Marcas -->
 <section id="brands-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Cuidado con cariño</p>
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Cuidado con cariño</p>
     <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Marcas en el catálogo</h2>
   </div>
   <div id="brands-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -431,7 +451,7 @@
 <!-- Explora por preocupación de piel -->
 <section id="concerns-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Ve directo a lo que buscas</p>
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Ve directo a lo que buscas</p>
     <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Explora por preocupación</h2>
   </div>
   <div id="concerns-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-3">
@@ -442,7 +462,7 @@
 <!-- Explora por tipo de piel (herramienta de ayuda, no es el foco principal) -->
 <section id="skintype-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Solo toma un minuto</p>
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Solo toma un minuto</p>
     <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">¿Cuál es tu tipo de piel?</h2>
   </div>
 
@@ -452,26 +472,26 @@
     <p id="quiz-question" class="text-center font-semibold text-ink text-lg mb-5"></p>
     <div id="quiz-options" class="grid sm:grid-cols-2 gap-3"></div>
     <button id="quiz-back" type="button"
-      class="hidden mx-auto mt-5 block text-xs text-ink/50 hover:text-ink underline">&larr; Pregunta anterior</button>
+      class="hidden mx-auto mt-5 block text-xs text-ink/75 hover:text-ink underline">&larr; Pregunta anterior</button>
   </div>
 
   <!-- Resultado -->
   <div id="skin-quiz-result" class="hidden">
     <div class="text-center mb-8">
       <span id="quiz-result-emoji" class="text-4xl block mb-2"></span>
-      <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Tu tipo de piel es</p>
+      <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Tu tipo de piel es</p>
       <h3 class="font-logo text-2xl sm:text-3xl text-ink mt-1" id="quiz-result-label"></h3>
-      <button id="quiz-retake" type="button" class="mt-3 text-xs text-ink/50 hover:text-ink underline">Repetir el quiz</button>
+      <button id="quiz-retake" type="button" class="mt-3 text-xs text-ink/75 hover:text-ink underline">Repetir el quiz</button>
     </div>
     <div id="skintype-row" class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"></div>
-    <p id="skintype-empty" class="hidden text-center text-ink/50 py-6">Pronto agregaremos productos para tu tipo de piel.</p>
+    <p id="skintype-empty" class="hidden text-center text-ink/75 py-6">Pronto agregaremos productos para tu tipo de piel.</p>
   </div>
 </section>
 
 <!-- Preguntas frecuentes -->
 <section id="faq" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
   <div class="text-center mb-8">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/50">Antes de comprar</p>
+    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Antes de comprar</p>
     <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Preguntas frecuentes</h2>
   </div>
   <div class="max-w-2xl mx-auto space-y-2.5" id="faq-list">
@@ -480,56 +500,56 @@
         <span class="font-semibold text-ink">¿Cómo pago?</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/75 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <p class="text-sm text-ink/75 px-4 pb-4">Con tarjeta a través de Mercado Pago, o por transferencia (con descuento) — te damos los datos y puedes subir tu comprobante directo en el sitio.</p>
+      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-4">Con tarjeta a través de Mercado Pago, o por transferencia (con descuento) — te damos los datos y puedes subir tu comprobante directo en el sitio.</p>
     </details>
     <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
       <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
         <span class="font-semibold text-ink">¿De dónde vienen los productos?</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/75 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <p class="text-sm text-ink/75 px-4 pb-4">Trabajamos con productos provenientes de Corea y otros países de Asia. Coordinamos la logística necesaria para hacer llegar tu pedido a México.</p>
+      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-4">Trabajamos con productos provenientes de Corea y otros países de Asia. Coordinamos la logística necesaria para hacer llegar tu pedido a México.</p>
     </details>
     <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
       <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
         <span class="font-semibold text-ink">¿Cuál es el pedido mínimo?</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/75 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <p class="text-sm text-ink/75 px-4 pb-4" id="faq-min-order">Consulta el pedido mínimo vigente en la barra superior del sitio.</p>
+      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-4" id="faq-min-order">Consulta el pedido mínimo vigente en la barra superior del sitio.</p>
     </details>
     <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
       <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
         <span class="font-semibold text-ink">¿Cuánto tarda en llegar mi pedido?</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/75 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <p class="text-sm text-ink/75 px-4 pb-4">Depende del producto: lo que ya está en stock en México (✅ En stock) se envía de inmediato; lo que viene directo desde Corea tarda más porque incluye el envío internacional. Te damos un estimado de envío antes de pagar.</p>
+      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-4">Depende del producto: lo que ya está en stock en México (✅ En stock) se envía de inmediato; lo que viene directo desde Corea tarda más porque incluye el envío internacional. Te damos un estimado de envío antes de pagar.</p>
     </details>
     <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
       <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
         <span class="font-semibold text-ink">¿Hacen envíos a todo México?</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/75 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <p class="text-sm text-ink/75 px-4 pb-4">Sí, hacemos envíos a todo el país. El costo de envío se calcula según tu código postal al momento de pagar.</p>
+      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-4">Sí, hacemos envíos a todo el país. El costo de envío se calcula según tu código postal al momento de pagar.</p>
     </details>
     <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
       <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
         <span class="font-semibold text-ink">¿Puedo rastrear mi pedido?</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/75 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <p class="text-sm text-ink/75 px-4 pb-4">Sí. En cuanto enviamos tu pedido, puedes ver el número de guía y rastrearlo desde "Mi cuenta" → tus pedidos, o preguntarnos directo por WhatsApp.</p>
+      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-4">Sí. En cuanto enviamos tu pedido, puedes ver el número de guía y rastrearlo desde "Mi cuenta" → tus pedidos, o preguntarnos directo por WhatsApp.</p>
     </details>
     <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
       <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
         <span class="font-semibold text-ink">¿Necesito crear una cuenta para comprar?</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/75 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <p class="text-sm text-ink/75 px-4 pb-4">No es obligatorio, puedes comprar directo. Pero si te registras en "Mi cuenta" puedes ver el historial y el estatus de todos tus pedidos en un solo lugar.</p>
+      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-4">No es obligatorio, puedes comprar directo. Pero si te registras en "Mi cuenta" puedes ver el historial y el estatus de todos tus pedidos en un solo lugar.</p>
     </details>
   </div>
 </section>
 
 <!-- Status (loading / error) -->
 <div id="status-banner" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
-  <div class="rounded-xl border border-ink/15 bg-white/60 px-4 py-3 text-sm text-ink/70" id="status-text"></div>
+  <div class="rounded-xl border border-ink/15 bg-white/60 px-4 py-3 text-sm text-ink/75" id="status-text" role="status"></div>
 </div>
 
 <!-- Beneficios -->
@@ -545,36 +565,36 @@
 <footer class="border-t border-ink/10 mt-14 pt-10 pb-8">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 sm:grid-cols-5 gap-8 text-sm">
     <div class="flex flex-col items-center text-center sm:items-start sm:text-left">
-      <img src="./assets/logo-full.png" alt="Alpacca" class="h-24 w-auto mb-3" />
+      <img src="./assets/logo-full.webp" width="188" height="288" loading="lazy" decoding="async" alt="Alpacca" class="h-24 w-auto mb-3" />
     </div>
     <div>
       <p class="font-semibold text-ink mb-3">Comprar</p>
-      <ul class="space-y-2 text-ink/75">
-        <li><a href="#catalog-section" class="hover:text-ink transition">Catálogo</a></li>
-        <li><a href="#featured-section" class="hover:text-ink transition">Best Sellers</a></li>
-        <li><a href="#brands-section" class="hover:text-ink transition">Marcas</a></li>
+      <ul class="space-y-2 coarse:space-y-0 text-ink/75">
+        <li><a href="#catalog-section" class="coarse:block coarse:py-3 hover:text-ink transition">Catálogo</a></li>
+        <li><a href="#featured-section" class="coarse:block coarse:py-3 hover:text-ink transition">Best Sellers</a></li>
+        <li><a href="#brands-section" class="coarse:block coarse:py-3 hover:text-ink transition">Marcas</a></li>
       </ul>
     </div>
     <div>
       <p class="font-semibold text-ink mb-3">Ayuda</p>
-      <ul class="space-y-2 text-ink/75">
-        <li><a href="#how-to-buy" class="hover:text-ink transition">Cómo comprar</a></li>
-        <li><button type="button" id="footer-shipping-link" class="hover:text-ink transition text-left">Envíos</button></li>
-        <li><a href="#faq" class="hover:text-ink transition">Preguntas frecuentes</a></li>
+      <ul class="space-y-2 coarse:space-y-0 text-ink/75">
+        <li><a href="#how-to-buy" class="coarse:block coarse:py-3 hover:text-ink transition">Cómo comprar</a></li>
+        <li><button type="button" id="footer-shipping-link" class="coarse:block coarse:w-full coarse:py-3 hover:text-ink transition text-left">Envíos</button></li>
+        <li><a href="#faq" class="coarse:block coarse:py-3 hover:text-ink transition">Preguntas frecuentes</a></li>
       </ul>
     </div>
     <div>
       <p class="font-semibold text-ink mb-3">Legal</p>
-      <ul class="space-y-2 text-ink/75">
-        <li><a href="./privacidad.html" class="hover:text-ink transition">Aviso de Privacidad</a></li>
-        <li><a href="./terminos.html" class="hover:text-ink transition">Términos y Condiciones</a></li>
-        <li><a href="./reembolsos.html" class="hover:text-ink transition">Política de Reembolsos</a></li>
+      <ul class="space-y-2 coarse:space-y-0 text-ink/75">
+        <li><a href="./privacidad.html" class="coarse:block coarse:py-3 hover:text-ink transition">Aviso de Privacidad</a></li>
+        <li><a href="./terminos.html" class="coarse:block coarse:py-3 hover:text-ink transition">Términos y Condiciones</a></li>
+        <li><a href="./reembolsos.html" class="coarse:block coarse:py-3 hover:text-ink transition">Política de Reembolsos</a></li>
       </ul>
     </div>
     <div>
       <p class="font-semibold text-ink mb-3">Contacto</p>
-      <ul class="space-y-2 text-ink/75">
-        <li><a href="#" id="footer-contact-link" class="hover:text-ink transition">Hablar con Mae (WhatsApp)</a></li>
+      <ul class="space-y-2 coarse:space-y-0 text-ink/75">
+        <li><a href="#" id="footer-contact-link" class="coarse:block coarse:py-3 hover:text-ink transition">Hablar con Mae (WhatsApp)</a></li>
       </ul>
       <div id="footer-social" class="flex items-center gap-3 text-ink/75 mt-3">
         <!-- social icons injected by JS -->
@@ -586,35 +606,35 @@
 
 <!-- Floating WhatsApp contact -->
 <a id="whatsapp-float" href="#" target="_blank" rel="noopener"
-  class="fixed bottom-5 left-5 z-30 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] text-white font-semibold text-sm w-12 h-12 sm:w-auto sm:h-auto sm:px-4 sm:py-3 shadow-lg hover:opacity-90 transition">
+  class="fixed bottom-5 left-5 z-30 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] text-ink font-semibold text-sm w-12 h-12 sm:w-auto sm:h-auto sm:px-4 sm:py-3 shadow-lg hover:opacity-90 transition">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5 shrink-0" fill="currentColor"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
   <span class="hidden sm:inline">Contáctanos</span>
 </a>
 
 <!-- Cart overlay -->
-<div id="cart-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+<div id="cart-overlay" aria-hidden="true" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim"></div>
 
 <!-- Cart drawer -->
-<aside id="cart-drawer" aria-label="Carrito de cotización"
-  class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
+<aside id="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-drawer-title" tabindex="-1" inert
+  class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full drawer flex flex-col">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
-    <h2 class="font-logo text-xl text-ink">Tu cotización</h2>
-    <button id="cart-close" type="button" aria-label="Cerrar carrito" class="text-ink/75 hover:text-ink text-2xl leading-none">&times;</button>
+    <h2 id="cart-drawer-title" class="font-logo text-xl text-ink">Tu carrito</h2>
+    <button id="cart-close" type="button" aria-label="Cerrar carrito" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
   </div>
-  <p id="cart-switch-notice" class="hidden text-xs text-rose text-center px-5 pt-3"></p>
+  <p id="cart-switch-notice" class="hidden text-xs text-rose-ink text-center px-5 pt-3"></p>
 
   <div class="flex-1 overflow-y-auto">
   <div id="cart-items" class="px-5 py-4 space-y-4">
     <!-- cart line items injected by JS -->
   </div>
-  <div id="cart-empty" class="hidden text-center text-ink/50 px-5 py-10">
-    <img src="./assets/mascot.png" alt="" aria-hidden="true" class="w-16 h-16 object-contain mx-auto mb-3 opacity-80" />
+  <div id="cart-empty" class="hidden text-center text-ink/75 px-5 py-10">
+    <img src="./assets/mascot.webp" width="192" height="192" loading="lazy" decoding="async" alt="" aria-hidden="true" class="w-16 h-16 object-contain mx-auto mb-3 opacity-80" />
     <p>Tu carrito está vacío. Agrega productos del catálogo.</p>
   </div>
 
   <div class="border-t border-ink/10 px-5 py-4 space-y-4">
-    <p class="text-[11px] text-ink/50 text-center leading-snug">El precio de tus productos es fijo. El envío se calcula según peso y destino; si hay algún ajuste, te contactaremos antes de procesar tu pedido.</p>
-    <div class="space-y-1.5">
+    <p class="text-xs text-ink/75 text-center leading-snug">El precio de tus productos es fijo. El envío se calcula según peso y destino; si hay algún ajuste, te contactaremos antes de procesar tu pedido.</p>
+    <div class="space-y-1.5 tabular-nums">
       <div class="flex items-center justify-between font-semibold text-ink">
         <span id="cart-total-label">Total productos</span>
         <span id="cart-total">$0.00</span>
@@ -632,13 +652,13 @@
         <span id="cart-grand-total">$0.00</span>
       </div>
     </div>
-    <p id="cart-min-order" class="hidden text-xs text-rose text-center"></p>
-    <p id="cart-mp-surcharge-note" class="hidden text-[11px] text-ink/75 text-center leading-snug"></p>
+    <p id="cart-min-order" class="hidden text-xs text-rose-ink text-center"></p>
+    <p id="cart-mp-surcharge-note" class="hidden text-xs text-ink/75 text-center leading-snug"></p>
 
     <div id="cart-login-required" class="hidden rounded-lg border border-rose/30 bg-blush/20 p-4 text-center space-y-3">
-      <p class="text-sm text-ink/70">Para continuar tu compra, inicia sesión o crea una cuenta gratis — así puedes ver y rastrear tus pedidos después.</p>
+      <p class="text-sm text-ink/75">Para continuar tu compra, inicia sesión o crea una cuenta gratis — así puedes ver y rastrear tus pedidos después.</p>
       <button type="button" id="cart-login-cta"
-        class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition">
+        class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition">
         Iniciar sesión / Crear cuenta
       </button>
     </div>
@@ -647,40 +667,40 @@
       <div>
         <label for="customer-name" class="block text-xs font-semibold text-ink/75 mb-1">Tu nombre *</label>
         <input id="customer-name" required type="text" placeholder="Nombre completo"
-          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
       <div>
         <label for="customer-phone" class="block text-xs font-semibold text-ink/75 mb-1">Tu teléfono *</label>
         <input id="customer-phone" required type="tel" placeholder="55 1234 5678"
-          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
-      <p class="text-xs font-semibold text-ink/70 pt-1">📦 Datos de envío (para tu guía de paquetería)</p>
+      <p class="text-xs font-semibold text-ink/75 pt-1">📦 Datos de envío (para tu guía de paquetería)</p>
       <div>
         <label for="customer-street" class="block text-xs font-semibold text-ink/75 mb-1">Calle y número *</label>
         <input id="customer-street" required type="text" placeholder="Ej. Av. Reforma 123"
-          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
       <div>
         <label for="customer-colonia" class="block text-xs font-semibold text-ink/75 mb-1">Colonia *</label>
         <input id="customer-colonia" required type="text" placeholder="Ej. Roma Norte"
-          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label for="customer-municipio" class="block text-xs font-semibold text-ink/75 mb-1">Municipio/Alcaldía *</label>
           <input id="customer-municipio" required type="text" placeholder="Ej. Cuauhtémoc"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
         <div>
           <label for="customer-cp" class="block text-xs font-semibold text-ink/75 mb-1">Código postal *</label>
           <input id="customer-cp" required type="text" inputmode="numeric" maxlength="5" placeholder="Ej. 06700"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
       </div>
       <div>
         <label for="customer-estado" class="block text-xs font-semibold text-ink/75 mb-1">Estado *</label>
         <select id="customer-estado" required
-          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush">
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac">
           <option value="" selected disabled>Selecciona tu estado</option>
           <option>Aguascalientes</option>
           <option>Baja California</option>
@@ -719,30 +739,32 @@
       <div>
         <label for="customer-referencias" class="block text-xs font-semibold text-ink/75 mb-1">Referencias (opcional)</label>
         <input id="customer-referencias" type="text" placeholder="Entre calles, color de fachada, portón..."
-          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
       <div>
         <label for="customer-notes" class="block text-xs font-semibold text-ink/75 mb-1">Notas (opcional)</label>
         <textarea id="customer-notes" rows="2" placeholder="Color, talla, comentarios..."
-          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush"></textarea>
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac"></textarea>
       </div>
       <div class="flex items-start gap-2">
         <input id="customer-consent" required type="checkbox"
-          class="mt-1 h-4 w-4 rounded border-ink/30 text-rose focus:ring-blush shrink-0" />
+          class="mt-1 h-4 w-4 shrink-0" />
         <label for="customer-consent" class="text-xs text-ink/75">
-          He leído y acepto el <a href="./privacidad.html" target="_blank" rel="noopener" class="text-rose underline">Aviso de Privacidad</a>,
-          los <a href="./terminos.html" target="_blank" rel="noopener" class="text-rose underline">Términos y Condiciones</a> y la
-          <a href="./reembolsos.html" target="_blank" rel="noopener" class="text-rose underline">Política de Reembolsos</a>. *
+          He leído y acepto el <a href="./privacidad.html" target="_blank" rel="noopener" class="text-rose-ink underline">Aviso de Privacidad</a>,
+          los <a href="./terminos.html" target="_blank" rel="noopener" class="text-rose-ink underline">Términos y Condiciones</a> y la
+          <a href="./reembolsos.html" target="_blank" rel="noopener" class="text-rose-ink underline">Política de Reembolsos</a>. *
         </label>
       </div>
 
+      <p id="cart-error" role="alert" class="hidden rounded-lg border border-rose-deep/30 bg-rose/10 px-3 py-2 text-sm text-rose-ink"></p>
+
       <button id="pay-mercadopago" type="button"
-        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#009EE3] text-white font-semibold py-3 hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed">
+        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#0074C2] text-white font-semibold py-3 hover:bg-[#00609F] transition disabled:opacity-40 disabled:cursor-not-allowed">
         <span>💳 Pagar con Mercado Pago</span>
       </button>
-      <p class="text-[11px] text-center text-ink/75">Se abrirá Mercado Pago para pagar en línea con tarjeta.</p>
+      <p class="text-xs text-center text-ink/75">Se abrirá Mercado Pago para pagar en línea con tarjeta.</p>
 
-      <div class="flex items-center gap-2 text-[11px] text-ink/75">
+      <div class="flex items-center gap-2 text-xs text-ink/75">
         <span class="flex-1 h-px bg-ink/10"></span>
         <span>o paga por transferencia y ahorra</span>
         <span class="flex-1 h-px bg-ink/10"></span>
@@ -750,21 +772,21 @@
 
       <div id="cart-bank-details" class="hidden rounded-lg border border-lilac/30 bg-blush/20 p-3">
         <p class="text-xs font-semibold text-ink mb-1">🏦 Datos para tu depósito o transferencia</p>
-        <div id="cart-bank-details-body" class="text-xs text-ink/70 leading-relaxed"></div>
+        <div id="cart-bank-details-body" class="text-xs text-ink/75 leading-relaxed"></div>
       </div>
 
       <div>
-        <label for="proof-file-input" class="block text-xs font-semibold text-ink/75 mb-1">📎 Sube tu comprobante de transferencia (captura o PDF) *</label>
+        <label for="proof-file-input" class="block text-xs font-semibold text-ink/75 mb-1">📎 Sube tu comprobante de transferencia (captura o PDF, hasta 4 MB) *</label>
         <input id="proof-file-input" required type="file" accept="image/*,application/pdf"
-          class="w-full text-xs text-ink/70 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
-        <p class="text-[11px] text-ink/75 mt-1">Primero transfiere a los datos de arriba y luego sube aquí tu comprobante — es obligatorio para poder confirmar el pedido.</p>
+          class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose-deep file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
+        <p class="text-xs text-ink/75 mt-1">Primero transfiere a los datos de arriba y luego sube aquí tu comprobante — es obligatorio para poder confirmar el pedido.</p>
       </div>
 
       <button id="send-quote" type="submit"
-        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose text-cream font-semibold py-3 hover:bg-rose/90 transition disabled:opacity-40 disabled:cursor-not-allowed">
+        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose-deep text-cream font-semibold py-3 hover:bg-rose-ink transition disabled:opacity-40 disabled:cursor-not-allowed">
         <span>✅ Confirmar pedido por transferencia</span>
       </button>
-      <p class="text-[11px] text-center text-ink/75">No se realiza ningún cobro aquí. Se registra tu pedido junto con tu comprobante.</p>
+      <p class="text-xs text-center text-ink/75">No se realiza ningún cobro aquí. Se registra tu pedido junto con tu comprobante.</p>
     </form>
 
     <div id="quote-success-panel" class="hidden space-y-4">
@@ -775,63 +797,64 @@
 
       <div id="success-bank-details" class="hidden rounded-lg border border-lilac/30 bg-blush/20 p-3">
         <p class="text-xs font-semibold text-ink mb-1">🏦 Datos a los que transferiste</p>
-        <div id="success-bank-details-body" class="text-xs text-ink/70 leading-relaxed"></div>
+        <div id="success-bank-details-body" class="text-xs text-ink/75 leading-relaxed"></div>
       </div>
 
       <div id="proof-retry-block" class="hidden">
-        <p class="text-xs text-rose mb-1">⚠️ Tu pedido se registró, pero no se pudo subir el comprobante. Vuelve a intentarlo:</p>
+        <p class="text-xs text-rose-ink mb-1">⚠️ Tu pedido se registró, pero no se pudo subir el comprobante. Vuelve a intentarlo:</p>
         <input id="proof-retry-file-input" type="file" accept="image/*,application/pdf"
-          class="w-full text-xs text-ink/70 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
-        <p id="proof-retry-status" class="text-[11px] text-ink/50 mt-1"></p>
+          class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose-deep file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
+        <p id="proof-retry-status" role="status" class="text-xs text-ink/75 mt-1"></p>
         <button id="proof-retry-btn" type="button"
-          class="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose text-cream font-semibold py-2.5 text-sm hover:bg-rose/90 transition disabled:opacity-40 disabled:cursor-not-allowed">
+          class="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose-deep text-cream font-semibold py-2.5 text-sm hover:bg-rose-ink transition disabled:opacity-40 disabled:cursor-not-allowed">
           <span>📤 Reintentar subir comprobante</span>
         </button>
       </div>
 
-      <button id="quote-success-close" type="button" class="w-full text-xs text-ink/50 hover:text-ink underline text-center">Listo, cerrar</button>
+      <button id="quote-success-close" type="button" class="w-full text-xs text-ink/75 hover:text-ink underline text-center">Listo, cerrar</button>
     </div>
   </div>
   </div>
 </aside>
 
 <!-- Mi cuenta (login / registro / mis pedidos) -->
-<div id="account-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+<div id="account-overlay" aria-hidden="true" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim"></div>
 
-<aside id="account-drawer" aria-label="Mi cuenta"
-  class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
+<aside id="account-drawer" role="dialog" aria-modal="true" aria-labelledby="account-drawer-title" tabindex="-1" inert
+  class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full drawer flex flex-col">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
-    <h2 class="font-logo text-xl text-ink">Mi cuenta</h2>
-    <button id="account-close" type="button" aria-label="Cerrar" class="text-ink/75 hover:text-ink text-2xl leading-none">&times;</button>
+    <h2 id="account-drawer-title" class="font-logo text-xl text-ink">Mi cuenta</h2>
+    <button id="account-close" type="button" aria-label="Cerrar" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
   </div>
 
   <div class="flex-1 overflow-y-auto px-5 py-5">
 
     <!-- Iniciar sesión -->
     <div id="account-view-login">
+      <p id="login-notice" role="status" class="hidden mb-3 rounded-lg bg-green-100 px-3 py-2 text-sm text-green-700"></p>
       <form id="login-form" class="space-y-3">
         <div>
           <label for="login-email" class="block text-xs font-semibold text-ink/75 mb-1">Correo</label>
           <input id="login-email" required type="email" autocomplete="email"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
         <div>
           <label for="login-password" class="block text-xs font-semibold text-ink/75 mb-1">Contraseña</label>
           <input id="login-password" required type="password" autocomplete="current-password"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
-        <p id="login-error" class="hidden text-xs text-rose"></p>
+        <p id="login-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="login-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Iniciar sesión</span>
         </button>
       </form>
       <p class="text-xs text-center mt-3">
-        <button type="button" id="show-forgot" class="text-ink/75 underline hover:text-ink">¿Olvidaste tu contraseña?</button>
+        <button type="button" id="show-forgot" class="tap text-ink/75 underline hover:text-ink">¿Olvidaste tu contraseña?</button>
       </p>
-      <p class="text-sm text-center text-ink/70 mt-6 pt-5 border-t border-ink/10">
+      <p class="text-sm text-center text-ink/75 mt-6 pt-5 border-t border-ink/10">
         ¿Aún no tienes cuenta?
-        <button type="button" id="show-signup" class="text-rose font-semibold underline">Regístrate</button>
+        <button type="button" id="show-signup" class="tap text-rose-ink font-semibold underline">Regístrate</button>
       </p>
     </div>
 
@@ -841,77 +864,77 @@
         <div>
           <label for="signup-name" class="block text-xs font-semibold text-ink/75 mb-1">Tu nombre</label>
           <input id="signup-name" required type="text" autocomplete="name"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
         <div>
           <label for="signup-email" class="block text-xs font-semibold text-ink/75 mb-1">Correo</label>
           <input id="signup-email" required type="email" autocomplete="email"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
         <div>
           <label for="signup-phone" class="block text-xs font-semibold text-ink/75 mb-1">Tu teléfono</label>
           <input id="signup-phone" required type="tel" placeholder="55 1234 5678" autocomplete="tel"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
-          <p class="text-[11px] text-ink/75 mt-1">El mismo que usas al hacer tus pedidos — así vinculamos tu cuenta con tu historial.</p>
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
+          <p class="text-xs text-ink/75 mt-1">El mismo que usas al hacer tus pedidos — así vinculamos tu cuenta con tu historial.</p>
         </div>
         <div>
           <label for="signup-password" class="block text-xs font-semibold text-ink/75 mb-1">Contraseña</label>
           <input id="signup-password" required type="password" minlength="8" autocomplete="new-password"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
-          <p class="text-[11px] text-ink/75 mt-1">Mínimo 8 caracteres.</p>
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
+          <p class="text-xs text-ink/75 mt-1">Mínimo 8 caracteres.</p>
         </div>
         <div class="flex items-start gap-2">
           <input id="signup-consent" required type="checkbox"
-            class="mt-1 h-4 w-4 rounded border-ink/30 text-rose focus:ring-blush shrink-0" />
+            class="mt-1 h-4 w-4 shrink-0" />
           <label for="signup-consent" class="text-xs text-ink/75">
-            He leído y acepto el <a href="./privacidad.html" target="_blank" rel="noopener" class="text-rose underline">Aviso de Privacidad</a>
-            y los <a href="./terminos.html" target="_blank" rel="noopener" class="text-rose underline">Términos y Condiciones</a>. *
+            He leído y acepto el <a href="./privacidad.html" target="_blank" rel="noopener" class="text-rose-ink underline">Aviso de Privacidad</a>
+            y los <a href="./terminos.html" target="_blank" rel="noopener" class="text-rose-ink underline">Términos y Condiciones</a>. *
           </label>
         </div>
-        <p id="signup-error" class="hidden text-xs text-rose"></p>
+        <p id="signup-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="signup-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Crear cuenta</span>
         </button>
       </form>
-      <p class="text-sm text-center text-ink/70 mt-6 pt-5 border-t border-ink/10">
+      <p class="text-sm text-center text-ink/75 mt-6 pt-5 border-t border-ink/10">
         ¿Ya tienes cuenta?
-        <button type="button" id="show-login-from-signup" class="text-rose font-semibold underline">Inicia sesión</button>
+        <button type="button" id="show-login-from-signup" class="tap text-rose-ink font-semibold underline">Inicia sesión</button>
       </p>
     </div>
 
     <!-- Olvidé mi contraseña -->
     <div id="account-view-forgot" class="hidden">
-      <p class="text-sm text-ink/70 mb-3">Escribe tu correo y te mandamos un link para restablecer tu contraseña.</p>
+      <p class="text-sm text-ink/75 mb-3">Escribe tu correo y te mandamos un link para restablecer tu contraseña.</p>
       <form id="forgot-form" class="space-y-3">
         <div>
           <label for="forgot-email" class="block text-xs font-semibold text-ink/75 mb-1">Correo</label>
           <input id="forgot-email" required type="email" autocomplete="email"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
         <button id="forgot-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Mandar link de recuperación</span>
         </button>
       </form>
-      <p id="forgot-success" class="hidden text-xs text-center text-ink/70 mt-3">📩 Si ese correo tiene una cuenta, te mandamos un link — revisa tu bandeja (y spam).</p>
+      <p id="forgot-success" class="hidden text-xs text-center text-ink/75 mt-3">📩 Si ese correo tiene una cuenta, te mandamos un link — revisa tu bandeja (y spam).</p>
       <p class="text-xs text-center mt-4">
-        <button type="button" id="show-login-from-forgot" class="text-ink/75 underline hover:text-ink">Volver a iniciar sesión</button>
+        <button type="button" id="show-login-from-forgot" class="tap text-ink/75 underline hover:text-ink">Volver a iniciar sesión</button>
       </p>
     </div>
 
     <!-- Restablecer contraseña (desde el link del correo) -->
     <div id="account-view-reset" class="hidden">
-      <p class="text-sm text-ink/70 mb-3">Escribe tu nueva contraseña.</p>
+      <p class="text-sm text-ink/75 mb-3">Escribe tu nueva contraseña.</p>
       <form id="reset-form" class="space-y-3">
         <div>
           <label for="reset-password" class="block text-xs font-semibold text-ink/75 mb-1">Nueva contraseña</label>
           <input id="reset-password" required type="password" minlength="8" autocomplete="new-password"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
-        <p id="reset-error" class="hidden text-xs text-rose"></p>
+        <p id="reset-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="reset-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Cambiar contraseña</span>
         </button>
       </form>
@@ -920,60 +943,60 @@
     <!-- Sesión iniciada: mis pedidos -->
     <div id="account-view-orders" class="hidden">
       <div class="flex items-center justify-between gap-2 mb-1">
-        <p class="text-sm text-ink/70">¡Hola, <span id="account-name" class="font-semibold text-ink"></span>! 👋</p>
+        <p class="text-sm text-ink/75">¡Hola, <span id="account-name" class="font-semibold text-ink"></span>! 👋</p>
         <button type="button" id="account-settings-toggle" aria-label="Editar mis datos"
-          class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full text-ink/50 hover:text-ink hover:bg-ink/5 transition">
+          class="shrink-0 inline-flex items-center justify-center w-11 h-11 -mr-2 rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
       </div>
-      <p id="account-orders-summary" class="hidden text-xs text-ink/50 mb-4"></p>
-      <p id="account-orders-status" class="hidden text-xs text-rose font-semibold mb-3"></p>
+      <p id="account-orders-summary" class="hidden text-xs text-ink/75 mb-4"></p>
+      <p id="account-orders-status" class="hidden text-xs text-rose-ink font-semibold mb-3"></p>
 
       <div id="account-orders-stats" class="hidden grid grid-cols-4 gap-1.5 mb-3"></div>
       <div id="account-orders-range" class="hidden flex gap-1.5 mb-4"></div>
 
       <div id="account-orders-list" class="space-y-2.5"></div>
-      <p id="account-orders-empty" class="hidden text-center text-ink/50 text-sm py-6">Aún no tienes pedidos.</p>
-      <p id="account-orders-filtered-empty" class="hidden text-center text-ink/50 text-sm py-6">No hay pedidos con ese filtro.</p>
-      <p id="account-orders-loading" class="text-center text-ink/50 text-sm py-6">Cargando tus pedidos…</p>
-      <button type="button" id="account-logout" class="w-full text-xs text-ink/50 hover:text-ink underline text-center mt-6 pt-5 border-t border-ink/10">Cerrar sesión</button>
+      <p id="account-orders-empty" class="hidden text-center text-ink/75 text-sm py-6">Aún no tienes pedidos.</p>
+      <p id="account-orders-filtered-empty" class="hidden text-center text-ink/75 text-sm py-6">No hay pedidos con ese filtro.</p>
+      <p id="account-orders-loading" class="text-center text-ink/75 text-sm py-6">Cargando tus pedidos…</p>
+      <button type="button" id="account-logout" class="tap w-full text-xs text-ink/75 hover:text-ink underline text-center mt-6 pt-5 border-t border-ink/10">Cerrar sesión</button>
     </div>
 
     <!-- Sesión iniciada: editar mis datos -->
     <div id="account-view-settings" class="hidden">
-      <button type="button" id="account-settings-back" class="text-xs text-ink/75 underline hover:text-ink mb-4">‹ Volver a mis pedidos</button>
+      <button type="button" id="account-settings-back" class="tap text-xs text-ink/75 underline hover:text-ink mb-4">‹ Volver a mis pedidos</button>
       <form id="settings-form" class="space-y-3">
         <div>
           <label for="settings-email" class="block text-xs font-semibold text-ink/75 mb-1">Correo</label>
           <input id="settings-email" type="email" disabled
-            class="w-full rounded-lg border border-ink/10 bg-ink/5 px-3 py-2 text-base sm:text-sm text-ink/50" />
+            class="w-full rounded-lg border border-ink/10 bg-ink/5 px-3 py-2 coarse:py-2.5 text-base sm:text-sm text-ink/75" />
         </div>
         <div>
           <label for="settings-name" class="block text-xs font-semibold text-ink/75 mb-1">Tu nombre</label>
           <input id="settings-name" required type="text" autocomplete="name"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
         <div>
           <label for="settings-phone" class="block text-xs font-semibold text-ink/75 mb-1">Tu teléfono</label>
           <input id="settings-phone" required type="tel" placeholder="55 1234 5678" autocomplete="tel"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
-          <p class="text-[11px] text-ink/75 mt-1">El mismo que usas al hacer tus pedidos — así vinculamos tu cuenta con tu historial.</p>
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
+          <p class="text-xs text-ink/75 mt-1">El mismo que usas al hacer tus pedidos — así vinculamos tu cuenta con tu historial.</p>
         </div>
         <div class="pt-2 border-t border-ink/10">
           <label for="settings-current-password" class="block text-xs font-semibold text-ink/75 mb-1">Contraseña actual</label>
           <input id="settings-current-password" type="password" autocomplete="current-password"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
-          <p class="text-[11px] text-ink/75 mt-1">Solo si quieres cambiar tu contraseña.</p>
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
+          <p class="text-xs text-ink/75 mt-1">Solo si quieres cambiar tu contraseña.</p>
         </div>
         <div>
           <label for="settings-new-password" class="block text-xs font-semibold text-ink/75 mb-1">Nueva contraseña</label>
           <input id="settings-new-password" type="password" minlength="8" autocomplete="new-password"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
-        <p id="settings-error" class="hidden text-xs text-rose"></p>
-        <p id="settings-success" class="hidden text-xs text-green-700 font-semibold"></p>
+        <p id="settings-error" role="alert" class="hidden text-xs text-rose-ink"></p>
+        <p id="settings-success" role="status" class="hidden text-xs text-green-700 font-semibold"></p>
         <button id="settings-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Guardar cambios</span>
         </button>
       </form>
@@ -983,68 +1006,70 @@
 </aside>
 
 <!-- Cosmético Americano — carrito aparte -->
-<div id="americano-cart-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+<div id="americano-cart-overlay" aria-hidden="true" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim"></div>
 
-<aside id="americano-cart-drawer" aria-label="Carrito de Cosmético Americano"
-  class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
+<aside id="americano-cart-drawer" role="dialog" aria-modal="true" aria-labelledby="americano-cart-title" tabindex="-1" inert
+  class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full drawer flex flex-col">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
-    <h2 class="font-logo text-xl text-ink">Cosmético Americano — tu pedido</h2>
-    <button id="americano-cart-close" type="button" aria-label="Cerrar carrito" class="text-ink/75 hover:text-ink text-2xl leading-none">&times;</button>
+    <h2 id="americano-cart-title" class="font-logo text-xl text-ink">Cosmético Americano — tu pedido</h2>
+    <button id="americano-cart-close" type="button" aria-label="Cerrar carrito" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
   </div>
-  <p id="americano-cart-switch-notice" class="hidden text-xs text-rose text-center px-5 pt-3"></p>
+  <p id="americano-cart-switch-notice" class="hidden text-xs text-rose-ink text-center px-5 pt-3"></p>
 
   <div class="flex-1 overflow-y-auto">
   <div id="americano-cart-items" class="px-5 py-4 space-y-4">
     <!-- cart line items injected by JS -->
   </div>
-  <div id="americano-cart-empty" class="hidden text-center text-ink/50 px-5 py-10">
-    <img src="./assets/mascot.png" alt="" aria-hidden="true" class="w-16 h-16 object-contain mx-auto mb-3 opacity-80" />
+  <div id="americano-cart-empty" class="hidden text-center text-ink/75 px-5 py-10">
+    <img src="./assets/mascot.webp" width="192" height="192" loading="lazy" decoding="async" alt="" aria-hidden="true" class="w-16 h-16 object-contain mx-auto mb-3 opacity-80" />
     <p>Tu carrito está vacío. Agrega productos de la colección Cosmético Americano.</p>
   </div>
 
   <div class="border-t border-ink/10 px-5 py-4 space-y-4">
-    <p class="text-[11px] text-ink/50 text-center leading-snug" id="americano-cart-disclaimer">Precios en pesos mexicanos (MXN). El envío e importación se cotizan aparte por WhatsApp.</p>
+    <p class="text-xs text-ink/75 text-center leading-snug" id="americano-cart-disclaimer">Precios en pesos mexicanos (MXN). El envío e importación se cotizan aparte por WhatsApp.</p>
     <div class="space-y-1.5">
       <div class="flex items-center justify-between font-semibold text-ink">
         <span id="americano-cart-total-label">Total productos</span>
         <span id="americano-cart-total">$0.00</span>
       </div>
     </div>
-    <p id="americano-cart-min-order" class="hidden text-xs text-rose text-center"></p>
+    <p id="americano-cart-min-order" class="hidden text-xs text-rose-ink text-center"></p>
 
     <form id="americano-quote-form" class="space-y-3">
       <div>
         <label for="americano-customer-name" class="block text-xs font-semibold text-ink/75 mb-1">Tu nombre *</label>
         <input id="americano-customer-name" required type="text" placeholder="Nombre completo"
-          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
       <div>
         <label for="americano-customer-phone" class="block text-xs font-semibold text-ink/75 mb-1">Tu teléfono (opcional)</label>
         <input id="americano-customer-phone" type="tel" placeholder="55 1234 5678"
-          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
       <div>
         <label for="americano-customer-notes" class="block text-xs font-semibold text-ink/75 mb-1">Notas (opcional)</label>
         <textarea id="americano-customer-notes" rows="2" placeholder="Comentarios..."
-          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush"></textarea>
+          class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac"></textarea>
       </div>
+      <p id="americano-cart-error" role="alert" class="hidden rounded-lg border border-rose-deep/30 bg-rose/10 px-3 py-2 text-sm text-rose-ink"></p>
       <button id="americano-send-quote" type="submit"
-        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] text-white font-semibold py-3 hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed">
+        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] text-ink font-semibold py-3 hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
         <span>Enviar pedido por WhatsApp</span>
       </button>
-      <p class="text-[11px] text-center text-ink/75">Al enviar se abrirá WhatsApp con el resumen de tu pedido. No se realiza ningún cobro.</p>
+      <p class="text-xs text-center text-ink/75">Al enviar se abrirá WhatsApp con el resumen de tu pedido. No se realiza ningún cobro.</p>
     </form>
   </div>
   </div>
 </aside>
 
 <!-- Avísame cuando vuelva (producto agotado) -->
-<div id="restock-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4">
-  <div class="bg-cream rounded-2xl shadow-2xl w-full max-w-sm p-5">
+<div id="restock-overlay" role="dialog" aria-modal="true" aria-labelledby="restock-title" tabindex="-1" inert
+  class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim flex items-center justify-center p-4">
+  <div class="modal-card bg-cream rounded-2xl shadow-2xl w-full max-w-sm p-5">
     <div class="flex items-center justify-between mb-1">
-      <h3 class="font-logo text-lg text-ink">🔔 Avísame cuando vuelva</h3>
-      <button id="restock-close" type="button" aria-label="Cerrar" class="text-ink/75 hover:text-ink text-2xl leading-none">&times;</button>
+      <h3 id="restock-title" class="font-logo text-lg text-ink">🔔 Avísame cuando vuelva</h3>
+      <button id="restock-close" type="button" aria-label="Cerrar" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
     </div>
     <p class="text-sm text-ink/75 mb-4" id="restock-product-name"></p>
     <form id="restock-form">
@@ -1052,30 +1077,31 @@
         <div>
           <label for="restock-phone" class="block text-xs font-semibold text-ink/75 mb-1">Tu teléfono (WhatsApp)</label>
           <input id="restock-phone" required type="tel" placeholder="55 1234 5678" autocomplete="tel"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
         <div>
           <label for="restock-name" class="block text-xs font-semibold text-ink/75 mb-1">Tu nombre (opcional)</label>
           <input id="restock-name" type="text" autocomplete="name"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush" />
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
-        <p id="restock-error" class="hidden text-xs text-rose"></p>
+        <p id="restock-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="restock-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Avísame</span>
         </button>
       </div>
-      <p id="restock-success" class="hidden text-sm text-green-700 font-semibold">✅ ¡Listo! Te avisamos por WhatsApp en cuanto vuelva a haber.</p>
+      <p id="restock-success" role="status" class="hidden text-sm text-green-700 font-semibold">✅ ¡Listo! Te avisamos por WhatsApp en cuanto vuelva a haber.</p>
     </form>
   </div>
 </div>
 
 <!-- Calificar producto -->
-<div id="review-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4">
-  <div class="bg-cream rounded-2xl shadow-2xl w-full max-w-sm p-5">
+<div id="review-overlay" role="dialog" aria-modal="true" aria-labelledby="review-title" tabindex="-1" inert
+  class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim flex items-center justify-center p-4">
+  <div class="modal-card bg-cream rounded-2xl shadow-2xl w-full max-w-sm p-5">
     <div class="flex items-center justify-between mb-1">
-      <h3 class="font-logo text-lg text-ink">⭐ Calificar producto</h3>
-      <button id="review-close" type="button" aria-label="Cerrar" class="text-ink/75 hover:text-ink text-2xl leading-none">&times;</button>
+      <h3 id="review-title" class="font-logo text-lg text-ink">⭐ Calificar producto</h3>
+      <button id="review-close" type="button" aria-label="Cerrar" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
     </div>
     <p class="text-sm text-ink/75 mb-4" id="review-product-name"></p>
     <form id="review-form">
@@ -1087,30 +1113,35 @@
         <div>
           <label for="review-comment" class="block text-xs font-semibold text-ink/75 mb-1">Comentario (opcional)</label>
           <textarea id="review-comment" rows="3" placeholder="¿Qué te pareció?"
-            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blush"></textarea>
+            class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac"></textarea>
         </div>
-        <p id="review-error" class="hidden text-xs text-rose"></p>
+        <p id="review-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="review-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Enviar calificación</span>
         </button>
       </div>
-      <p id="review-success" class="hidden text-sm text-green-700 font-semibold">✅ ¡Gracias por tu calificación!</p>
+      <p id="review-success" role="status" class="hidden text-sm text-green-700 font-semibold">✅ ¡Gracias por tu calificación!</p>
     </form>
   </div>
 </div>
 
 <!-- Ver reseñas de un producto -->
-<div id="reviews-list-overlay" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4">
-  <div class="bg-cream rounded-2xl shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto p-5">
+<div id="reviews-list-overlay" role="dialog" aria-modal="true" aria-labelledby="reviews-list-title" tabindex="-1" inert
+  class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim flex items-center justify-center p-4">
+  <div class="modal-card bg-cream rounded-2xl shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto p-5">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-logo text-lg text-ink" id="reviews-list-title">Reseñas</h3>
-      <button id="reviews-list-close" type="button" aria-label="Cerrar" class="text-ink/75 hover:text-ink text-2xl leading-none">&times;</button>
+      <button id="reviews-list-close" type="button" aria-label="Cerrar" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
     </div>
     <p class="text-sm text-ink/75 mb-2" id="reviews-list-summary"></p>
     <div id="reviews-list-items" class="space-y-3"></div>
   </div>
 </div>
+
+<!-- Avisos para lectores de pantalla (producto agregado, cantidad
+     cambiada, límite de piezas). Se llena desde announce() en app.js. -->
+<div id="live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="./app.js"></script>
 </body>
