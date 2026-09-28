@@ -294,6 +294,7 @@
     wireCopyAddressButtons(historyEl);
     wireEditButtons(historyEl);
     wireProofLinkButtons(historyEl);
+    wireSupplierPromptButtons(historyEl);
   }
 
   function wireCopyAddressButtons(container) {
@@ -1040,6 +1041,9 @@ ${itemLines}
   }
 
   function supplierPromptBlockHTML(o) {
+    // No tiene caso pedirle al proveedor los productos de un pedido
+    // cancelado o que no se pudo cobrar.
+    if (o.status === "cancelled" || o.status === "failed") return "";
     if (!buildSupplierPrompt(o)) return "";
     return `
       <div class="edit-block">
@@ -1256,6 +1260,10 @@ ${itemLines}
     // en la página (uno en "Pedidos pendientes", otro en "Todos tus
     // pedidos") y solo el primero respondería a los botones.
     const editBlock = o.status === "pending" ? "" : editBlockHTML(o);
+    // Igual que editBlock -- si el pedido es "pending" ya trae su propio
+    // botón/prompt en pendingCardHTML, así que aquí se omite para no
+    // repetir el mismo id en la página.
+    const supplierBlock = o.status === "pending" ? "" : supplierPromptBlockHTML(o);
     return `
       <div class="order-card" style="border-left-color:${borderColor};">
         <div class="top">
@@ -1273,6 +1281,7 @@ ${itemLines}
         ${trackingBlockHTML(o)}
         ${guideBlockHTML(o)}
         ${editBlock}
+        ${supplierBlock}
         ${deleteBtn}
       </div>`;
   }
