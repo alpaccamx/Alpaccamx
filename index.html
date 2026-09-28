@@ -87,7 +87,7 @@
       </button>
 
       <button id="cart-toggle" type="button" aria-label="Abrir carrito"
-        class="relative inline-flex items-center gap-2 rounded-full bg-rose-deep text-cream px-4 py-2 min-h-[44px] text-sm font-semibold hover:bg-rose-ink transition">
+        class="relative inline-flex items-center gap-2 rounded-full bg-rose text-cream px-4 py-2 min-h-[44px] text-sm font-semibold hover:bg-rose/90 transition">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         <span class="hidden sm:inline" id="cart-total-header">$0.00</span>
         <span id="cart-count" class="absolute -top-2 -right-2 bg-blush text-ink text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
@@ -403,7 +403,7 @@
   <div class="rounded-3xl bg-lilac-band text-cream px-6 sm:px-12 py-12 sm:py-16 text-center">
     <h2 id="promo-title" class="font-logo text-2xl sm:text-4xl"></h2>
     <p id="promo-subtitle" class="mt-2 text-cream max-w-lg mx-auto"></p>
-    <a id="promo-cta" href="#" class="inline-block mt-6 rounded-full bg-rose-deep text-cream font-semibold px-6 py-3 hover:bg-rose-ink transition"></a>
+    <a id="promo-cta" href="#" class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition"></a>
   </div>
 </section>
 
@@ -658,7 +658,7 @@
     <div id="cart-login-required" class="hidden rounded-lg border border-rose/30 bg-blush/20 p-4 text-center space-y-3">
       <p class="text-sm text-ink/75">Para continuar tu compra, inicia sesión o crea una cuenta gratis — así puedes ver y rastrear tus pedidos después.</p>
       <button type="button" id="cart-login-cta"
-        class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition">
+        class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition">
         Iniciar sesión / Crear cuenta
       </button>
     </div>
@@ -778,12 +778,12 @@
       <div>
         <label for="proof-file-input" class="block text-xs font-semibold text-ink/75 mb-1">📎 Sube tu comprobante de transferencia (captura o PDF, hasta 4 MB) *</label>
         <input id="proof-file-input" required type="file" accept="image/*,application/pdf"
-          class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose-deep file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
+          class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
         <p class="text-xs text-ink/75 mt-1">Primero transfiere a los datos de arriba y luego sube aquí tu comprobante — es obligatorio para poder confirmar el pedido.</p>
       </div>
 
       <button id="send-quote" type="submit"
-        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose-deep text-cream font-semibold py-3 hover:bg-rose-ink transition disabled:opacity-40 disabled:cursor-not-allowed">
+        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose text-cream font-semibold py-3 hover:bg-rose/90 transition disabled:opacity-40 disabled:cursor-not-allowed">
         <span>✅ Confirmar pedido por transferencia</span>
       </button>
       <p class="text-xs text-center text-ink/75">No se realiza ningún cobro aquí. Se registra tu pedido junto con tu comprobante.</p>
@@ -803,10 +803,10 @@
       <div id="proof-retry-block" class="hidden">
         <p class="text-xs text-rose-ink mb-1">⚠️ Tu pedido se registró, pero no se pudo subir el comprobante. Vuelve a intentarlo:</p>
         <input id="proof-retry-file-input" type="file" accept="image/*,application/pdf"
-          class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose-deep file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
+          class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
         <p id="proof-retry-status" role="status" class="text-xs text-ink/75 mt-1"></p>
         <button id="proof-retry-btn" type="button"
-          class="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose-deep text-cream font-semibold py-2.5 text-sm hover:bg-rose-ink transition disabled:opacity-40 disabled:cursor-not-allowed">
+          class="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose text-cream font-semibold py-2.5 text-sm hover:bg-rose/90 transition disabled:opacity-40 disabled:cursor-not-allowed">
           <span>📤 Reintentar subir comprobante</span>
         </button>
       </div>
@@ -845,7 +845,7 @@
         </div>
         <p id="login-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="login-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
           <span>Iniciar sesión</span>
         </button>
       </form>
@@ -893,7 +893,7 @@
         </div>
         <p id="signup-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="signup-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
           <span>Crear cuenta</span>
         </button>
       </form>
@@ -913,7 +913,7 @@
             class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
         <button id="forgot-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
           <span>Mandar link de recuperación</span>
         </button>
       </form>
@@ -934,7 +934,7 @@
         </div>
         <p id="reset-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="reset-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
           <span>Cambiar contraseña</span>
         </button>
       </form>
@@ -996,7 +996,7 @@
         <p id="settings-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <p id="settings-success" role="status" class="hidden text-xs text-green-700 font-semibold"></p>
         <button id="settings-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
           <span>Guardar cambios</span>
         </button>
       </form>
@@ -1086,7 +1086,7 @@
         </div>
         <p id="restock-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="restock-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
           <span>Avísame</span>
         </button>
       </div>
@@ -1117,7 +1117,7 @@
         </div>
         <p id="review-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="review-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
           <span>Enviar calificación</span>
         </button>
       </div>

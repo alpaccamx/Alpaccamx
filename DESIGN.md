@@ -89,21 +89,18 @@ spacing:
   section: "56px"
 components:
   button-primary:
-    backgroundColor: "{colors.deep-peony}"
+    backgroundColor: "{colors.peony-rose}"
     textColor: "{colors.cream-paper}"
     rounded: "{rounded.pill}"
     padding: "12px 24px"
-  button-primary-hover:
-    backgroundColor: "{colors.peony-ink}"
-    textColor: "{colors.cream-paper}"
   button-card:
-    backgroundColor: "{colors.deep-peony}"
+    backgroundColor: "{colors.peony-rose}"
     textColor: "{colors.cream-paper}"
     rounded: "{rounded.pill}"
     padding: "8px 12px"
     width: "100%"
   button-outline-rose:
-    textColor: "{colors.peony-ink}"
+    textColor: "{colors.peony-rose}"
     rounded: "{rounded.pill}"
     padding: "6px 12px"
   button-ghost:
@@ -160,7 +157,7 @@ components:
     rounded: "{rounded.pill}"
     padding: "4px 8px"
   rank-badge:
-    backgroundColor: "{colors.deep-peony}"
+    backgroundColor: "{colors.peony-rose}"
     textColor: "{colors.cream-paper}"
     rounded: "{rounded.pill}"
     size: "32px"
@@ -180,7 +177,7 @@ Personality comes from a few specific details rather than decoration: the Ready 
 
 **Key Characteristics:**
 - Cream paper ground (never pure white) with plum ink text (never pure black).
-- One action color: Deep Peony on every "Agregar", cart and CTA; the bright Peony Rose only where no text sits.
+- One action color: bright Peony Rose on every "Agregar", cart and CTA.
 - Pill shapes for anything you tap; rounded 16px cards for anything you read.
 - Flat at rest; a shadow and a rose border tint appear on hover.
 - A playful display face for headings, a plain sans for everything else, and Josefin Sans for prices.
@@ -192,9 +189,10 @@ A warm pastel palette on cream: one saturated rose for action, one muted lilac f
 
 ### Primary
 The rose is two-toned: one hue at three lightnesses, split by whether text sits on it.
-- **Deep Peony** (`deep-peony`): the action fill. Every primary button ("Agregar", "Explorar catálogo", the cart pill, login and checkout buttons, the file-upload button) and the Best Seller rank badges, always with cream text (4.6:1). The large 01–04 step numerals also use it.
-- **Peony Ink** (`peony-ink`): rose *text* on light grounds (links such as "Habla con Mae →", the order-minimum warning, form errors, the "Avísame" outline button) and the hover fill for Deep Peony buttons (5.7:1 with cream).
-- **Peony Rose** (`peony-rose`): the bright brand pink, now reserved for fills that carry no text: icon circles (10% tint behind a rose stroke icon), the favorited heart, the active hero dot, quiz progress and order-tracker dots, hover tints and border washes (10–40%).
+- **Deep Peony** (`deep-peony`): the large 01–04 step numerals. (It was briefly the button fill; the owner preferred the original bright rose for buttons, see below.)
+- **Peony Ink** (`peony-ink`): rose *text* on light grounds (links such as "Habla con Mae →", the order-minimum warning, form errors, the "Avísame" outline button) (5.7:1 on cream).
+- **Peony Rose** (`peony-rose`): the bright brand pink and the **button color**: every primary button ("Agregar", "Explorar catálogo", the cart pill, login and checkout buttons, the file-upload button), the "Avísame" outline button, and the Best Seller rank badges, with cream text; hover drops the fill to 90%. Also the icon circles (10% tint), the favorited heart, the active hero dot, quiz progress and order-tracker dots, hover tints and border washes.
+- **Owner decision (known exception):** buttons keep the original bright rose by the owner's choice. Cream text on it is 2.8:1, below WCAG AA's 4.5:1 for button labels. Don't darken the buttons on your own; if contrast needs to be revisited, propose it to the owner first.
 
 ### Secondary
 - **Dusk Lilac** (`dusk-lilac`): tints, borders and the keyboard focus ring. At 20% it's the ground of the "Caja con N piezas" chip, so box sizes read differently from single units.
@@ -226,7 +224,7 @@ Text selection is blush behind plum ink; checkboxes and other native controls us
 ### Named Rules
 **The One Rose Rule.** Rose means "do something". Don't use it for decoration, section backgrounds or large text blocks. If an element isn't tappable, it doesn't get rose (step numerals and icon tints are the only exceptions).
 
-**The Text Gets the Deep Shade Rule.** Any rose or lilac that carries text, or has text on it, uses its deep shade: Deep Peony or Peony Ink, Lilac Band or Lilac Ink. The bright Peony Rose and Dusk Lilac never sit behind or in front of words. Every text pair meets WCAG AA (4.5:1, or 3:1 at 24px and up).
+**The Text Gets the Deep Shade Rule.** Rose or lilac *text* on light grounds uses its deep shade (Peony Ink, Lilac Ink), and cream text on lilac uses Lilac Band. The one exception is buttons and rank badges: they stay bright Peony Rose with cream text by the owner's choice (2.8:1).
 
 **The Ink Floor Rule.** Text is never lighter than `ink-muted` (plum at 75%). Fainter ink is for borders and dividers only.
 
@@ -296,12 +294,12 @@ The shapes are soft and pebble-like. Anything you tap is a full pill: buttons, t
 ### Buttons
 Soft, round and approachable, with no hard edges and no heavy weight.
 - **Shape:** full pill (9999px).
-- **Primary:** Deep Peony with cream text, Nunito 600. Full size is 12px × 24px padding for page CTAs. On product cards, "Agregar" and "Avísame" are full card width, 14px text, 8px × 12px padding (44px tap area).
-- **Hover:** the fill darkens to Peony Ink, with a short `transition`. It never lightens, which would drop contrast. Disabled buttons drop to 30% opacity with a not-allowed cursor (for example, "Agregar" before a shade is picked, or "+" at the stock limit).
+- **Primary:** Peony Rose with cream text, Nunito 600. Full size is 12px × 24px padding for page CTAs. On product cards, "Agregar" and "Avísame" are full card width, 14px text, 8px × 12px padding (44px tap area).
+- **Hover:** the fill drops to 90% opacity, with a short `transition`. Disabled buttons drop to 30% opacity with a not-allowed cursor (for example, "Agregar" before a shade is picked, or "+" at the stock limit).
 - **Focus:** a 2px Dusk Lilac outline with a 2px offset (cream on lilac bands).
-- **Outline (rose):** 1px Deep Peony border and Peony Ink text, with a 10% rose fill on hover. Used for "🔔 Avísame" on sold-out items.
+- **Outline (rose):** 1px Peony Rose border and Peony Rose text, with a 10% rose fill on hover. Used for "🔔 Avísame" on sold-out items.
 - **Collection button (Cosmético Americano):** plum ink with cream text, full card width, the same shape and size as the rose "Agregar". Plum marks the separate collection and its own cart; it's the one sanctioned exception to The One Rose Rule.
-- **Ghost:** 1px ink/20 border and ink text; on hover the border turns Deep Peony and the text Peony Ink. Used for secondary hero CTAs and brand tiles.
+- **Ghost:** 1px ink/20 border and ink text; on hover the border and text turn Peony Rose. Used for secondary hero CTAs and brand tiles.
 - **Icon buttons:** 44px circles, ink at 70%, with ink at 5% fill on hover (wishlist, account, search submit).
 - **Text buttons:** 12px, ink muted, underlined ("Cerrar", "Repetir el quiz", "← Pregunta anterior").
 
@@ -348,7 +346,7 @@ A 16px translucent card with a 40px rose-tint circle holding a 20px rose stroke 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** use Deep Peony for every primary action and nothing decorative (The One Rose Rule), and give any rose or lilac that touches text its deep shade (The Text Gets the Deep Shade Rule).
+- **Do** use Peony Rose for every primary action and nothing decorative (The One Rose Rule), and use the deep shades for rose or lilac *text* (The Text Gets the Deep Shade Rule).
 - **Do** keep text at `ink-muted` (plum 75%) or darker (The Ink Floor Rule).
 - **Do** keep the page on cream paper, with cards and fields as translucent white (60% / 70%) and 1px hairline borders.
 - **Do** make every tappable control a pill, and every reading container a 16px rounded card.

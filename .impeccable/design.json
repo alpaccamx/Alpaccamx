@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-28T16:34:06.975Z",
+  "generatedAt": "2026-09-28T22:02:06.300Z",
   "title": "Design System: Alpacca",
   "extensions": {
     "colorMeta": {
@@ -338,7 +338,7 @@
       "refersTo": "button-primary",
       "description": "Peony rose pill for every primary action.",
       "html": "<button class=\"ds-btn-primary\">Explorar catálogo</button>",
-      "css": ".ds-btn-primary { background: #c4466e; color: #fffcf4; font-family: Nunito, sans-serif; font-weight: 600; font-size: 16px; padding: 12px 24px; border: none; border-radius: 9999px; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: #b33660; } .ds-btn-primary:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
+      "css": ".ds-btn-primary { background: #ee6c92; color: #fffcf4; font-family: Nunito, sans-serif; font-weight: 600; font-size: 16px; padding: 12px 24px; border: none; border-radius: 9999px; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: rgba(238,108,146,0.9); } .ds-btn-primary:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
     },
     {
       "name": "Card Add Button",
@@ -346,7 +346,7 @@
       "refersTo": "button-card",
       "description": "Full-width Agregar on product cards; disabled until a shade is chosen.",
       "html": "<div style=\"display:flex;gap:8px\"><button class=\"ds-btn-add\">Agregar</button><button class=\"ds-btn-add\" disabled>Agregar</button></div>",
-      "css": ".ds-btn-add { background: #c4466e; color: #fffcf4; font-family: Nunito, sans-serif; font-weight: 600; font-size: 14px; padding: 8px 12px; width: 100%; border: none; border-radius: 9999px; cursor: pointer; transition: background-color 150ms; } .ds-btn-add:hover { background: #b33660; } .ds-btn-add:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; } .ds-btn-add:disabled { opacity: 0.3; cursor: not-allowed; } .ds-btn-add { position: relative; } .ds-btn-add::after { content: \"\"; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }"
+      "css": ".ds-btn-add { background: #ee6c92; color: #fffcf4; font-family: Nunito, sans-serif; font-weight: 600; font-size: 14px; padding: 8px 12px; width: 100%; border: none; border-radius: 9999px; cursor: pointer; transition: background-color 150ms; } .ds-btn-add:hover { background: rgba(238,108,146,0.9); } .ds-btn-add:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; } .ds-btn-add:disabled { opacity: 0.3; cursor: not-allowed; } .ds-btn-add { position: relative; } .ds-btn-add::after { content: \"\"; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }"
     },
     {
       "name": "Outline Rose Button",
@@ -354,7 +354,7 @@
       "refersTo": "button-outline-rose",
       "description": "'Avísame' restock request on sold-out cards.",
       "html": "<button class=\"ds-btn-outline\">🔔 Avísame</button>",
-      "css": ".ds-btn-outline { background: transparent; color: #b33660; border: 1px solid #c4466e; font-family: Nunito, sans-serif; font-weight: 600; font-size: 12px; padding: 6px 12px; border-radius: 9999px; cursor: pointer; transition: background-color 150ms; } .ds-btn-outline:hover { background: rgba(238,108,146,0.1); } .ds-btn-outline:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
+      "css": ".ds-btn-outline { background: transparent; color: #ee6c92; border: 1px solid #ee6c92; font-family: Nunito, sans-serif; font-weight: 600; font-size: 12px; padding: 6px 12px; border-radius: 9999px; cursor: pointer; transition: background-color 150ms; } .ds-btn-outline:hover { background: rgba(238,108,146,0.1); } .ds-btn-outline:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
     },
     {
       "name": "Ghost Button",
@@ -362,7 +362,7 @@
       "refersTo": "button-ghost",
       "description": "Secondary CTA; turns rose on hover.",
       "html": "<button class=\"ds-btn-ghost\">Escríbenos</button>",
-      "css": ".ds-btn-ghost { background: transparent; color: #3d3a42; border: 1px solid rgba(61,58,66,0.2); font-family: Nunito, sans-serif; font-weight: 600; font-size: 16px; padding: 12px 24px; border-radius: 9999px; cursor: pointer; transition: color 150ms, border-color 150ms; } .ds-btn-ghost:hover { color: #b33660; border-color: #c4466e; } .ds-btn-ghost:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
+      "css": ".ds-btn-ghost { background: transparent; color: #3d3a42; border: 1px solid rgba(61,58,66,0.2); font-family: Nunito, sans-serif; font-weight: 600; font-size: 16px; padding: 12px 24px; border-radius: 9999px; cursor: pointer; transition: color 150ms, border-color 150ms; } .ds-btn-ghost:hover { color: #ee6c92; border-color: #ee6c92; } .ds-btn-ghost:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
     },
     {
       "name": "Search Field",
@@ -402,7 +402,7 @@
       "refersTo": "product-card",
       "description": "The workhorse card: photo well, chips, brand, name, 18px price with 12px meta lines, full-width Agregar; lifts on hover.",
       "html": "<div class=\"ds-card\"><div class=\"ds-card-img\"><span class=\"ds-rank\">1</span></div><div class=\"ds-card-body\"><span class=\"ds-chip-box\">Caja con 12 piezas</span><span class=\"ds-card-brand\">Anua</span><h3 class=\"ds-card-name\">Heartleaf 77% Soothing Toner</h3><span class=\"ds-card-meta\">250ml</span><div class=\"ds-card-foot\"><span class=\"ds-card-price\">$3,450.00</span><span class=\"ds-card-meta\">$287.50 c/u</span><span class=\"ds-card-meta\">🏦 Por transferencia</span><span class=\"ds-card-meta ds-card-tarjeta\">Con tarjeta: $3,660.00</span><button class=\"ds-card-add\">Agregar</button></div></div></div>",
-      "css": ".ds-card { width: 220px; display: flex; flex-direction: column; background: rgba(255,255,255,0.6); border: 1px solid rgba(61,58,66,0.1); border-radius: 16px; overflow: hidden; font-family: Nunito, sans-serif; transition: box-shadow 300ms, border-color 300ms; } .ds-card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); border-color: rgba(238,108,146,0.3); } .ds-card-img { position: relative; aspect-ratio: 1; background: rgba(246,202,219,0.2); } .ds-rank { position: absolute; top: 8px; left: 8px; width: 32px; height: 32px; border-radius: 9999px; background: #c4466e; color: #fffcf4; display: flex; align-items: center; justify-content: center; font-family: 'Ready to Party', sans-serif; font-size: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); } .ds-card-body { padding: 12px; display: flex; flex-direction: column; gap: 2px; } .ds-chip-box { width: fit-content; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; background: rgba(139,132,172,0.2); color: #696288; margin-bottom: 4px; } .ds-card-brand { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(61,58,66,0.75); } .ds-card-name { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.375; color: #3d3a42; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; } .ds-card-foot { margin-top: 12px; display: flex; flex-direction: column; line-height: 1.25; font-variant-numeric: tabular-nums; } .ds-card-price { font-family: 'Josefin Sans', sans-serif; font-weight: 600; font-size: 18px; color: #3d3a42; } .ds-card-meta { font-size: 12px; color: rgba(61,58,66,0.75); margin-top: 2px; } .ds-card-tarjeta { color: #696288; font-weight: 600; } .ds-card-add { margin-top: 8px; width: 100%; font-size: 14px; padding: 8px 12px;  background: #c4466e; color: #fffcf4; border: none; border-radius: 9999px; font-family: Nunito, sans-serif; font-weight: 600; cursor: pointer; transition: background-color 150ms; } .ds-card-add:hover { background: #b33660; } .ds-card-add:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
+      "css": ".ds-card { width: 220px; display: flex; flex-direction: column; background: rgba(255,255,255,0.6); border: 1px solid rgba(61,58,66,0.1); border-radius: 16px; overflow: hidden; font-family: Nunito, sans-serif; transition: box-shadow 300ms, border-color 300ms; } .ds-card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); border-color: rgba(238,108,146,0.3); } .ds-card-img { position: relative; aspect-ratio: 1; background: rgba(246,202,219,0.2); } .ds-rank { position: absolute; top: 8px; left: 8px; width: 32px; height: 32px; border-radius: 9999px; background: #ee6c92; color: #fffcf4; display: flex; align-items: center; justify-content: center; font-family: 'Ready to Party', sans-serif; font-size: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); } .ds-card-body { padding: 12px; display: flex; flex-direction: column; gap: 2px; } .ds-chip-box { width: fit-content; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; background: rgba(139,132,172,0.2); color: #696288; margin-bottom: 4px; } .ds-card-brand { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(61,58,66,0.75); } .ds-card-name { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.375; color: #3d3a42; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; } .ds-card-foot { margin-top: 12px; display: flex; flex-direction: column; line-height: 1.25; font-variant-numeric: tabular-nums; } .ds-card-price { font-family: 'Josefin Sans', sans-serif; font-weight: 600; font-size: 18px; color: #3d3a42; } .ds-card-meta { font-size: 12px; color: rgba(61,58,66,0.75); margin-top: 2px; } .ds-card-tarjeta { color: #696288; font-weight: 600; } .ds-card-add { margin-top: 8px; width: 100%; font-size: 14px; padding: 8px 12px;  background: #ee6c92; color: #fffcf4; border: none; border-radius: 9999px; font-family: Nunito, sans-serif; font-weight: 600; cursor: pointer; transition: background-color 150ms; } .ds-card-add:hover { background: rgba(238,108,146,0.9); } .ds-card-add:focus-visible { outline: none; outline: 2px solid #8b84ac; outline-offset: 2px; }"
     },
     {
       "name": "Info Tile",
@@ -418,7 +418,7 @@
       "refersTo": "feature-band",
       "description": "Wide lilac promo band with a Ready to Party headline and rose CTA.",
       "html": "<section class=\"ds-band\"><h2 class=\"ds-band-title\">Skincare asiático que tus clientes van a querer</h2><p class=\"ds-band-sub\">Productos coreanos seleccionados para tu negocio.</p><a class=\"ds-band-cta\" href=\"#\">Explorar catálogo</a></section>",
-      "css": ".ds-band { background: #766f96; color: #fffcf4; border-radius: 24px; padding: 48px 24px; text-align: center; font-family: Nunito, sans-serif; } .ds-band-title { margin: 0; font-family: 'Ready to Party', sans-serif; font-weight: 400; font-size: 36px; line-height: 1.1; } .ds-band-sub { margin: 8px auto 0; max-width: 32rem; color: #fffcf4; } .ds-band-cta { display: inline-block; margin-top: 24px; background: #c4466e; color: #fffcf4; font-weight: 600; padding: 12px 24px; border-radius: 9999px; text-decoration: none; transition: background-color 150ms; } .ds-band-cta:hover { background: #b33660; } .ds-band-cta:focus-visible { outline: 2px solid #fffcf4; outline-offset: 2px; }"
+      "css": ".ds-band { background: #766f96; color: #fffcf4; border-radius: 24px; padding: 48px 24px; text-align: center; font-family: Nunito, sans-serif; } .ds-band-title { margin: 0; font-family: 'Ready to Party', sans-serif; font-weight: 400; font-size: 36px; line-height: 1.1; } .ds-band-sub { margin: 8px auto 0; max-width: 32rem; color: #fffcf4; } .ds-band-cta { display: inline-block; margin-top: 24px; background: #ee6c92; color: #fffcf4; font-weight: 600; padding: 12px 24px; border-radius: 9999px; text-decoration: none; transition: background-color 150ms; } .ds-band-cta:hover { background: rgba(238,108,146,0.9); } .ds-band-cta:focus-visible { outline: 2px solid #fffcf4; outline-offset: 2px; }"
     }
   ],
   "narrative": {
@@ -426,7 +426,7 @@
     "overview": "Alpacca looks like a small shop counter run by someone who knows you. The surface is warm and a little playful: cream paper, peony-rose buttons, the alpaca mascot, and headings set in a rounded hand-lettered display face. Underneath, the job is practical. A reseller comes here to do the math: unit vs. box, transfer vs. card price, shipping by weight and zip code, and how far they are from the order minimum. The friendliness puts people at ease; the numbers are what they came for.\n\nThe system is soft and flat. Surfaces are translucent white cards on cream with hairline plum borders, and depth appears only on hover. Rose is the single action color. Lilac provides calm contrast bands. Blush and the petal bar are backgrounds and never compete with actions. Density is moderate: two-column product grids on phones, up to six on desktop, with generous 56px pauses between homepage sections.\n\nPersonality comes from a few specific details rather than decoration: the Ready to Party headings, numbered rank badges, the mascot in empty states, and emoji used as inline signposts in operational copy (✅ En stock, ✈️ Envío Corea→México, 🏦 transferencia).",
     "keyCharacteristics": [
       "Cream paper ground (never pure white) with plum ink text (never pure black).",
-      "One action color: Deep Peony on every \"Agregar\", cart and CTA; the bright Peony Rose only where no text sits.",
+      "One action color: bright Peony Rose on every \"Agregar\", cart and CTA.",
       "Pill shapes for anything you tap; rounded 16px cards for anything you read.",
       "Flat at rest; a shadow and a rose border tint appear on hover.",
       "A playful display face for headings, a plain sans for everything else, and Josefin Sans for prices.",
@@ -445,7 +445,7 @@
       },
       {
         "name": "The Text Gets the Deep Shade Rule",
-        "body": "Any rose or lilac that carries text, or has text on it, uses its deep shade: Deep Peony or Peony Ink, Lilac Band or Lilac Ink. The bright Peony Rose and Dusk Lilac never sit behind or in front of words. Every text pair meets WCAG AA (4.5:1, or 3:1 at 24px and up).",
+        "body": "Rose or lilac *text* on light grounds uses its deep shade (Peony Ink, Lilac Ink), and cream text on lilac uses Lilac Band. The one exception is buttons and rank badges: they stay bright Peony Rose with cream text by the owner's choice (2.8:1).",
         "section": "colors"
       },
       {
@@ -485,7 +485,7 @@
       }
     ],
     "dos": [
-      "Do use Deep Peony for every primary action and nothing decorative (The One Rose Rule), and give any rose or lilac that touches text its deep shade (The Text Gets the Deep Shade Rule).",
+      "Do use Peony Rose for every primary action and nothing decorative (The One Rose Rule), and use the deep shades for rose or lilac *text* (The Text Gets the Deep Shade Rule).",
       "Do keep text at `ink-muted` (plum 75%) or darker (The Ink Floor Rule).",
       "Do keep the page on cream paper, with cards and fields as translucent white (60% / 70%) and 1px hairline borders.",
       "Do make every tappable control a pill, and every reading container a 16px rounded card.",

@@ -1599,7 +1599,7 @@ function heroSlideHTML(slide) {
         ${
           slide.ctaText
             ? `<a href="${escapeAttr(slide.ctaHref || "#")}"
-                class="inline-block rounded-full bg-rose-deep text-cream font-semibold px-6 py-3 hover:bg-rose-ink transition">
+                class="inline-block rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition">
                 ${escapeHtml(slide.ctaText)}
               </a>`
             : ""
@@ -1607,7 +1607,7 @@ function heroSlideHTML(slide) {
         ${
           slide.ctaSecondaryText && secondaryHref
             ? `<a href="${escapeAttr(secondaryHref)}" target="_blank" rel="noopener"
-                class="inline-block rounded-full border border-ink/20 text-ink font-semibold px-6 py-3 hover:border-rose-deep hover:text-rose-ink transition">
+                class="inline-block rounded-full border border-ink/20 text-ink font-semibold px-6 py-3 hover:border-rose hover:text-rose transition">
                 ${escapeHtml(slide.ctaSecondaryText)}
               </a>`
             : ""
@@ -2005,7 +2005,7 @@ function productCardHTML(p, { rank } = {}) {
   return `
     <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full transition duration-300 hover:shadow-lg hover:border-rose/30">
       <div class="aspect-square bg-blush/20 overflow-hidden relative">
-        ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-rose-deep text-cream font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
+        ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-rose text-cream font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
           class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
         <div data-card-badge class="absolute top-2 ${rank ? "right-2" : "left-2"}">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
@@ -2056,11 +2056,11 @@ function productCardHTML(p, { rank } = {}) {
           ${
             outOfStock
               ? `<button type="button" data-restock="${escapeAttr(p.id)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
-                  class="tap mt-2 w-full rounded-full border border-rose-deep text-rose-ink text-sm font-semibold px-3 py-2 hover:bg-rose/10 transition">
+                  class="tap mt-2 w-full rounded-full border border-rose text-rose text-sm font-semibold px-3 py-2 hover:bg-rose/10 transition">
                   🔔 Avísame
                 </button>`
               : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""}
-                  class="tap mt-2 w-full rounded-full bg-rose-deep text-cream text-sm font-semibold px-3 py-2 hover:bg-rose-ink transition disabled:opacity-30 disabled:cursor-not-allowed">
+                  class="tap mt-2 w-full rounded-full bg-rose text-cream text-sm font-semibold px-3 py-2 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
                   Agregar
                 </button>`
           }
@@ -2548,14 +2548,14 @@ function renderBrands(showAll = false) {
   const previewCount = featured.length || BRANDS_PREVIEW_COUNT_DEFAULT;
 
   const brandButton = (b) => `<button type="button" data-brand="${escapeAttr(b)}"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose-deep hover:text-rose-ink transition"><span>${escapeHtml(b)}</span></button>`;
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose hover:text-rose transition"><span>${escapeHtml(b)}</span></button>`;
 
   const hasMore = !showAll && brands.length > previewCount;
   const visibleBrands = hasMore ? brands.slice(0, previewCount) : brands;
 
   const moreTile = hasMore
     ? `<button type="button" id="brands-show-more"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose-deep hover:text-rose-ink transition">Y más</button>`
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose hover:text-rose transition">Y más</button>`
     : "";
 
   document.getElementById("brands-grid").innerHTML = visibleBrands.map(brandButton).join("") + moreTile;
@@ -4329,7 +4329,7 @@ function orderWhatsAppButtonHTML(o) {
   const href = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una duda sobre mi pedido #${orderNumber(o)}.`);
   if (!href) return "";
   return `<a href="${escapeAttr(href)}" target="_blank" rel="noopener"
-      class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-ink/20 text-ink text-xs font-semibold py-2 hover:border-rose-deep hover:text-rose-ink transition">
+      class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-ink/20 text-ink text-xs font-semibold py-2 hover:border-rose hover:text-rose transition">
       💬 Dudas de este pedido
     </a>`;
 }
@@ -4436,7 +4436,7 @@ function renderAccountOrdersStats(orders) {
     const active = accountOrdersStatusFilter === s.key;
     return `
       <button type="button" data-stat-filter="${s.key}"
-        class="flex flex-col items-center gap-0.5 rounded-lg py-2 transition ${active ? "bg-rose-deep text-cream" : "bg-ink/5 text-ink hover:bg-ink/10"}">
+        class="flex flex-col items-center gap-0.5 rounded-lg py-2 transition ${active ? "bg-rose text-cream" : "bg-ink/5 text-ink hover:bg-ink/10"}">
         <span class="text-base font-bold">${counts[s.key]}</span>
         <span class="text-xs font-semibold ${active ? "text-cream/90" : "text-ink/75"}">${s.icon} ${s.label}</span>
       </button>`;
