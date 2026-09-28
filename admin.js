@@ -263,6 +263,7 @@
     wireCopyAddressButtons(ordersEl);
     wireEditButtons(ordersEl);
     wireProofLinkButtons(ordersEl);
+    wireSupplierPromptButtons(ordersEl);
   }
 
   function renderHistory(orders) {
@@ -1003,6 +1004,95 @@
     return `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeAttr(o.id)}" style="font-size:12px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>`;
   }
 
+  const SUPPLIER_URL = "https://www.asianbeautywholesale.com/en/home.html";
+
+  // Solo los productos que NO están "en stock" hay que comprarlos de
+  // nuevo al proveedor (los que ya están en stock ya los tiene Mae) --
+  // por eso el botón no aparece o el prompt sale vacío si el pedido es
+  // 100% de productos en stock.
+  function supplierSourceableItems(o) {
+    return (o.items || []).filter((it) => !it.enStock);
+  }
+
+  function buildSupplierPrompt(o) {
+    const items = supplierSourceableItems(o);
+    if (!items.length) return "";
+    const itemLines = items
+      .map((it) => {
+        const marca = itemMarca(it);
+        const label = marca ? `${marca} - ${it.nombre}` : it.nombre;
+        return `- ${label} (cantidad: ${it.qty})`;
+      })
+      .join("\n");
+    return `Necesito que armes un carrito de compra en Asian Beauty Wholesale (${SUPPLIER_URL}) con estos productos exactos, para surtir un pedido real de una clienta.
+
+PASOS:
+
+1. Ve a ${SUPPLIER_URL}. Si ya hay una sesión iniciada en el sitio, úsala. Si pide iniciar sesión, DETENTE y avísame -- no inicies sesión tú.
+
+2. Busca cada uno de estos productos con el buscador del sitio y agrégalo al carrito con la cantidad indicada. Si no encuentras una coincidencia exacta, busca el más parecido por nombre/marca/presentación y avísame cuál elegiste para que yo lo confirme antes de pagar:
+
+${itemLines}
+
+3. NO completes la compra ni el pago bajo ninguna circunstancia -- solo deja todo listo en el carrito. Yo voy a revisar cada producto y voy a darle clic a pagar yo misma.
+
+4. Al final dime, para cada producto: si lo encontraste exacto o fue una aproximación (y cuál fue), y confírmame que el carrito ya tiene todo lo que pedí y está listo para que yo pague.`;
+  }
+
+  function supplierPromptBlockHTML(o) {
+    if (!buildSupplierPrompt(o)) return "";
+    return `
+      <div class="edit-block">
+        <button type="button" class="btn-secondary edit-toggle" data-supplier-prompt-toggle="${o.id}">🛍️ Pedir a Asian Beauty Wholesale</button>
+        <div class="guide-form" id="supplier-prompt-form-${o.id}">
+          <p class="edit-hint">Copia este prompt y pégalo en Claude en Chrome (con Asian Beauty Wholesale abierto) -- él arma el carrito con estos productos, tú nada más revisas y le das pagar.</p>
+          <textarea readonly id="supplier-prompt-text-${o.id}" rows="12" style="width:100%;font-family:monospace;font-size:12px;padding:8px;box-sizing:border-box;"></textarea>
+          <div class="row">
+            <button type="button" class="btn-secondary" data-supplier-prompt-copy="${o.id}">📋 Copiar prompt</button>
+            <a href="${SUPPLIER_URL}" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;">🔗 Abrir Asian Beauty Wholesale</a>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function toggleSupplierPromptForm(orderId) {
+    const form = document.getElementById(`supplier-prompt-form-${orderId}`);
+    if (!form) return;
+    const opening = !form.classList.contains("open");
+    form.classList.toggle("open");
+    if (opening) {
+      const order = allOrders.find((o) => o.id === orderId);
+      const textarea = document.getElementById(`supplier-prompt-text-${orderId}`);
+      if (order && textarea) textarea.value = buildSupplierPrompt(order);
+    }
+  }
+
+  function copySupplierPrompt(orderId, btn) {
+    const textarea = document.getElementById(`supplier-prompt-text-${orderId}`);
+    if (!textarea) return;
+    const showCopied = () => {
+      const original = btn.textContent;
+      btn.textContent = "✅ ¡Copiado!";
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textarea.value).then(showCopied).catch(() => {
+        setStatus("No se pudo copiar. Selecciona el texto del cuadro manualmente.");
+      });
+    } else {
+      setStatus("No se pudo copiar. Selecciona el texto del cuadro manualmente.");
+    }
+  }
+
+  function wireSupplierPromptButtons(container) {
+    container.querySelectorAll("[data-supplier-prompt-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => toggleSupplierPromptForm(btn.dataset.supplierPromptToggle));
+    });
+    container.querySelectorAll("[data-supplier-prompt-copy]").forEach((btn) => {
+      btn.addEventListener("click", () => copySupplierPrompt(btn.dataset.supplierPromptCopy, btn));
+    });
+  }
+
   function wireProofLinkButtons(container) {
     container.querySelectorAll("[data-view-proof]").forEach((btn) => {
       btn.addEventListener("click", () => viewPaymentProof(btn.dataset.viewProof, btn));
@@ -1201,6 +1291,7 @@
         ${customerHTML(o)}
         ${proofLinkHTML(o)}
         ${editBlockHTML(o)}
+        ${supplierPromptBlockHTML(o)}
         <div class="actions">
           <button class="btn-primary" data-confirm="${o.id}" title="Esto resta las piezas vendidas del stock automáticamente">✅ Ya me pagó</button>
           <button class="btn-danger" data-cancel="${o.id}">✕ No pagó / Cancelar</button>
