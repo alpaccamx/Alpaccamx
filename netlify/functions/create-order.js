@@ -36,7 +36,7 @@
 
 const { randomUUID } = require("crypto");
 const { saveNewOrder, transitionOrder } = require("./lib/blob-store.js");
-const { notifySellerWhatsApp, orderCreatedMessage } = require("./lib/whatsapp.js");
+const { notifySellerOrderCreated } = require("./lib/whatsapp.js");
 const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
 const MP_API = "https://api.mercadopago.com";
@@ -138,8 +138,8 @@ exports.handler = async (event) => {
 
   // Aviso inmediato al dueño del negocio de que hay un pedido nuevo, aún
   // sin confirmar (si WHATSAPP_ACCESS_TOKEN no está configurado, o algo
-  // falla, notifySellerWhatsApp no revienta -- solo no manda nada).
-  await notifySellerWhatsApp(orderCreatedMessage(order));
+  // falla, notifySellerOrderCreated no revienta -- solo no manda nada).
+  await notifySellerOrderCreated(order);
 
   if (source === "transferencia" || source === "whatsapp") {
     return jsonResponse(200, { orderId: order.id });
