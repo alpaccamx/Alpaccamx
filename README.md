@@ -369,6 +369,8 @@ const CONFIG = {
   TICKER_MESSAGES: [...],      // frases de la barra deslizante
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
   HERO_SLIDES: [...],          // slides del banner principal (imagen, o título/subtítulo/botón); cada slide admite "imageMobile" para usar una imagen distinta en celular
+                               // Las imágenes de escritorio deben medir 2400×920 (o la misma proporción):
+                               // el banner siempre ocupa todo el ancho con esa proporción, y otra la recorta.
                                // OJO: si cambias el PRIMER slide, actualiza también las dos líneas
                                // <link rel="preload" as="image"> en el <head> de index.html
   SKIN_TYPE_EMOJI: {...},      // emoji por etiqueta de TipoPiel

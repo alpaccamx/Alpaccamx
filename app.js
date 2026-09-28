@@ -1577,14 +1577,14 @@ const heroHold = { user: prefersReducedMotion.matches, hover: false, focus: fals
 function heroSlideHTML(slide) {
   const secondaryHref = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una pregunta.`);
   return slide.image
-    ? `<picture>
+    ? `<picture class="block w-full h-full">
         ${
           slide.imageMobile
             ? `<source media="(max-width: 639px)" srcset="${escapeAttr(slide.imageMobile)}">`
             : ""
         }
         <img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}" ${heroIndex === 0 ? 'fetchpriority="high"' : 'decoding="async"'}
-          class="w-full h-full sm:max-w-[1200px] sm:mx-auto object-contain sm:object-cover sm:object-bottom" />
+          class="w-full h-full object-contain sm:object-cover sm:object-center" />
       </picture>`
     : `
     <div class="text-center px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
