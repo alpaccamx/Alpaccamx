@@ -5,6 +5,13 @@
 // Cloud de Meta. También manda, en ese mismo momento (2), un mensaje de
 // plantilla al CLIENTE confirmándole su pedido.
 //
+// Los avisos al DUEÑO usan una plantilla aprobada por Meta primero
+// (aviso_pedido_nuevo / aviso_pedido_pagado, ver README sección 4) --
+// esas se pueden mandar en cualquier momento. Si todavía no existen o
+// Meta no las ha aprobado, cae de vuelta a un mensaje de texto libre
+// (que solo llega si le escribiste tú al número de WhatsApp Business en
+// las últimas 24 horas -- limitación de Meta, no de este código).
+//
 // Variables de entorno necesarias (Netlify → Site settings →
 // Environment variables), ver README sección 4:
 //   WHATSAPP_ACCESS_TOKEN   -> token permanente de tu app de WhatsApp Business
@@ -104,6 +111,69 @@ async function notifySellerWhatsApp(text) {
   }
 }
 
+/* Igual que notifySellerWhatsApp(), pero con una PLANTILLA aprobada por
+   Meta en vez de texto libre -- estas sí se pueden mandar en cualquier
+   momento, sin depender de la regla de "el destinatario te escribió en
+   las últimas 24 horas" (ver README sección 4). Regresa true/false según
+   si Meta la aceptó, para que quien la llame pueda usar un respaldo si
+   la plantilla todavía no existe/no está aprobada. */
+async function notifySellerWhatsAppTemplate(templateName, params) {
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const to = process.env.NOTIFY_WHATSAPP_NUMBER;
+  if (!accessToken || !phoneNumberId || !to) return false;
+
+  try {
+    const res = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: "es_MX" },
+          components: [{ type: "body", parameters: params.map((text) => ({ type: "text", text: String(text) })) }],
+        },
+      }),
+    });
+    const resBody = await res.text();
+    if (!res.ok) {
+      console.error(`Error mandando la plantilla "${templateName}" al dueño:`, res.status, resBody);
+      return false;
+    }
+    console.log(`Plantilla "${templateName}" aceptada por Meta:`, resBody);
+    return true;
+  } catch (err) {
+    console.error(`Error de red mandando la plantilla "${templateName}" al dueño:`, err);
+    return false;
+  }
+}
+
+/* Estas dos son las que hay que llamar desde el resto del código (en vez
+   de notifySellerWhatsApp + orderCreatedMessage/orderPaidMessage
+   directo): intentan primero la plantilla aprobada (aviso_pedido_nuevo /
+   aviso_pedido_pagado -- ver README sección 4) y, si todavía no existe o
+   no está aprobada, caen de vuelta al mensaje de texto libre de siempre
+   -- así el aviso nunca se pierde mientras Meta aprueba la plantilla, y
+   en cuanto la apruebe empieza a usarla sola, sin necesidad de otro
+   deploy. */
+async function notifySellerOrderCreated(order) {
+  const params = [sourceLabel(order), order.customer?.name || "cliente", formatPriceMXN(order.grandTotal)];
+  const sent = await notifySellerWhatsAppTemplate("aviso_pedido_nuevo", params);
+  if (!sent) await notifySellerWhatsApp(orderCreatedMessage(order));
+}
+
+async function notifySellerOrderPaid(order) {
+  const params = [sourceLabel(order), order.customer?.name || "cliente", formatPriceMXN(order.grandTotal)];
+  const sent = await notifySellerWhatsAppTemplate("aviso_pedido_pagado", params);
+  if (!sent) await notifySellerWhatsApp(orderPaidMessage(order));
+}
+
 /* Confirmación de pedido para el CLIENTE (no para ti) -- se manda con la
    plantilla de WhatsApp "confirmacion_pedido" (tiene que estar ya
    aprobada por Meta, ver README) porque es un mensaje que inicia el
@@ -159,4 +229,8 @@ async function notifyCustomerOrderConfirmed(order) {
   }
 }
 
-module.exports = { notifySellerWhatsApp, notifyCustomerOrderConfirmed, orderPaidMessage, orderCreatedMessage };
+module.exports = {
+  notifySellerOrderCreated,
+  notifySellerOrderPaid,
+  notifyCustomerOrderConfirmed,
+};

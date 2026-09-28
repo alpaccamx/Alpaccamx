@@ -9,7 +9,7 @@
 // Body esperado (JSON): { orderId, action: "confirm" | "cancel" }
 
 const { transitionOrder, applyStockDecrement } = require("./lib/blob-store.js");
-const { notifySellerWhatsApp, notifyCustomerOrderConfirmed, orderPaidMessage } = require("./lib/whatsapp.js");
+const { notifySellerOrderPaid, notifyCustomerOrderConfirmed } = require("./lib/whatsapp.js");
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { sendEmail, orderCancelledEmailHTML } = require("./lib/email.js");
@@ -50,7 +50,7 @@ exports.handler = async (event) => {
       if (transitioned) {
         await applyStockDecrement(order.items);
         await applySheetStockDelta(deltaFromItems(order.items));
-        await notifySellerWhatsApp(orderPaidMessage(order));
+        await notifySellerOrderPaid(order);
         await notifyCustomerOrderConfirmed(order);
       }
       return jsonResponse(200, { order });

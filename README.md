@@ -742,10 +742,31 @@ número de WhatsApp Business que registraste en el paso 3 (con que dure la
 conversación abierta basta). Si se te pasan las 24 horas sin escribirle,
 el aviso automático de ese pedido simplemente no llega — pero el pedido
 sigue quedando guardado normal en `/admin.html`, así que nunca pierdes la
-información, solo el aviso instantáneo. Si esto te resulta poco práctico,
-la alternativa (fuera del alcance de esta configuración) es usar
-"plantillas de mensaje" pre-aprobadas por Meta, que sí se pueden mandar
-en cualquier momento.
+información, solo el aviso instantáneo.
+
+### Arreglo permanente: plantillas para tus propios avisos
+
+El sitio ya intenta mandarte tus avisos primero con una **plantilla
+aprobada por Meta** (igual que la confirmación que le llega al cliente,
+ver abajo) — esas sí se pueden mandar en cualquier momento, sin
+depender de que le hayas escrito tú al número de WhatsApp Business.
+Solo cae de vuelta al mensaje de texto libre (con la limitación de las
+24 horas de arriba) si esas plantillas todavía no existen o Meta no las
+ha aprobado.
+
+Para activarlo, crea estas 2 plantillas en **business.facebook.com →
+Administrador de WhatsApp → Plantillas de mensajes → Crear plantilla**,
+categoría "Utilidad", idioma "Spanish (MEX)", cada una con 3 variables
+en este orden (origen del pedido, nombre de la clienta, total):
+
+1. Nómbrala exactamente **`aviso_pedido_nuevo`**, cuerpo:
+   `🆕 Pedido nuevo ({{1}}) de {{2}} por {{3}} -- aún sin confirmar. Revisa los detalles en tu panel de administración.`
+2. Nómbrala exactamente **`aviso_pedido_pagado`**, cuerpo:
+   `✅ Pedido pagado ({{1}}) de {{2}} por {{3}}. Revisa los detalles en tu panel de administración.`
+
+Espera a que Meta las apruebe (de minutos a un día) — no hace falta
+tocar el código ni hacer otro deploy, en cuanto queden aprobadas el
+sitio las empieza a usar solo.
 
 ### Confirmación de pedido automática al cliente
 
