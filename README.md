@@ -21,12 +21,22 @@ contenido, marcas ni fotografía de ningún negocio real.
 - `assets/logo-full.png` — logotipo completo con la mascota (footer).
 - `assets/favicon-32.png` / `assets/apple-touch-icon.png` — ícono de pestaña/celular.
 - `assets/mascot.png` — mascota sola, cuadrada y transparente, por si la quieres usar en otro lado.
-- `assets/products/` — fotos de producto, nombradas por SKU o agrupadas en subcarpetas por
+- `assets/products/` — fotos de producto (súbelas de máximo ~1000 px por lado: las tarjetas
+  las muestran a ~170 px, y una foto de varios MB hace lento el catálogo en celular), nombradas por SKU o agrupadas en subcarpetas por
   marca (ej. `assets/products/tocobo/`). Al desplegar el sitio, estos archivos quedan disponibles
   en esa misma ruta; usa esa ruta relativa en la columna **Imagen** de tu Google Sheet para esos
   productos.
 - `fonts/ReadyToParty.ttf` — la tipografía de marca ("Ready to Party" de Misti's Fonts),
-  cargada vía `@font-face` en `input.css` para los encabezados (`font-logo`).
+  para los encabezados (`font-logo`). El sitio usa dos versiones más ligeras
+  generadas a partir de ella: `fonts/ReadyToParty-latin.woff2` (22 KB, letras
+  del español; se precarga) y `fonts/ReadyToParty.woff2` (32 KB, completa; solo
+  se baja si un título trae letras como "ł"). El TTF queda como respaldo. Si
+  cambias la fuente, regenera las dos con [fonttools](https://github.com/fonttools/fonttools):
+  ```
+  pip install fonttools brotli
+  pyftsubset fonts/ReadyToParty.ttf --unicodes="U+0000-00FF,U+2000-206F,U+20AC,U+2122,U+2190-21FF" --layout-features="*" --flavor=woff2 --output-file=fonts/ReadyToParty-latin.woff2
+  pyftsubset fonts/ReadyToParty.ttf --unicodes="*" --layout-features="*" --flavor=woff2 --output-file=fonts/ReadyToParty.woff2
+  ```
 - `admin.html` — panel privado (protegido con contraseña) para confirmar o
   cancelar pedidos por transferencia; ver sección 4.
 - `netlify/functions/` — funciones que corren en el servidor (Mercado Pago,
@@ -359,6 +369,10 @@ const CONFIG = {
   TICKER_MESSAGES: [...],      // frases de la barra deslizante
   SOCIAL_LINKS: [...],         // Facebook/Instagram/TikTok (deja href: "" para ocultar)
   HERO_SLIDES: [...],          // slides del banner principal (imagen, o título/subtítulo/botón); cada slide admite "imageMobile" para usar una imagen distinta en celular
+                               // Las imágenes de escritorio deben medir 2400×920 (o la misma proporción):
+                               // el banner siempre ocupa todo el ancho con esa proporción, y otra la recorta.
+                               // OJO: si cambias el PRIMER slide, actualiza también las dos líneas
+                               // <link rel="preload" as="image"> en el <head> de index.html
   SKIN_TYPE_EMOJI: {...},      // emoji por etiqueta de TipoPiel
   SKIN_QUIZ: [...],            // preguntas y opciones del quiz de tipo de piel
   PROMO_BANNER: {...},         // franja ancha promocional

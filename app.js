@@ -64,7 +64,7 @@ const CONFIG = {
   // Mensajes que se muestran en la barra deslizante debajo del banner.
   TICKER_MESSAGES: [
     "Envíos a todo México 🇲🇽",
-    "Cotiza sin compromiso ✨",
+    "Descuento pagando por transferencia 🏦",
     "Atención por WhatsApp 💬",
   ],
 
@@ -212,7 +212,7 @@ const CONFIG = {
   BENEFITS: [
     { icon: "truck", title: "Envíos", text: "A todo México" },
     { icon: "chat", title: "Atención por WhatsApp", text: "Resolvemos tus dudas" },
-    { icon: "lock", title: "Cotización sin compromiso", text: "Sin pagos en línea" },
+    { icon: "lock", title: "Paga como prefieras", text: "Tarjeta o transferencia con descuento" },
     { icon: "badgeCheck", title: "Catálogo verificado", text: "Disponibilidad real" },
   ],
 
@@ -249,6 +249,17 @@ const CONFIG = {
   },
 
 };
+
+/* ======================================================================
+   Movimiento reducido -- si la clienta pidió "reducir movimiento" en su
+   celular o computadora, el banner no avanza solo, los desplazamientos
+   son instantáneos y los paneles aparecen sin deslizarse (ver input.css).
+   ====================================================================== */
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function scrollBehavior() {
+  return prefersReducedMotion.matches ? "auto" : "smooth";
+}
 
 /* ======================================================================
    Íconos SVG usados en la barra superior / contacto
@@ -322,6 +333,10 @@ const DEMO_PRODUCTS = [
    Estado
    ====================================================================== */
 let products = [];
+// true en cuanto llega el catálogo principal (o el de ejemplo). El stock
+// puede llegar antes y agregar sus propias tarjetas a "products", así que
+// "products.length" no basta para saber si ya se puede pintar la página.
+let catalogLoaded = false;
 const CART_KEY = "alpacca_cart_v1";
 let cart = loadCart();
 
@@ -437,7 +452,7 @@ function wishlistButtonHTML(id) {
   const active = isWishlisted(id);
   return `
     <button type="button" data-wishlist="${escapeAttr(id)}" aria-label="${active ? "Quitar de favoritos" : "Guardar en favoritos"}"
-      class="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow transition ${active ? "text-rose" : "text-ink/75 hover:text-rose"}">
+      class="tap absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow transition ${active ? "text-rose" : "text-ink/75 hover:text-rose"}">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="${active ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
     </button>`;
 }
@@ -485,7 +500,7 @@ function openWishlistSection() {
   }
 
   showHomeView("wishlist");
-  document.getElementById("wishlist-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("wishlist-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* ======================================================================
@@ -531,7 +546,7 @@ async function handleRestockSubmit(e) {
     document.getElementById("restock-fields").classList.add("hidden");
     document.getElementById("restock-success").classList.remove("hidden");
   } catch (err) {
-    errorEl.textContent = err.message;
+    errorEl.textContent = friendlyError(err, "No pudimos guardar tu aviso. Intenta de nuevo en un momento.");
     errorEl.classList.remove("hidden");
   } finally {
     btn.disabled = false;
@@ -596,7 +611,7 @@ function productReviewSummaryHTML(p) {
   if (!summary || !summary.count) return "";
   return `
     <button type="button" data-view-reviews="${escapeAttr(sku)}" data-view-reviews-name="${escapeAttr(p.nombre)}"
-      class="flex items-center gap-1 text-[11px] text-ink/75 hover:text-ink mt-0.5">
+      class="flex items-center gap-1 text-xs text-ink/75 hover:text-ink mt-0.5">
       ${starIconHTML(true, "w-3 h-3")}
       <span class="font-semibold">${summary.avg}</span>
       <span class="text-ink/75">(${summary.count})</span>
@@ -620,7 +635,7 @@ async function openReviewsListModal(sku, productName) {
         <div class="border-t border-ink/10 pt-3">
           <div class="flex items-center gap-0.5">${[1, 2, 3, 4, 5].map((n) => starIconHTML(n <= r.rating, "w-3.5 h-3.5")).join("")}</div>
           <p class="text-xs font-semibold text-ink mt-1">${escapeHtml(r.customerName || "Clienta Alpacca")}</p>
-          ${r.comment ? `<p class="text-sm text-ink/70 mt-0.5">${escapeHtml(r.comment)}</p>` : ""}
+          ${r.comment ? `<p class="text-sm text-ink/75 mt-0.5">${escapeHtml(r.comment)}</p>` : ""}
         </div>`
       )
       .join("");
@@ -695,7 +710,7 @@ async function handleReviewSubmit(e) {
     document.getElementById("review-success").classList.remove("hidden");
     loadReviewSummaries();
   } catch (err) {
-    errorEl.textContent = err.message;
+    errorEl.textContent = friendlyError(err, "No pudimos guardar tu calificación. Intenta de nuevo en un momento.");
     errorEl.classList.remove("hidden");
   } finally {
     btn.disabled = false;
@@ -767,6 +782,41 @@ function syncAmericanoCartWithProducts() {
     }
   });
   if (changed) saveAmericanoCart();
+}
+
+/* Convierte cualquier error en un mensaje para la clienta: sin inglés
+   del navegador ("Failed to fetch"), sin códigos internos
+   ("mp_request_failed") y sin avisos de configuración pensados para la
+   dueña. Los mensajes del servidor que ya están escritos para la
+   clienta ("El teléfono debe tener 10 dígitos.") se muestran tal cual. */
+function friendlyError(err, fallback) {
+  const msg = err && err.message ? String(err.message) : "";
+  const offline =
+    (typeof navigator !== "undefined" && navigator.onLine === false) ||
+    (err instanceof TypeError && /fetch|network|load failed/i.test(msg));
+  if (offline) return "No hay conexión a internet. Revísala e intenta de nuevo.";
+  const technical =
+    !msg ||
+    err instanceof SyntaxError ||
+    /^[a-z0-9_]+$/.test(msg) ||
+    /JSON|CONFIG|CUSTOMER_JWT|source debe|configurad|HTTP \d|Unexpected token/i.test(msg);
+  return technical ? fallback : msg;
+}
+
+/* Errores del carrito: se muestran dentro del carrito, junto a los
+   botones de pago (antes caían en el aviso de la página, detrás del
+   carrito abierto, y la clienta nunca los veía). */
+function showCartError(id, message) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove("hidden");
+  el.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
+}
+
+function clearCartError(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add("hidden");
 }
 
 function setStatus(text) {
@@ -1424,6 +1474,7 @@ async function loadProducts() {
     setStatus("Mostrando catálogo de ejemplo. Conecta tu Google Sheet: edita CONFIG.GOOGLE_SHEET_CSV_URL en app.js.");
     applyStockData();
     syncCartWithProducts();
+    catalogLoaded = true;
     renderAll();
     refreshCurrentView();
     return;
@@ -1437,6 +1488,7 @@ async function loadProducts() {
         products = cachedParsed;
         applyStockData();
         syncCartWithProducts();
+        catalogLoaded = true;
         renderAll();
         refreshCurrentView();
       }
@@ -1459,11 +1511,12 @@ async function loadProducts() {
     // el catálogo de ejemplo.
     if (!cachedCsv) {
       products = DEMO_PRODUCTS;
-      setStatus("No se pudo conectar con Google Sheets en este momento — mostrando catálogo de ejemplo.");
+      setStatus("No pudimos cargar el catálogo actualizado. Lo que ves es un catálogo de ejemplo: recarga la página en un momento.");
     }
   }
   applyStockData();
   syncCartWithProducts();
+  catalogLoaded = true;
   renderAll();
   refreshCurrentView();
 }
@@ -1514,33 +1567,34 @@ function renderTopBar() {
    ====================================================================== */
 let heroIndex = 0;
 let heroTimer = null;
+let heroRenderToken = 0;
+// El banner avanza solo cada 6 s, salvo que: la clienta lo pausó con el
+// botón, tiene el mouse o el foco del teclado encima, no está en
+// pantalla, o la pestaña está oculta. Si pidió menos movimiento en su
+// sistema, arranca en pausa (puede darle "play" si quiere).
+const heroHold = { user: prefersReducedMotion.matches, hover: false, focus: false, offscreen: false };
 
-function renderHeroSlide() {
-  const slides = CONFIG.HERO_SLIDES || [];
-  if (!slides.length) return;
-  const slide = slides[heroIndex];
-
+function heroSlideHTML(slide) {
   const secondaryHref = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una pregunta.`);
-
-  document.getElementById("hero-slides").innerHTML = slide.image
-    ? `<picture>
+  return slide.image
+    ? `<picture class="block w-full h-full">
         ${
           slide.imageMobile
             ? `<source media="(max-width: 639px)" srcset="${escapeAttr(slide.imageMobile)}">`
             : ""
         }
-        <img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}"
-          class="w-full h-full sm:max-w-[1200px] sm:mx-auto object-contain sm:object-cover sm:object-bottom" />
+        <img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}" ${heroIndex === 0 ? 'fetchpriority="high"' : 'decoding="async"'}
+          class="w-full h-full object-contain sm:object-cover sm:object-center" />
       </picture>`
     : `
     <div class="text-center px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
       ${
         slide.eyebrow
-          ? `<p class="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-rose mb-2">${escapeHtml(slide.eyebrow)}</p>`
+          ? `<p class="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-rose-ink mb-2">${escapeHtml(slide.eyebrow)}</p>`
           : ""
       }
-      <h1 class="font-logo text-3xl sm:text-5xl text-ink text-balance">${escapeHtml(slide.title)}</h1>
-      <p class="mt-3 text-ink/70 max-w-xl mx-auto">${escapeHtml(slide.subtitle || "")}</p>
+      <h2 class="font-logo text-3xl sm:text-5xl text-ink text-balance">${escapeHtml(slide.title)}</h2>
+      <p class="mt-3 text-ink/75 max-w-xl mx-auto">${escapeHtml(slide.subtitle || "")}</p>
       <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
         ${
           slide.ctaText
@@ -1560,34 +1614,158 @@ function renderHeroSlide() {
         }
       </div>
     </div>`;
+}
 
-  document.getElementById("hero-dots").innerHTML =
+/* Cambio de slide con fundido cruzado: el slide nuevo se pone encima,
+   transparente, y solo se hace visible cuando su imagen ya cargó (así
+   nunca se ve un hueco en blanco); el anterior se quita al terminar. */
+function renderHeroSlide() {
+  const slides = CONFIG.HERO_SLIDES || [];
+  if (!slides.length) return;
+  const stage = document.getElementById("hero-slides");
+  const previous = [...stage.children];
+  const isFirst = previous.length === 0;
+
+  const next = document.createElement("div");
+  next.className = "hero-slide absolute inset-0 flex items-center justify-center";
+  if (!isFirst) next.classList.add("is-entering");
+  next.innerHTML = heroSlideHTML(slides[heroIndex]);
+  stage.appendChild(next);
+
+  const token = ++heroRenderToken;
+  const img = next.querySelector("img");
+  const ready =
+    img && !isFirst
+      ? Promise.race([img.decode().catch(() => {}), new Promise((r) => setTimeout(r, 1500))])
+      : Promise.resolve();
+  ready.then(() => {
+    if (token !== heroRenderToken) return; // ya se pidió otro slide
+    requestAnimationFrame(() => next.classList.remove("is-entering"));
+    previous.forEach((el) => {
+      el.inert = true;
+      el.setAttribute("aria-hidden", "true");
+      setTimeout(() => el.remove(), 750);
+    });
+  });
+
+  renderHeroDots();
+}
+
+function renderHeroDots() {
+  const slides = CONFIG.HERO_SLIDES || [];
+  const dots = document.getElementById("hero-dots");
+  // Si los puntos ya existen, solo se actualiza cuál está activo. Volver
+  // a crearlos reemplazaba el punto que estaba bajo el mouse, y el
+  // navegador ya no avisaba cuando el mouse salía del banner.
+  const existing = dots.querySelectorAll("[data-dot]");
+  if (existing.length === slides.length && slides.length > 1) {
+    existing.forEach((dot, i) => {
+      const active = i === heroIndex;
+      dot.firstElementChild.classList.toggle("bg-rose", active);
+      dot.firstElementChild.classList.toggle("bg-ink/20", !active);
+      if (active) dot.setAttribute("aria-current", "true");
+      else dot.removeAttribute("aria-current");
+    });
+    return;
+  }
+  dots.innerHTML =
     slides.length < 2
       ? ""
       : slides
           .map(
-            (_, i) => `<button type="button" data-dot="${i}" aria-label="Ver slide ${i + 1}"
-        class="w-2.5 h-2.5 rounded-full transition ${i === heroIndex ? "bg-rose" : "bg-ink/20"}"></button>`
+            (_, i) => `<button type="button" data-dot="${i}" aria-label="Ver slide ${i + 1} de ${slides.length}"
+        ${i === heroIndex ? 'aria-current="true"' : ""}
+        class="w-9 h-11 flex items-center justify-center"><span class="w-2.5 h-2.5 rounded-full transition-colors ${i === heroIndex ? "bg-rose" : "bg-ink/20"}"></span></button>`
           )
           .join("");
 
-  document.querySelectorAll("[data-dot]").forEach((dot) => {
+  dots.querySelectorAll("[data-dot]").forEach((dot) => {
     dot.addEventListener("click", () => {
-      heroIndex = Number(dot.dataset.dot);
+      const i = Number(dot.dataset.dot);
+      if (i === heroIndex) return;
+      heroIndex = i;
       renderHeroSlide();
       restartHeroTimer();
     });
   });
 }
 
+function heroShouldRun() {
+  const slides = CONFIG.HERO_SLIDES || [];
+  return slides.length > 1 && !document.hidden && !Object.values(heroHold).some(Boolean);
+}
+
 function restartHeroTimer() {
   clearInterval(heroTimer);
+  heroTimer = null;
+  updateHeroPauseButton();
+  if (!heroShouldRun()) return;
   const slides = CONFIG.HERO_SLIDES || [];
-  if (slides.length < 2) return;
   heroTimer = setInterval(() => {
     heroIndex = (heroIndex + 1) % slides.length;
     renderHeroSlide();
   }, 6000);
+}
+
+const HERO_PAUSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>`;
+const HERO_PLAY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>`;
+
+function updateHeroPauseButton() {
+  const btn = document.getElementById("hero-pause");
+  if (!btn) return;
+  const multiple = (CONFIG.HERO_SLIDES || []).length > 1;
+  btn.classList.toggle("hidden", !multiple);
+  btn.classList.toggle("flex", multiple);
+  const paused = heroHold.user;
+  // Solo se redibuja el ícono si cambió: si se reemplazara a media
+  // pulsación (el foco que entra al banner llama a esta función), el
+  // navegador perdía el clic del botón.
+  if (btn.dataset.state === String(paused)) return;
+  btn.dataset.state = String(paused);
+  btn.setAttribute("aria-label", paused ? "Reanudar el banner" : "Pausar el banner");
+  btn.setAttribute("aria-pressed", String(paused));
+  btn.querySelector("span").innerHTML = paused ? HERO_PLAY_ICON : HERO_PAUSE_ICON;
+}
+
+function wireHeroControls() {
+  const hero = document.getElementById("top");
+  document.getElementById("hero-pause").addEventListener("click", () => {
+    heroHold.user = !heroHold.user;
+    restartHeroTimer();
+  });
+  // Se decide con el elemento sobre el que está el mouse (en vez de
+  // entrar/salir del banner), así nunca se queda "pausado por hover"
+  // aunque cambie algo debajo del cursor.
+  document.addEventListener("pointerover", (e) => {
+    if (e.pointerType !== "mouse") return;
+    const over = hero.contains(e.target);
+    if (over === heroHold.hover) return;
+    heroHold.hover = over;
+    restartHeroTimer();
+  });
+  document.documentElement.addEventListener("pointerleave", () => {
+    if (!heroHold.hover) return;
+    heroHold.hover = false;
+    restartHeroTimer();
+  });
+  // Solo el foco del teclado pausa (si pausara también al hacer clic en
+  // un punto, el banner se quedaba detenido sin que se notara por qué).
+  hero.addEventListener("focusin", (e) => {
+    heroHold.focus = e.target.matches(":focus-visible");
+    restartHeroTimer();
+  });
+  hero.addEventListener("focusout", (e) => {
+    if (hero.contains(e.relatedTarget)) return;
+    heroHold.focus = false;
+    restartHeroTimer();
+  });
+  document.addEventListener("visibilitychange", restartHeroTimer);
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(([entry]) => {
+      heroHold.offscreen = !entry.isIntersecting;
+      restartHeroTimer();
+    }).observe(hero);
+  }
 }
 
 /* ======================================================================
@@ -1597,8 +1775,29 @@ function renderTicker() {
   const messages = CONFIG.TICKER_MESSAGES || [];
   if (!messages.length) return;
   const items = messages.map((m) => `<span>${escapeHtml(m)}</span>`).join("");
-  // se duplica el contenido para que la animación haga un loop continuo
-  document.getElementById("ticker-track").innerHTML = items + items;
+  // Se duplica el contenido para que la animación haga un loop continuo;
+  // la copia se oculta a lectores de pantalla (si no, leían todo dos
+  // veces) y se esconde del todo si se pidió menos movimiento.
+  const copy = messages.map((m) => `<span class="ticker-dup" aria-hidden="true">${escapeHtml(m)}</span>`).join("");
+  document.getElementById("ticker-track").innerHTML = items + copy;
+}
+
+function wireTickerControls() {
+  const ticker = document.getElementById("ticker");
+  const btn = document.getElementById("ticker-pause");
+  if (!ticker || !btn) return;
+  btn.addEventListener("click", () => {
+    const paused = ticker.toggleAttribute("data-paused");
+    btn.setAttribute("aria-pressed", String(paused));
+    btn.setAttribute("aria-label", paused ? "Reanudar los mensajes" : "Pausar los mensajes");
+    btn.querySelector("span").innerHTML = paused ? HERO_PLAY_ICON : HERO_PAUSE_ICON;
+  });
+  // Fuera de pantalla no tiene caso seguir moviéndolo.
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(([entry]) => {
+      ticker.toggleAttribute("data-offscreen", !entry.isIntersecting);
+    }).observe(ticker);
+  }
 }
 
 /* ======================================================================
@@ -1644,7 +1843,7 @@ function getMenuItems() {
 function menuItemHTML(item, variant) {
   const isHorizontal = variant === "horizontal";
   const base = isHorizontal
-    ? "text-sm font-semibold whitespace-nowrap"
+    ? "inline-flex items-center h-11 text-sm font-semibold whitespace-nowrap"
     : "block px-5 py-4 border-b border-ink/10 font-semibold uppercase text-sm tracking-wide";
 
   if (item.type === "brands" || item.type === "categories" || item.type === "country") {
@@ -1655,7 +1854,7 @@ function menuItemHTML(item, variant) {
       .map(
         (v) =>
           `<button type="button" role="menuitem" ${optionAttr}="${escapeAttr(v)}"
-            class="block w-full text-left px-4 py-2 text-sm text-ink/70 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(v)}</button>`
+            class="block w-full text-left px-4 py-2 coarse:py-3 text-sm text-ink/75 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(v)}</button>`
       )
       .join("");
     if (isHorizontal) {
@@ -1769,8 +1968,8 @@ function renderCategoryNav() {
 
   const prevBtn = document.getElementById("nav-prev");
   const nextBtn = document.getElementById("nav-next");
-  prevBtn.addEventListener("click", () => nav.scrollBy({ left: -200, behavior: "smooth" }));
-  nextBtn.addEventListener("click", () => nav.scrollBy({ left: 200, behavior: "smooth" }));
+  prevBtn.addEventListener("click", () => nav.scrollBy({ left: -200, behavior: scrollBehavior() }));
+  nextBtn.addEventListener("click", () => nav.scrollBy({ left: 200, behavior: scrollBehavior() }));
 }
 
 /* ======================================================================
@@ -1817,26 +2016,26 @@ function productCardHTML(p, { rank } = {}) {
           ${
             p.enStock
               ? p.stockPiezas > 0
-                ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
-                : `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Agotado</span>`
+                ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
+                : `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Agotado</span>`
               : ""
           }
           ${
             p.presentacion
-              ? `<span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                  p.presentacion.startsWith("Caja") ? "bg-lilac/20 text-lilac" : "bg-blush/50 text-ink/70"
+              ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  p.presentacion.startsWith("Caja") ? "bg-lilac/20 text-lilac-ink" : "bg-blush/50 text-ink/80"
                 }">${escapeHtml(p.presentacion)}</span>`
               : ""
           }
         </div>
-        <span class="text-[11px] uppercase tracking-wide text-ink/75">${escapeHtml(p.marca || p.categoria)}</span>
-        <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5">${escapeHtml(p.nombre)}</h3>
-        ${p.capacidad ? `<span class="text-[11px] text-ink/75">${escapeHtml(p.capacidad)}</span>` : ""}
+        <span class="text-xs uppercase tracking-wider text-ink/75">${escapeHtml(p.marca || p.categoria)}</span>
+        <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5" title="${escapeAttr(p.nombre)}">${escapeHtml(p.nombre)}</h3>
+        ${p.capacidad ? `<span class="text-xs text-ink/75">${escapeHtml(p.capacidad)}</span>` : ""}
         ${productReviewSummaryHTML(p)}
         ${
           hasVariants
             ? `<select data-variant-select
-                class="mt-1 w-full truncate text-xs border border-ink/15 rounded-md pl-1.5 pr-5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-blush">
+                class="mt-1 w-full truncate text-xs border border-ink/15 rounded-md pl-1.5 pr-5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-lilac">
                 <option value="" selected disabled>Selecciona una versión</option>
                 ${p.variants
                   .map((v) => `<option value="${escapeAttr(v.product.id)}">${escapeHtml(v.label)}</option>`)
@@ -1844,24 +2043,24 @@ function productCardHTML(p, { rank } = {}) {
               </select>`
             : ""
         }
-        <div class="mt-auto pt-2 flex items-center justify-between gap-2">
-          <div class="leading-tight">
-            <span data-card-price class="font-display text-ink block">${formatPrice(p.precio)}</span>
-            <span data-card-unit>${boxUnitPriceHTML(p)}</span>
-            ${
-              p.precioTarjeta && p.precioTarjeta > p.precio + 0.5
-                ? `<span class="block text-[10px] text-ink/75">🏦 Descuento por transferencia <span class="text-lilac font-semibold">(con tarjeta: ${formatPrice(p.precioTarjeta)})</span></span>`
-                : ""
-            }
+        <div class="mt-auto pt-3">
+          <div class="leading-tight tabular-nums">
+            <span data-card-price class="font-display font-semibold text-lg text-ink block">${formatPrice(p.precio)}</span>
+            <!-- Altura fija de 3 líneas (52 px, contando sus márgenes): así los precios de una misma fila quedan
+                 alineados aunque unas tarjetas traigan "c/u" y otras no. -->
+            <div class="min-h-[3.25rem]">
+              <span data-card-unit>${boxUnitPriceHTML(p)}</span>
+              <span data-card-tarjeta>${cardPriceNoteHTML(p)}</span>
+            </div>
           </div>
           ${
             outOfStock
               ? `<button type="button" data-restock="${escapeAttr(p.id)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
-                  class="rounded-full border border-rose text-rose text-xs font-semibold px-3 py-1.5 hover:bg-rose/10 transition">
+                  class="tap mt-2 w-full rounded-full border border-rose text-rose text-sm font-semibold px-3 py-2 hover:bg-rose/10 transition">
                   🔔 Avísame
                 </button>`
               : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""}
-                  class="rounded-full bg-rose text-cream text-xs font-semibold px-3 py-1.5 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                  class="tap mt-2 w-full rounded-full bg-rose text-cream text-sm font-semibold px-3 py-2 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
                   Agregar
                 </button>`
           }
@@ -1871,7 +2070,7 @@ function productCardHTML(p, { rank } = {}) {
 }
 
 function agotadoBadgeHTML() {
-  return `<span class="bg-ink text-cream text-[10px] font-bold uppercase px-2 py-1 rounded-full">Agotado</span>`;
+  return `<span class="bg-ink text-cream text-xs font-bold uppercase px-2 py-1 rounded-full">Agotado</span>`;
 }
 
 /* Agrupa variantes de tono/color o tipo/aroma del mismo producto en una
@@ -1948,6 +2147,9 @@ function wireVariantSelectors(container) {
       const unitEl = card.querySelector("[data-card-unit]");
       if (unitEl) unitEl.innerHTML = boxUnitPriceHTML(variant);
 
+      const tarjetaEl = card.querySelector("[data-card-tarjeta]");
+      if (tarjetaEl) tarjetaEl.innerHTML = cardPriceNoteHTML(variant);
+
       const badgeEl = card.querySelector("[data-card-badge]");
       if (badgeEl) badgeEl.innerHTML = variant.disponible ? "" : agotadoBadgeHTML();
 
@@ -1957,6 +2159,15 @@ function wireVariantSelectors(container) {
   });
 }
 
+/* Debajo del precio: si el producto tiene un precio distinto con
+   tarjeta, se aclara que el precio grande es por transferencia y cuánto
+   cuesta con tarjeta. Líneas cortas para que quepan en tarjetas angostas. */
+function cardPriceNoteHTML(p) {
+  if (!(p.precioTarjeta && p.precioTarjeta > p.precio + 0.5)) return "";
+  return `<span class="block text-xs text-ink/75 mt-0.5">🏦 Por transferencia</span>
+    <span class="block text-xs text-lilac-ink font-semibold">Con tarjeta: ${formatPrice(p.precioTarjeta)}</span>`;
+}
+
 /* Para presentaciones "Caja con N piezas", muestra el costo por pieza
    individual para que el cliente no tenga que dividir el total. */
 function boxUnitPriceHTML(p) {
@@ -1964,7 +2175,7 @@ function boxUnitPriceHTML(p) {
   if (!match) return "";
   const qty = Number(match[1]);
   if (!qty) return "";
-  return `<span class="block text-[10px] text-ink/75">${formatPrice(p.precio / qty)} c/u</span>`;
+  return `<span class="block text-xs text-ink/75 mt-0.5">${formatPrice(p.precio / qty)} c/u</span>`;
 }
 
 function wireAddButtons(container) {
@@ -1978,6 +2189,13 @@ function wireAddButtons(container) {
    original tachado si aplica, y MOQ por color/tono en vez de la etiqueta
    de presentación normal).
    ====================================================================== */
+/* "Mínimo 5 piezas" -- corto para que quepa en una línea en tarjetas
+   angostas (antes "Mínimo de compra: 5" se partía en dos). */
+function moqLabel(moq) {
+  const n = Number(moq) || 1;
+  return `Mínimo ${n} ${n === 1 ? "pieza" : "piezas"}`;
+}
+
 function americanoProductCardHTML(p) {
   const img = p.imagen || "./assets/americano-coming-soon.jpg";
   const hasVariants = p.variants && p.variants.length > 1;
@@ -1990,13 +2208,13 @@ function americanoProductCardHTML(p) {
         <div data-card-badge class="absolute top-2 left-2">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
       </div>
       <div class="p-3 flex flex-col flex-1">
-        <span class="inline-block w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1 bg-ink/10 text-ink/70" data-card-moq>Mínimo de compra: ${p.moq}</span>
-        <span class="text-[11px] uppercase tracking-wide text-ink/75">${escapeHtml(p.marca)}</span>
-        <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5">${escapeHtml(p.nombre)}</h3>
+        <span class="inline-block w-fit whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded-full mb-1 bg-ink/10 text-ink/75" data-card-moq>${moqLabel(p.moq)}</span>
+        <span class="text-xs uppercase tracking-wider text-ink/75">${escapeHtml(p.marca)}</span>
+        <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5" title="${escapeAttr(p.nombre)}">${escapeHtml(p.nombre)}</h3>
         ${
           hasVariants
             ? `<select data-variant-select
-                class="mt-1 w-full truncate text-xs border border-ink/15 rounded-md pl-1.5 pr-5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-blush">
+                class="mt-1 w-full truncate text-xs border border-ink/15 rounded-md pl-1.5 pr-5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-lilac">
                 <option value="" selected disabled>Selecciona una versión</option>
                 ${p.variants
                   .map((v) => `<option value="${escapeAttr(v.product.id)}">${escapeHtml(v.label)}</option>`)
@@ -2004,13 +2222,13 @@ function americanoProductCardHTML(p) {
               </select>`
             : ""
         }
-        <div class="mt-auto pt-2 flex items-center justify-between gap-2">
-          <div class="leading-tight">
-            <span data-card-price class="font-display text-ink block">${formatPrice(p.precio)}</span>
-            ${hasDiscount ? `<span data-card-original class="flex items-center gap-1 text-[10px]"><span class="text-ink/75">Precio Sephora</span><span class="text-red-500 line-through">${formatPrice(p.precioOriginal)}</span></span>` : `<span data-card-original class="hidden"></span>`}
+        <div class="mt-auto pt-3">
+          <div class="leading-tight tabular-nums">
+            <span data-card-price class="font-display font-semibold text-lg text-ink block">${formatPrice(p.precio)}</span>
+            ${hasDiscount ? `<span data-card-original class="flex flex-wrap items-baseline gap-x-1 text-xs mt-0.5"><span class="text-ink/75 whitespace-nowrap">Precio Sephora</span><span class="text-red-700 line-through">${formatPrice(p.precioOriginal)}</span></span>` : `<span data-card-original class="hidden"></span>`}
           </div>
           <button data-americano-add="${hasVariants ? "" : escapeAttr(p.id)}" ${!p.disponible || hasVariants ? "disabled" : ""}
-            class="rounded-full bg-ink text-cream text-xs font-semibold px-3 py-1.5 hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
+            class="tap mt-2 w-full rounded-full bg-ink text-cream text-sm font-semibold px-3 py-2 hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
             Agregar
           </button>
         </div>
@@ -2046,14 +2264,14 @@ function wireAmericanoVariantSelectors(container) {
       const originalEl = card.querySelector("[data-card-original]");
       if (originalEl) {
         const hasDiscount = variant.precioOriginal > variant.precio;
-        originalEl.className = hasDiscount ? "flex items-center gap-1 text-[10px]" : "hidden";
+        originalEl.className = hasDiscount ? "flex flex-wrap items-baseline gap-x-1 text-xs mt-0.5" : "hidden";
         originalEl.innerHTML = hasDiscount
-          ? `<span class="text-ink/75">Precio Sephora</span><span class="text-red-500 line-through">${formatPrice(variant.precioOriginal)}</span>`
+          ? `<span class="text-ink/75 whitespace-nowrap">Precio Sephora</span><span class="text-red-700 line-through">${formatPrice(variant.precioOriginal)}</span>`
           : "";
       }
 
       const moqEl = card.querySelector("[data-card-moq]");
-      if (moqEl) moqEl.textContent = `Mínimo de compra: ${variant.moq}`;
+      if (moqEl) moqEl.textContent = moqLabel(variant.moq);
 
       const badgeEl = card.querySelector("[data-card-badge]");
       if (badgeEl) badgeEl.innerHTML = variant.disponible ? "" : agotadoBadgeHTML();
@@ -2141,7 +2359,7 @@ function renderTimeDeal() {
         (u) => `
         <div class="flex flex-col items-center">
           <span class="bg-cream/10 rounded-lg px-2.5 py-1.5 text-lg font-bold font-mono min-w-[2.75rem] text-center">${String(u.value).padStart(2, "0")}</span>
-          <span class="text-[10px] text-cream/60 mt-0.5">${u.label}</span>
+          <span class="text-xs text-cream/60 mt-0.5">${u.label}</span>
         </div>`
       )
       .join("");
@@ -2330,14 +2548,14 @@ function renderBrands(showAll = false) {
   const previewCount = featured.length || BRANDS_PREVIEW_COUNT_DEFAULT;
 
   const brandButton = (b) => `<button type="button" data-brand="${escapeAttr(b)}"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition"><span>${escapeHtml(b)}</span></button>`;
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose hover:text-rose transition"><span>${escapeHtml(b)}</span></button>`;
 
   const hasMore = !showAll && brands.length > previewCount;
   const visibleBrands = hasMore ? brands.slice(0, previewCount) : brands;
 
   const moreTile = hasMore
     ? `<button type="button" id="brands-show-more"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/70 hover:border-rose hover:text-rose transition">Y más</button>`
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose hover:text-rose transition">Y más</button>`
     : "";
 
   document.getElementById("brands-grid").innerHTML = visibleBrands.map(brandButton).join("") + moreTile;
@@ -2370,7 +2588,7 @@ function showBrandProducts(marca) {
   }
 
   showHomeView("brands");
-  document.getElementById("brand-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("brand-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* ======================================================================
@@ -2412,7 +2630,7 @@ function showCountryProducts(pais) {
   }
 
   showHomeView("country");
-  document.getElementById("country-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("country-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 function showCategoryProducts(categoria) {
@@ -2433,7 +2651,7 @@ function showCategoryProducts(categoria) {
   }
 
   showHomeView("categories");
-  document.getElementById("category-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("category-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* ======================================================================
@@ -2496,7 +2714,7 @@ function showConcernProducts(key) {
   }
 
   showHomeView("concerns");
-  document.getElementById("concern-products-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("concern-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* ======================================================================
@@ -2589,7 +2807,7 @@ function openFullCatalog() {
   document.getElementById("search-input").value = "";
   renderCatalogGrid();
   showHomeView("catalog");
-  document.getElementById("catalog-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("catalog-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* ======================================================================
@@ -2619,7 +2837,7 @@ function openStockSection() {
   document.getElementById("search-input").value = "";
   renderStockGrid();
   showHomeView("stock");
-  document.getElementById("stock-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("stock-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* Se llama cada vez que llegan datos nuevos (catálogo, stock) para
@@ -2638,7 +2856,7 @@ function refreshCurrentView() {
 function renderFaqMinOrder() {
   const faqMinOrder = document.getElementById("faq-min-order");
   if (faqMinOrder && CONFIG.MIN_ORDER_MXN) {
-    faqMinOrder.textContent = `Es de ${formatPrice(CONFIG.MIN_ORDER_MXN)}.`;
+    faqMinOrder.textContent = `Es de ${formatPrice(CONFIG.MIN_ORDER_MXN)} en productos que encargamos desde Corea. Los productos ✅ En stock (entrega inmediata) no tienen mínimo.`;
   }
 }
 
@@ -2649,13 +2867,23 @@ function renderBenefits() {
       (b) => `<div class="text-center flex flex-col items-center">
         <div class="mb-2">${benefitIconHTML(b.icon)}</div>
         <p class="font-semibold text-sm text-ink">${escapeHtml(b.title)}</p>
-        <p class="text-xs text-ink/50 mt-0.5">${escapeHtml(b.text)}</p>
+        <p class="text-xs text-ink/75 mt-0.5">${escapeHtml(b.text)}</p>
       </div>`
     )
     .join("");
 }
 
 function renderAll() {
+  // El stock y las reseñas suelen llegar ANTES que el catálogo y también
+  // llaman a renderAll(). Sin el catálogo todavía no hay qué pintar:
+  // si aquí se quitaba el esqueleto, la página se encogía y luego volvía
+  // a crecer al llegar el catálogo (el mayor salto de contenido de la
+  // página). Se deja el esqueleto hasta que haya productos.
+  if (!catalogLoaded) {
+    renderCart();
+    return;
+  }
+
   // Ya hay productos reales (o de ejemplo) que pintar -- se acabó la
   // espera, se quita el esqueleto de carga.
   document.getElementById("catalog-loading-skeleton").classList.add("hidden");
@@ -2699,6 +2927,10 @@ function addToAmericanoCart(id) {
   saveAmericanoCart();
   renderAmericanoCart();
   openAmericanoCart();
+  acknowledgeCartChange("americano-cart-items", id);
+  const qty = americanoCart[id].qty;
+  const switched = switchNotice.classList.contains("hidden") ? "" : `${switchNotice.textContent} `;
+  announce(`${switched}Agregaste ${product.nombre} a tu pedido. Llevas ${qty} ${qty === 1 ? "pieza" : "piezas"}.`);
 }
 
 function changeAmericanoQty(id, delta) {
@@ -2710,12 +2942,20 @@ function changeAmericanoQty(id, delta) {
   else item.qty = newQty;
   saveAmericanoCart();
   renderAmericanoCart();
+  if (americanoCart[id]) acknowledgeCartChange("americano-cart-items", id);
+  announce(
+    americanoCart[id]
+      ? `${item.product.nombre}: ${item.qty} ${item.qty === 1 ? "pieza" : "piezas"}.`
+      : `Quitaste ${item.product.nombre} de tu pedido (el mínimo por tono es ${moq}).`
+  );
 }
 
 function removeFromAmericanoCart(id) {
+  const product = americanoCart[id] && americanoCart[id].product;
   delete americanoCart[id];
   saveAmericanoCart();
   renderAmericanoCart();
+  if (product) announce(`Quitaste ${product.nombre} de tu pedido.`);
 }
 
 function americanoCartTotal() {
@@ -2743,6 +2983,7 @@ function updateHeaderCartBadge() {
 }
 
 function renderAmericanoCart() {
+  clearCartError("americano-cart-error");
   const wrap = document.getElementById("americano-cart-items");
   const emptyMsg = document.getElementById("americano-cart-empty");
   const items = Object.entries(americanoCart);
@@ -2766,9 +3007,12 @@ function renderAmericanoCart() {
   const sendBtn = document.getElementById("americano-send-quote");
   sendBtn.disabled = items.length === 0 || belowMin;
 
+  const focusBefore = captureCartFocus(wrap);
+
   if (!items.length) {
     wrap.innerHTML = "";
     emptyMsg.classList.remove("hidden");
+    restoreCartFocus(wrap, focusBefore, document.getElementById("americano-cart-drawer"));
     return;
   }
   emptyMsg.classList.add("hidden");
@@ -2777,20 +3021,21 @@ function renderAmericanoCart() {
     .map(([id, it]) => {
       const img = it.product.imagen || "./assets/americano-coming-soon.jpg";
       const moq = Math.max(1, it.product.moq || 1);
+      const name = escapeAttr(it.product.nombre);
       return `
-      <div class="flex gap-3 items-center">
-        <img src="${escapeAttr(img)}" alt="${escapeAttr(it.product.nombre)}" class="w-16 h-16 rounded-lg object-cover border border-ink/10" />
+      <div class="flex gap-3 items-center rounded-xl -mx-2 px-2 py-1" data-line="${escapeAttr(id)}">
+        <img src="${escapeAttr(img)}" alt="${name}" class="w-16 h-16 rounded-lg object-cover border border-ink/10" />
         <div class="flex-1 min-w-0">
           <p class="text-sm font-semibold text-ink truncate">${escapeHtml(it.product.nombre)}</p>
-          <p class="text-xs text-ink/50">${formatPrice(it.product.precio)} c/u · MOQ ${moq}</p>
-          <div class="mt-1 flex items-center gap-2">
-            <button data-americano-dec="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">−</button>
+          <p class="text-xs text-ink/75">${formatPrice(it.product.precio)} c/u · MOQ ${moq}</p>
+          <div class="mt-1 flex items-center gap-2" role="group" aria-label="Cantidad de ${name}">
+            <button type="button" data-americano-dec="${escapeAttr(id)}" aria-label="Quitar una pieza de ${name}" class="tap w-7 h-7 coarse:w-9 coarse:h-9 rounded-full border border-ink/20 text-ink text-base leading-none hover:bg-ink/5">−</button>
             <span class="text-sm w-5 text-center">${it.qty}</span>
-            <button data-americano-inc="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">+</button>
-            <button data-americano-remove="${escapeAttr(id)}" class="ml-2 text-xs text-ink/75 hover:text-ink/70 underline">quitar</button>
+            <button type="button" data-americano-inc="${escapeAttr(id)}" aria-label="Agregar una pieza de ${name}" class="tap w-7 h-7 coarse:w-9 coarse:h-9 rounded-full border border-ink/20 text-ink text-base leading-none hover:bg-ink/5">+</button>
+            <button type="button" data-americano-remove="${escapeAttr(id)}" aria-label="Quitar ${name} de tu pedido" class="tap ml-3 text-xs text-ink/75 hover:text-ink underline">Quitar</button>
           </div>
         </div>
-        <span class="text-sm font-semibold text-ink whitespace-nowrap">${formatPrice(it.product.precio * it.qty)}</span>
+        <span class="text-sm font-semibold text-ink whitespace-nowrap tabular-nums">${formatPrice(it.product.precio * it.qty)}</span>
       </div>`;
     })
     .join("");
@@ -2798,6 +3043,7 @@ function renderAmericanoCart() {
   wrap.querySelectorAll("[data-americano-inc]").forEach((b) => b.addEventListener("click", () => changeAmericanoQty(b.dataset.americanoInc, 1)));
   wrap.querySelectorAll("[data-americano-dec]").forEach((b) => b.addEventListener("click", () => changeAmericanoQty(b.dataset.americanoDec, -1)));
   wrap.querySelectorAll("[data-americano-remove]").forEach((b) => b.addEventListener("click", () => removeFromAmericanoCart(b.dataset.americanoRemove)));
+  restoreCartFocus(wrap, focusBefore, document.getElementById("americano-cart-drawer"));
 }
 
 function openAmericanoCart() {
@@ -2843,7 +3089,7 @@ function sendAmericanoQuote(e) {
 
   const minMXN = CONFIG.AMERICANO.MIN_ORDER_MXN || 0;
   if (americanoCartTotal() < minMXN) {
-    setStatus(`Tu pedido de ${CONFIG.AMERICANO.TITLE || "Cosmético Americano"} no alcanza el mínimo de compra (${formatPrice(minMXN)}).`);
+    showCartError("americano-cart-error", `Tu pedido todavía no llega al mínimo de ${formatPrice(minMXN)}.`);
     return;
   }
 
@@ -2872,7 +3118,10 @@ function addToCart(id) {
   const product = products.find((p) => p.id === id);
   if (!product || !product.disponible) return;
   const currentQty = cart[id] ? cart[id].qty : 0;
-  if (product.enStock && currentQty + 1 > product.stockPiezas) return;
+  if (product.enStock && currentQty + 1 > product.stockPiezas) {
+    announce(stockLimitMessage(product));
+    return;
+  }
 
   const switchNotice = document.getElementById("cart-switch-notice");
   if (Object.keys(americanoCart).length) {
@@ -2890,23 +3139,64 @@ function addToCart(id) {
   saveCart();
   renderCart();
   openCart();
+  acknowledgeCartChange("cart-items", id);
+  const switched = switchNotice.classList.contains("hidden") ? "" : `${switchNotice.textContent} `;
+  announce(`${switched}Agregaste ${product.nombre} a tu carrito. Llevas ${cart[id].qty} ${cart[id].qty === 1 ? "pieza" : "piezas"}.`);
 }
 
 function changeQty(id, delta) {
   if (!cart[id]) return;
   const product = cart[id].product;
   const nextQty = cart[id].qty + delta;
-  if (product.enStock && delta > 0 && nextQty > product.stockPiezas) return;
+  if (product.enStock && delta > 0 && nextQty > product.stockPiezas) {
+    announce(stockLimitMessage(product));
+    return;
+  }
   cart[id].qty = nextQty;
   if (cart[id].qty <= 0) delete cart[id];
   saveCart();
   renderCart();
+  if (cart[id]) acknowledgeCartChange("cart-items", id);
+  announce(
+    cart[id]
+      ? `${product.nombre}: ${cart[id].qty} ${cart[id].qty === 1 ? "pieza" : "piezas"}.`
+      : `Quitaste ${product.nombre} de tu carrito.`
+  );
 }
 
 function removeFromCart(id) {
+  const product = cart[id] && cart[id].product;
   delete cart[id];
   saveCart();
   renderCart();
+  if (product) announce(`Quitaste ${product.nombre} de tu carrito.`);
+}
+
+/* Acuse de "sí se agregó": la línea que cambió en el carrito se ilumina
+   en blush y se desvanece, para que se vea de un vistazo cuál producto
+   subió o bajó; y el globito del carrito del header da un pequeño salto.
+   El color se conserva aunque se pida menos movimiento (es información,
+   no adorno); el salto no. */
+function acknowledgeCartChange(wrapId, id) {
+  const row = [...document.querySelectorAll(`#${wrapId} [data-line]`)].find((r) => r.dataset.line === id);
+  if (row && row.animate) {
+    row.animate(
+      [{ backgroundColor: "rgba(246, 202, 219, 0.75)" }, { backgroundColor: "rgba(246, 202, 219, 0)" }],
+      { duration: 1100, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+    );
+  }
+  const badge = document.getElementById("cart-count");
+  if (badge && badge.animate && !prefersReducedMotion.matches) {
+    badge.animate(
+      [{ transform: "scale(1)" }, { transform: "scale(1.35)" }, { transform: "scale(1)" }],
+      { duration: 320, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+    );
+  }
+}
+
+function stockLimitMessage(product) {
+  const n = product.stockPiezas;
+  return `Solo ${n === 1 ? "hay 1 pieza disponible" : `hay ${n} piezas disponibles`} de ${product.nombre} en stock.`;
 }
 
 function cartTotal() {
@@ -3027,6 +3317,7 @@ function renderGrandTotal() {
 }
 
 function renderCart() {
+  clearCartError("cart-error");
   const wrap = document.getElementById("cart-items");
   const emptyMsg = document.getElementById("cart-empty");
   const items = Object.entries(cart);
@@ -3081,9 +3372,12 @@ function renderCart() {
     }
   }
 
+  const focusBefore = captureCartFocus(wrap);
+
   if (!items.length) {
     wrap.innerHTML = "";
     emptyMsg.classList.remove("hidden");
+    restoreCartFocus(wrap, focusBefore, document.getElementById("cart-drawer"));
     return;
   }
   emptyMsg.classList.add("hidden");
@@ -3091,21 +3385,24 @@ function renderCart() {
   wrap.innerHTML = items
     .map(([id, it]) => {
       const img = it.product.imagen || placeholderImg(it.product.categoria || "Alpacca", "#e9c3be");
+      const name = escapeAttr(it.product.nombre);
+      const atStockLimit = it.product.enStock && it.qty >= it.product.stockPiezas;
       return `
-      <div class="flex gap-3 items-center">
-        <img src="${escapeAttr(img)}" alt="${escapeAttr(it.product.nombre)}" class="w-16 h-16 rounded-lg object-cover border border-ink/10" />
+      <div class="flex gap-3 items-center rounded-xl -mx-2 px-2 py-1" data-line="${escapeAttr(id)}">
+        <img src="${escapeAttr(img)}" alt="${name}" class="w-16 h-16 rounded-lg object-cover border border-ink/10" />
         <div class="flex-1 min-w-0">
           <p class="text-sm font-semibold text-ink truncate">${escapeHtml(it.product.nombre)}</p>
-          ${it.product.presentacion ? `<p class="text-xs text-ink/50">${escapeHtml(it.product.presentacion)}</p>` : ""}
-          <p class="text-xs text-ink/50">${formatPrice(it.product.precio)} c/u</p>
-          <div class="mt-1 flex items-center gap-2">
-            <button data-dec="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">−</button>
+          ${it.product.presentacion ? `<p class="text-xs text-ink/75">${escapeHtml(it.product.presentacion)}</p>` : ""}
+          <p class="text-xs text-ink/75">${formatPrice(it.product.precio)} c/u</p>
+          <div class="mt-1 flex items-center gap-2" role="group" aria-label="Cantidad de ${name}">
+            <button type="button" data-dec="${escapeAttr(id)}" aria-label="Quitar una pieza de ${name}" class="tap w-7 h-7 coarse:w-9 coarse:h-9 rounded-full border border-ink/20 text-ink text-base leading-none hover:bg-ink/5">−</button>
             <span class="text-sm w-5 text-center">${it.qty}</span>
-            <button data-inc="${escapeAttr(id)}" class="w-6 h-6 rounded-full border border-ink/20 text-ink text-sm leading-none hover:bg-ink/5">+</button>
-            <button data-remove="${escapeAttr(id)}" class="ml-2 text-xs text-ink/75 hover:text-ink/70 underline">quitar</button>
+            <button type="button" data-inc="${escapeAttr(id)}" aria-label="Agregar una pieza de ${name}" ${atStockLimit ? "disabled" : ""}
+              class="tap w-7 h-7 coarse:w-9 coarse:h-9 rounded-full border border-ink/20 text-ink text-base leading-none hover:bg-ink/5 disabled:opacity-30 disabled:cursor-not-allowed">+</button>
+            <button type="button" data-remove="${escapeAttr(id)}" aria-label="Quitar ${name} de tu carrito" class="tap ml-3 text-xs text-ink/75 hover:text-ink underline">Quitar</button>
           </div>
         </div>
-        <span class="text-sm font-semibold text-ink whitespace-nowrap">${formatPrice(it.product.precio * it.qty)}</span>
+        <span class="text-sm font-semibold text-ink whitespace-nowrap tabular-nums">${formatPrice(it.product.precio * it.qty)}</span>
       </div>`;
     })
     .join("");
@@ -3113,6 +3410,30 @@ function renderCart() {
   wrap.querySelectorAll("[data-inc]").forEach((b) => b.addEventListener("click", () => changeQty(b.dataset.inc, 1)));
   wrap.querySelectorAll("[data-dec]").forEach((b) => b.addEventListener("click", () => changeQty(b.dataset.dec, -1)));
   wrap.querySelectorAll("[data-remove]").forEach((b) => b.addEventListener("click", () => removeFromCart(b.dataset.remove)));
+  restoreCartFocus(wrap, focusBefore, document.getElementById("cart-drawer"));
+}
+
+/* Cada cambio de cantidad vuelve a pintar las líneas del carrito, y eso
+   reemplazaba el botón que tenía el foco -- con teclado, el foco se iba
+   al inicio de la página. Esto recuerda qué botón de qué línea tenía el
+   foco y lo regresa ahí (o a la línea siguiente si esa se quitó). */
+function captureCartFocus(wrap) {
+  const el = document.activeElement;
+  if (!el || !wrap.contains(el)) return null;
+  const attr = el.getAttributeNames().find((n) => n.startsWith("data-"));
+  if (!attr) return null;
+  const line = [...wrap.children].findIndex((row) => row.contains(el));
+  return { attr, value: el.getAttribute(attr), line };
+}
+
+function restoreCartFocus(wrap, saved, fallback) {
+  if (!saved) return;
+  const same = [...wrap.querySelectorAll(`[${saved.attr}]`)].find(
+    (b) => b.getAttribute(saved.attr) === saved.value && !b.disabled
+  );
+  const row = wrap.children[Math.min(saved.line, wrap.children.length - 1)];
+  const target = same || (row && row.querySelector("button:not([disabled])")) || fallback;
+  if (target) target.focus({ preventScroll: true });
 }
 
 /* No se permite comprar como invitado -- hay que iniciar sesión o crear
@@ -3165,6 +3486,175 @@ function closeCart() {
 }
 
 /* ======================================================================
+   Paneles y ventanas accesibles (carritos, Mi cuenta, menú móvil,
+   Avísame, calificar y reseñas).
+   Cada panel se abre y se cierra en su propia función (openCart,
+   closeCart, openMobileMenu...) poniendo o quitando una clase. En vez de
+   tocar cada una, aquí se observa esa clase y se hace lo que necesita
+   quien navega con teclado o lector de pantalla:
+     - Cerrado: el panel queda "inert" -- no se puede tabular hacia él ni
+       se lee, aunque siga en la página (fuera de pantalla o transparente).
+     - Abierto: el resto de la página queda inert, el foco entra al panel,
+       Escape lo cierra con su propio botón "×", y al cerrarlo el foco
+       regresa al botón que lo abrió.
+   ====================================================================== */
+const DIALOGS = [
+  { panel: "cart-drawer", overlay: "cart-overlay", close: "cart-close", closedClass: "translate-x-full" },
+  { panel: "americano-cart-drawer", overlay: "americano-cart-overlay", close: "americano-cart-close", closedClass: "translate-x-full" },
+  { panel: "account-drawer", overlay: "account-overlay", close: "account-close", closedClass: "translate-x-full" },
+  { panel: "mobile-menu", overlay: "menu-overlay", close: "menu-close", closedClass: "-translate-x-full" },
+  { panel: "restock-overlay", close: "restock-close", closedClass: "opacity-0" },
+  { panel: "review-overlay", close: "review-close", closedClass: "opacity-0" },
+  { panel: "reviews-list-overlay", close: "reviews-list-close", closedClass: "opacity-0" },
+];
+
+// Pila de paneles abiertos; el último es el que está hasta arriba.
+const openDialogs = [];
+
+function isDialogOpen(d) {
+  return !d.panelEl.classList.contains(d.closedClass);
+}
+
+// Elementos de la página que se desactivaron por tener un panel abierto
+// (para reactivar exactamente esos al cerrarlo).
+const inertedByDialogs = new Set();
+
+function syncPageInert() {
+  const top = openDialogs[openDialogs.length - 1];
+  inertedByDialogs.forEach((el) => (el.inert = false));
+  inertedByDialogs.clear();
+
+  // Un panel (o su fondo oscuro, que cierra al tocarlo) solo es
+  // interactivo si es el de hasta arriba.
+  DIALOGS.forEach((d) => {
+    d.panelEl.inert = d !== top;
+    if (d.overlayEl) d.overlayEl.inert = d !== top;
+  });
+  if (!top) return;
+
+  // Todo lo demás se desactiva. Algunos paneles viven dentro de otro
+  // elemento (el menú móvil está dentro de <main>), así que en vez de
+  // desactivar a su contenedor se entra en él y se desactivan solo sus
+  // hermanos.
+  const keep = [top.panelEl, top.overlayEl, document.getElementById("live-region")].filter(Boolean);
+  const isDialogPart = (el) => DIALOGS.some((d) => d.panelEl === el || d.overlayEl === el);
+  const walk = (parent) => {
+    for (const el of parent.children) {
+      if (el.tagName === "SCRIPT" || keep.includes(el) || isDialogPart(el)) continue;
+      if (keep.some((k) => el.contains(k))) {
+        walk(el);
+        continue;
+      }
+      el.inert = true;
+      inertedByDialogs.add(el);
+    }
+  };
+  walk(document.body);
+}
+
+/* Elementos a los que se puede llegar con Tab dentro de un panel. */
+function dialogFocusables(panel) {
+  return [
+    ...panel.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])'
+    ),
+  ].filter((el) => el.getClientRects().length > 0 && !el.closest("[inert]"));
+}
+
+function onDialogChange(d) {
+  const open = isDialogOpen(d);
+  const idx = openDialogs.indexOf(d);
+  if (open && idx === -1) {
+    const active = document.activeElement;
+    d.returnFocus = active && active !== document.body ? active : null;
+    openDialogs.push(d);
+    syncPageInert();
+    // Se enfoca el panel completo (no el primer campo) para que en
+    // celular no se abra el teclado solo, y el lector anuncie su título.
+    requestAnimationFrame(() => {
+      if (openDialogs.includes(d)) d.panelEl.focus({ preventScroll: true });
+    });
+  } else if (!open && idx !== -1) {
+    openDialogs.splice(idx, 1);
+    syncPageInert();
+    const target = d.returnFocus;
+    d.returnFocus = null;
+    if (target && target.isConnected && !target.closest("[inert]")) {
+      target.focus({ preventScroll: true });
+    }
+  }
+}
+
+function initDialogs() {
+  for (let i = DIALOGS.length - 1; i >= 0; i--) {
+    const d = DIALOGS[i];
+    d.panelEl = document.getElementById(d.panel);
+    d.overlayEl = d.overlay ? document.getElementById(d.overlay) : null;
+    if (!d.panelEl) {
+      DIALOGS.splice(i, 1);
+      continue;
+    }
+    new MutationObserver(() => onDialogChange(d)).observe(d.panelEl, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  }
+  DIALOGS.forEach((d) => {
+    if (isDialogOpen(d)) onDialogChange(d);
+  });
+  syncPageInert();
+}
+
+document.addEventListener("keydown", (e) => {
+  if (!openDialogs.length) return;
+  const top = openDialogs[openDialogs.length - 1];
+
+  if (e.key === "Escape") {
+    const closeBtn = document.getElementById(top.close);
+    if (!closeBtn) return;
+    e.preventDefault();
+    closeBtn.click();
+    return;
+  }
+
+  // Tab da la vuelta dentro del panel: del último control regresa al
+  // primero (y al revés con Shift+Tab), en vez de salirse a la barra
+  // del navegador.
+  if (e.key === "Tab") {
+    const items = dialogFocusables(top.panelEl);
+    const first = items[0];
+    const last = items[items.length - 1];
+    const current = document.activeElement;
+    if (!first) {
+      e.preventDefault();
+      top.panelEl.focus();
+    } else if (e.shiftKey && (current === first || current === top.panelEl)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && current === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+});
+
+initDialogs();
+
+/* Avisos para lectores de pantalla (región "live-region" en index.html).
+   Se vacía y se vuelve a llenar para que un mensaje repetido -- por
+   ejemplo, agregar dos veces el mismo producto -- se lea otra vez. */
+let announceTimer = null;
+function announce(message) {
+  const region = document.getElementById("live-region");
+  if (!region || !message) return;
+  region.textContent = "";
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => {
+    region.textContent = message;
+  }, 60);
+}
+
+/* ======================================================================
    Pedido por transferencia (registro directo, sin pasar por WhatsApp)
    ====================================================================== */
 /* Lee todos los campos del formulario del carrito principal, incluida la
@@ -3186,16 +3676,17 @@ function getCustomerFields() {
 async function sendQuote(e) {
   e.preventDefault();
   if (!Object.keys(cart).length) return;
+  clearCartError("cart-error");
   // El formulario está oculto sin sesión (ver updateCartLoginGate), esto
   // es nomás por si acaso -- nunca debería llegar hasta aquí sin token.
   if (!getCustomerToken()) {
-    setStatus("Inicia sesión para continuar tu compra.");
+    showCartError("cart-error", "Inicia sesión para continuar tu compra.");
     return;
   }
 
   const hasNonStockItems = Object.values(cart).some((it) => !it.product.enStock);
   if (hasNonStockItems && cartTotalNonStock() < minOrderMXN()) {
-    setStatus(`Tu pedido no alcanza el mínimo de compra (${formatPrice(minOrderMXN())}).`);
+    showCartError("cart-error", `Tu pedido todavía no llega al mínimo de ${formatPrice(minOrderMXN())} en productos de Corea.`);
     return;
   }
 
@@ -3204,12 +3695,12 @@ async function sendQuote(e) {
   const fileInput = document.getElementById("proof-file-input");
   const file = fileInput.files && fileInput.files[0];
   if (!file) {
-    setStatus("Sube tu comprobante de transferencia para poder confirmar el pedido.");
+    showCartError("cart-error", "Sube tu comprobante de transferencia para confirmar el pedido.");
     return;
   }
   const proofError = validateProofFile(file);
   if (proofError) {
-    setStatus(proofError);
+    showCartError("cart-error", proofError);
     return;
   }
 
@@ -3218,12 +3709,12 @@ async function sendQuote(e) {
   sendBtn.disabled = true;
   sendBtn.innerHTML = "<span>Enviando…</span>";
 
-  const orderId = await recordTransferOrder();
+  const { orderId, error } = await recordTransferOrder();
 
   if (!orderId) {
     sendBtn.disabled = false;
     sendBtn.innerHTML = originalLabel;
-    setStatus("No se pudo registrar tu pedido. Intenta de nuevo o contáctanos por WhatsApp.");
+    showCartError("cart-error", error || ORDER_FAILED_MESSAGE);
     return;
   }
 
@@ -3280,17 +3771,25 @@ function recordTransferOrder() {
         weightKg: weight,
       }),
     })
-      .then((res) => res.json())
-      .then((data) => data.orderId || null)
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.orderId) throw new Error(data.error || "");
+        return { orderId: data.orderId };
+      })
       .catch((err) => {
         console.warn("No se pudo registrar el pedido:", err);
-        return null;
+        // Se conserva el motivo que da el servidor (ej. "El teléfono debe
+        // tener 10 dígitos.") para que la clienta sepa qué corregir.
+        return { error: friendlyError(err, ORDER_FAILED_MESSAGE) };
       });
   } catch (err) {
     console.warn("No se pudo registrar el pedido:", err);
-    return Promise.resolve(null);
+    return Promise.resolve({ error: ORDER_FAILED_MESSAGE });
   }
 }
+
+const ORDER_FAILED_MESSAGE =
+  "No pudimos registrar tu pedido. Intenta de nuevo en un momento; si sigue fallando, escríbenos por WhatsApp. Tu carrito sigue guardado.";
 
 /* Muestra, dentro del mismo carrito, el panel de "pedido enviado" con el
    folio y los datos de depósito/transferencia. El comprobante ya se subió
@@ -3310,7 +3809,7 @@ function showQuoteSuccess(orderId, proofFailed) {
     retryInput.value = "";
     const retryStatus = document.getElementById("proof-retry-status");
     retryStatus.textContent = "";
-    retryStatus.className = "text-[11px] text-ink/50 mt-1";
+    retryStatus.className = "text-xs text-ink/75 mt-1";
 
     const retryBtn = document.getElementById("proof-retry-btn");
     retryBtn.disabled = false;
@@ -3319,7 +3818,7 @@ function showQuoteSuccess(orderId, proofFailed) {
       const file = retryInput.files && retryInput.files[0];
       const showError = (msg) => {
         retryStatus.textContent = msg;
-        retryStatus.className = "text-[11px] text-rose mt-1";
+        retryStatus.className = "text-xs text-rose-ink mt-1";
       };
       if (!file) {
         showError("Selecciona una imagen o PDF primero.");
@@ -3335,11 +3834,11 @@ function showQuoteSuccess(orderId, proofFailed) {
       uploadProofFile(orderId, file)
         .then(() => {
           retryStatus.textContent = "✅ ¡Comprobante recibido! Gracias, te confirmaremos tu pedido pronto.";
-          retryStatus.className = "text-[11px] text-ink/70 mt-1";
+          retryStatus.className = "text-xs text-ink/75 mt-1";
           retryBtn.innerHTML = "<span>✅ Comprobante enviado</span>";
         })
         .catch((err) => {
-          showError(err.message || "No se pudo subir el comprobante. Intenta de nuevo.");
+          showError(friendlyError(err, "No pudimos subir tu comprobante. Intenta de nuevo en un momento."));
           retryBtn.disabled = false;
           retryBtn.innerHTML = "<span>📤 Reintentar subir comprobante</span>";
         });
@@ -3413,10 +3912,11 @@ function cartItemsForOrder({ useTarjetaPrice = false } = {}) {
    ====================================================================== */
 async function payWithMercadoPago() {
   if (!Object.keys(cart).length) return;
+  clearCartError("cart-error");
   // El formulario está oculto sin sesión (ver updateCartLoginGate), esto
   // es nomás por si acaso -- nunca debería llegar hasta aquí sin token.
   if (!getCustomerToken()) {
-    setStatus("Inicia sesión para continuar tu compra.");
+    showCartError("cart-error", "Inicia sesión para continuar tu compra.");
     return;
   }
 
@@ -3435,7 +3935,7 @@ async function payWithMercadoPago() {
 
   const hasNonStockItems = Object.values(cart).some((it) => !it.product.enStock);
   if (hasNonStockItems && cartTotalNonStock() < minOrderMXN()) {
-    setStatus(`Tu pedido no alcanza el mínimo de compra (${formatPrice(minOrderMXN())}).`);
+    showCartError("cart-error", `Tu pedido todavía no llega al mínimo de ${formatPrice(minOrderMXN())} en productos de Corea.`);
     return;
   }
 
@@ -3475,15 +3975,18 @@ async function payWithMercadoPago() {
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.redirectUrl) {
-      throw new Error(data.error || "Mercado Pago no está configurado todavía.");
+      throw new Error(data.error || "");
     }
 
     window.location.href = data.redirectUrl;
   } catch (err) {
     console.error(err);
-    setStatus(err.message || "No se pudo iniciar el pago con Mercado Pago. Intenta de nuevo o paga por transferencia.");
+    showCartError(
+      "cart-error",
+      friendlyError(err, "No pudimos abrir Mercado Pago. Intenta de nuevo en un momento o paga por transferencia (con descuento).")
+    );
     payBtn.disabled = false;
     payBtn.innerHTML = originalLabel;
   }
@@ -3505,11 +4008,12 @@ function escapeAttr(str) {
    en tarjetas angostas de celular (2 columnas). En vez de truncar, se
    reduce el tamaño de letra (y se permite una línea más en los muy
    largos) para que el nombre completo quepa. */
-function productNameSizeClass(name) {
-  const len = (name || "").length;
-  if (len > 46) return "text-[11px] line-clamp-3";
-  if (len > 32) return "text-xs line-clamp-2";
-  return "text-sm line-clamp-2";
+/* Nombre del producto: siempre 14 px. Antes los nombres largos bajaban
+   a 11-12 px, justo cuando traen el dato que importa (tono, tipo, "6
+   Types (Aqua Fit)"). Se recortan a 3 líneas; el nombre completo queda
+   en el atributo title. */
+function productNameSizeClass() {
+  return "text-sm line-clamp-3";
 }
 
 /* ======================================================================
@@ -3619,7 +4123,7 @@ async function handleLoginSubmit(e) {
     await loadMyOrders();
     resumeCheckoutIfPending();
   } catch (err) {
-    errorEl.textContent = err.message;
+    errorEl.textContent = friendlyError(err, "No pudimos iniciar tu sesión. Intenta de nuevo en un momento.");
     errorEl.classList.remove("hidden");
   } finally {
     btn.disabled = false;
@@ -3650,7 +4154,7 @@ async function handleSignupSubmit(e) {
     await loadMyOrders();
     resumeCheckoutIfPending();
   } catch (err) {
-    errorEl.textContent = err.message;
+    errorEl.textContent = friendlyError(err, "No pudimos crear tu cuenta. Intenta de nuevo en un momento.");
     errorEl.classList.remove("hidden");
   } finally {
     btn.disabled = false;
@@ -3701,9 +4205,13 @@ async function handleResetSubmit(e) {
     // Limpia el link de la URL para que no se pueda reusar por accidente.
     window.history.replaceState({}, "", window.location.pathname);
     showAccountView("login");
-    setStatus("✅ Tu contraseña se cambió. Ya puedes iniciar sesión.");
+    // Se avisa dentro del panel de Mi cuenta (el aviso de la página
+    // quedaba detrás del panel abierto).
+    const notice = document.getElementById("login-notice");
+    notice.textContent = "✅ Tu contraseña se cambió. Ya puedes iniciar sesión.";
+    notice.classList.remove("hidden");
   } catch (err) {
-    errorEl.textContent = err.message;
+    errorEl.textContent = friendlyError(err, "No pudimos cambiar tu contraseña. Intenta de nuevo en un momento.");
     errorEl.classList.remove("hidden");
   } finally {
     btn.disabled = false;
@@ -3723,9 +4231,9 @@ const ORDER_STATUS_LABELS = {
 };
 
 const ORDER_STATUS_BADGE_CLASSES = {
-  pending: "bg-lilac/20 text-ink/70",
+  pending: "bg-lilac/20 text-ink/75",
   paid: "bg-green-100 text-green-700",
-  cancelled: "bg-ink/10 text-ink/50",
+  cancelled: "bg-ink/10 text-ink/75",
   failed: "bg-red-100 text-red-700",
 };
 
@@ -3743,7 +4251,7 @@ function orderTimelineHTML(o) {
     return `<p class="text-xs font-semibold text-ink/75 bg-ink/5 rounded-lg px-3 py-2">✕ Este pedido fue cancelado.</p>`;
   }
   if (o.status === "failed") {
-    return `<p class="text-xs font-semibold text-rose bg-rose/10 rounded-lg px-3 py-2">⚠️ No se pudo procesar el pago de este pedido. Si crees que es un error, contáctanos.</p>`;
+    return `<p class="text-xs font-semibold text-rose-ink bg-rose/10 rounded-lg px-3 py-2">⚠️ No se pudo procesar el pago de este pedido. Si crees que es un error, contáctanos.</p>`;
   }
   const steps = [
     { label: "Recibido", done: true },
@@ -3756,7 +4264,7 @@ function orderTimelineHTML(o) {
       ${i > 0 ? `<div class="flex-1 h-0.5 ${s.done ? "bg-rose" : "bg-ink/15"}"></div>` : ""}
       <div class="flex flex-col items-center gap-1 shrink-0">
         <div class="w-2.5 h-2.5 rounded-full ${s.done ? "bg-rose" : "bg-ink/15"}"></div>
-        <span class="text-[10px] ${s.done ? "text-ink font-semibold" : "text-ink/75"} whitespace-nowrap">${s.label}</span>
+        <span class="text-xs ${s.done ? "text-ink font-semibold" : "text-ink/75"} whitespace-nowrap">${s.label}</span>
       </div>`
     )
     .join("");
@@ -3776,7 +4284,7 @@ function orderItemsDetailHTML(o) {
           ${
             canReview && it.sku
               ? `<button type="button" data-review="${escapeAttr(it.sku)}" data-review-name="${escapeAttr(it.nombre)}"
-                  class="block text-[11px] text-rose font-semibold hover:underline mt-0.5">⭐ Calificar</button>`
+                  class="block text-xs text-rose-ink font-semibold hover:underline mt-0.5">⭐ Calificar</button>`
               : ""
           }
         </span>
@@ -3790,7 +4298,7 @@ function orderAddressHTML(o) {
   const c = o.customer || {};
   const parts = [c.street, c.colonia, c.municipio, c.estado, c.cp].filter(Boolean).join(", ");
   if (!parts) return "";
-  return `<p class="text-xs text-ink/50">📍 Enviado a: ${escapeHtml(parts)}</p>`;
+  return `<p class="text-xs text-ink/75">📍 Enviado a: ${escapeHtml(parts)}</p>`;
 }
 
 /* No todas las paqueterías tienen una URL de rastreo simple y
@@ -3812,8 +4320,8 @@ function orderTrackingDetailHTML(o) {
   return `
     <a href="${escapeAttr(url)}" target="_blank" rel="noopener"
       class="flex items-center justify-between gap-2 rounded-lg bg-lilac/10 px-3 py-2 hover:bg-lilac/20 transition">
-      <span class="text-xs text-lilac font-semibold">🚚 Guía: ${escapeHtml(o.trackingNumber)}${o.carrier ? " · " + escapeHtml(o.carrier) : ""}</span>
-      <span class="text-xs font-bold text-lilac shrink-0">Rastrear ›</span>
+      <span class="text-xs text-lilac-ink font-semibold">🚚 Guía: ${escapeHtml(o.trackingNumber)}${o.carrier ? " · " + escapeHtml(o.carrier) : ""}</span>
+      <span class="text-xs font-bold text-lilac-ink shrink-0">Rastrear ›</span>
     </a>`;
 }
 
@@ -3841,12 +4349,12 @@ function myOrderCardHTML(o) {
     <details class="rounded-xl border border-ink/10 overflow-hidden bg-white/40">
       <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-3 p-3 hover:bg-ink/5 transition">
         <div class="min-w-0 flex-1">
-          <p class="text-[11px] text-ink/75">#${orderNumber(o)} · ${fecha}</p>
+          <p class="text-xs text-ink/75">#${orderNumber(o)} · ${fecha}</p>
           <p class="text-sm font-semibold text-ink truncate">${escapeHtml(itemsSummary)}</p>
         </div>
         <div class="flex flex-col items-end gap-1 shrink-0">
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}">${statusLabel}</span>
-          <span class="text-sm font-bold text-rose">${formatPrice(o.grandTotal)}</span>
+          <span class="text-xs font-bold px-2 py-0.5 rounded-full ${badgeClass}">${statusLabel}</span>
+          <span class="text-sm font-bold text-rose-ink">${formatPrice(o.grandTotal)}</span>
         </div>
       </summary>
       <div class="border-t border-ink/10 p-3 space-y-3">
@@ -3861,7 +4369,7 @@ function myOrderCardHTML(o) {
         ${orderTrackingDetailHTML(o)}
         <div class="flex gap-2 pt-1">
           ${canReorder ? `<button type="button" data-reorder="${escapeAttr(o.id)}"
-              class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-rose/10 text-rose text-xs font-semibold py-2 hover:bg-rose/20 transition">
+              class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-rose/10 text-rose-ink text-xs font-semibold py-2 hover:bg-rose/20 transition">
               🔁 Volver a pedir
             </button>` : ""}
           ${orderWhatsAppButtonHTML(o)}
@@ -3930,7 +4438,7 @@ function renderAccountOrdersStats(orders) {
       <button type="button" data-stat-filter="${s.key}"
         class="flex flex-col items-center gap-0.5 rounded-lg py-2 transition ${active ? "bg-rose text-cream" : "bg-ink/5 text-ink hover:bg-ink/10"}">
         <span class="text-base font-bold">${counts[s.key]}</span>
-        <span class="text-[10px] font-semibold ${active ? "text-cream/90" : "text-ink/50"}">${s.icon} ${s.label}</span>
+        <span class="text-xs font-semibold ${active ? "text-cream/90" : "text-ink/75"}">${s.icon} ${s.label}</span>
       </button>`;
   }).join("");
   el.classList.remove("hidden");
@@ -4149,7 +4657,7 @@ async function handleSettingsSubmit(e) {
     successEl.textContent = "✅ Tus datos se guardaron.";
     successEl.classList.remove("hidden");
   } catch (err) {
-    errorEl.textContent = err.message;
+    errorEl.textContent = friendlyError(err, "No pudimos guardar tus datos. Intenta de nuevo en un momento.");
     errorEl.classList.remove("hidden");
   } finally {
     btn.disabled = false;
@@ -4214,6 +4722,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("menu-close").addEventListener("click", closeMobileMenu);
   document.getElementById("menu-overlay").addEventListener("click", closeMobileMenu);
   document.getElementById("quote-form").addEventListener("submit", sendQuote);
+  // En cuanto la clienta corrige algo, el aviso de error del carrito se quita.
+  document.getElementById("quote-form").addEventListener("input", () => clearCartError("cart-error"));
+  document.getElementById("americano-quote-form").addEventListener("input", () => clearCartError("americano-cart-error"));
+  document.getElementById("login-form").addEventListener("input", () => document.getElementById("login-notice").classList.add("hidden"));
   document.getElementById("pay-mercadopago").addEventListener("click", payWithMercadoPago);
   document.getElementById("customer-cp").addEventListener("input", updateNacionalShippingUI);
   document.getElementById("quote-success-close").addEventListener("click", closeQuoteSuccess);
@@ -4227,7 +4739,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("brand-products-clear").addEventListener("click", () => {
     showHomeView("home");
-    document.getElementById("brands-section").scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("brands-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
   });
 
   document.getElementById("category-products-clear").addEventListener("click", () => {
@@ -4277,7 +4789,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("search-form").addEventListener("submit", (e) => {
     e.preventDefault();
     renderSearchResults(searchInput.value);
-    document.getElementById("search-results-section").scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("search-results-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
   });
   document.getElementById("search-results-clear").addEventListener("click", () => {
     searchInput.value = "";
@@ -4288,8 +4800,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderTopBar();
   renderHeroSlide();
+  wireHeroControls();
   restartHeroTimer();
   renderTicker();
+  wireTickerControls();
   renderPromoBanner();
   renderBenefits();
   initWhatsAppFloat();
