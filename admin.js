@@ -1110,7 +1110,14 @@ ${itemLines}
   // como popup, solo permite window.open() dentro del mismo clic) y
   // se le pone la URL del comprobante ya cargado hasta que llega.
   async function viewPaymentProof(orderId, btn) {
-    const win = window.open("", "_blank", "noopener");
+    // OJO: aquí NO se puede usar "noopener" -- en Chrome, window.open()
+    // con "noopener" regresa null en vez de una referencia a la
+    // ventana, así que no habría forma de redirigirla después al blob
+    // del comprobante (se quedaba abierta en blanco para siempre, ver
+    // bug reportado). Como el contenido que se muestra ahí es el PDF/
+    // imagen que generamos nosotros mismos (no un sitio externo), no
+    // hay el riesgo de seguridad que "noopener" evita.
+    const win = window.open("", "_blank");
     const original = btn.textContent;
     btn.disabled = true;
     btn.textContent = "Cargando...";
