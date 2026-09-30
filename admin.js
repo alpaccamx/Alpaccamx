@@ -350,7 +350,15 @@
      ya va en camino" listo para mandarle al cliente -- un clic, no manda
      nada solo, tú le das "Enviar" desde WhatsApp. La pestaña se abre
      ANTES de guardar (en blanco) para que el navegador no la bloquee por
-     no ser ya parte del clic; se le pone la URL real después. */
+     no ser ya parte del clic; se le pone la URL real después.
+
+     Importante: NO se le pasa "noopener" a window.open() porque en
+     Chrome eso hace que regrese null (no se puede redirigir después, y
+     el botón se queda sin hacer nada, sin ningún error -- así se
+     reportó este bug). En su lugar, se corta la referencia opener a
+     mano justo después de abrir la ventana, que da la misma protección
+     de seguridad (evita que wa.me pueda controlar esta pestaña) sin
+     perder la ventana en Chrome. */
   async function sendTracking(orderId, btn) {
     const numberInput = document.querySelector(`[data-tracking-number="${orderId}"]`);
     const carrierInput = document.querySelector(`[data-tracking-carrier="${orderId}"]`);
@@ -364,7 +372,8 @@
     const order = allOrders.find((o) => o.id === orderId);
     if (!order) return;
 
-    const waWindow = window.open("", "_blank", "noopener");
+    const waWindow = window.open("", "_blank");
+    if (waWindow) waWindow.opener = null;
 
     const originalText = btn.textContent;
     btn.disabled = true;
@@ -768,7 +777,8 @@
   /* Genera la guía con la paquetería elegida, guarda el número de guía en
      el pedido y abre WhatsApp con el aviso listo para el cliente -- mismo
      truco de abrir la pestaña en blanco antes del await para que el
-     navegador no la bloquee. */
+     navegador no la bloquee, y mismo cuidado con "noopener" que en
+     sendTracking() de arriba (sin él, Chrome regresa null). */
   async function generateGuide(orderId, btn) {
     const errorEl = document.querySelector(`[data-guide-error="${orderId}"]`);
     errorEl.textContent = "";
@@ -797,7 +807,8 @@
     if (interiorVal) destination.interiorNumber = interiorVal;
 
     const order = allOrders.find((o) => o.id === orderId);
-    const waWindow = window.open("", "_blank", "noopener");
+    const waWindow = window.open("", "_blank");
+    if (waWindow) waWindow.opener = null;
 
     const originalText = btn.textContent;
     btn.disabled = true;
