@@ -236,6 +236,7 @@
       o.customer?.colonia,
       o.customer?.municipio,
       orderNumber(o),
+      o.supplierOrderNumber,
       ...((o.items || []).map((it) => it.nombre)),
       ...((o.items || []).map((it) => itemMarca(it))),
     ].filter(Boolean).join(" ").toLowerCase();
@@ -264,6 +265,7 @@
     wireEditButtons(ordersEl);
     wireProofLinkButtons(ordersEl);
     wireSupplierPromptButtons(ordersEl);
+    wireSupplierNoteButtons(ordersEl);
   }
 
   function renderHistory(orders) {
@@ -295,6 +297,7 @@
     wireEditButtons(historyEl);
     wireProofLinkButtons(historyEl);
     wireSupplierPromptButtons(historyEl);
+    wireSupplierNoteButtons(historyEl);
   }
 
   function wireCopyAddressButtons(container) {
@@ -1108,6 +1111,66 @@ ${itemLines}
     });
   }
 
+  /* Nota interna (NUNCA se le muestra al cliente): el número de pedido
+     que da Asian Beauty Wholesale al comprarle, para que Mae pueda
+     relacionar un pedido de su tienda con su compra al proveedor. Se
+     guarda con su propio botón, igual que el número de guía -- no se
+     manda solo al escribir. */
+  function supplierNoteBlockHTML(o) {
+    return `
+      <div class="supplier-note-block">
+        <p class="hint">📝 Número de pedido en ABW (solo para tu organización -- nunca se le muestra al cliente)</p>
+        <div class="row">
+          <input type="text" placeholder="Ej. 10293-AB" data-supplier-order-number="${o.id}" value="${escapeHtml(o.supplierOrderNumber || "")}" />
+          <button type="button" class="btn-secondary" data-save-supplier-order="${o.id}">💾 Guardar</button>
+        </div>
+      </div>`;
+  }
+
+  async function saveSupplierOrderNumber(orderId, btn) {
+    const input = document.querySelector(`[data-supplier-order-number="${orderId}"]`);
+    if (!input) return;
+    const supplierOrderNumber = input.value.trim();
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-update-supplier-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ orderId, supplierOrderNumber }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus(data.error || "No se pudo guardar la nota.");
+        return;
+      }
+      const order = allOrders.find((o) => o.id === orderId);
+      if (order) order.supplierOrderNumber = supplierOrderNumber;
+      btn.textContent = "✅ Guardado";
+      setTimeout(() => { btn.textContent = originalText; }, 1500);
+    } catch (err) {
+      setStatus("No se pudo conectar con el servidor.");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function wireSupplierNoteButtons(container) {
+    container.querySelectorAll("[data-save-supplier-order]").forEach((btn) => {
+      btn.addEventListener("click", () => saveSupplierOrderNumber(btn.dataset.saveSupplierOrder, btn));
+    });
+    container.querySelectorAll("[data-supplier-order-number]").forEach((input) => {
+      input.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        const orderId = input.dataset.supplierOrderNumber;
+        const btn = document.querySelector(`[data-save-supplier-order="${orderId}"]`);
+        if (btn) saveSupplierOrderNumber(orderId, btn);
+      });
+    });
+  }
+
   function wireProofLinkButtons(container) {
     container.querySelectorAll("[data-view-proof]").forEach((btn) => {
       btn.addEventListener("click", () => viewPaymentProof(btn.dataset.viewProof, btn));
@@ -1291,6 +1354,7 @@ ${itemLines}
     // botón/prompt en pendingCardHTML, así que aquí se omite para no
     // repetir el mismo id en la página.
     const supplierBlock = o.status === "pending" ? "" : supplierPromptBlockHTML(o);
+    const supplierNote = o.status === "pending" ? "" : supplierNoteBlockHTML(o);
     return `
       <div class="order-card" style="border-left-color:${borderColor};">
         <div class="top">
@@ -1309,6 +1373,7 @@ ${itemLines}
         ${guideBlockHTML(o)}
         ${editBlock}
         ${supplierBlock}
+        ${supplierNote}
         ${deleteBtn}
       </div>`;
   }
@@ -1328,6 +1393,7 @@ ${itemLines}
         ${proofLinkHTML(o)}
         ${editBlockHTML(o)}
         ${supplierPromptBlockHTML(o)}
+        ${supplierNoteBlockHTML(o)}
         <div class="actions">
           <button class="btn-primary" data-confirm="${o.id}" title="Esto resta las piezas vendidas del stock automáticamente">✅ Ya me pagó</button>
           <button class="btn-danger" data-cancel="${o.id}">✕ No pagó / Cancelar</button>
