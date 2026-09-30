@@ -229,8 +229,69 @@ async function notifyCustomerOrderConfirmed(order) {
   }
 }
 
+/* Aviso de "tu pedido ya va en camino" para el CLIENTE, con la guía y la
+   paquetería -- mismo mecanismo que notifyCustomerOrderConfirmed() (usa
+   una plantilla de Meta porque es un mensaje que inicia el negocio, y el
+   número de PRODUCCIÓN). Se manda solo cuando se guarda/genera una guía
+   (ver admin-add-tracking.js y admin-generate-guide.js); el botón manual
+   "Actualizar y avisar por WhatsApp" de /admin.html sigue disponible como
+   respaldo, por si la plantilla todavía no está aprobada o el teléfono no
+   tiene el formato esperado. Requiere la plantilla "pedido_enviado"
+   aprobada por Meta (ver README sección 4). */
+async function notifyCustomerOrderShipped(order) {
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_CUSTOMER_PHONE_NUMBER_ID;
+  const phoneDigits = String(order.customer?.phone || "").replace(/[^0-9]/g, "");
+  if (!accessToken || !phoneNumberId || phoneDigits.length !== 10) return false;
+
+  const to = `52${phoneDigits}`;
+  const name = order.customer?.name || "cliente";
+  const trackingNumber = order.trackingNumber || "";
+  const carrier = order.carrier || "tu paquetería";
+
+  try {
+    const res = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: "pedido_enviado",
+          language: { code: "es_MX" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: name },
+                { type: "text", text: trackingNumber },
+                { type: "text", text: carrier },
+              ],
+            },
+          ],
+        },
+      }),
+    });
+    const resBody = await res.text();
+    if (!res.ok) {
+      console.error("Error mandando aviso de envío al cliente:", res.status, resBody);
+      return false;
+    }
+    console.log("Aviso de envío al cliente aceptado por Meta:", resBody);
+    return true;
+  } catch (err) {
+    console.error("Error de red mandando aviso de envío al cliente:", err);
+    return false;
+  }
+}
+
 module.exports = {
   notifySellerOrderCreated,
   notifySellerOrderPaid,
   notifyCustomerOrderConfirmed,
+  notifyCustomerOrderShipped,
 };

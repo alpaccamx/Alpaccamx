@@ -653,14 +653,18 @@ por WhatsApp":
 
 1. Guarda la guía en el pedido (queda visible ahí mismo la próxima vez,
    con un aviso "🚚 Enviado").
-2. Abre WhatsApp (tu WhatsApp normal, no requiere ninguna API ni
-   configuración) con un mensaje ya escrito para el cliente, con su
-   número de teléfono como destinatario y el número de guía incluido —
-   solo te falta darle "Enviar".
+2. Si tienes configurada la plantilla `pedido_enviado` (ver más abajo),
+   le manda el aviso al cliente **en automático** por la API de WhatsApp
+   Business, sin que tengas que hacer nada más.
+3. Además, abre WhatsApp (tu WhatsApp normal) con el mismo mensaje ya
+   escrito para el cliente — te sirve como respaldo manual (por ejemplo
+   si la plantilla todavía no está aprobada, o el teléfono del pedido no
+   tiene el formato esperado): solo te falta darle "Enviar" ahí si
+   decides usarlo.
 
-No es 100% automático (tú das el último clic), pero funciona sin
-necesidad de configurar la API de WhatsApp Business ni esperar
-aprobaciones de Meta.
+Si no configuras la API de WhatsApp Business ni la plantilla
+`pedido_enviado`, el sitio sigue funcionando igual — simplemente el aviso
+al cliente se queda solo en el paso manual (2).
 
 ### Generar la guía real comparando Envíos Perros y Skydropx
 
@@ -681,8 +685,9 @@ primera):
    decides).
 4. Le das "Generar guía y avisar por WhatsApp" — se genera la guía real
    en la paquetería/plataforma que elegiste, se guarda el número de guía
-   en el pedido, y se abre WhatsApp con el aviso listo para el cliente
-   (mismo mecanismo que el botón manual).
+   en el pedido, y se manda el aviso al cliente (automático con la
+   plantilla `pedido_enviado` si está configurada, y de respaldo se abre
+   WhatsApp con el aviso listo — mismo mecanismo que el botón manual).
 
 Si una de las dos plataformas falla al cotizar (por ejemplo por no tener
 sus variables configuradas), el sitio simplemente muestra las opciones de
@@ -812,6 +817,30 @@ Para configurarlo:
 Si `WHATSAPP_CUSTOMER_PHONE_NUMBER_ID` no está configurado, o el pedido
 no tiene un teléfono de 10 dígitos, simplemente no se manda este mensaje
 en particular — el resto del flujo de pago sigue igual.
+
+### Aviso automático de envío al cliente (número de guía)
+
+Mismo mecanismo que la confirmación de pedido de arriba, pero para
+avisarle al cliente que su pedido **ya va en camino**, con el número de
+guía y la paquetería — se manda automáticamente en cuanto guardas o
+generas una guía en `/admin.html` (ver "Avisar al cliente el número de
+guía..." más arriba).
+
+Para activarlo:
+
+1. Crea la plantilla en **business.facebook.com → Administrador de
+   WhatsApp → Plantillas de mensajes → Crear plantilla**, en la **misma
+   cuenta de WhatsApp Business (producción)** donde ya tengas
+   `confirmacion_pedido`. Categoría "Utilidad", idioma "Spanish (MEX)",
+   con 3 variables en este orden: nombre del cliente, número de guía,
+   paquetería.
+2. Nómbrala exactamente **`pedido_enviado`**, cuerpo:
+   `¡Hola {{1}}! 📦 Tu pedido con Alpacca ya va en camino.\n\nNúmero de guía: {{2}}\nPaquetería: {{3}}`
+3. Espera a que Meta la apruebe (de minutos a un día) — no hace falta
+   tocar el código ni hacer otro deploy, en cuanto quede aprobada el
+   sitio la empieza a usar sola. Mientras tanto, o si el pedido no tiene
+   un teléfono de 10 dígitos, sigue funcionando el botón manual de
+   WhatsApp como respaldo.
 
 ## 5. Cuentas de clientas (iniciar sesión, ver "Mis pedidos")
 
