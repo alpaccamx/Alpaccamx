@@ -396,6 +396,15 @@
 
 <div id="product-autocomplete"></div>
 
+<div id="proof-viewer-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:8px;width:95vw;height:92vh;max-width:900px;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;justify-content:flex-end;padding:8px;border-bottom:1px solid #eee;">
+      <button type="button" id="proof-viewer-close" style="background:none;border:none;font-size:20px;cursor:pointer;padding:4px 10px;">✕</button>
+    </div>
+    <iframe id="proof-viewer-frame" style="flex:1;border:none;width:100%;"></iframe>
+  </div>
+</div>
+
 <script src="./admin.js"></script>
 </body>
 </html>
