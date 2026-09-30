@@ -1105,19 +1105,35 @@ ${itemLines}
 
   // La clave de admin ya NO va en la URL (quedaba guardada en el
   // historial del navegador y en los logs del servidor) -- se manda
-  // como header, igual que el resto de las llamadas a /admin-*. La
-  // pestaña se abre ANTES del fetch (así el navegador no la bloquea
-  // como popup, solo permite window.open() dentro del mismo clic) y
-  // se le pone la URL del comprobante ya cargado hasta que llega.
+  // como header, igual que el resto de las llamadas a /admin-*.
+  //
+  // El comprobante se muestra en un visor DENTRO de la misma página
+  // (ver #proof-viewer-overlay en admin.html), no en una pestaña nueva
+  // -- se probó abrir una pestaña con window.open() + blob:, pero eso
+  // se rompe según el navegador: en Chrome, window.open("", "_blank",
+  // "noopener") regresa null (no se puede redirigir después) y en
+  // Safari/WebKit la pestaña nueva simplemente no logra cargar un
+  // blob: creado en la ventana de origen -- en ambos casos se quedaba
+  // en blanco para siempre. Un <iframe> en la MISMA página con el
+  // mismo blob: sí funciona en todos los navegadores probados.
+  let currentProofBlobUrl = null;
+
+  function openProofViewer(blobUrl) {
+    currentProofBlobUrl = blobUrl;
+    document.getElementById("proof-viewer-frame").src = blobUrl;
+    document.getElementById("proof-viewer-overlay").style.display = "flex";
+  }
+
+  function closeProofViewer() {
+    document.getElementById("proof-viewer-overlay").style.display = "none";
+    document.getElementById("proof-viewer-frame").src = "about:blank";
+    if (currentProofBlobUrl) {
+      URL.revokeObjectURL(currentProofBlobUrl);
+      currentProofBlobUrl = null;
+    }
+  }
+
   async function viewPaymentProof(orderId, btn) {
-    // OJO: aquí NO se puede usar "noopener" -- en Chrome, window.open()
-    // con "noopener" regresa null en vez de una referencia a la
-    // ventana, así que no habría forma de redirigirla después al blob
-    // del comprobante (se quedaba abierta en blanco para siempre, ver
-    // bug reportado). Como el contenido que se muestra ahí es el PDF/
-    // imagen que generamos nosotros mismos (no un sitio externo), no
-    // hay el riesgo de seguridad que "noopener" evita.
-    const win = window.open("", "_blank");
     const original = btn.textContent;
     btn.disabled = true;
     btn.textContent = "Cargando...";
@@ -1127,15 +1143,8 @@ ${itemLines}
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      if (win) {
-        win.location.href = blobUrl;
-      } else {
-        window.open(blobUrl, "_blank", "noopener");
-      }
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      openProofViewer(URL.createObjectURL(blob));
     } catch (err) {
-      if (win) win.close();
       setStatus("No se pudo cargar el comprobante de pago.");
     } finally {
       btn.disabled = false;
@@ -2227,6 +2236,16 @@ ${itemLines}
     usaOpenClientId = null;
     resetTabs();
   }
+
+  document.getElementById("proof-viewer-close").addEventListener("click", closeProofViewer);
+  document.getElementById("proof-viewer-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "proof-viewer-overlay") closeProofViewer();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && document.getElementById("proof-viewer-overlay").style.display !== "none") {
+      closeProofViewer();
+    }
+  });
 
   document.getElementById("login-btn").addEventListener("click", login);
   document.getElementById("admin-key-input").addEventListener("keydown", (e) => {
