@@ -27,6 +27,18 @@
 # connect-src incluye docs.google.com porque el catálogo y el stock se
 # leen directo desde el navegador del cliente (CSV publicado de Google
 # Sheets), no a través de una función de Netlify.
+#
+# El CSP NO lleva "frame-ancestors 'none'" a propósito -- en Safari
+# (WebKit) esa directiva, combinada con el <iframe src="blob:..."> del
+# visor de comprobantes de pago (ver admin.js), hace que Safari rechace
+# cargar el blob: con el error "does not appear in the frame-ancestors
+# directive", dejando el visor vacío (bug/comportamiento no estándar de
+# WebKit -- frame-ancestors debería controlar solo quién puede incrustar
+# ESTA página, no qué puede cargar esta página). Confirmado quitándola:
+# el visor funciona en Safari sin ese error. La protección contra
+# clickjacking no se pierde porque X-Frame-Options: DENY (arriba) ya
+# cubre exactamente lo mismo, y sí es compatible con todos los
+# navegadores sin este problema.
 [[headers]]
   for = "/*"
   [headers.values]
@@ -35,4 +47,4 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
