@@ -1016,7 +1016,7 @@
 
   function proofLinkHTML(o) {
     if (!o.hasPaymentProof) return "";
-    return `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeAttr(o.id)}" style="font-size:12px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>`;
+    return `<div style="margin-top:8px;"><button type="button" data-view-proof="${o.id}" style="font-size:12px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>`;
   }
 
   const SUPPLIER_URL = "https://www.asianbeautywholesale.com/en/home.html";
