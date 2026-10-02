@@ -120,6 +120,11 @@
   .edit-item-row input[type="number"] { flex: 1 1 70px; min-width: 60px; }
   .edit-item-row label.edit-stock-label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #777; white-space: nowrap; }
   .edit-item-row .btn-danger { padding: 8px 10px; font-size: 12px; }
+  .stock-tono-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; border: 1px solid #eee; border-radius: 8px; padding: 8px; }
+  .stock-tono-row input[type="text"] { flex: 2 1 140px; min-width: 110px; }
+  .stock-tono-row input[type="number"] { flex: 1 1 70px; min-width: 60px; }
+  .stock-tono-row .tono-sku { flex: 1 1 100px; min-width: 90px; }
+  .stock-tono-row .btn-danger { padding: 8px 10px; font-size: 12px; }
   #product-autocomplete {
     position: fixed;
     z-index: 1000;
@@ -275,15 +280,26 @@
       <input type="text" id="stock-nombre" placeholder="Nombre del producto *" style="flex:2;" />
       <input type="text" id="stock-marca" placeholder="Marca" />
     </div>
-    <div class="row">
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#555;">
+      <input type="checkbox" id="stock-multi-tono-toggle" />
+      Este producto tiene varios tonos/colores (capturar varios a la vez)
+    </label>
+    <div class="row" id="stock-single-piezas-row">
       <input type="number" id="stock-piezas" placeholder="Piezas disponibles *" min="1" step="1" />
+      <input type="text" id="stock-sku" placeholder="SKU (opcional -- se genera solo si lo dejas vacío)" style="flex:2;" />
+    </div>
+    <div id="stock-tonos-section" style="display:none;flex-direction:column;gap:8px;">
+      <p style="font-size:12px;color:#999;margin:0;">Cada tono se agrega como su propio producto, agrupado en una sola tarjeta con selector en el catálogo -- igual que "Base Cushion Glow (#21 Light Beige)". Precio, marca, categoría, peso, foto y descripción de arriba se usan para TODOS los tonos.</p>
+      <div id="stock-tonos-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <button type="button" class="btn-secondary" id="stock-tono-add-row">+ Agregar otro tono</button>
+    </div>
+    <div class="row">
       <input type="number" id="stock-precio" placeholder="Precio transferencia (MXN) *" min="0" step="1" />
       <input type="number" id="stock-precio-tarjeta" placeholder="Precio tarjeta (MXN, opcional)" min="0" step="1" />
     </div>
     <div class="row">
       <input type="text" id="stock-categoria" placeholder="Categoría (opcional)" />
       <input type="number" id="stock-peso" placeholder="Peso en kg (opcional)" min="0" step="0.01" />
-      <input type="text" id="stock-sku" placeholder="SKU (opcional -- se genera solo si lo dejas vacío)" style="flex:2;" />
     </div>
     <input type="text" id="stock-imagen" placeholder="Link de la foto (opcional)" />
     <textarea id="stock-descripcion" placeholder="Descripción (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
