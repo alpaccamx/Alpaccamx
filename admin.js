@@ -1462,6 +1462,63 @@ ${itemLines}
     }
   }
 
+  /* Varios tonos/colores del mismo producto: cada uno se guarda como su
+     propia fila en Stock (mismo nombre base + "(#tono)" al final), que el
+     catálogo agrupa solo en una tarjeta con selector -- ver groupVariants()
+     en app.js. Precio/marca/categoria/peso/foto/descripción son los
+     mismos para todos los tonos; solo cambian el tono, sus piezas y su
+     SKU. */
+  function tonoRowHTML() {
+    return `
+      <div class="stock-tono-row" data-tono-row>
+        <input type="text" class="tono-label" placeholder="Tono/color (ej. #21 Light Beige) *" />
+        <input type="number" class="tono-piezas" placeholder="Piezas *" min="1" step="1" />
+        <input type="text" class="tono-sku" placeholder="SKU (opcional)" />
+        <button type="button" class="btn-danger tono-remove">✕</button>
+      </div>`;
+  }
+
+  function addTonoRow() {
+    const list = document.getElementById("stock-tonos-list");
+    list.insertAdjacentHTML("beforeend", tonoRowHTML());
+    const row = list.lastElementChild;
+    row.querySelector(".tono-remove").addEventListener("click", () => removeTonoRow(row));
+  }
+
+  function removeTonoRow(row) {
+    const list = document.getElementById("stock-tonos-list");
+    if (list.children.length <= 1) return; // siempre deja al menos un renglón
+    row.remove();
+  }
+
+  function toggleMultiTono() {
+    const checked = document.getElementById("stock-multi-tono-toggle").checked;
+    document.getElementById("stock-tonos-section").style.display = checked ? "flex" : "none";
+    document.getElementById("stock-single-piezas-row").style.display = checked ? "none" : "flex";
+    const list = document.getElementById("stock-tonos-list");
+    if (checked && !list.children.length) {
+      addTonoRow();
+      addTonoRow();
+    }
+  }
+
+  function resetTonoRows() {
+    const list = document.getElementById("stock-tonos-list");
+    list.innerHTML = "";
+    document.getElementById("stock-multi-tono-toggle").checked = false;
+    toggleMultiTono();
+  }
+
+  async function addStockProductRequest(body) {
+    const res = await fetch("/.netlify/functions/admin-add-stock-product", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    return { ok: res.ok, data };
+  }
+
   async function submitAddStockProduct() {
     const errorEl = document.getElementById("stock-add-error");
     const successEl = document.getElementById("stock-add-success");
@@ -1469,51 +1526,100 @@ ${itemLines}
     successEl.style.display = "none";
 
     const nombre = document.getElementById("stock-nombre").value.trim();
-    const piezas = Number(document.getElementById("stock-piezas").value);
     const precio = Number(document.getElementById("stock-precio").value);
-
-    if (!nombre) { errorEl.textContent = "Falta el nombre del producto."; return; }
-    if (!piezas || piezas <= 0) { errorEl.textContent = "Las piezas deben ser un número mayor a 0."; return; }
-    if (!precio || precio <= 0) { errorEl.textContent = "El precio debe ser un número mayor a 0."; return; }
-
-    const body = {
-      nombre,
-      piezas,
+    const sharedFields = {
       precio,
       precioTarjeta: document.getElementById("stock-precio-tarjeta").value || undefined,
       marca: document.getElementById("stock-marca").value.trim(),
       categoria: document.getElementById("stock-categoria").value.trim(),
       descripcion: document.getElementById("stock-descripcion").value.trim(),
       peso: document.getElementById("stock-peso").value || undefined,
-      sku: document.getElementById("stock-sku").value.trim(),
       imagen: document.getElementById("stock-imagen").value.trim(),
     };
 
+    if (!nombre) { errorEl.textContent = "Falta el nombre del producto."; return; }
+    if (!precio || precio <= 0) { errorEl.textContent = "El precio debe ser un número mayor a 0."; return; }
+
+    const isMultiTono = document.getElementById("stock-multi-tono-toggle").checked;
     const btn = document.getElementById("stock-add-submit");
     const originalText = btn.textContent;
+
+    if (!isMultiTono) {
+      const piezas = Number(document.getElementById("stock-piezas").value);
+      if (!piezas || piezas <= 0) { errorEl.textContent = "Las piezas deben ser un número mayor a 0."; return; }
+
+      btn.disabled = true;
+      btn.textContent = "Agregando...";
+      try {
+        const { ok, data } = await addStockProductRequest({
+          ...sharedFields,
+          nombre,
+          piezas,
+          sku: document.getElementById("stock-sku").value.trim(),
+        });
+        if (!ok) { errorEl.textContent = data.error || "No se pudo agregar el producto."; return; }
+        successEl.textContent = `✅ "${nombre}" se agregó a tu Stock con el SKU ${data.sku}.`;
+        successEl.style.display = "block";
+        ["stock-nombre", "stock-marca", "stock-piezas", "stock-precio", "stock-precio-tarjeta",
+         "stock-categoria", "stock-peso", "stock-sku", "stock-imagen", "stock-descripcion"]
+          .forEach((id) => { document.getElementById(id).value = ""; });
+      } catch (err) {
+        errorEl.textContent = "No se pudo conectar con el servidor.";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+      return;
+    }
+
+    // Modo varios tonos: una fila por cada tono, mismo nombre base.
+    const rows = Array.from(document.querySelectorAll("#stock-tonos-list [data-tono-row]"));
+    const tonos = [];
+    for (const row of rows) {
+      let label = row.querySelector(".tono-label").value.trim();
+      const piezas = Number(row.querySelector(".tono-piezas").value);
+      const sku = row.querySelector(".tono-sku").value.trim();
+      if (!label && !piezas && !sku) continue; // renglón vacío, se ignora
+      if (!label) { errorEl.textContent = "Falta el tono/color en alguno de los renglones."; return; }
+      if (!label.startsWith("#")) label = `#${label}`;
+      if (!piezas || piezas <= 0) { errorEl.textContent = `Faltan las piezas del tono "${label}".`; return; }
+      tonos.push({ label, piezas, sku });
+    }
+    if (tonos.length < 2) { errorEl.textContent = "Agrega al menos 2 tonos, o desmarca la casilla de varios tonos."; return; }
+
     btn.disabled = true;
     btn.textContent = "Agregando...";
-    try {
-      const res = await fetch("/.netlify/functions/admin-add-stock-product", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        errorEl.textContent = data.error || "No se pudo agregar el producto.";
-        return;
+    const added = [];
+    const failed = [];
+    for (const tono of tonos) {
+      try {
+        const { ok, data } = await addStockProductRequest({
+          ...sharedFields,
+          nombre: `${nombre} (${tono.label})`,
+          piezas: tono.piezas,
+          sku: tono.sku,
+        });
+        if (ok) added.push({ tono: tono.label, sku: data.sku });
+        else failed.push({ tono: tono.label, error: data.error || "No se pudo agregar." });
+      } catch (err) {
+        failed.push({ tono: tono.label, error: "No se pudo conectar con el servidor." });
       }
-      successEl.textContent = `✅ "${nombre}" se agregó a tu Stock con el SKU ${data.sku}.`;
+    }
+    btn.disabled = false;
+    btn.textContent = originalText;
+
+    if (added.length) {
+      successEl.textContent = `✅ Se agregaron ${added.length} tono(s) de "${nombre}": ${added.map((a) => `${a.tono} (SKU ${a.sku})`).join(", ")}.`;
       successEl.style.display = "block";
-      ["stock-nombre", "stock-marca", "stock-piezas", "stock-precio", "stock-precio-tarjeta",
-       "stock-categoria", "stock-peso", "stock-sku", "stock-imagen", "stock-descripcion"]
+    }
+    if (failed.length) {
+      errorEl.textContent = `No se pudieron agregar ${failed.length} tono(s): ${failed.map((f) => `${f.tono} (${f.error})`).join("; ")}`;
+    }
+    if (!failed.length) {
+      ["stock-nombre", "stock-marca", "stock-precio", "stock-precio-tarjeta",
+       "stock-categoria", "stock-peso", "stock-imagen", "stock-descripcion"]
         .forEach((id) => { document.getElementById(id).value = ""; });
-    } catch (err) {
-      errorEl.textContent = "No se pudo conectar con el servidor.";
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalText;
+      resetTonoRows();
     }
   }
 
@@ -2334,6 +2440,8 @@ ${itemLines}
   document.getElementById("export-btn").addEventListener("click", exportCSV);
   document.getElementById("add-stock-toggle").addEventListener("click", toggleAddStockForm);
   document.getElementById("stock-add-submit").addEventListener("click", submitAddStockProduct);
+  document.getElementById("stock-multi-tono-toggle").addEventListener("change", toggleMultiTono);
+  document.getElementById("stock-tono-add-row").addEventListener("click", addTonoRow);
   document.getElementById("restock-requests-toggle").addEventListener("click", toggleRestockPanel);
   document.getElementById("reviews-toggle").addEventListener("click", toggleReviewsPanel);
   document.getElementById("usa-orders-toggle").addEventListener("click", toggleUsaOrdersPanel);
