@@ -1995,6 +1995,18 @@ function closeMobileMenu() {
 /* ======================================================================
    Tarjeta de producto — reutilizada por Best Seller y tipo de piel.
    ====================================================================== */
+/* Badge "Entrega inmediata · N piezas" / "Agotado" para productos que
+   vienen de la pestaña Stock (p.enStock). Se separa en su propia función
+   porque, cuando el producto tiene varios tonos (hasVariants), el stock
+   es distinto para cada tono -- no se puede mostrar hasta que el
+   cliente elija uno (ver wireVariantSelectors). */
+function stockBadgeHTML(p) {
+  if (!p.enStock) return "";
+  return p.stockPiezas > 0
+    ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
+    : `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Agotado</span>`;
+}
+
 function productCardHTML(p, { rank } = {}) {
   const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
   const hasVariants = p.variants && p.variants.length > 1;
@@ -2013,13 +2025,7 @@ function productCardHTML(p, { rank } = {}) {
       </div>
       <div class="p-3 flex flex-col flex-1">
         <div class="flex flex-wrap gap-1 mb-1">
-          ${
-            p.enStock
-              ? p.stockPiezas > 0
-                ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
-                : `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Agotado</span>`
-              : ""
-          }
+          <span data-card-stock-badge>${hasVariants ? "" : stockBadgeHTML(p)}</span>
           ${
             p.presentacion
               ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -2152,6 +2158,9 @@ function wireVariantSelectors(container) {
 
       const badgeEl = card.querySelector("[data-card-badge]");
       if (badgeEl) badgeEl.innerHTML = variant.disponible ? "" : agotadoBadgeHTML();
+
+      const stockBadgeEl = card.querySelector("[data-card-stock-badge]");
+      if (stockBadgeEl) stockBadgeEl.innerHTML = stockBadgeHTML(variant);
 
       const imgEl = card.querySelector("[data-card-img]");
       if (imgEl && variant.imagen) imgEl.src = variant.imagen;
