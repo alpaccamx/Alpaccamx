@@ -12,7 +12,7 @@ const { transitionOrder, applyStockDecrement } = require("./lib/blob-store.js");
 const { notifySellerOrderPaid, notifyCustomerOrderConfirmed } = require("./lib/whatsapp.js");
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
-const { sendEmail, orderCancelledEmailHTML } = require("./lib/email.js");
+const { sendEmail, orderConfirmedEmailHTML, orderCancelledEmailHTML } = require("./lib/email.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
@@ -52,6 +52,18 @@ exports.handler = async (event) => {
         await applySheetStockDelta(deltaFromItems(order.items));
         await notifySellerOrderPaid(order);
         await notifyCustomerOrderConfirmed(order);
+
+        // Igual que al mandar la guía o cancelar: solo se manda si la
+        // clienta tiene cuenta con ese teléfono (los pedidos no guardan
+        // correo).
+        const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+        if (customer?.email) {
+          await sendEmail({
+            to: customer.email,
+            subject: "Tu pedido de Alpacca fue confirmado 🎉",
+            html: orderConfirmedEmailHTML(order),
+          });
+        }
       }
       return jsonResponse(200, { order });
     }

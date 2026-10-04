@@ -13,6 +13,8 @@
 const { transitionOrder, applyStockDecrement } = require("./lib/blob-store.js");
 const { notifySellerOrderPaid, notifyCustomerOrderConfirmed } = require("./lib/whatsapp.js");
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
+const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { sendEmail, orderConfirmedEmailHTML } = require("./lib/email.js");
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -66,6 +68,17 @@ exports.handler = async (event) => {
       await applySheetStockDelta(deltaFromItems(order.items));
       await notifySellerOrderPaid(order);
       await notifyCustomerOrderConfirmed(order);
+
+      // Igual que en admin-confirm-order.js: solo se manda si la clienta
+      // tiene cuenta con ese teléfono (los pedidos no guardan correo).
+      const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+      if (customer?.email) {
+        await sendEmail({
+          to: customer.email,
+          subject: "Tu pedido de Alpacca fue confirmado 🎉",
+          html: orderConfirmedEmailHTML(order),
+        });
+      }
     }
 
     return { statusCode: 200, body: "ok" };
