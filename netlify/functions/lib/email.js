@@ -80,6 +80,38 @@ function resetPasswordEmailHTML(name, resetUrl) {
   `);
 }
 
+/* Desglosa subtotal + envío (Corea/nacional por separado si aplica, o
+   un solo renglón de envío si no) + comisión por tarjeta -- mismos
+   campos y misma lógica que totalsBreakdownHTML() en admin.js, para que
+   el desglose que ve la clienta en su correo cuadre con el que ve Mae en
+   su panel. */
+function orderBreakdownRowsHTML(order) {
+  const subtotal = Number(order.subtotal) || 0;
+  const shippingMXN = Number(order.shippingMXN) || 0;
+  const shippingKoreaMXN = Number(order.shippingKoreaMXN) || 0;
+  const shippingNacionalMXN = Number(order.shippingNacionalMXN) || 0;
+  const cardFeeMXN = Number(order.cardFeeMXN) || 0;
+
+  const row = (label, amount) =>
+    `<div style="display:flex;justify-content:space-between;font-size:14px;padding:2px 0;"><span>${label}</span><span>${formatPriceMXN(amount)}</span></div>`;
+
+  const rows = [row("Subtotal productos", subtotal)];
+  if (shippingKoreaMXN > 0 || shippingNacionalMXN > 0) {
+    if (shippingKoreaMXN > 0) rows.push(row("🌏 Envío Corea", shippingKoreaMXN));
+    if (shippingNacionalMXN > 0) rows.push(row("🚚 Envío nacional", shippingNacionalMXN));
+  } else if (shippingMXN > 0) {
+    rows.push(row("Envío", shippingMXN));
+  }
+  if (cardFeeMXN > 0.5) {
+    rows.push(row("💳 Comisión por pago con tarjeta", cardFeeMXN));
+  }
+  return rows.join("");
+}
+
+function paymentMethodLabel(order) {
+  return order.source === "mercadopago" ? "💳 Pago con tarjeta" : "🏦 Pago por transferencia";
+}
+
 function orderConfirmedEmailHTML(order) {
   const itemsHTML = (order.items || [])
     .map((it) => `<li>${it.nombre} x${it.qty}</li>`)
@@ -89,7 +121,11 @@ function orderConfirmedEmailHTML(order) {
     <p>Ya confirmé tu pedido y lo estoy preparando con mucho cariño. En cuanto lo envíe te aviso con tu número de guía.</p>
     <p style="font-weight: 700; margin-top: 16px;">Pedido #${order.id.slice(0, 8).toUpperCase()}</p>
     <ul style="padding-left: 18px; font-size: 14px;">${itemsHTML}</ul>
-    <p style="font-weight: 800; color: #e07a8f; font-size: 18px;">Total: ${formatPriceMXN(order.grandTotal)}</p>
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #eee;">
+      ${orderBreakdownRowsHTML(order)}
+    </div>
+    <p style="font-weight: 800; color: #e07a8f; font-size: 18px; margin-top: 8px;">Total: ${formatPriceMXN(order.grandTotal)}</p>
+    <p style="font-size: 13px; color: #777;">${paymentMethodLabel(order)}</p>
     <p>¡Gracias por confiar en mí!</p>
   `);
 }
