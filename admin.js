@@ -1696,14 +1696,26 @@ ${itemLines}
     }
   }
 
+  // Placeholder gris con un ícono de cámara -- se usa de entrada si el
+  // producto no tiene foto, y también si la URL que se escribe no carga
+  // (onerror), para nunca mostrar el ícono roto del navegador.
+  const INV_IMG_PLACEHOLDER =
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" rx="8" fill="#eee"/><text x="22" y="27" font-size="18" text-anchor="middle">📷</text></svg>'
+    );
+
   function inventoryRowHTML(p) {
+    const imgSrc = p.imagen ? escapeHtml(p.imagen) : INV_IMG_PLACEHOLDER;
     return `
       <div class="inventory-row" data-inv-row="${escapeHtml(p.sku)}">
         <div class="inv-top">
+          <img class="inv-thumb" src="${imgSrc}" alt="" onerror="this.src='${INV_IMG_PLACEHOLDER}'" />
           <input type="text" class="inv-nombre" value="${escapeHtml(p.nombre)}" placeholder="Nombre" />
           <input type="text" class="inv-marca" value="${escapeHtml(p.marca)}" placeholder="Marca" style="flex:1 1 110px;min-width:90px;" />
           <span class="inv-sku">SKU: ${escapeHtml(p.sku)}</span>
         </div>
+        <input type="text" class="inv-imagen" value="${escapeHtml(p.imagen)}" placeholder="Link de la foto" />
         <div class="inv-fields">
           <div class="inventory-qty">
             <button type="button" class="inv-qty-dec" title="Restar 1">−</button>
@@ -1777,6 +1789,10 @@ ${itemLines}
       row.querySelector(".inv-qty-inc").addEventListener("click", () => {
         piezasInput.value = Number(piezasInput.value || 0) + 1;
       });
+      row.querySelector(".inv-imagen").addEventListener("input", (e) => {
+        const thumb = row.querySelector(".inv-thumb");
+        thumb.src = e.target.value.trim() || INV_IMG_PLACEHOLDER;
+      });
       row.querySelector(".inv-save").addEventListener("click", (e) => saveInventoryRow(sku, row, e.currentTarget));
       row.querySelector(".inv-delete").addEventListener("click", (e) => deleteInventoryRow(sku, row, e.currentTarget));
     });
@@ -1796,6 +1812,7 @@ ${itemLines}
       precioTarjeta: Number(row.querySelector(".inv-precio-tarjeta").value) || 0,
       categoria: row.querySelector(".inv-categoria").value.trim(),
       peso: Number(row.querySelector(".inv-peso").value) || 0,
+      imagen: row.querySelector(".inv-imagen").value.trim(),
     };
 
     const originalText = btn.textContent;
