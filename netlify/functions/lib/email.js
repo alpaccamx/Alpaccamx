@@ -81,16 +81,18 @@ function resetPasswordEmailHTML(name, resetUrl) {
 }
 
 /* Desglosa subtotal + envío (Corea/nacional por separado si aplica, o
-   un solo renglón de envío si no) + comisión por tarjeta -- mismos
-   campos y misma lógica que totalsBreakdownHTML() en admin.js, para que
-   el desglose que ve la clienta en su correo cuadre con el que ve Mae en
-   su panel. */
+   un solo renglón de envío si no) -- mismos campos que
+   totalsBreakdownHTML() en admin.js, salvo la comisión por tarjeta: esa
+   sí se le muestra a Mae en su panel (para que sepa cuánto es costo real
+   vs. lo cobrado), pero NO se le desglosa a la clienta en el correo --
+   cobrar una comisión aparte por pagar con tarjeta está prohibido en
+   México (ya va incluida en "Precio Tarjeta" desde el carrito, solo no
+   se señala como renglón aparte aquí). */
 function orderBreakdownRowsHTML(order) {
   const subtotal = Number(order.subtotal) || 0;
   const shippingMXN = Number(order.shippingMXN) || 0;
   const shippingKoreaMXN = Number(order.shippingKoreaMXN) || 0;
   const shippingNacionalMXN = Number(order.shippingNacionalMXN) || 0;
-  const cardFeeMXN = Number(order.cardFeeMXN) || 0;
 
   const row = (label, amount) =>
     `<div style="display:flex;justify-content:space-between;font-size:14px;padding:2px 0;"><span>${label}</span><span>${formatPriceMXN(amount)}</span></div>`;
@@ -101,9 +103,6 @@ function orderBreakdownRowsHTML(order) {
     if (shippingNacionalMXN > 0) rows.push(row("🚚 Envío nacional", shippingNacionalMXN));
   } else if (shippingMXN > 0) {
     rows.push(row("Envío", shippingMXN));
-  }
-  if (cardFeeMXN > 0.5) {
-    rows.push(row("💳 Comisión por pago con tarjeta", cardFeeMXN));
   }
   return rows.join("");
 }
