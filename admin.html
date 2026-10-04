@@ -251,7 +251,6 @@
 
   <div class="toolbar" id="toolbar" style="display:none;">
     <button class="btn-secondary" id="refresh-btn">🔄 Actualizar</button>
-    <button class="btn-secondary" id="add-stock-toggle">➕ Agregar producto en Stock</button>
     <button class="btn-secondary" id="inventory-toggle">📦 Inventario</button>
     <button class="btn-secondary" id="restock-requests-toggle">🔔 Avisos de restock<span id="restock-requests-badge" style="display:none;"></span></button>
     <button class="btn-secondary" id="reviews-toggle">⭐ Reseñas</button>
@@ -288,46 +287,46 @@
     </div>
   </div>
 
-  <div class="filters" id="add-stock-form" style="display:none;">
-    <label class="filters-label">Nuevo producto en Stock</label>
-    <p style="font-size:13px;color:#777;margin:0;">Esto se agrega directo a tu Google Sheet, en la pestaña de Stock -- no necesitas abrirlo a mano.</p>
-    <div class="row">
-      <input type="text" id="stock-nombre" placeholder="Nombre del producto *" style="flex:2;" />
-      <input type="text" id="stock-marca" placeholder="Marca" />
-    </div>
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#555;">
-      <input type="checkbox" id="stock-multi-tono-toggle" />
-      Este producto tiene varios tonos/colores (capturar varios a la vez)
-    </label>
-    <div class="row" id="stock-single-piezas-row">
-      <input type="number" id="stock-piezas" placeholder="Piezas disponibles *" min="1" step="1" />
-      <input type="text" id="stock-sku" placeholder="SKU (opcional -- se genera solo si lo dejas vacío)" style="flex:2;" />
-    </div>
-    <div id="stock-tonos-section" style="display:none;flex-direction:column;gap:8px;">
-      <p style="font-size:12px;color:#999;margin:0;">Cada tono se agrega como su propio producto, agrupado en una sola tarjeta con selector en el catálogo -- igual que "Base Cushion Glow (#21 Light Beige)". Precio, marca, categoría, peso, foto y descripción de arriba se usan para TODOS los tonos.</p>
-      <div id="stock-tonos-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-      <button type="button" class="btn-secondary" id="stock-tono-add-row">+ Agregar otro tono</button>
-    </div>
-    <div class="row">
-      <input type="number" id="stock-precio" placeholder="Precio transferencia (MXN) *" min="0" step="1" />
-      <input type="number" id="stock-precio-tarjeta" placeholder="Precio tarjeta (MXN, opcional)" min="0" step="1" />
-    </div>
-    <div class="row">
-      <input type="text" id="stock-categoria" placeholder="Categoría (opcional)" />
-      <input type="number" id="stock-peso" placeholder="Peso en kg (opcional)" min="0" step="0.01" />
-    </div>
-    <input type="text" id="stock-imagen" placeholder="Link de la foto (opcional)" />
-    <textarea id="stock-descripcion" placeholder="Descripción (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
-    <div class="guide-error" id="stock-add-error"></div>
-    <p id="stock-add-success" style="display:none;color:#17803d;font-size:14px;font-weight:700;"></p>
-    <div class="filters-row">
-      <button class="btn-primary" id="stock-add-submit">Agregar a Stock</button>
-    </div>
-  </div>
-
   <div class="filters" id="inventory-panel" style="display:none;">
     <label class="filters-label">📦 Inventario (Stock)</label>
     <p style="font-size:13px;color:#777;margin:0;">Edita el nombre, marca, precio y lo demás de un producto ya publicado, o suma/resta piezas -- se guarda directo en tu Google Sheet, no necesitas abrirlo a mano. "🗑️ Quitar" deja el producto vacío en el Sheet (no se le borra la fila), así que desaparece del sitio pero tu Sheet no se desacomoda.</p>
+
+    <button class="btn-secondary" id="add-stock-toggle" type="button">➕ Agregar producto en Stock</button>
+    <div class="filters" id="add-stock-form" style="display:none;margin:0;padding:12px;border:1px solid #eee;border-radius:10px;">
+      <div class="row">
+        <input type="text" id="stock-nombre" placeholder="Nombre del producto *" style="flex:2;" />
+        <input type="text" id="stock-marca" placeholder="Marca" />
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#555;">
+        <input type="checkbox" id="stock-multi-tono-toggle" />
+        Este producto tiene varios tonos/colores (capturar varios a la vez)
+      </label>
+      <div class="row" id="stock-single-piezas-row">
+        <input type="number" id="stock-piezas" placeholder="Piezas disponibles *" min="1" step="1" />
+        <input type="text" id="stock-sku" placeholder="SKU (opcional -- se genera solo si lo dejas vacío)" style="flex:2;" />
+      </div>
+      <div id="stock-tonos-section" style="display:none;flex-direction:column;gap:8px;">
+        <p style="font-size:12px;color:#999;margin:0;">Cada tono se agrega como su propio producto, agrupado en una sola tarjeta con selector en el catálogo -- igual que "Base Cushion Glow (#21 Light Beige)". Precio, marca, categoría, peso, foto y descripción de arriba se usan para TODOS los tonos.</p>
+        <div id="stock-tonos-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <button type="button" class="btn-secondary" id="stock-tono-add-row">+ Agregar otro tono</button>
+      </div>
+      <div class="row">
+        <input type="number" id="stock-precio" placeholder="Precio transferencia (MXN) *" min="0" step="1" />
+        <input type="number" id="stock-precio-tarjeta" placeholder="Precio tarjeta (MXN, opcional)" min="0" step="1" />
+      </div>
+      <div class="row">
+        <input type="text" id="stock-categoria" placeholder="Categoría (opcional)" />
+        <input type="number" id="stock-peso" placeholder="Peso en kg (opcional)" min="0" step="0.01" />
+      </div>
+      <input type="text" id="stock-imagen" placeholder="Link de la foto (opcional)" />
+      <textarea id="stock-descripcion" placeholder="Descripción (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
+      <div class="guide-error" id="stock-add-error"></div>
+      <p id="stock-add-success" style="display:none;color:#17803d;font-size:14px;font-weight:700;"></p>
+      <div class="filters-row">
+        <button class="btn-primary" id="stock-add-submit">Agregar a Stock</button>
+      </div>
+    </div>
+
     <input id="inventory-search" type="text" placeholder="🔍 Busca por nombre, marca o SKU" />
     <div id="inventory-list"></div>
     <p id="inventory-empty" style="display:none;color:#777;font-size:14px;">No hay ningún producto en tu Stock todavía.</p>

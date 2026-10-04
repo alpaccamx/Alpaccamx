@@ -1449,8 +1449,10 @@ ${itemLines}
 
   /* ======================================================================
      Agregar producto nuevo a la pestaña de Stock (ver
-     admin-add-stock-product.js) -- se escribe directo en el Google Sheet,
-     no hace falta que Mae lo abra a mano.
+     admin-add-stock-product.js) -- vive DENTRO del panel de Inventario
+     (arriba de la tabla), para productos que todavía no existen. Al
+     agregarse, se inserta también en inventoryProducts para que aparezca
+     de inmediato en la tabla de abajo sin tener que recargar.
      ====================================================================== */
   function toggleAddStockForm() {
     const form = document.getElementById("add-stock-form");
@@ -1519,6 +1521,16 @@ ${itemLines}
     return { ok: res.ok, data };
   }
 
+  /* Inserta un producto recién agregado hasta arriba de la tabla de
+     inventario, sin esperar a que se recargue desde el Sheet -- solo si
+     el panel ya cargó su lista (si no, loadInventory() la traerá
+     completa de todos modos la próxima vez que se abra). */
+  function addToInventoryList(product) {
+    if (!inventoryLoaded) return;
+    inventoryProducts.unshift(product);
+    renderInventoryList();
+  }
+
   async function submitAddStockProduct() {
     const errorEl = document.getElementById("stock-add-error");
     const successEl = document.getElementById("stock-add-success");
@@ -1560,6 +1572,12 @@ ${itemLines}
         if (!ok) { errorEl.textContent = data.error || "No se pudo agregar el producto."; return; }
         successEl.textContent = `✅ "${nombre}" se agregó a tu Stock con el SKU ${data.sku}.`;
         successEl.style.display = "block";
+        addToInventoryList({
+          sku: data.sku, nombre, marca: sharedFields.marca, piezas,
+          precio: sharedFields.precio, precioTarjeta: Number(sharedFields.precioTarjeta) || 0,
+          categoria: sharedFields.categoria, peso: Number(sharedFields.peso) || 0,
+          imagen: sharedFields.imagen, descripcion: sharedFields.descripcion,
+        });
         ["stock-nombre", "stock-marca", "stock-piezas", "stock-precio", "stock-precio-tarjeta",
          "stock-categoria", "stock-peso", "stock-sku", "stock-imagen", "stock-descripcion"]
           .forEach((id) => { document.getElementById(id).value = ""; });
@@ -1599,8 +1617,17 @@ ${itemLines}
           piezas: tono.piezas,
           sku: tono.sku,
         });
-        if (ok) added.push({ tono: tono.label, sku: data.sku });
-        else failed.push({ tono: tono.label, error: data.error || "No se pudo agregar." });
+        if (ok) {
+          added.push({ tono: tono.label, sku: data.sku });
+          addToInventoryList({
+            sku: data.sku, nombre: `${nombre} (${tono.label})`, marca: sharedFields.marca, piezas: tono.piezas,
+            precio: sharedFields.precio, precioTarjeta: Number(sharedFields.precioTarjeta) || 0,
+            categoria: sharedFields.categoria, peso: Number(sharedFields.peso) || 0,
+            imagen: sharedFields.imagen, descripcion: sharedFields.descripcion,
+          });
+        } else {
+          failed.push({ tono: tono.label, error: data.error || "No se pudo agregar." });
+        }
       } catch (err) {
         failed.push({ tono: tono.label, error: "No se pudo conectar con el servidor." });
       }
@@ -1627,9 +1654,8 @@ ${itemLines}
      Inventario (ver admin-list-stock.js / admin-update-stock-product.js /
      admin-delete-stock-product.js) -- tabla para ver, editar, sumar/restar
      piezas y quitar productos que YA están publicados en tu pestaña de
-     Stock, sin tener que abrir el Excel. "Agregar producto en Stock"
-     (arriba) sigue siendo para productos nuevos; esto es para los que ya
-     existen.
+     Stock, sin tener que abrir el Excel. El formulario de arriba
+     ("Agregar producto en Stock") es para los que todavía no existen.
      ====================================================================== */
   let inventoryLoaded = false;
   let inventoryProducts = [];
