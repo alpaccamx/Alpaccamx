@@ -1624,6 +1624,201 @@ ${itemLines}
   }
 
   /* ======================================================================
+     Inventario (ver admin-list-stock.js / admin-update-stock-product.js /
+     admin-delete-stock-product.js) -- tabla para ver, editar, sumar/restar
+     piezas y quitar productos que YA están publicados en tu pestaña de
+     Stock, sin tener que abrir el Excel. "Agregar producto en Stock"
+     (arriba) sigue siendo para productos nuevos; esto es para los que ya
+     existen.
+     ====================================================================== */
+  let inventoryLoaded = false;
+  let inventoryProducts = [];
+  let inventorySearchTerm = "";
+
+  function toggleInventoryPanel() {
+    const panel = document.getElementById("inventory-panel");
+    const opening = panel.style.display === "none";
+    panel.style.display = opening ? "flex" : "none";
+    if (opening && !inventoryLoaded) loadInventory();
+  }
+
+  async function loadInventory() {
+    const listEl = document.getElementById("inventory-list");
+    const emptyEl = document.getElementById("inventory-empty");
+    const loadingEl = document.getElementById("inventory-loading");
+    const errorEl = document.getElementById("inventory-error");
+    listEl.innerHTML = "";
+    emptyEl.style.display = "none";
+    errorEl.textContent = "";
+    loadingEl.style.display = "block";
+    try {
+      const res = await fetch("/.netlify/functions/admin-list-stock", {
+        headers: { "x-admin-key": adminKey },
+      });
+      const data = await res.json();
+      loadingEl.style.display = "none";
+      if (!res.ok) {
+        errorEl.textContent = data.error || "No se pudo cargar tu inventario.";
+        return;
+      }
+      inventoryLoaded = true;
+      inventoryProducts = data.products || [];
+      renderInventoryList();
+    } catch (err) {
+      loadingEl.style.display = "none";
+      errorEl.textContent = "No se pudo conectar con el servidor.";
+    }
+  }
+
+  function inventoryRowHTML(p) {
+    return `
+      <div class="inventory-row" data-inv-row="${escapeHtml(p.sku)}">
+        <div class="inv-top">
+          <input type="text" class="inv-nombre" value="${escapeHtml(p.nombre)}" placeholder="Nombre" />
+          <input type="text" class="inv-marca" value="${escapeHtml(p.marca)}" placeholder="Marca" style="flex:1 1 110px;min-width:90px;" />
+          <span class="inv-sku">SKU: ${escapeHtml(p.sku)}</span>
+        </div>
+        <div class="inv-fields">
+          <div class="inventory-qty">
+            <button type="button" class="inv-qty-dec" title="Restar 1">−</button>
+            <input type="number" class="inv-piezas" value="${p.piezas}" min="0" step="1" title="Piezas disponibles" />
+            <button type="button" class="inv-qty-inc" title="Sumar 1">+</button>
+          </div>
+          <input type="number" class="inv-precio" value="${p.precio || ""}" min="0" step="1" placeholder="Precio MXN" title="Precio transferencia (MXN)" />
+          <input type="number" class="inv-precio-tarjeta" value="${p.precioTarjeta || ""}" min="0" step="1" placeholder="Precio tarjeta" title="Precio tarjeta (MXN)" />
+          <input type="text" class="inv-categoria" value="${escapeHtml(p.categoria)}" placeholder="Categoría" />
+          <input type="number" class="inv-peso" value="${p.peso || ""}" min="0" step="0.01" placeholder="Peso (kg)" title="Peso en kg" />
+        </div>
+        <div class="inv-actions">
+          <button type="button" class="btn-primary inv-save">💾 Guardar</button>
+          <button type="button" class="btn-danger inv-delete">🗑️ Quitar</button>
+          <span class="inv-status"></span>
+        </div>
+      </div>`;
+  }
+
+  function matchesInventorySearch(p, query) {
+    if (!query) return true;
+    const haystack = normalizeForSearch(`${p.nombre} ${p.marca} ${p.sku}`);
+    return haystack.includes(normalizeForSearch(query));
+  }
+
+  function renderInventoryList() {
+    const listEl = document.getElementById("inventory-list");
+    const emptyEl = document.getElementById("inventory-empty");
+    const filtered = inventoryProducts.filter((p) => matchesInventorySearch(p, inventorySearchTerm));
+
+    if (!inventoryProducts.length) {
+      listEl.innerHTML = "";
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "No hay ningún producto en tu Stock todavía.";
+      return;
+    }
+    if (!filtered.length) {
+      listEl.innerHTML = "";
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "Ningún producto coincide con tu búsqueda.";
+      return;
+    }
+    emptyEl.style.display = "none";
+    listEl.innerHTML = filtered.map(inventoryRowHTML).join("");
+    wireInventoryRow(listEl);
+  }
+
+  function wireInventoryRow(container) {
+    container.querySelectorAll("[data-inv-row]").forEach((row) => {
+      const sku = row.dataset.invRow;
+      const piezasInput = row.querySelector(".inv-piezas");
+
+      row.querySelector(".inv-qty-dec").addEventListener("click", () => {
+        piezasInput.value = Math.max(0, Number(piezasInput.value || 0) - 1);
+      });
+      row.querySelector(".inv-qty-inc").addEventListener("click", () => {
+        piezasInput.value = Number(piezasInput.value || 0) + 1;
+      });
+      row.querySelector(".inv-save").addEventListener("click", (e) => saveInventoryRow(sku, row, e.currentTarget));
+      row.querySelector(".inv-delete").addEventListener("click", (e) => deleteInventoryRow(sku, row, e.currentTarget));
+    });
+  }
+
+  async function saveInventoryRow(sku, row, btn) {
+    const statusEl = row.querySelector(".inv-status");
+    statusEl.textContent = "";
+    statusEl.style.color = "";
+
+    const body = {
+      sku,
+      nombre: row.querySelector(".inv-nombre").value.trim(),
+      marca: row.querySelector(".inv-marca").value.trim(),
+      piezas: Number(row.querySelector(".inv-piezas").value) || 0,
+      precio: Number(row.querySelector(".inv-precio").value) || 0,
+      precioTarjeta: Number(row.querySelector(".inv-precio-tarjeta").value) || 0,
+      categoria: row.querySelector(".inv-categoria").value.trim(),
+      peso: Number(row.querySelector(".inv-peso").value) || 0,
+    };
+
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-update-stock-product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        statusEl.style.color = "#b03a2e";
+        statusEl.textContent = data.error || "No se pudo guardar.";
+        return;
+      }
+      const product = inventoryProducts.find((p) => p.sku === sku);
+      if (product) Object.assign(product, body);
+      statusEl.style.color = "#17803d";
+      statusEl.textContent = "✅ Guardado";
+      setTimeout(() => { statusEl.textContent = ""; }, 2000);
+    } catch (err) {
+      statusEl.style.color = "#b03a2e";
+      statusEl.textContent = "No se pudo conectar con el servidor.";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  async function deleteInventoryRow(sku, row, btn) {
+    const nombre = row.querySelector(".inv-nombre").value.trim() || sku;
+    if (!confirm(`¿Quitar "${nombre}" de tu Stock? Ya no se mostrará en el sitio.`)) return;
+
+    const statusEl = row.querySelector(".inv-status");
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Quitando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-delete-stock-product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ sku }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        statusEl.style.color = "#b03a2e";
+        statusEl.textContent = data.error || "No se pudo quitar.";
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+      inventoryProducts = inventoryProducts.filter((p) => p.sku !== sku);
+      renderInventoryList();
+    } catch (err) {
+      statusEl.style.color = "#b03a2e";
+      statusEl.textContent = "No se pudo conectar con el servidor.";
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  /* ======================================================================
      Avisos de restock (ver restock-notify-request.js /
      admin-restock-requests.js) -- solicitudes de "Avísame cuando vuelva"
      que dejan las clientas en productos agotados. No hay aviso
@@ -2407,6 +2602,9 @@ ${itemLines}
     filterSearchEl.value = "";
     filterCountEl.textContent = "";
     document.getElementById("add-stock-form").style.display = "none";
+    document.getElementById("inventory-panel").style.display = "none";
+    inventoryLoaded = false;
+    inventoryProducts = [];
     document.getElementById("restock-requests-panel").style.display = "none";
     restockRequestsLoaded = false;
     document.getElementById("reviews-panel").style.display = "none";
@@ -2442,6 +2640,11 @@ ${itemLines}
   document.getElementById("stock-add-submit").addEventListener("click", submitAddStockProduct);
   document.getElementById("stock-multi-tono-toggle").addEventListener("change", toggleMultiTono);
   document.getElementById("stock-tono-add-row").addEventListener("click", addTonoRow);
+  document.getElementById("inventory-toggle").addEventListener("click", toggleInventoryPanel);
+  document.getElementById("inventory-search").addEventListener("input", (e) => {
+    inventorySearchTerm = e.target.value;
+    renderInventoryList();
+  });
   document.getElementById("restock-requests-toggle").addEventListener("click", toggleRestockPanel);
   document.getElementById("reviews-toggle").addEventListener("click", toggleReviewsPanel);
   document.getElementById("usa-orders-toggle").addEventListener("click", toggleUsaOrdersPanel);
