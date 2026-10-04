@@ -35,8 +35,20 @@
 
 const { randomBytes } = require("crypto");
 const jwt = require("jsonwebtoken");
+const { parseCSV } = require("./csv.js");
 
 const SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets";
+
+// Mismo link que CONFIG.GOOGLE_SHEET_CSV_URL en app.js (el catálogo
+// principal, publicado como CSV) -- se usa SOLO para rellenar
+// nombre/marca de las filas de Stock que los dejan vacíos a propósito
+// porque el SKU ya existe en el catálogo principal (ver "Nombre (solo
+// si es producto nuevo)" en el README). Si alguna vez cambias el link
+// de "Publicar en la web" de tu catálogo en app.js, actualízalo aquí
+// también para que el inventario del admin siga mostrando los nombres
+// correctos.
+const CATALOG_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=114583060&single=true&output=csv";
 const SKU_ALIASES = ["sku", "codigo", "código"];
 const PIEZAS_ALIASES = ["piezas disponibles", "piezas", "cantidad", "stock"];
 const PRECIO_ALIASES = ["precio mxn", "precio", "price"];
@@ -288,12 +300,47 @@ async function appendStockProduct(fields) {
   }
 }
 
+/* Catálogo principal (nombre/marca por SKU) -- "mejor esfuerzo": si
+   falla, regresa un Map vacío y listStockProducts() simplemente deja
+   esas filas con el nombre/marca que ya tuvieran (puede que vacío).
+   Nunca truena. */
+async function fetchCatalogNameLookup() {
+  const lookup = new Map();
+  try {
+    const res = await fetch(CATALOG_CSV_URL);
+    if (!res.ok) return lookup;
+    const text = await res.text();
+    const rows = parseCSV(text);
+    if (!rows.length) return lookup;
+    const headers = rows[0].map((h) => h.trim().toLowerCase());
+    const iSku = findColumnIndex(headers, SKU_ALIASES);
+    const iNombre = findColumnIndex(headers, NOMBRE_ALIASES);
+    const iMarca = findColumnIndex(headers, MARCA_ALIASES);
+    if (iSku < 0) return lookup;
+    rows.slice(1).forEach((row) => {
+      const sku = String(row[iSku] || "").trim();
+      if (!sku) return;
+      lookup.set(sku, {
+        nombre: iNombre >= 0 ? String(row[iNombre] || "").trim() : "",
+        marca: iMarca >= 0 ? String(row[iMarca] || "").trim() : "",
+      });
+    });
+  } catch (err) {
+    console.error("Error leyendo el catálogo principal para el inventario:", err);
+  }
+  return lookup;
+}
+
 /* Lee toda la pestaña de Stock y la regresa como lista de objetos (uno
    por producto), para mostrarla en una tabla editable en /admin.html --
    ver admin-list-stock.js. Filas sin SKU se ignoran (igual que
-   csvToStockData en app.js). */
+   csvToStockData en app.js). Si un producto no tiene nombre/marca
+   propios en Stock (lo normal para un SKU que ya existe en el catálogo
+   principal, ver "Nombre (solo si es producto nuevo)" en el README), se
+   completan con los del catálogo principal -- para que la tabla no
+   muestre renglones en blanco. */
 async function listStockProducts() {
-  const sheet = await readStockTab();
+  const [sheet, catalogLookup] = await Promise.all([readStockTab(), fetchCatalogNameLookup()]);
   if (!sheet) return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
   const { headers, rows } = sheet;
 
@@ -314,10 +361,11 @@ async function listStockProducts() {
   rows.slice(1).forEach((row) => {
     const sku = get(row, iSku);
     if (!sku) return;
+    const fromCatalog = catalogLookup.get(sku);
     products.push({
       sku,
-      nombre: get(row, iNombre),
-      marca: get(row, iMarca),
+      nombre: get(row, iNombre) || (fromCatalog && fromCatalog.nombre) || "",
+      marca: get(row, iMarca) || (fromCatalog && fromCatalog.marca) || "",
       piezas: parseInt(get(row, iPiezas).replace(/[^0-9-]/g, ""), 10) || 0,
       precio: parseFloat(get(row, iPrecio).replace(/[^0-9.]/g, "")) || 0,
       precioTarjeta: parseFloat(get(row, iPrecioTarjeta).replace(/[^0-9.]/g, "")) || 0,
