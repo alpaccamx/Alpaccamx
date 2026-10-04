@@ -222,6 +222,13 @@ const CONFIG = {
   // propio). No comparte carrito ni pedido mínimo con el resto del sitio.
   // ------------------------------------------------------------------
   AMERICANO: {
+    // Pon en "false" para apagar por completo la colección (la pestaña
+    // del menú deja de aparecer y la sección no se puede abrir) sin
+    // borrar nada de tu Google Sheet -- en cuanto lo vuelvas a poner en
+    // "true" todo tu catálogo de Cosmético Americano regresa tal cual
+    // estaba.
+    ENABLED: false,
+
     // Google Sheet publicado como CSV (mismo procedimiento que el catálogo
     // principal, ver README) con columnas: Nombre, Marca, Precio USD,
     // PrecioOriginal USD, Precio, PrecioOriginal, MOQ (mínimo de unidades
@@ -1526,6 +1533,7 @@ async function loadProducts() {
    configuró CONFIG.AMERICANO.SHEET_CSV_URL, la sección completa se oculta.
    ====================================================================== */
 async function loadAmericanoProducts() {
+  if (!CONFIG.AMERICANO.ENABLED) return;
   const url = CONFIG.AMERICANO.SHEET_CSV_URL;
   const isPlaceholder = !url || url.includes("PEGA_AQUI");
   if (isPlaceholder) return;
