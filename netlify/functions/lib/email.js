@@ -50,11 +50,17 @@ function formatPriceMXN(n) {
 
 /* Plantilla base compartida por todos los correos -- header con el
    nombre de la tienda y un pie de página simple. */
+// URL pública del logo (mascota + nombre) para el encabezado de los
+// correos -- tiene que ser una URL absoluta (no una ruta relativa como
+// "./assets/...") porque el correo se ve fuera del sitio, en el cliente
+// de correo de quien lo recibe.
+const LOGO_URL = "https://alpacca.mx/assets/logo-full.png";
+
 function baseEmailHTML(bodyHTML) {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; color: #2b2b2b;">
-      <div style="text-align: center; padding: 24px 0 8px;">
-        <span style="font-size: 22px; font-weight: 800; color: #e07a8f;">🌸 Alpacca</span>
+      <div style="text-align: center; padding: 20px 0 4px;">
+        <img src="${LOGO_URL}" alt="Alpacca" width="100" style="width: 100px; height: auto; display: inline-block;" />
       </div>
       <div style="background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08);">
         ${bodyHTML}
