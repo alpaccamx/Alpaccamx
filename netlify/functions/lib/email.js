@@ -80,19 +80,26 @@ function resetPasswordEmailHTML(name, resetUrl) {
   `);
 }
 
-/* Desglosa subtotal + envío (Corea/nacional por separado si aplica, o
-   un solo renglón de envío si no) -- mismos campos que
-   totalsBreakdownHTML() en admin.js, salvo la comisión por tarjeta: esa
-   sí se le muestra a Mae en su panel (para que sepa cuánto es costo real
-   vs. lo cobrado), pero NO se le desglosa a la clienta en el correo --
-   cobrar una comisión aparte por pagar con tarjeta está prohibido en
-   México (ya va incluida en "Precio Tarjeta" desde el carrito, solo no
-   se señala como renglón aparte aquí). */
+/* Desglosa subtotal + envío (Corea/nacional por separado si aplica, o un
+   solo renglón de envío si no). A diferencia de totalsBreakdownHTML() en
+   admin.js (que siempre muestra todo a precio de transferencia más la
+   comisión aparte, para que Mae vea su costo real), aquí cada renglón se
+   muestra YA al precio que de verdad se cobró: si se pagó con tarjeta, se
+   usa el desglose de envío a precio de tarjeta (shippingKoreaMXNTarjeta /
+   shippingNacionalMXNTarjeta) para que los renglones cuadren con
+   order.subtotal/shippingMXN (ya tarjeta) sin necesidad de mostrar una
+   comisión aparte -- cobrarla como renglón separado está prohibido en
+   México. */
 function orderBreakdownRowsHTML(order) {
+  const isTarjeta = order.source === "mercadopago";
   const subtotal = Number(order.subtotal) || 0;
   const shippingMXN = Number(order.shippingMXN) || 0;
-  const shippingKoreaMXN = Number(order.shippingKoreaMXN) || 0;
-  const shippingNacionalMXN = Number(order.shippingNacionalMXN) || 0;
+  const shippingKoreaMXN = isTarjeta
+    ? Number(order.shippingKoreaMXNTarjeta) || 0
+    : Number(order.shippingKoreaMXN) || 0;
+  const shippingNacionalMXN = isTarjeta
+    ? Number(order.shippingNacionalMXNTarjeta) || 0
+    : Number(order.shippingNacionalMXN) || 0;
 
   const row = (label, amount) =>
     `<div style="display:flex;justify-content:space-between;font-size:14px;padding:2px 0;"><span>${label}</span><span>${formatPriceMXN(amount)}</span></div>`;

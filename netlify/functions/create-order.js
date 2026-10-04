@@ -63,7 +63,7 @@ exports.handler = async (event) => {
 
   const {
     source, customer, items, subtotal, shippingMXN, subtotalBase, shippingMXNBase, grandTotal,
-    shippingKoreaMXN, shippingNacionalMXN, weightKg,
+    shippingKoreaMXN, shippingNacionalMXN, shippingKoreaMXNTarjeta, shippingNacionalMXNTarjeta, weightKg,
   } = body;
 
   if (source !== "transferencia" && source !== "whatsapp" && source !== "mercadopago") {
@@ -119,13 +119,18 @@ exports.handler = async (event) => {
     shippingMXNBase: shippingMXNBaseNum,
     cardFeeMXN,
     grandTotal: Number(grandTotal) || 0,
-    // Desglose de envío (siempre a precio de transferencia, como
-    // shippingMXNBase) y peso total del pedido -- solo para que
-    // /admin.html pueda mostrarlos sin tener que recalcularlos. Se
+    // Desglose de envío a precio de transferencia (como shippingMXNBase)
+    // -- solo para que /admin.html pueda mostrarlo sin tener que
+    // recalcularlo, siempre igual sin importar el método de pago. Se
     // guardan en 0 si el frontend no los mandó (pedidos de versiones
     // anteriores del sitio no los tenían).
     shippingKoreaMXN: Number(shippingKoreaMXN) || 0,
     shippingNacionalMXN: Number(shippingNacionalMXN) || 0,
+    // Mismo desglose pero a precio de tarjeta -- lo que de verdad se
+    // cobró cuando source="mercadopago" (0 en pedidos por transferencia o
+    // de versiones anteriores, donde simplemente no aplica/no se manda).
+    shippingKoreaMXNTarjeta: Number(shippingKoreaMXNTarjeta) || 0,
+    shippingNacionalMXNTarjeta: Number(shippingNacionalMXNTarjeta) || 0,
     weightKg: Number(weightKg) || 0,
   };
 
