@@ -2835,8 +2835,21 @@ function openFullCatalog() {
    que termine, refreshCurrentView() la vuelve a pintar en cuanto llegan
    más datos, sin que tenga que salir y volver a entrar.
    ====================================================================== */
+/* Marca (alfabético, sin distinguir mayúsculas/acentos) y, dentro de la
+   misma marca, nombre -- los productos sin marca capturada se van hasta
+   el final en vez de mezclarse al principio. */
+function compareByMarcaThenNombre(a, b) {
+  const marcaA = a.marca || "";
+  const marcaB = b.marca || "";
+  if (!marcaA && marcaB) return 1;
+  if (marcaA && !marcaB) return -1;
+  const marcaCompare = marcaA.localeCompare(marcaB, "es", { sensitivity: "base" });
+  if (marcaCompare !== 0) return marcaCompare;
+  return (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
+}
+
 function renderStockGrid() {
-  const items = groupVariants(products.filter((p) => p.enStock));
+  const items = groupVariants(products.filter((p) => p.enStock)).sort(compareByMarcaThenNombre);
   const grid = document.getElementById("stock-grid");
   const empty = document.getElementById("stock-empty");
   if (!items.length) {
