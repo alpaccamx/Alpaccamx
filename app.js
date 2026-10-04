@@ -2018,7 +2018,7 @@ function closeMobileMenu() {
 function stockBadgeHTML(p) {
   if (!p.enStock) return "";
   return p.stockPiezas > 0
-    ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Stock en México 🇲🇽 · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
+    ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
     : `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Agotado</span>`;
 }
 
