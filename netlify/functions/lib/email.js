@@ -54,13 +54,13 @@ function formatPriceMXN(n) {
 // correos -- tiene que ser una URL absoluta (no una ruta relativa como
 // "./assets/...") porque el correo se ve fuera del sitio, en el cliente
 // de correo de quien lo recibe.
-const LOGO_URL = "https://alpacca.mx/assets/logo-full.png";
+const LOGO_URL = "https://alpacca.mx/assets/logo-wordmark.png";
 
 function baseEmailHTML(bodyHTML) {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; color: #2b2b2b;">
       <div style="text-align: center; padding: 20px 0 4px;">
-        <img src="${LOGO_URL}" alt="Alpacca" width="100" style="width: 100px; height: auto; display: inline-block;" />
+        <img src="${LOGO_URL}" alt="Alpacca" width="160" style="width: 160px; height: auto; display: inline-block;" />
       </div>
       <div style="background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08);">
         ${bodyHTML}
