@@ -1729,10 +1729,25 @@ ${itemLines}
     return haystack.includes(normalizeForSearch(query));
   }
 
+  /* Siempre por marca (alfabético, sin distinguir mayúsculas/acentos) y,
+     dentro de la misma marca, por nombre -- las marcas sin capturar
+     (vacías) se van hasta el final en vez de mezclarse al principio. */
+  function compareByMarcaThenNombre(a, b) {
+    const marcaA = a.marca || "";
+    const marcaB = b.marca || "";
+    if (!marcaA && marcaB) return 1;
+    if (marcaA && !marcaB) return -1;
+    const marcaCompare = marcaA.localeCompare(marcaB, "es", { sensitivity: "base" });
+    if (marcaCompare !== 0) return marcaCompare;
+    return (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
+  }
+
   function renderInventoryList() {
     const listEl = document.getElementById("inventory-list");
     const emptyEl = document.getElementById("inventory-empty");
-    const filtered = inventoryProducts.filter((p) => matchesInventorySearch(p, inventorySearchTerm));
+    const filtered = inventoryProducts
+      .filter((p) => matchesInventorySearch(p, inventorySearchTerm))
+      .sort(compareByMarcaThenNombre);
 
     if (!inventoryProducts.length) {
       listEl.innerHTML = "";
