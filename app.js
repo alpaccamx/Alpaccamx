@@ -1824,7 +1824,7 @@ function getMenuItems() {
   }
 
   if (products.some((p) => p.enStock)) {
-    items.push({ type: "link", label: "✅ En stock", href: "#stock-section" });
+    items.push({ type: "link", label: "✅ Stock en México 🇲🇽", href: "#stock-section" });
   }
 
   const brandsSection = document.getElementById("brands-section");
@@ -2011,7 +2011,7 @@ function closeMobileMenu() {
 function stockBadgeHTML(p) {
   if (!p.enStock) return "";
   return p.stockPiezas > 0
-    ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
+    ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Stock en México 🇲🇽 · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
     : `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Agotado</span>`;
 }
 
@@ -2886,7 +2886,7 @@ function refreshCurrentView() {
 function renderFaqMinOrder() {
   const faqMinOrder = document.getElementById("faq-min-order");
   if (faqMinOrder && CONFIG.MIN_ORDER_MXN) {
-    faqMinOrder.textContent = `Es de ${formatPrice(CONFIG.MIN_ORDER_MXN)} en productos que encargamos desde Corea. Los productos ✅ En stock (entrega inmediata) no tienen mínimo.`;
+    faqMinOrder.textContent = `Es de ${formatPrice(CONFIG.MIN_ORDER_MXN)} en productos que encargamos desde Corea. Los productos ✅ Stock en México 🇲🇽 no tienen mínimo.`;
   }
 }
 
