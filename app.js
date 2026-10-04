@@ -4,6 +4,12 @@
    CONFIG — edita estos valores con los datos de tu negocio
    ====================================================================== */
 const CONFIG = {
+  // Pon en "false" para quitar el botón "MXN $ / USD $" de la barra de
+  // arriba -- los precios se muestran siempre en pesos (que es como se
+  // cobra de verdad) sin que el cliente pueda cambiar a dólares de
+  // referencia. Vuelve a ponerlo en "true" para reactivarlo.
+  CURRENCY_TOGGLE_ENABLED: false,
+
   // Google Sheets: Archivo > Compartir > Publicar en la Web > elige la
   // hoja > formato "Valores separados por comas (.csv)" > Publicar.
   // Pega aquí el link que te da Google.
@@ -362,7 +368,8 @@ let americanoCart = loadAmericanoCart();
 // pestaña Config -- así el dólar mostrado respeta el mismo margen que el
 // peso, en vez de mostrar directo la columna "Precio USD" del catálogo
 // (que es SU COSTO mayorista, no un precio de venta).
-let displayCurrency = localStorage.getItem("displayCurrency") === "USD" ? "USD" : "MXN";
+let displayCurrency =
+  CONFIG.CURRENCY_TOGGLE_ENABLED && localStorage.getItem("displayCurrency") === "USD" ? "USD" : "MXN";
 
 function formatPrice(n) {
   const mxn = n || 0;
@@ -380,7 +387,7 @@ function formatPrice(n) {
 function updateCurrencyToggleButton() {
   const btn = document.getElementById("currency-toggle");
   if (!btn) return;
-  const available = shippingSettings.exchangeRate > 0;
+  const available = CONFIG.CURRENCY_TOGGLE_ENABLED && shippingSettings.exchangeRate > 0;
   btn.classList.toggle("hidden", !available);
   btn.textContent = displayCurrency === "USD" ? "USD $" : "MXN $";
   btn.setAttribute("aria-pressed", displayCurrency === "USD" ? "true" : "false");
