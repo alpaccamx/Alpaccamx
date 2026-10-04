@@ -125,6 +125,20 @@
   .stock-tono-row input[type="number"] { flex: 1 1 70px; min-width: 60px; }
   .stock-tono-row .tono-sku { flex: 1 1 100px; min-width: 90px; }
   .stock-tono-row .btn-danger { padding: 8px 10px; font-size: 12px; }
+  #inventory-search { margin-bottom: 4px; }
+  .inventory-row { border: 1px solid #eee; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .inventory-row .inv-top { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .inventory-row .inv-top input[type="text"] { flex: 2 1 160px; min-width: 120px; }
+  .inventory-row .inv-sku { font-size: 11px; color: #999; white-space: nowrap; }
+  .inventory-row .inv-fields { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .inventory-row .inv-fields input[type="number"] { flex: 1 1 85px; min-width: 70px; }
+  .inventory-row .inv-fields input[type="text"] { flex: 1 1 100px; min-width: 90px; }
+  .inventory-qty { display: flex; align-items: center; gap: 4px; }
+  .inventory-qty button { width: 28px; height: 32px; border-radius: 6px; border: 1px solid #ddd; background: #f7f7f7; font-weight: 700; cursor: pointer; font-size: 14px; }
+  .inventory-qty input[type="number"] { width: 56px; min-width: 56px; flex: none; text-align: center; }
+  .inventory-row .inv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .inventory-row .inv-actions button { font-size: 12px; padding: 8px 12px; }
+  .inventory-row .inv-status { font-size: 12px; }
   #product-autocomplete {
     position: fixed;
     z-index: 1000;
@@ -238,6 +252,7 @@
   <div class="toolbar" id="toolbar" style="display:none;">
     <button class="btn-secondary" id="refresh-btn">🔄 Actualizar</button>
     <button class="btn-secondary" id="add-stock-toggle">➕ Agregar producto en Stock</button>
+    <button class="btn-secondary" id="inventory-toggle">📦 Inventario</button>
     <button class="btn-secondary" id="restock-requests-toggle">🔔 Avisos de restock<span id="restock-requests-badge" style="display:none;"></span></button>
     <button class="btn-secondary" id="reviews-toggle">⭐ Reseñas</button>
     <button class="btn-secondary" id="usa-orders-toggle">🛍️ Encargos USA<span id="usa-orders-badge" style="display:none;"></span></button>
@@ -308,6 +323,16 @@
     <div class="filters-row">
       <button class="btn-primary" id="stock-add-submit">Agregar a Stock</button>
     </div>
+  </div>
+
+  <div class="filters" id="inventory-panel" style="display:none;">
+    <label class="filters-label">📦 Inventario (Stock)</label>
+    <p style="font-size:13px;color:#777;margin:0;">Edita el nombre, marca, precio y lo demás de un producto ya publicado, o suma/resta piezas -- se guarda directo en tu Google Sheet, no necesitas abrirlo a mano. "🗑️ Quitar" deja el producto vacío en el Sheet (no se le borra la fila), así que desaparece del sitio pero tu Sheet no se desacomoda.</p>
+    <input id="inventory-search" type="text" placeholder="🔍 Busca por nombre, marca o SKU" />
+    <div id="inventory-list"></div>
+    <p id="inventory-empty" style="display:none;color:#777;font-size:14px;">No hay ningún producto en tu Stock todavía.</p>
+    <p id="inventory-loading" style="color:#777;font-size:14px;">Cargando...</p>
+    <div class="guide-error" id="inventory-error"></div>
   </div>
 
   <div class="filters" id="restock-requests-panel" style="display:none;">
