@@ -4004,10 +4004,16 @@ async function payWithMercadoPago() {
         subtotalBase,
         shippingMXNBase,
         grandTotal: subtotal + shippingMXN,
-        // Desglose de envío (siempre a precio de transferencia, igual que
-        // shippingMXNBase) y peso, para que /admin.html pueda mostrarlos.
+        // Desglose de envío a precio de transferencia (igual que
+        // shippingMXNBase), para que /admin.html pueda mostrarlo tal cual
+        // siempre cobra Mae internamente, y también a precio de tarjeta
+        // (lo que realmente se cobró aquí), para que el correo a la
+        // clienta pueda desglosarlo renglón por renglón con el precio que
+        // de verdad pagó. Más el peso, para que /admin.html lo muestre.
         shippingKoreaMXN: shipping ? shipping.coreaMXN : 0,
         shippingNacionalMXN: shipping ? shipping.nacionalMXN : 0,
+        shippingKoreaMXNTarjeta: shipping ? shipping.coreaMXNTarjeta : 0,
+        shippingNacionalMXNTarjeta: shipping ? shipping.nacionalMXNTarjeta : 0,
         weightKg: weight,
       }),
     });
