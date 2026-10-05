@@ -36,6 +36,50 @@
   const STOCK_CSV_URL_FOR_MARCA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=2144351337&single=true&output=csv";
   let skuToInfo = new Map();
 
+  // Mismo CSV "Config" (clave | valor) que usa app.js para calcular el
+  // "Precio Tarjeta" del catálogo -- aquí se lee el mismo % para
+  // autocompletar el campo "Precio tarjeta" del formulario de "Agregar
+  // producto en Stock" en cuanto se escribe el precio de transferencia.
+  const CONFIG_CSV_URL_FOR_CARD_PCT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=442348645&single=true&output=csv";
+  const CARD_PCT_KEY_ALIASES = ["descuentoportransferencia", "descuentotransferencia", "descuentoportransferenciaporciento"];
+  let cardSurchargePct = null;
+  // true en cuanto la usuaria escribe algo ELLA MISMA en "Precio tarjeta"
+  // -- a partir de ahí se deja de autocompletar ese campo, para no pisar
+  // un precio que decidió poner a mano. Se resetea al abrir/limpiar el
+  // formulario (ver toggleAddStockForm/resetStockForm más abajo).
+  let tarjetaManuallyEdited = false;
+
+  async function loadCardSurchargePct() {
+    try {
+      const res = await fetch(CONFIG_CSV_URL_FOR_CARD_PCT, { cache: "no-store" });
+      if (!res.ok) return;
+      const rows = parseCSVForMarca(await res.text());
+      for (const r of rows) {
+        const key = (r[0] || "").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+        if (CARD_PCT_KEY_ALIASES.includes(key)) {
+          const num = parseFloat((r[1] || "").replace(/[^0-9.,-]/g, "").replace(",", "."));
+          if (!Number.isNaN(num)) cardSurchargePct = num;
+        }
+      }
+    } catch (err) {
+      // Sin esto, el campo "Precio tarjeta" simplemente se sigue llenando
+      // a mano como antes -- no rompe nada.
+    }
+  }
+
+  function autoFillPrecioTarjeta() {
+    if (tarjetaManuallyEdited || cardSurchargePct == null) return;
+    const precioEl = document.getElementById("stock-precio");
+    const tarjetaEl = document.getElementById("stock-precio-tarjeta");
+    const precio = Number(precioEl.value);
+    if (!precio || precio <= 0) { tarjetaEl.value = ""; return; }
+    tarjetaEl.value = Math.ceil(precio * (1 + cardSurchargePct / 100));
+  }
+
+  function resetTarjetaAutoFill() {
+    tarjetaManuallyEdited = false;
+  }
+
   // Lista para el autocompletado de "+ Agregar producto" (ver
   // editItemRowHTML / initProductAutocomplete más abajo) -- se arma con
   // los mismos dos CSV de arriba, sin pedir nada extra por separado.
@@ -1461,6 +1505,7 @@ ${itemLines}
     if (opening) {
       document.getElementById("stock-add-error").textContent = "";
       document.getElementById("stock-add-success").style.display = "none";
+      resetTarjetaAutoFill();
     }
   }
 
@@ -1581,6 +1626,7 @@ ${itemLines}
         ["stock-nombre", "stock-marca", "stock-piezas", "stock-precio", "stock-precio-tarjeta",
          "stock-categoria", "stock-peso", "stock-sku", "stock-imagen", "stock-descripcion"]
           .forEach((id) => { document.getElementById(id).value = ""; });
+        resetTarjetaAutoFill();
       } catch (err) {
         errorEl.textContent = "No se pudo conectar con el servidor.";
       } finally {
@@ -1647,6 +1693,7 @@ ${itemLines}
        "stock-categoria", "stock-peso", "stock-imagen", "stock-descripcion"]
         .forEach((id) => { document.getElementById(id).value = ""; });
       resetTonoRows();
+      resetTarjetaAutoFill();
     }
   }
 
@@ -2625,6 +2672,7 @@ ${itemLines}
     toolbar.style.display = "flex";
     fetchOrders();
     loadSkuMarcaMap();
+    loadCardSurchargePct();
   }
 
   function resetTabs() {
@@ -2697,6 +2745,8 @@ ${itemLines}
   document.getElementById("add-stock-toggle").addEventListener("click", toggleAddStockForm);
   document.getElementById("stock-add-submit").addEventListener("click", submitAddStockProduct);
   document.getElementById("stock-multi-tono-toggle").addEventListener("change", toggleMultiTono);
+  document.getElementById("stock-precio").addEventListener("input", autoFillPrecioTarjeta);
+  document.getElementById("stock-precio-tarjeta").addEventListener("input", () => { tarjetaManuallyEdited = true; });
   document.getElementById("stock-tono-add-row").addEventListener("click", addTonoRow);
   document.getElementById("inventory-toggle").addEventListener("click", toggleInventoryPanel);
   document.getElementById("inventory-search").addEventListener("input", (e) => {
@@ -2767,4 +2817,5 @@ ${itemLines}
     toolbar.style.display = "flex";
     fetchOrders();
     loadSkuMarcaMap();
+    loadCardSurchargePct();
   }
