@@ -118,6 +118,28 @@ function paymentMethodLabel(order) {
   return order.source === "mercadopago" ? "💳 Pago con tarjeta" : "🏦 Pago por transferencia";
 }
 
+/* Se manda justo cuando el pedido se crea (ver create-order.js), ANTES
+   de que Mae lo confirme -- para que la clienta sepa que ya llegó y está
+   en revisión, en vez de quedarse sin ninguna señal hasta la
+   confirmación. */
+function orderPendingEmailHTML(order) {
+  const itemsHTML = (order.items || [])
+    .map((it) => `<li>${it.nombre} x${it.qty}</li>`)
+    .join("");
+  return baseEmailHTML(`
+    <p>¡Hola${order.customer?.name ? " " + order.customer.name : ""}! 💗</p>
+    <p>Recibimos tu pedido y lo estamos revisando. En cuanto confirme tu pago te aviso y lo preparo con mucho cariño para enviarlo.</p>
+    <p style="font-weight: 700; margin-top: 16px;">Pedido #${order.id.slice(0, 8).toUpperCase()}</p>
+    <ul style="padding-left: 18px; font-size: 14px;">${itemsHTML}</ul>
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #eee;">
+      ${orderBreakdownRowsHTML(order)}
+    </div>
+    <p style="font-weight: 800; color: #e07a8f; font-size: 18px; margin-top: 8px;">Total: ${formatPriceMXN(order.grandTotal)}</p>
+    <p style="font-size: 13px; color: #777;">${paymentMethodLabel(order)}</p>
+    <p>¡Gracias por tu compra!</p>
+  `);
+}
+
 function orderConfirmedEmailHTML(order) {
   const itemsHTML = (order.items || [])
     .map((it) => `<li>${it.nombre} x${it.qty}</li>`)
@@ -150,6 +172,18 @@ function orderShippedEmailHTML(order) {
   `);
 }
 
+/* Seguimiento post-entrega -- se manda cuando check-deliveries-scheduled.js
+   detecta (vía Shippo) que una guía ya se marcó como entregada, para
+   preguntarle a la clienta si todo llegó bien. */
+function orderDeliveredEmailHTML(order) {
+  return baseEmailHTML(`
+    <p>¡Hola${order.customer?.name ? " " + order.customer.name : ""}! 📦💗</p>
+    <p>Vimos que tu pedido ya fue entregado. ¿Todo llegó bien?</p>
+    <p style="font-weight: 700; margin-top: 16px;">Pedido #${order.id.slice(0, 8).toUpperCase()}</p>
+    <p>Si algo no llegó como esperabas, contáctame y lo resolvemos. ¡Gracias por confiar en Alpacca!</p>
+  `);
+}
+
 function orderCancelledEmailHTML(order) {
   return baseEmailHTML(`
     <p>¡Hola${order.customer?.name ? " " + order.customer.name : ""}!</p>
@@ -162,7 +196,9 @@ function orderCancelledEmailHTML(order) {
 module.exports = {
   sendEmail,
   resetPasswordEmailHTML,
+  orderPendingEmailHTML,
   orderConfirmedEmailHTML,
   orderShippedEmailHTML,
+  orderDeliveredEmailHTML,
   orderCancelledEmailHTML,
 };

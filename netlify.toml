@@ -16,6 +16,12 @@
 [build.environment]
   SECRETS_SCAN_OMIT_KEYS = "NOTIFY_WHATSAPP_NUMBER,GOOGLE_SHEETS_STOCK_TAB,GOOGLE_SHEETS_CONFIG_TAB"
 
+# Revisa diario a las 9am hora CDMX (15:00 UTC, sin horario de verano) si
+# algún pedido enviado ya se entregó -- ver
+# netlify/functions/check-deliveries-scheduled.js.
+[functions."check-deliveries-scheduled"]
+  schedule = "0 15 * * *"
+
 # "Candados" de navegador estándar -- protegen contra que alguien
 # incruste el sitio en otra página (clickjacking), fuerzan HTTPS, y
 # limitan de dónde se puede cargar código/estilos/imágenes (CSP). Todos

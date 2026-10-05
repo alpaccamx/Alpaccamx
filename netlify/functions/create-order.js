@@ -36,7 +36,9 @@
 
 const { randomUUID } = require("crypto");
 const { saveNewOrder, transitionOrder } = require("./lib/blob-store.js");
-const { notifySellerOrderCreated } = require("./lib/whatsapp.js");
+const { notifySellerOrderCreated, notifyCustomerOrderPending } = require("./lib/whatsapp.js");
+const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { sendEmail, orderPendingEmailHTML } = require("./lib/email.js");
 const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
 const MP_API = "https://api.mercadopago.com";
@@ -145,6 +147,21 @@ exports.handler = async (event) => {
   // sin confirmar (si WHATSAPP_ACCESS_TOKEN no está configurado, o algo
   // falla, notifySellerOrderCreated no revienta -- solo no manda nada).
   await notifySellerOrderCreated(order);
+
+  // Aviso a la CLIENTA de que su pedido ya se recibió y está pendiente de
+  // confirmación -- igual que el resto de los avisos al cliente, el
+  // correo solo se manda si tiene cuenta con ese teléfono (los pedidos no
+  // guardan correo); el de WhatsApp (plantilla "pedido_recibido") se
+  // intenta de todos modos, sin depender de que tenga cuenta.
+  const pendingCustomer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+  if (pendingCustomer?.email) {
+    await sendEmail({
+      to: pendingCustomer.email,
+      subject: "Recibimos tu pedido de Alpacca 📝",
+      html: orderPendingEmailHTML(order),
+    });
+  }
+  await notifyCustomerOrderPending(order);
 
   if (source === "transferencia" || source === "whatsapp") {
     return jsonResponse(200, { orderId: order.id });
