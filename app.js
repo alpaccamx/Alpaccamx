@@ -3327,6 +3327,7 @@ function updateNacionalShippingUI() {
   if (!Object.keys(cart).length || cp.length !== 5) {
     row.classList.add("hidden");
     renderGrandTotal();
+    updateTransferNote();
     return;
   }
 
@@ -3340,6 +3341,33 @@ function updateNacionalShippingUI() {
   }
   row.classList.remove("hidden");
   renderGrandTotal();
+  updateTransferNote();
+}
+
+/* Nota de "ahorras $X por transferencia" debajo del total -- aparte de
+   renderGrandTotal() porque también depende del CP (envío nacional), pero
+   con los precios de TARJETA para comparar. Es su propia función (no solo
+   código suelto dentro de renderCart()) para que updateNacionalShippingUI()
+   -- que corre cada vez que la clienta escribe su CP, sin volver a llamar
+   a renderCart() completo -- también la mantenga al día; si no, esta nota
+   se quedaba con el envío de antes de escribir el CP (p.ej. $0 si el
+   carrito se abrió sin CP todavía), sin cuadrar con el total real de
+   arriba, que sí se actualiza con cada CP nuevo. */
+function updateTransferNote() {
+  const transferNote = document.getElementById("cart-mp-surcharge-note");
+  if (!transferNote) return;
+  const items = Object.entries(cart);
+  const total = cartTotal();
+  const cp = document.getElementById("customer-cp").value.trim();
+  const shippingForNote = shippingEstimate(cartWeight(), cp, cartWeightNonStock());
+  const totalConEnvio = total + (shippingForNote ? shippingForNote.totalMXN : 0);
+  const tarjetaTotalConEnvio = cartTotalTarjeta() + (shippingForNote ? shippingForNote.totalMXNTarjeta : 0);
+  if (items.length && tarjetaTotalConEnvio > totalConEnvio + 0.5) {
+    transferNote.textContent = `🏦 Pagando por transferencia ahorras ${formatPrice(tarjetaTotalConEnvio - totalConEnvio)} (precio con tarjeta, incluyendo envío: ${formatPrice(tarjetaTotalConEnvio)})`;
+    transferNote.classList.remove("hidden");
+  } else {
+    transferNote.classList.add("hidden");
+  }
 }
 
 function renderGrandTotal() {
@@ -3394,20 +3422,6 @@ function renderCart() {
   const payBtn = document.getElementById("pay-mercadopago");
   sendBtn.disabled = items.length === 0 || belowMin;
   if (payBtn) payBtn.disabled = items.length === 0 || belowMin;
-
-  const transferNote = document.getElementById("cart-mp-surcharge-note");
-  if (transferNote) {
-    const cp = document.getElementById("customer-cp").value.trim();
-    const shippingForNote = shippingEstimate(cartWeight(), cp, cartWeightNonStock());
-    const totalConEnvio = total + (shippingForNote ? shippingForNote.totalMXN : 0);
-    const tarjetaTotalConEnvio = cartTotalTarjeta() + (shippingForNote ? shippingForNote.totalMXNTarjeta : 0);
-    if (items.length && tarjetaTotalConEnvio > totalConEnvio + 0.5) {
-      transferNote.textContent = `🏦 Pagando por transferencia ahorras ${formatPrice(tarjetaTotalConEnvio - totalConEnvio)} (precio con tarjeta, incluyendo envío: ${formatPrice(tarjetaTotalConEnvio)})`;
-      transferNote.classList.remove("hidden");
-    } else {
-      transferNote.classList.add("hidden");
-    }
-  }
 
   const focusBefore = captureCartFocus(wrap);
 
