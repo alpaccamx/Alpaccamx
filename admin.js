@@ -1840,6 +1840,20 @@ ${itemLines}
         const thumb = row.querySelector(".inv-thumb");
         thumb.src = e.target.value.trim() || INV_IMG_PLACEHOLDER;
       });
+      // Al corregir el precio de transferencia, recalcula también el de
+      // tarjeta con la misma fórmula del catálogo -- igual que en
+      // "Agregar producto en Stock". Si la usuaria edita el precio de
+      // tarjeta a mano, se deja de tocar (row.dataset.tarjetaManual) hasta
+      // que la lista se vuelva a pintar (ej. al guardar o buscar).
+      row.querySelector(".inv-precio").addEventListener("input", (e) => {
+        if (row.dataset.tarjetaManual || cardSurchargePct == null) return;
+        const precio = Number(e.target.value);
+        const tarjetaEl = row.querySelector(".inv-precio-tarjeta");
+        tarjetaEl.value = precio > 0 ? Math.ceil(precio * (1 + cardSurchargePct / 100)) : "";
+      });
+      row.querySelector(".inv-precio-tarjeta").addEventListener("input", () => {
+        row.dataset.tarjetaManual = "1";
+      });
       row.querySelector(".inv-save").addEventListener("click", (e) => saveInventoryRow(sku, row, e.currentTarget));
       row.querySelector(".inv-delete").addEventListener("click", (e) => deleteInventoryRow(sku, row, e.currentTarget));
     });
