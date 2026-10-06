@@ -124,9 +124,14 @@
 
 <!-- Catálogo completo -->
 <section id="catalog-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
-  <div class="flex items-center justify-between mb-4">
+  <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
     <h2 class="font-logo text-xl sm:text-2xl text-ink">Catálogo completo</h2>
-    <button id="catalog-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar catálogo</button>
+    <div class="flex items-center gap-3">
+      <button id="shipping-times-open" type="button" class="tap inline-flex items-center gap-1.5 rounded-full border border-lilac/50 bg-lilac/10 text-ink text-xs font-semibold px-3 py-1.5 hover:bg-lilac/20 transition">
+        🚚 Conoce nuestros tiempos de entrega
+      </button>
+      <button id="catalog-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar catálogo</button>
+    </div>
   </div>
   <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   <p id="catalog-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles por el momento.</p>
@@ -1063,6 +1068,18 @@
   </div>
   </div>
 </aside>
+
+<!-- Tiempos de entrega (infografía) -->
+<div id="shipping-times-overlay" role="dialog" aria-modal="true" aria-labelledby="shipping-times-title" tabindex="-1" inert
+  class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim flex items-center justify-center p-4">
+  <div class="modal-card bg-cream rounded-2xl shadow-2xl w-full max-w-lg p-4 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-2">
+      <h3 id="shipping-times-title" class="font-logo text-lg text-ink">🚚 Tiempos de entrega</h3>
+      <button id="shipping-times-close" type="button" aria-label="Cerrar" class="-mr-2 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
+    </div>
+    <img src="./assets/shipping-korea-process.webp" alt="Proceso de envío de tu pedido desde nuestra bodega en Corea: 1) Orden (1-2 días hábiles), 2) Envío a USA (2-3 días hábiles), 3) Cruce a México (1-2 días hábiles), 4) Envío (1 día hábil), 5) Entrega (2-5 días hábiles por envío terrestre, 1-2 días hábiles por envío express). Los tiempos son estimados y pueden variar." class="w-full h-auto rounded-xl" />
+  </div>
+</div>
 
 <!-- Avísame cuando vuelva (producto agotado) -->
 <div id="restock-overlay" role="dialog" aria-modal="true" aria-labelledby="restock-title" tabindex="-1" inert
