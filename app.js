@@ -585,6 +585,22 @@ function initRestock() {
   document.getElementById("restock-form").addEventListener("submit", handleRestockSubmit);
 }
 
+/* Pop-up con la infografía de tiempos de entrega, junto a "Catálogo
+   completo" -- mismo patrón de ventana accesible que "Avísame cuando
+   vuelva" (ver DIALOGS arriba), pero sin formulario, solo la imagen. */
+function wireShippingTimesModal() {
+  const openBtn = document.getElementById("shipping-times-open");
+  const overlay = document.getElementById("shipping-times-overlay");
+  const closeBtn = document.getElementById("shipping-times-close");
+  if (!openBtn || !overlay || !closeBtn) return;
+  const close = () => overlay.classList.add("opacity-0", "pointer-events-none");
+  openBtn.addEventListener("click", () => overlay.classList.remove("opacity-0", "pointer-events-none"));
+  closeBtn.addEventListener("click", close);
+  overlay.addEventListener("click", (e) => {
+    if (e.target.id === "shipping-times-overlay") close();
+  });
+}
+
 /* ======================================================================
    Calificaciones de producto -- solo clientas con cuenta que ya tienen
    un pedido PAGADO con ese SKU pueden calificar (lo valida el servidor,
@@ -3557,6 +3573,7 @@ const DIALOGS = [
   { panel: "restock-overlay", close: "restock-close", closedClass: "opacity-0" },
   { panel: "review-overlay", close: "review-close", closedClass: "opacity-0" },
   { panel: "reviews-list-overlay", close: "reviews-list-close", closedClass: "opacity-0" },
+  { panel: "shipping-times-overlay", close: "shipping-times-close", closedClass: "opacity-0" },
 ];
 
 // Pila de paneles abiertos; el último es el que está hasta arriba.
@@ -4868,6 +4885,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initWishlist();
   initRestock();
   initReviews();
+  wireShippingTimesModal();
 
   // Por si alguien traía carritos de ambas colecciones guardados de antes
   // de que el carrito fuera uno solo: se queda el de Skincare Coreano.
