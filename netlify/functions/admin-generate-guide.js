@@ -116,9 +116,9 @@ exports.handler = async (event) => {
         html: orderShippedEmailHTML(order),
       });
     }
-    await notifyCustomerOrderShipped(order);
+    const whatsappSent = await notifyCustomerOrderShipped(order);
 
-    return jsonResponse(200, { order });
+    return jsonResponse(200, { order, whatsappSent });
   } catch (err) {
     console.error(`Error generando guía con ${provider}:`, err.status, err.body || err.message);
     const detail = err.body && (err.body.message || err.body.error);
