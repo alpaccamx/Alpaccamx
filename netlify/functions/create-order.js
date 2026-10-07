@@ -35,7 +35,12 @@
 // settings → Environment variables): MP_ACCESS_TOKEN
 
 const { randomUUID } = require("crypto");
-const { saveNewOrder, transitionOrder } = require("./lib/blob-store.js");
+const {
+  saveNewOrder, transitionOrder, getEffectiveSoldMap,
+  claimIdempotencyKey, completeIdempotencyKey, releaseIdempotencyKey,
+} = require("./lib/blob-store.js");
+const { priceOrder, matchesClientTotals } = require("./lib/pricing.js");
+const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { notifySellerOrderCreated } = require("./lib/whatsapp.js");
 const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
@@ -54,6 +59,13 @@ exports.handler = async (event) => {
     return jsonResponse(429, { error: "Demasiados pedidos en poco tiempo. Espera un poco e intenta de nuevo." }, rateLimit.retryAfterSeconds);
   }
 
+  // Solo una cuenta con sesión puede registrar pedidos: así el comprobante
+  // y el pedido quedan ligados a esa cuenta (ver upload-payment-proof.js).
+  const customerEmail = verifyCustomerToken(event);
+  if (!customerEmail) {
+    return jsonResponse(401, { error: "Inicia sesión para continuar tu compra." });
+  }
+
   let body;
   try {
     body = JSON.parse(event.body || "{}");
@@ -66,6 +78,20 @@ exports.handler = async (event) => {
     shippingKoreaMXN, shippingNacionalMXN, weightKg,
   } = body;
 
+  // Datos mínimos de contacto y envío: el servidor no confía en que el
+  // formulario del navegador los haya validado.
+  const phoneDigits = String((customer && customer.phone) || "").replace(/\D/g, "");
+  if (phoneDigits.length !== 10) {
+    return jsonResponse(400, { error: "El teléfono debe tener 10 dígitos." });
+  }
+  if (!/^\d{5}$/.test(String((customer && customer.cp) || "").trim())) {
+    return jsonResponse(400, { error: "El código postal debe tener 5 dígitos." });
+  }
+  if (!String((customer && customer.name) || "").trim()) {
+    return jsonResponse(400, { error: "Escribe tu nombre para registrar el pedido." });
+  }
+
+
   if (source !== "transferencia" && source !== "whatsapp" && source !== "mercadopago") {
     return jsonResponse(400, { error: "source debe ser 'transferencia' o 'mercadopago'." });
   }
@@ -73,33 +99,75 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "El pedido no tiene productos." });
   }
 
-  const cleanItems = items
-    .map((it) => ({
-      sku: String(it.sku || ""),
-      nombre: String(it.nombre || ""),
-      marca: String(it.marca || ""),
-      qty: Number(it.qty) || 0,
-      precio: Number(it.precio) || 0,
-      precioBase: Number(it.precioBase) || Number(it.precio) || 0,
-      enStock: !!it.enStock,
-    }))
-    .filter((it) => it.sku && it.qty > 0);
-
-  if (!cleanItems.length) {
-    return jsonResponse(400, { error: "El pedido no tiene productos válidos." });
+  // Los precios, el stock y el envío se recalculan AQUÍ a partir de las
+  // hojas publicadas. Lo que manda el navegador solo sirve para comparar:
+  // si no coincide, el pedido no se registra ni se cobra.
+  const requested = items.map((it) => ({
+    sku: String((it && it.sku) || ""),
+    qty: Number(it && it.qty),
+    enStock: !!(it && it.enStock),
+  }));
+  if (requested.some((it) => !it.sku || !Number.isInteger(it.qty) || it.qty < 1 || it.qty > 999)) {
+    return jsonResponse(400, { error: "Hay una cantidad inválida en tu carrito." });
   }
 
-  const subtotalNum = Number(subtotal) || 0;
-  const shippingMXNNum = Number(shippingMXN) || 0;
-  const subtotalBaseNum = Number(subtotalBase) || subtotalNum;
-  const shippingMXNBaseNum = Number(shippingMXNBase) || shippingMXNNum;
-  // Lo que se cobró de más por pagar con tarjeta, sobre productos + envío.
-  const cardFeeMXN = Math.max(0, (subtotalNum - subtotalBaseNum) + (shippingMXNNum - shippingMXNBaseNum));
+  let soldMap;
+  try {
+    soldMap = new Map(Object.entries(await getEffectiveSoldMap()));
+  } catch (err) {
+    console.error("No se pudo leer el stock vendido:", err);
+    return jsonResponse(503, { error: "No pudimos revisar el stock en este momento. Intenta de nuevo en un momento." });
+  }
 
+  let priced;
+  try {
+    priced = await priceOrder({ source, items: requested, customer, soldMap });
+  } catch (err) {
+    console.error("No se pudieron cargar precios y envíos:", err);
+    return jsonResponse(503, { error: "No pudimos cargar los precios en este momento. Intenta de nuevo en un momento." });
+  }
+  if (!priced.ok) {
+    return jsonResponse(priced.status, { error: priced.error });
+  }
+
+  if (!matchesClientTotals(priced, { subtotal, shippingMXN, grandTotal })) {
+    return jsonResponse(409, {
+      error: "Los precios o el envío cambiaron desde que armaste tu carrito. Recarga la página para ver los precios actuales.",
+    });
+  }
+
+  // Idempotencia: si el navegador reenvía el mismo intento (recarga, red
+  // lenta), se devuelve el pedido que ya se registró en vez de crear otro.
+  const idemKey = typeof body.idempotencyKey === "string" && /^[A-Za-z0-9-]{16,64}$/.test(body.idempotencyKey)
+    ? body.idempotencyKey
+    : null;
+  if (idemKey) {
+    let claim;
+    try {
+      claim = await claimIdempotencyKey(idemKey);
+    } catch (err) {
+      console.error("No se pudo reservar la clave de idempotencia:", err);
+      return jsonResponse(503, { error: "No pudimos registrar tu pedido en este momento. Intenta de nuevo." });
+    }
+    if (!claim.claimed) {
+      const prev = claim.existing || {};
+      if (prev.status === "done") {
+        return jsonResponse(200, { orderId: prev.orderId, ...(prev.redirectUrl ? { redirectUrl: prev.redirectUrl } : {}) });
+      }
+      if (prev.status === "stale") {
+        return jsonResponse(409, { error: "Tu pedido no se registró. Intenta de nuevo." });
+      }
+      return jsonResponse(409, { error: "Tu pedido se está registrando. Espera unos segundos e intenta de nuevo." });
+    }
+  }
+
+  // Nombre y marca vienen del navegador solo para mostrarlos en /admin.html;
+  // no afectan ningún monto.
   const order = {
     id: randomUUID(),
     source,
     status: "pending",
+    customerEmail: String(customerEmail).toLowerCase(),
     createdAt: new Date().toISOString(),
     customer: {
       name: String((customer && customer.name) || ""),
@@ -112,36 +180,40 @@ exports.handler = async (event) => {
       referencias: String((customer && customer.referencias) || ""),
       notes: String((customer && customer.notes) || ""),
     },
-    items: cleanItems,
-    subtotal: subtotalNum,
-    shippingMXN: shippingMXNNum,
-    subtotalBase: subtotalBaseNum,
-    shippingMXNBase: shippingMXNBaseNum,
-    cardFeeMXN,
-    grandTotal: Number(grandTotal) || 0,
-    // Desglose de envío (siempre a precio de transferencia, como
-    // shippingMXNBase) y peso total del pedido -- solo para que
-    // /admin.html pueda mostrarlos sin tener que recalcularlos. Se
-    // guardan en 0 si el frontend no los mandó (pedidos de versiones
-    // anteriores del sitio no los tenían).
-    shippingKoreaMXN: Number(shippingKoreaMXN) || 0,
-    shippingNacionalMXN: Number(shippingNacionalMXN) || 0,
-    weightKg: Number(weightKg) || 0,
+    items: priced.items.map((line, i) => ({
+      sku: line.sku,
+      nombre: String((items[i] && items[i].nombre) || line.nombre).slice(0, 250),
+      marca: String((items[i] && items[i].marca) || line.marca || "").slice(0, 120),
+      qty: line.qty,
+      precio: line.precio,
+      precioBase: line.precioBase,
+      enStock: line.enStock,
+    })),
+    subtotal: priced.subtotal,
+    shippingMXN: priced.shippingMXN,
+    subtotalBase: priced.subtotalBase,
+    shippingMXNBase: priced.shippingMXNBase,
+    cardFeeMXN: priced.cardFeeMXN,
+    grandTotal: priced.grandTotal,
+    shippingKoreaMXN: priced.shippingKoreaMXN,
+    shippingNacionalMXN: priced.shippingNacionalMXN,
+    weightKg: priced.weightKg,
   };
 
   try {
     await saveNewOrder(order);
   } catch (err) {
     console.error("Error guardando el pedido:", err);
+    if (idemKey) await releaseIdempotencyKey(idemKey);
     return jsonResponse(500, { error: "No se pudo guardar el pedido." });
   }
 
   // Aviso inmediato al dueño del negocio de que hay un pedido nuevo, aún
   // sin confirmar (si WHATSAPP_ACCESS_TOKEN no está configurado, o algo
   // falla, notifySellerOrderCreated no revienta -- solo no manda nada).
-  await notifySellerOrderCreated(order);
-
   if (source === "transferencia" || source === "whatsapp") {
+    await notifySellerOrderCreated(order);
+    if (idemKey) await completeIdempotencyKey(idemKey, { orderId: order.id });
     return jsonResponse(200, { orderId: order.id });
   }
 
@@ -153,7 +225,7 @@ exports.handler = async (event) => {
   }
 
   const siteUrl = (process.env.URL || "https://alpacca.mx").replace(/\/$/, "");
-  const mpItems = cleanItems.map((it) => ({
+  const mpItems = order.items.map((it) => ({
     title: it.nombre.slice(0, 250),
     quantity: it.qty,
     unit_price: it.precio,
@@ -195,16 +267,20 @@ exports.handler = async (event) => {
     if (!res.ok) {
       console.error("Error creando preferencia de Mercado Pago:", pref);
       await transitionOrder(order.id, "failed", { error: "mp_preference_error" });
+      if (idemKey) await releaseIdempotencyKey(idemKey);
       return jsonResponse(502, { error: "Mercado Pago rechazó la solicitud de pago." });
     }
 
     const isTestToken = accessToken.startsWith("TEST-");
     const redirectUrl = isTestToken ? pref.sandbox_init_point : pref.init_point;
 
+    await notifySellerOrderCreated(order);
+    if (idemKey) await completeIdempotencyKey(idemKey, { orderId: order.id, redirectUrl });
     return jsonResponse(200, { orderId: order.id, redirectUrl });
   } catch (err) {
     console.error("Error llamando a la API de Mercado Pago:", err);
     await transitionOrder(order.id, "failed", { error: "mp_request_failed" }).catch(() => {});
+    if (idemKey) await releaseIdempotencyKey(idemKey);
     return jsonResponse(502, { error: "No se pudo conectar con Mercado Pago." });
   }
 };

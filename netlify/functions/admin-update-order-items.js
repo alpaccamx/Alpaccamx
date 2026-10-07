@@ -112,7 +112,7 @@ exports.handler = async (event) => {
       console.error("Error ajustando el stock vendido:", err);
       return jsonResponse(500, { error: "No se pudo ajustar el stock. Intenta de nuevo." });
     }
-    await applySheetStockDelta(delta);
+    await applySheetStockDelta(delta).catch((err) => console.error("Sheet de stock no actualizado (revisar a mano):", err));
   }
 
   try {

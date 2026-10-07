@@ -229,8 +229,16 @@ async function notifyCustomerOrderConfirmed(order) {
   }
 }
 
+/* Aviso de texto libre al dueño cuando un pago aprobado necesita revisión
+   manual (monto distinto al pedido, o pago llegó a un pedido cancelado). */
+async function notifySellerPaymentNeedsReview(order, reason) {
+  const text = `⚠️ Pago de Mercado Pago que necesita revisión. Pedido #${String(order.id).slice(0, 8)} de ${order.customer?.name || "cliente"}, total ${formatPriceMXN(order.grandTotal)}. Motivo: ${reason}. Revísalo en /admin.html antes de surtir.`;
+  await notifySellerWhatsApp(text);
+}
+
 module.exports = {
   notifySellerOrderCreated,
   notifySellerOrderPaid,
   notifyCustomerOrderConfirmed,
+  notifySellerPaymentNeedsReview,
 };

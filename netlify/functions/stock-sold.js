@@ -2,7 +2,7 @@
 // confirmados), para que el sitio le reste ese número a "Piezas
 // Disponibles" de la hoja de Stock y no se sobrevenda.
 
-const { getSoldMap } = require("./lib/blob-store.js");
+const { getEffectiveSoldMap } = require("./lib/blob-store.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
@@ -10,7 +10,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const sold = await getSoldMap();
+    const sold = await getEffectiveSoldMap();
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },

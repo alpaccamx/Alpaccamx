@@ -49,7 +49,7 @@ exports.handler = async (event) => {
       if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
       if (transitioned) {
         await applyStockDecrement(order.items);
-        await applySheetStockDelta(deltaFromItems(order.items));
+        await applySheetStockDelta(deltaFromItems(order.items)).catch((err) => console.error("Sheet de stock no actualizado (revisar a mano):", err));
         await notifySellerOrderPaid(order);
         await notifyCustomerOrderConfirmed(order);
       }
