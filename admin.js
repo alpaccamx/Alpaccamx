@@ -127,6 +127,8 @@
     paid: "#2fa968",
     cancelled: "#bbbbbb",
     failed: "#d9534f",
+    review: "#c0392b",
+    refunded: "#777777",
   };
 
   function formatPrice(n) {
@@ -857,11 +859,16 @@
     }
   }
 
+  // "review": el pago no coincide con el total del pedido, o llegó después de
+  // cancelar. No se surte hasta revisarlo a mano (ver paymentReceivedAfterStatus).
+  // "refunded": Mercado Pago reembolsó o hubo contracargo; el stock ya se repuso.
   const STATUS_LABELS = {
     pending: "⏳ Pendiente",
     paid: "✅ Pagado",
     cancelled: "✕ Cancelado",
     failed: "⚠️ Falló",
+    review: "🔎 Revisar",
+    refunded: "↩️ Reembolsado",
   };
 
   function sourceLabel(o) {
@@ -1002,7 +1009,7 @@
 
   function proofLinkHTML(o) {
     if (!o.hasPaymentProof) return "";
-    return `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeAttr(o.id)}" style="font-size:12px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>`;
+    return `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeHtml(o.id)}" style="font-size:12px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>`;
   }
 
   const SUPPLIER_URL = "https://www.asianbeautywholesale.com/en/home.html";
@@ -1148,8 +1155,8 @@ ${itemLines}
       <div class="tracking-block">
         ${shippedInfo}
         <div class="tracking-row">
-          <input type="text" placeholder="Número de guía" data-tracking-number="${o.id}" value="${escapeHtml(o.trackingNumber || "")}" />
-          <input type="text" placeholder="Paquetería (opcional)" data-tracking-carrier="${o.id}" value="${escapeHtml(o.carrier || "")}" />
+          <input aria-label="Número de guía" type="text" placeholder="Número de guía" data-tracking-number="${o.id}" value="${escapeHtml(o.trackingNumber || "")}" />
+          <input aria-label="Paquetería (opcional)" type="text" placeholder="Paquetería (opcional)" data-tracking-carrier="${o.id}" value="${escapeHtml(o.carrier || "")}" />
         </div>
         <button type="button" class="btn-secondary" data-send-tracking="${o.id}">💬 ${o.trackingNumber ? "Actualizar y avisar por WhatsApp" : "Guardar y avisar por WhatsApp"}</button>
       </div>`;
@@ -1167,28 +1174,28 @@ ${itemLines}
         <div class="guide-form" id="guide-form-${o.id}">
           <label class="field-label">Peso del paquete (kg) · caja 2x2x2 cm</label>
           <div class="row">
-            <input type="number" step="0.1" min="0.1" placeholder="Ej. 1.5" list="weight-presets" data-guide-weight="${o.id}" />
+            <input aria-label="Ej. 1.5" type="number" step="0.1" min="0.1" placeholder="Ej. 1.5" list="weight-presets" data-guide-weight="${o.id}" />
             <button type="button" class="btn-secondary" data-guide-quote="${o.id}">💲 Cotizar y comparar</button>
           </div>
           <label class="field-label">Datos del destinatario (revísalos antes de generar)</label>
           <div class="row">
-            <input type="text" placeholder="Nombre" value="${escapeHtml(c.name || "")}" data-guide-name="${o.id}" />
-            <input type="text" placeholder="Teléfono" value="${escapeHtml(c.phone || "")}" data-guide-phone="${o.id}" />
+            <input aria-label="Nombre" type="text" placeholder="Nombre" value="${escapeHtml(c.name || "")}" data-guide-name="${o.id}" />
+            <input aria-label="Teléfono" type="text" placeholder="Teléfono" value="${escapeHtml(c.phone || "")}" data-guide-phone="${o.id}" />
           </div>
           <div class="row">
-            <input type="text" placeholder="Calle" value="${escapeHtml(c.street || "")}" data-guide-street="${o.id}" />
-            <input type="text" placeholder="No. ext." data-guide-ext="${o.id}" />
-            <input type="text" placeholder="No. int. (opcional)" data-guide-int="${o.id}" />
+            <input aria-label="Calle" type="text" placeholder="Calle" value="${escapeHtml(c.street || "")}" data-guide-street="${o.id}" />
+            <input aria-label="No. ext." type="text" placeholder="No. ext." data-guide-ext="${o.id}" />
+            <input aria-label="No. int. (opcional)" type="text" placeholder="No. int. (opcional)" data-guide-int="${o.id}" />
           </div>
           <div class="row">
-            <input type="text" placeholder="Colonia" value="${escapeHtml(c.colonia || "")}" data-guide-neighborhood="${o.id}" />
-            <input type="text" placeholder="Código postal" value="${escapeHtml(c.cp || "")}" data-guide-zip="${o.id}" />
+            <input aria-label="Colonia" type="text" placeholder="Colonia" value="${escapeHtml(c.colonia || "")}" data-guide-neighborhood="${o.id}" />
+            <input aria-label="Código postal" type="text" placeholder="Código postal" value="${escapeHtml(c.cp || "")}" data-guide-zip="${o.id}" />
           </div>
           <div class="row">
-            <input type="text" placeholder="Municipio/Alcaldía" value="${escapeHtml(c.municipio || "")}" data-guide-city="${o.id}" />
-            <input type="text" placeholder="Estado" value="${escapeHtml(c.estado || "")}" data-guide-state="${o.id}" />
+            <input aria-label="Municipio/Alcaldía" type="text" placeholder="Municipio/Alcaldía" value="${escapeHtml(c.municipio || "")}" data-guide-city="${o.id}" />
+            <input aria-label="Estado" type="text" placeholder="Estado" value="${escapeHtml(c.estado || "")}" data-guide-state="${o.id}" />
           </div>
-          <input type="text" placeholder="Referencias" value="${escapeHtml(c.referencias || "")}" data-guide-references="${o.id}" />
+          <input aria-label="Referencias" type="text" placeholder="Referencias" value="${escapeHtml(c.referencias || "")}" data-guide-references="${o.id}" />
           <div class="rate-options" data-guide-rates="${o.id}"></div>
           <div class="guide-error" data-guide-error="${o.id}"></div>
           <button type="button" class="btn-primary" data-guide-generate="${o.id}" disabled>📦 Generar guía y avisar por WhatsApp</button>
@@ -1200,11 +1207,11 @@ ${itemLines}
     const precio = it ? itemPrecioTransferencia(it) : 0;
     return `
       <div class="edit-item-row">
-        <input type="text" class="edit-item-nombre" placeholder="Nombre del producto" value="${escapeHtml((it && it.nombre) || "")}" />
-        <input type="text" class="edit-item-marca" placeholder="Marca" value="${escapeHtml(it ? itemMarca(it) : "")}" />
-        <input type="text" class="edit-item-sku" placeholder="SKU" value="${escapeHtml((it && it.sku) || "")}" />
-        <input type="number" class="edit-item-qty" min="1" step="1" value="${it ? it.qty : 1}" placeholder="Cant." />
-        <input type="number" class="edit-item-precio" min="0" step="1" value="${precio}" placeholder="Precio (transf.) c/u" />
+        <input aria-label="Nombre del producto" type="text" class="edit-item-nombre" placeholder="Nombre del producto" value="${escapeHtml((it && it.nombre) || "")}" />
+        <input aria-label="Marca" type="text" class="edit-item-marca" placeholder="Marca" value="${escapeHtml(it ? itemMarca(it) : "")}" />
+        <input aria-label="SKU" type="text" class="edit-item-sku" placeholder="SKU" value="${escapeHtml((it && it.sku) || "")}" />
+        <input aria-label="Cant." type="number" class="edit-item-qty" min="1" step="1" value="${it ? it.qty : 1}" placeholder="Cant." />
+        <input aria-label="Precio (transf.) c/u" type="number" class="edit-item-precio" min="0" step="1" value="${precio}" placeholder="Precio (transf.) c/u" />
         <label class="edit-stock-label"><input type="checkbox" class="edit-item-enstock" ${it && it.enStock ? "checked" : ""} /> en stock</label>
         <button type="button" class="btn-danger edit-item-remove">✕</button>
       </div>`;
@@ -1806,6 +1813,7 @@ ${itemLines}
     document.getElementById("usa-pedidos-status-tabs").querySelectorAll(".tab").forEach((b) => {
       b.classList.toggle("active", b.dataset.usaStatus === "");
     });
+    syncTabPressed(document.getElementById("usa-pedidos-status-tabs"));
     renderUsaClientDetail();
   }
 
@@ -2087,6 +2095,14 @@ ${itemLines}
   }
 
 
+  // Los filtros son botones con clase "active"; esto refleja ese estado en
+  // aria-pressed para que lectores de pantalla digan cuál está activo.
+  function syncTabPressed(container) {
+    container.querySelectorAll(".tab").forEach((b) => {
+      b.setAttribute("aria-pressed", String(b.classList.contains("active")));
+    });
+  }
+
   function escapeHtml(str) {
     return String(str ?? "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -2190,6 +2206,8 @@ ${itemLines}
       b.style.background = isDefault ? "#e07a8f" : "";
       b.style.color = isDefault ? "#fff" : "";
     });
+    syncTabPressed(statusTabsEl);
+    syncTabPressed(timeTabsEl);
   }
 
   function logout() {
@@ -2253,6 +2271,7 @@ ${itemLines}
       document.getElementById("usa-pedidos-status-tabs").querySelectorAll(".tab").forEach((b) => {
         b.classList.toggle("active", b === btn);
       });
+      syncTabPressed(document.getElementById("usa-pedidos-status-tabs"));
       renderUsaPedidosList();
     });
   });
@@ -2269,6 +2288,7 @@ ${itemLines}
       btn.classList.add("active");
       btn.style.background = STATUS_TAB_COLORS[btn.dataset.status] || "#e07a8f";
       btn.style.color = "#fff";
+      syncTabPressed(statusTabsEl);
       applyFilters();
     });
   });
@@ -2284,6 +2304,7 @@ ${itemLines}
       btn.classList.add("active");
       btn.style.background = "#e07a8f";
       btn.style.color = "#fff";
+      syncTabPressed(timeTabsEl);
       applyFilters();
     });
   });

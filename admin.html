@@ -68,6 +68,8 @@
   .badge.status-paid { background: #dcf8e8; color: #17803d; }
   .badge.status-cancelled { background: #eee; color: #777; }
   .badge.status-failed { background: #fde2e1; color: #b03a2e; }
+  .badge.status-review { background: #f8d7d3; color: #922b21; }
+  .badge.status-refunded { background: #ececec; color: #555; }
   .order-card ul { margin: 12px 0; padding-left: 20px; font-size: 14px; }
   .order-card ul li { margin-bottom: 2px; border-radius: 6px; }
   .order-card ul li .unit-price { color: #888; }
@@ -215,7 +217,7 @@
   <p class="sub">Aquí ves todos los pedidos que te han hecho, para que sepas a quién le debes mandar o confirmar.</p>
 
   <div class="login-box" id="login-box">
-    <input id="admin-key-input" type="password" placeholder="Tu clave secreta" />
+    <input aria-label="Clave de administrador" id="admin-key-input" type="password" placeholder="Tu clave secreta" />
     <button class="btn-primary" id="login-btn">Entrar 👉</button>
   </div>
 
@@ -234,23 +236,23 @@
     <div>
       <label class="filters-label">¿Cuáles quieres ver?</label>
       <div class="tabs" id="status-tabs" style="margin-top:8px;">
-        <button class="tab active" data-status="">Todos</button>
-        <button class="tab" data-status="paid">✅ Pagados</button>
-        <button class="tab" data-status="pending">⏳ Pendientes</button>
-        <button class="tab" data-status="cancelled">✕ Cancelados</button>
-        <button class="tab" data-status="failed">⚠️ No pagados</button>
+        <button aria-pressed="true" class="tab active" data-status="">Todos</button>
+        <button aria-pressed="false" class="tab" data-status="paid">✅ Pagados</button>
+        <button aria-pressed="false" class="tab" data-status="pending">⏳ Pendientes</button>
+        <button aria-pressed="false" class="tab" data-status="cancelled">✕ Cancelados</button>
+        <button aria-pressed="false" class="tab" data-status="failed">⚠️ No pagados</button>
       </div>
     </div>
     <div>
       <label class="filters-label">¿De cuándo?</label>
       <div class="tabs" id="time-tabs" style="margin-top:8px;">
-        <button class="tab active" data-range="all">Todo</button>
-        <button class="tab" data-range="today">Hoy</button>
-        <button class="tab" data-range="week">Esta semana</button>
-        <button class="tab" data-range="month">Este mes</button>
+        <button aria-pressed="true" class="tab active" data-range="all">Todo</button>
+        <button aria-pressed="false" class="tab" data-range="today">Hoy</button>
+        <button aria-pressed="false" class="tab" data-range="week">Esta semana</button>
+        <button aria-pressed="false" class="tab" data-range="month">Este mes</button>
       </div>
     </div>
-    <input id="filter-search" type="text" placeholder="🔍 Busca por nombre, teléfono, marca, producto o # de orden" />
+    <input aria-label="🔍 Busca por nombre, teléfono, marca, producto o # de orden" id="filter-search" type="text" placeholder="🔍 Busca por nombre, teléfono, marca, producto o # de orden" />
     <div class="filters-row">
       <button class="btn-secondary" id="export-btn">⬇️ Descargar en Excel</button>
       <span id="filter-count"></span>
@@ -261,21 +263,21 @@
     <label class="filters-label">Nuevo producto en Stock</label>
     <p style="font-size:13px;color:#777;margin:0;">Esto se agrega directo a tu Google Sheet, en la pestaña de Stock -- no necesitas abrirlo a mano.</p>
     <div class="row">
-      <input type="text" id="stock-nombre" placeholder="Nombre del producto *" style="flex:2;" />
-      <input type="text" id="stock-marca" placeholder="Marca" />
+      <input aria-label="Nombre del producto *" type="text" id="stock-nombre" placeholder="Nombre del producto *" style="flex:2;" />
+      <input aria-label="Marca" type="text" id="stock-marca" placeholder="Marca" />
     </div>
     <div class="row">
-      <input type="number" id="stock-piezas" placeholder="Piezas disponibles *" min="1" step="1" />
-      <input type="number" id="stock-precio" placeholder="Precio transferencia (MXN) *" min="0" step="1" />
-      <input type="number" id="stock-precio-tarjeta" placeholder="Precio tarjeta (MXN, opcional)" min="0" step="1" />
+      <input aria-label="Piezas disponibles *" type="number" id="stock-piezas" placeholder="Piezas disponibles *" min="1" step="1" />
+      <input aria-label="Precio transferencia (MXN) *" type="number" id="stock-precio" placeholder="Precio transferencia (MXN) *" min="0" step="1" />
+      <input aria-label="Precio tarjeta (MXN, opcional)" type="number" id="stock-precio-tarjeta" placeholder="Precio tarjeta (MXN, opcional)" min="0" step="1" />
     </div>
     <div class="row">
-      <input type="text" id="stock-categoria" placeholder="Categoría (opcional)" />
-      <input type="number" id="stock-peso" placeholder="Peso en kg (opcional)" min="0" step="0.01" />
-      <input type="text" id="stock-sku" placeholder="SKU (opcional -- se genera solo si lo dejas vacío)" style="flex:2;" />
+      <input aria-label="Categoría (opcional)" type="text" id="stock-categoria" placeholder="Categoría (opcional)" />
+      <input aria-label="Peso en kg (opcional)" type="number" id="stock-peso" placeholder="Peso en kg (opcional)" min="0" step="0.01" />
+      <input aria-label="SKU (opcional -- se genera solo si lo dejas vacío)" type="text" id="stock-sku" placeholder="SKU (opcional -- se genera solo si lo dejas vacío)" style="flex:2;" />
     </div>
-    <input type="text" id="stock-imagen" placeholder="Link de la foto (opcional)" />
-    <textarea id="stock-descripcion" placeholder="Descripción (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
+    <input aria-label="Link de la foto (opcional)" type="text" id="stock-imagen" placeholder="Link de la foto (opcional)" />
+    <textarea aria-label="Descripción (opcional)" id="stock-descripcion" placeholder="Descripción (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
     <div class="guide-error" id="stock-add-error"></div>
     <p id="stock-add-success" style="display:none;color:#17803d;font-size:14px;font-weight:700;"></p>
     <div class="filters-row">
@@ -306,15 +308,15 @@
     <div id="usa-clients-view">
       <div class="filters-row">
         <button class="btn-primary" id="usa-client-new-toggle">➕ Nueva clienta</button>
-        <input type="text" id="usa-client-search" placeholder="🔍 Buscar clienta por nombre o teléfono" style="flex:1;min-width:180px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;" />
+        <input aria-label="🔍 Buscar clienta por nombre o teléfono" type="text" id="usa-client-search" placeholder="🔍 Buscar clienta por nombre o teléfono" style="flex:1;min-width:180px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;" />
       </div>
 
       <div id="usa-client-form" style="display:none;flex-direction:column;gap:8px;">
         <div class="row">
-          <input type="text" id="usa-client-nombre" placeholder="Nombre de la clienta *" />
-          <input type="text" id="usa-client-telefono" placeholder="Teléfono (WhatsApp, opcional)" />
+          <input aria-label="Nombre de la clienta *" type="text" id="usa-client-nombre" placeholder="Nombre de la clienta *" />
+          <input aria-label="Teléfono (WhatsApp, opcional)" type="text" id="usa-client-telefono" placeholder="Teléfono (WhatsApp, opcional)" />
         </div>
-        <textarea id="usa-client-notas" placeholder="Notas generales (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
+        <textarea aria-label="Notas generales (opcional)" id="usa-client-notas" placeholder="Notas generales (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
         <div class="guide-error" id="usa-client-error"></div>
         <div class="filters-row">
           <button class="btn-primary" id="usa-client-submit">Agregar clienta</button>
@@ -334,10 +336,10 @@
 
       <div id="usa-client-meta-form" style="display:none;flex-direction:column;gap:8px;">
         <div class="row">
-          <input type="text" id="usa-client-edit-nombre" placeholder="Nombre de la clienta *" />
-          <input type="text" id="usa-client-edit-telefono" placeholder="Teléfono (WhatsApp, opcional)" />
+          <input aria-label="Nombre de la clienta *" type="text" id="usa-client-edit-nombre" placeholder="Nombre de la clienta *" />
+          <input aria-label="Teléfono (WhatsApp, opcional)" type="text" id="usa-client-edit-telefono" placeholder="Teléfono (WhatsApp, opcional)" />
         </div>
-        <textarea id="usa-client-edit-notas" placeholder="Notas generales (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
+        <textarea aria-label="Notas generales (opcional)" id="usa-client-edit-notas" placeholder="Notas generales (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
         <div class="guide-error" id="usa-client-edit-error"></div>
         <div class="filters-row">
           <button class="btn-primary" id="usa-client-edit-submit">Guardar cambios</button>
@@ -348,23 +350,23 @@
       <div class="filters-row">
         <button class="btn-primary" id="usa-pedido-new-toggle">➕ Agregar pedido</button>
         <div class="tabs" id="usa-pedidos-status-tabs" style="flex:1;">
-          <button class="tab active" data-usa-status="">Todos</button>
-          <button class="tab" data-usa-status="por_comprar">🛒 Por comprar</button>
-          <button class="tab" data-usa-status="comprado">✅ Comprado</button>
-          <button class="tab" data-usa-status="en_camino">📦 En camino</button>
-          <button class="tab" data-usa-status="entregado">🎁 Entregado</button>
+          <button aria-pressed="true" class="tab active" data-usa-status="">Todos</button>
+          <button aria-pressed="false" class="tab" data-usa-status="por_comprar">🛒 Por comprar</button>
+          <button aria-pressed="false" class="tab" data-usa-status="comprado">✅ Comprado</button>
+          <button aria-pressed="false" class="tab" data-usa-status="en_camino">📦 En camino</button>
+          <button aria-pressed="false" class="tab" data-usa-status="entregado">🎁 Entregado</button>
         </div>
       </div>
 
       <div id="usa-pedido-form" style="display:none;flex-direction:column;gap:8px;">
-        <textarea id="usa-pedido-producto" placeholder="¿Qué le vas a comprar? *" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
+        <textarea aria-label="¿Qué le vas a comprar? *" id="usa-pedido-producto" placeholder="¿Qué le vas a comprar? *" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
         <div class="row">
-          <input type="text" id="usa-pedido-tienda" placeholder="Tienda (ej. Sephora, Target)" />
-          <input type="number" id="usa-pedido-cantidad" placeholder="Cantidad" min="1" step="1" />
-          <input type="number" id="usa-pedido-precio" placeholder="Precio estimado (USD)" min="0" step="0.01" />
+          <input aria-label="Tienda (ej. Sephora, Target)" type="text" id="usa-pedido-tienda" placeholder="Tienda (ej. Sephora, Target)" />
+          <input aria-label="Cantidad" type="number" id="usa-pedido-cantidad" placeholder="Cantidad" min="1" step="1" />
+          <input aria-label="Precio estimado (USD)" type="number" id="usa-pedido-precio" placeholder="Precio estimado (USD)" min="0" step="0.01" />
         </div>
-        <input type="text" id="usa-pedido-link" placeholder="Link del producto (opcional)" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;" />
-        <textarea id="usa-pedido-notas" placeholder="Notas (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
+        <input aria-label="Link del producto (opcional)" type="text" id="usa-pedido-link" placeholder="Link del producto (opcional)" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;" />
+        <textarea aria-label="Notas (opcional)" id="usa-pedido-notas" placeholder="Notas (opcional)" rows="2" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;font-family:inherit;"></textarea>
         <div class="guide-error" id="usa-pedido-error"></div>
         <div class="filters-row">
           <button class="btn-primary" id="usa-pedido-submit">Agregar pedido</button>
