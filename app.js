@@ -376,7 +376,7 @@ function updateCurrencyToggleButton() {
   const available = shippingSettings.exchangeRate > 0;
   btn.classList.toggle("hidden", !available);
   btn.textContent = displayCurrency === "USD" ? "USD $" : "MXN $";
-  btn.setAttribute("aria-pressed", displayCurrency === "USD" ? "true" : "false");
+  btn.setAttribute("aria-label", `${btn.textContent}, cambiar moneda`);
 }
 
 function loadCart() {
@@ -446,6 +446,10 @@ function updateWishlistCountBadge() {
   if (!el) return;
   el.textContent = wishlist.size;
   el.classList.toggle("hidden", wishlist.size === 0);
+  document.getElementById("wishlist-toggle").setAttribute(
+    "aria-label",
+    `Mis favoritos, ${wishlist.size} ${wishlist.size === 1 ? "guardado" : "guardados"}`
+  );
 }
 
 function wishlistButtonHTML(id) {
@@ -580,7 +584,7 @@ function initRestock() {
 const STAR_PATH = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
 
 function starIconHTML(filled, sizeClass = "w-3.5 h-3.5") {
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="${sizeClass} ${filled ? "text-amber-400" : "text-ink/20"}" viewBox="0 0 24 24" fill="currentColor"><path d="${STAR_PATH}"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="${sizeClass} ${filled ? "text-amber-400" : "text-ink/20"}" viewBox="0 0 24 24" fill="currentColor"><path d="${STAR_PATH}"/></svg>`;
 }
 
 /* Mapa sku -> { avg, count }, para las estrellas de las tarjetas de
@@ -665,6 +669,9 @@ function renderReviewStarsPicker() {
     btn.addEventListener("click", () => {
       reviewRating = Number(btn.dataset.star);
       renderReviewStarsPicker();
+      // Se vuelve a pintar el grupo, así que el foco regresa a la estrella elegida.
+      const again = document.querySelector(`#review-stars [data-star="${reviewRating}"]`);
+      if (again) again.focus();
     });
   });
 }
@@ -824,6 +831,7 @@ function setStatus(text) {
   const el = document.getElementById("status-text");
   el.textContent = text;
   banner.classList.remove("hidden");
+  announce(text);
 }
 
 function hideStatus() {
@@ -874,6 +882,18 @@ function findCol(headers, aliases) {
   return headers.findIndex((h) => aliases.includes(stripParens(h)));
 }
 
+/* Convierte la celda de precio a texto numérico. El último separador (punto
+   o coma) es el decimal; los demás son de miles. Así "1,234.50" -> 1234.50 y
+   "1.234,50" -> 1234.50, y "56,32" -> 56.32 como antes. */
+function normalizeMoneyCell(raw) {
+  const cleaned = String(raw || "").replace(/[^0-9.,]/g, "");
+  const lastDot = cleaned.lastIndexOf(".");
+  const lastComma = cleaned.lastIndexOf(",");
+  if (lastDot === -1 && lastComma === -1) return cleaned;
+  if (lastComma > lastDot) return cleaned.replace(/\./g, "").replace(",", ".");
+  return cleaned.replace(/,/g, "");
+}
+
 function csvToProducts(text) {
   const rows = parseCSV(text);
   if (!rows.length) return [];
@@ -903,8 +923,8 @@ function csvToProducts(text) {
         disponibleRaw === ""
           ? true
           : ["si", "sí", "yes", "true", "1", "disponible"].includes(disponibleRaw);
-      const precioRaw = get(iPrecio).replace(/[^0-9.,]/g, "").replace(",", ".");
-      const precioTarjetaRaw = get(iPrecioTarjeta).replace(/[^0-9.,]/g, "").replace(",", ".");
+      const precioRaw = normalizeMoneyCell(get(iPrecio));
+      const precioTarjetaRaw = normalizeMoneyCell(get(iPrecioTarjeta));
       const pesoRaw = get(iPeso).replace(/[^0-9.,]/g, "").replace(",", ".");
       const splitTags = (value) => value.split(",").map((s) => s.trim()).filter(Boolean);
       const precio = parseFloat(precioRaw) || 0;
@@ -962,7 +982,7 @@ function csvToAmericanoProducts(text) {
         disponibleRaw === ""
           ? true
           : ["si", "sí", "yes", "true", "1", "disponible"].includes(disponibleRaw);
-      const precioRaw = get(iPrecio).replace(/[^0-9.,]/g, "").replace(",", ".");
+      const precioRaw = normalizeMoneyCell(get(iPrecio));
       const precioOriginalRaw = get(iPrecioOriginal).replace(/[^0-9.,]/g, "").replace(",", ".");
       const moqRaw = get(iMoq).replace(/[^0-9.,]/g, "").replace(",", ".");
       const moq = Math.max(1, Math.round(parseFloat(moqRaw)) || 1);
@@ -1303,8 +1323,8 @@ function csvToStockData(text) {
     if (!sku) return;
     const get = (i) => (i >= 0 && r[i] != null ? r[i].trim() : "");
     const piezas = parseInt(get(iPiezas).replace(/[^0-9]/g, ""), 10) || 0;
-    const precioMXN = parseFloat(get(iPrecio).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
-    const precioTarjetaMXN = parseFloat(get(iPrecioTarjeta).replace(/[^0-9.,]/g, "").replace(",", ".")) || precioMXN;
+    const precioMXN = parseFloat(normalizeMoneyCell(get(iPrecio))) || 0;
+    const precioTarjetaMXN = parseFloat(normalizeMoneyCell(get(iPrecioTarjeta))) || precioMXN;
     const pesoKg = parseFloat(get(iPeso).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
     if (piezas > 0) {
       map.set(sku, {
@@ -1723,7 +1743,6 @@ function updateHeroPauseButton() {
   if (btn.dataset.state === String(paused)) return;
   btn.dataset.state = String(paused);
   btn.setAttribute("aria-label", paused ? "Reanudar el banner" : "Pausar el banner");
-  btn.setAttribute("aria-pressed", String(paused));
   btn.querySelector("span").innerHTML = paused ? HERO_PLAY_ICON : HERO_PAUSE_ICON;
 }
 
@@ -1788,7 +1807,6 @@ function wireTickerControls() {
   if (!ticker || !btn) return;
   btn.addEventListener("click", () => {
     const paused = ticker.toggleAttribute("data-paused");
-    btn.setAttribute("aria-pressed", String(paused));
     btn.setAttribute("aria-label", paused ? "Reanudar los mensajes" : "Pausar los mensajes");
     btn.querySelector("span").innerHTML = paused ? HERO_PLAY_ICON : HERO_PAUSE_ICON;
   });
@@ -1853,30 +1871,30 @@ function menuItemHTML(item, variant) {
     const dropdownOptions = item.options
       .map(
         (v) =>
-          `<button type="button" role="menuitem" ${optionAttr}="${escapeAttr(v)}"
+          `<button type="button" ${optionAttr}="${escapeAttr(v)}"
             class="block w-full text-left px-4 py-2 coarse:py-3 text-sm text-ink/75 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(v)}</button>`
       )
       .join("");
     if (isHorizontal) {
       return `<div class="relative" data-${key}-dropdown>
-        <button type="button" data-${key}-toggle aria-haspopup="true" aria-expanded="false"
+        <button type="button" data-${key}-toggle aria-expanded="false"
           class="${base} text-ink/80 hover:text-ink transition inline-flex items-center gap-1">
           ${escapeHtml(item.label)}
           <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-        <div data-${key}-panel role="menu"
-          class="hidden fixed w-52 max-h-80 overflow-y-auto rounded-xl border border-ink/10 bg-cream shadow-lg py-2 z-50">
+        <div data-${key}-panel
+          class="menu-panel hidden fixed w-52 max-h-80 overflow-y-auto rounded-xl border border-ink/10 bg-cream shadow-lg py-2 z-50">
           ${dropdownOptions}
         </div>
       </div>`;
     }
     return `<div data-${key}-dropdown>
-      <button type="button" data-${key}-toggle aria-haspopup="true" aria-expanded="false"
+      <button type="button" data-${key}-toggle aria-expanded="false"
         class="${base} w-full text-left text-ink/80 hover:text-ink transition inline-flex items-center justify-between">
         ${escapeHtml(item.label)}
         <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <div data-${key}-panel role="menu" class="hidden bg-blush/10">${dropdownOptions}</div>
+      <div data-${key}-panel class="menu-panel hidden bg-blush/10">${dropdownOptions}</div>
     </div>`;
   }
   return `<a href="${escapeAttr(item.href)}" data-menu-link
@@ -2003,11 +2021,11 @@ function productCardHTML(p, { rank } = {}) {
   // (hasVariants), que es una razón distinta.
   const outOfStock = !hasVariants && (!p.disponible || (p.enStock && p.stockPiezas <= 0));
   return `
-    <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full transition duration-300 hover:shadow-lg hover:border-rose/30">
+    <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full transition duration-200 hover:shadow-lg hover:border-rose/30">
       <div class="aspect-square bg-blush/20 overflow-hidden relative">
         ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-rose text-cream font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+          class="w-full h-full object-cover group-hover:scale-105 transition duration-200" />
         <div data-card-badge class="absolute top-2 ${rank ? "right-2" : "left-2"}">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
         ${wishlistButtonHTML(p.id)}
       </div>
@@ -2034,7 +2052,7 @@ function productCardHTML(p, { rank } = {}) {
         ${productReviewSummaryHTML(p)}
         ${
           hasVariants
-            ? `<select data-variant-select
+            ? `<select data-variant-select aria-label="Elige la versión de ${escapeHtml(p.nombre)}"
                 class="mt-1 w-full truncate text-xs border border-ink/15 rounded-md pl-1.5 pr-5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-lilac">
                 <option value="" selected disabled>Selecciona una versión</option>
                 ${p.variants
@@ -2055,11 +2073,11 @@ function productCardHTML(p, { rank } = {}) {
           </div>
           ${
             outOfStock
-              ? `<button type="button" data-restock="${escapeAttr(p.id)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
-                  class="tap mt-2 w-full rounded-full border border-rose text-rose text-sm font-semibold px-3 py-2 hover:bg-rose/10 transition">
+              ? `<button type="button" data-restock="${escapeAttr(p.id)}" aria-label="Avísame cuando vuelva ${escapeHtml(p.nombre)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
+                  class="tap mt-2 w-full rounded-full border border-rose text-rose-ink text-sm font-semibold px-3 py-2 hover:bg-rose/10 transition">
                   🔔 Avísame
                 </button>`
-              : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""}
+              : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""} aria-label="Agregar ${escapeHtml(p.nombre)} al carrito"
                   class="tap mt-2 w-full rounded-full bg-rose text-cream text-sm font-semibold px-3 py-2 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
                   Agregar
                 </button>`
@@ -2201,10 +2219,10 @@ function americanoProductCardHTML(p) {
   const hasVariants = p.variants && p.variants.length > 1;
   const hasDiscount = p.precioOriginal > p.precio;
   return `
-    <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full transition duration-300 hover:shadow-lg hover:border-rose/30">
+    <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full transition duration-200 hover:shadow-lg hover:border-rose/30">
       <div class="aspect-square bg-blush/20 overflow-hidden relative">
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+          class="w-full h-full object-cover group-hover:scale-105 transition duration-200" />
         <div data-card-badge class="absolute top-2 left-2">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
       </div>
       <div class="p-3 flex flex-col flex-1">
@@ -2213,7 +2231,7 @@ function americanoProductCardHTML(p) {
         <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5" title="${escapeAttr(p.nombre)}">${escapeHtml(p.nombre)}</h3>
         ${
           hasVariants
-            ? `<select data-variant-select
+            ? `<select data-variant-select aria-label="Elige la versión de ${escapeHtml(p.nombre)}"
                 class="mt-1 w-full truncate text-xs border border-ink/15 rounded-md pl-1.5 pr-5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-lilac">
                 <option value="" selected disabled>Selecciona una versión</option>
                 ${p.variants
@@ -2429,7 +2447,10 @@ function renderQuizQuestion() {
     .map((_, i) => `<span class="w-6 h-1.5 rounded-full ${i <= quizIndex ? "bg-rose" : "bg-ink/15"}"></span>`)
     .join("");
 
-  document.getElementById("quiz-question").textContent = q.question;
+  const questionEl = document.getElementById("quiz-question");
+  questionEl.textContent = q.question;
+  // Tras responder, el foco regresa a la pregunta nueva; el primero no se mueve.
+  if (quizIndex > 0) questionEl.focus();
 
   const optionsWrap = document.getElementById("quiz-options");
   optionsWrap.innerHTML = q.options
@@ -2548,14 +2569,14 @@ function renderBrands(showAll = false) {
   const previewCount = featured.length || BRANDS_PREVIEW_COUNT_DEFAULT;
 
   const brandButton = (b) => `<button type="button" data-brand="${escapeAttr(b)}"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose hover:text-rose transition"><span>${escapeHtml(b)}</span></button>`;
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose hover:text-rose-ink transition"><span>${escapeHtml(b)}</span></button>`;
 
   const hasMore = !showAll && brands.length > previewCount;
   const visibleBrands = hasMore ? brands.slice(0, previewCount) : brands;
 
   const moreTile = hasMore
     ? `<button type="button" id="brands-show-more"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose hover:text-rose transition">Y más</button>`
+        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose hover:text-rose-ink transition">Y más</button>`
     : "";
 
   document.getElementById("brands-grid").innerHTML = visibleBrands.map(brandButton).join("") + moreTile;
@@ -2682,7 +2703,7 @@ function renderConcernTiles() {
       (c) => `
       <button type="button" data-concern="${escapeAttr(c.key)}"
         class="flex flex-col items-center gap-1.5 rounded-2xl border border-ink/10 bg-white/60 py-4 px-2 hover:border-rose/40 hover:shadow-md transition">
-        <span class="text-2xl">${c.emoji}</span>
+        <span class="text-2xl" aria-hidden="true">${c.emoji}</span>
         <span class="text-xs font-semibold text-ink text-center leading-tight">${escapeHtml(c.label)}</span>
       </button>`
     )
@@ -2774,6 +2795,11 @@ function renderSearchResults(query) {
 
   const grid = document.getElementById("search-results-grid");
   const empty = document.getElementById("search-results-empty");
+  announce(
+    items.length
+      ? `${items.length} ${items.length === 1 ? "producto" : "productos"} para "${query.trim()}"`
+      : `Sin resultados para "${query.trim()}"`
+  );
   if (!items.length) {
     grid.innerHTML = "";
     empty.classList.remove("hidden");
@@ -2978,8 +3004,14 @@ function activeCartIsAmericano() {
 
 function updateHeaderCartBadge() {
   const useAmericano = activeCartIsAmericano();
-  document.getElementById("cart-count").textContent = useAmericano ? americanoCartCount() : cartCount();
-  document.getElementById("cart-total-header").textContent = formatPrice(useAmericano ? americanoCartTotal() : cartTotal());
+  const count = useAmericano ? americanoCartCount() : cartCount();
+  const totalText = formatPrice(useAmericano ? americanoCartTotal() : cartTotal());
+  document.getElementById("cart-count").textContent = count;
+  document.getElementById("cart-total-header").textContent = totalText;
+  document.getElementById("cart-toggle").setAttribute(
+    "aria-label",
+    `Abrir carrito, ${count} ${count === 1 ? "producto" : "productos"}, ${totalText}`
+  );
 }
 
 function renderAmericanoCart() {
@@ -3182,14 +3214,14 @@ function acknowledgeCartChange(wrapId, id) {
   if (row && row.animate) {
     row.animate(
       [{ backgroundColor: "rgba(246, 202, 219, 0.75)" }, { backgroundColor: "rgba(246, 202, 219, 0)" }],
-      { duration: 1100, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+      { duration: 500, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
     );
   }
   const badge = document.getElementById("cart-count");
   if (badge && badge.animate && !prefersReducedMotion.matches) {
     badge.animate(
       [{ transform: "scale(1)" }, { transform: "scale(1.35)" }, { transform: "scale(1)" }],
-      { duration: 320, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+      { duration: 200, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
     );
   }
 }
@@ -3581,6 +3613,14 @@ function onDialogChange(d) {
     d.returnFocus = null;
     if (target && target.isConnected && !target.closest("[inert]")) {
       target.focus({ preventScroll: true });
+    } else {
+      // El disparador se volvió a pintar mientras el diálogo estaba abierto:
+      // el foco va a un punto estable en vez de caer en el body.
+      const main = document.getElementById("main");
+      if (main) {
+        main.setAttribute("tabindex", "-1");
+        main.focus({ preventScroll: true });
+      }
     }
   }
 }
@@ -3644,6 +3684,42 @@ initDialogs();
    Se vacía y se vuelve a llenar para que un mensaje repetido -- por
    ejemplo, agregar dos veces el mismo producto -- se lea otra vez. */
 let announceTimer = null;
+const MP_CART_BACKUP_KEY = "alpacca_mp_cart_backup";
+
+/* Mercado Pago regresa a la página con ?mp=success | failure | pending. Si
+   el pago no se completó, se restaura el carrito que se guardó antes de
+   redirigir; si sí se completó o está pendiente, el carrito queda vacío y el
+   pedido se sigue en "Mi cuenta". Después se quita el parámetro de la URL
+   para que recargar no vuelva a mostrar el aviso. */
+function handleMercadoPagoReturn() {
+  const mp = new URLSearchParams(window.location.search).get("mp");
+  if (!mp) return;
+
+  let backup = null;
+  try {
+    backup = localStorage.getItem(MP_CART_BACKUP_KEY);
+    localStorage.removeItem(MP_CART_BACKUP_KEY);
+  } catch (storageErr) {
+    backup = null;
+  }
+
+  if (mp === "failure" && backup) {
+    try {
+      cart = JSON.parse(backup) || {};
+    } catch (parseErr) {
+      cart = {};
+    }
+    saveCart();
+    renderCart();
+    openCart();
+    showCartError("cart-error", "El pago no se completó. Tu carrito está de vuelta; puedes intentar de nuevo.");
+  } else if (mp === "success" || mp === "pending") {
+    announce("Recibimos tu pago. Revisa el estado de tu pedido en Mi cuenta; te avisamos por WhatsApp cuando esté confirmado.");
+  }
+
+  history.replaceState(null, "", window.location.pathname);
+}
+
 function announce(message) {
   const region = document.getElementById("live-region");
   if (!region || !message) return;
@@ -3694,15 +3770,16 @@ async function sendQuote(e) {
   // pedido sin él (el input ya tiene "required", esto es por si acaso).
   const fileInput = document.getElementById("proof-file-input");
   const file = fileInput.files && fileInput.files[0];
-  if (!file) {
-    showCartError("cart-error", "Sube tu comprobante de transferencia para confirmar el pedido.");
+  const proofMessage = !file ? "Sube tu comprobante de transferencia para confirmar el pedido." : validateProofFile(file);
+  if (proofMessage) {
+    showCartError("cart-error", proofMessage);
+    fileInput.setAttribute("aria-invalid", "true");
+    fileInput.setAttribute("aria-describedby", "cart-error");
+    fileInput.focus();
     return;
   }
-  const proofError = validateProofFile(file);
-  if (proofError) {
-    showCartError("cart-error", proofError);
-    return;
-  }
+  fileInput.removeAttribute("aria-invalid");
+  fileInput.removeAttribute("aria-describedby");
 
   const sendBtn = document.getElementById("send-quote");
   const originalLabel = sendBtn.innerHTML;
@@ -3718,6 +3795,12 @@ async function sendQuote(e) {
     return;
   }
 
+  // El pedido ya existe: el carrito se vacía ya, no al terminar la subida,
+  // para que una recarga durante la subida no registre el mismo pedido otra vez.
+  cart = {};
+  saveCart();
+  renderCart();
+
   sendBtn.innerHTML = "<span>Subiendo comprobante…</span>";
   let proofFailed = false;
   try {
@@ -3729,13 +3812,35 @@ async function sendQuote(e) {
   sendBtn.disabled = false;
   sendBtn.innerHTML = originalLabel;
 
-  cart = {};
-  saveCart();
-  renderCart();
   document.getElementById("quote-form").reset();
   // No se cierra el carrito aquí -- se queda abierto mostrando el panel
   // de "pedido enviado" (ver showQuoteSuccess).
   showQuoteSuccess(orderId, proofFailed);
+}
+
+const ORDER_IDEM_STORAGE_KEY = "alpacca_order_idem";
+
+/* Clave de idempotencia para el intento de pedido actual. Se reutiliza si el
+   carrito y los datos no cambiaron (así un reenvío tras una recarga devuelve
+   el mismo pedido), y se genera una nueva si cambiaron. */
+function orderIdempotencyKey(fingerprint) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ORDER_IDEM_STORAGE_KEY) || "null");
+    if (saved && saved.fp === fingerprint && saved.key) return saved.key;
+    const key = crypto.randomUUID ? crypto.randomUUID() : `k${Date.now()}${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(ORDER_IDEM_STORAGE_KEY, JSON.stringify({ key, fp: fingerprint }));
+    return key;
+  } catch (storageErr) {
+    return crypto.randomUUID ? crypto.randomUUID() : `k${Date.now()}${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+function clearOrderIdempotencyKey() {
+  try {
+    localStorage.removeItem(ORDER_IDEM_STORAGE_KEY);
+  } catch (storageErr) {
+    // Sin almacenamiento no hay nada que limpiar.
+  }
 }
 
 /* Registra el pedido para que aparezca en /admin.html y, cuando
@@ -3750,11 +3855,13 @@ function recordTransferOrder() {
     const shipping = shippingEstimate(weight, c.cp, cartWeightNonStock());
     const shippingMXN = shipping ? shipping.totalMXN : 0;
 
+    const fingerprint = JSON.stringify({ source: "transferencia", c, items, subtotal, shippingMXN, weight });
     return fetch("/.netlify/functions/create-order", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getCustomerToken()}` },
       body: JSON.stringify({
         source: "transferencia",
+        idempotencyKey: orderIdempotencyKey(fingerprint),
         customer: c,
         items,
         subtotal,
@@ -3774,6 +3881,7 @@ function recordTransferOrder() {
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.orderId) throw new Error(data.error || "");
+        clearOrderIdempotencyKey();
         return { orderId: data.orderId };
       })
       .catch((err) => {
@@ -3869,7 +3977,7 @@ function uploadProofFile(orderId, file) {
       const base64 = String(reader.result).split(",")[1] || "";
       fetch("/.netlify/functions/upload-payment-proof", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getCustomerToken()}` },
         body: JSON.stringify({ orderId, filename: file.name, contentType: file.type, dataBase64: base64 }),
       })
         .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
@@ -3955,11 +4063,13 @@ async function payWithMercadoPago() {
     const shippingMXNBase = shipping ? shipping.totalMXN : 0;
     const subtotalBase = cartTotal();
 
+    const mpFingerprint = JSON.stringify({ source: "mercadopago", c, items: cartItemsForOrder({ useTarjetaPrice: true }), subtotal, shippingMXN, weight });
     const res = await fetch("/.netlify/functions/create-order", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getCustomerToken()}` },
       body: JSON.stringify({
         source: "mercadopago",
+        idempotencyKey: orderIdempotencyKey(mpFingerprint),
         customer: c,
         items: cartItemsForOrder({ useTarjetaPrice: true }),
         subtotal,
@@ -3979,7 +4089,19 @@ async function payWithMercadoPago() {
     if (!res.ok || !data.redirectUrl) {
       throw new Error(data.error || "");
     }
+    clearOrderIdempotencyKey();
 
+    // El pedido ya existe en el servidor. Se vacía el carrito para que
+    // volver atrás o recargar no permita pagar dos veces; una copia queda
+    // guardada por si el pago no se completa (ver handleMercadoPagoReturn).
+    try {
+      localStorage.setItem(MP_CART_BACKUP_KEY, JSON.stringify(cart));
+    } catch (storageErr) {
+      // Sin almacenamiento, se pierde solo la copia de respaldo.
+    }
+    cart = {};
+    saveCart();
+    renderCart();
     window.location.href = data.redirectUrl;
   } catch (err) {
     console.error(err);
@@ -4087,6 +4209,13 @@ function showAccountView(view) {
   ACCOUNT_VIEWS.forEach((v) => {
     document.getElementById(`account-view-${v}`).classList.toggle("hidden", v !== view);
   });
+  const heading = document.querySelector(`#account-view-${view} h2, #account-view-${view} h3`);
+  // Solo si el encabezado está visible (el panel está abierto): si no, el
+  // foco se movería a algo oculto.
+  if (heading && heading.offsetParent !== null) {
+    heading.setAttribute("tabindex", "-1");
+    heading.focus();
+  }
 }
 
 /* Al abrir el panel: si hay sesión, muestra "Mis pedidos" (y los carga);
@@ -4179,6 +4308,7 @@ async function handleForgotSubmit(e) {
   } finally {
     document.getElementById("forgot-form").reset();
     successEl.classList.remove("hidden");
+    announce(successEl.textContent);
     btn.disabled = false;
   }
 }
@@ -4345,6 +4475,19 @@ function myOrderCardHTML(o) {
   const shippingMXN = o.shippingMXN || 0;
   const canReorder = (o.items || []).length > 0;
 
+  // Pedido por transferencia sin comprobante: se puede subir desde aquí si
+  // la página se recargó durante la subida o si falló (ver sendQuote).
+  const needsProof = o.status === "pending" && !o.hasPaymentProof && (o.source === "transferencia" || o.source === "whatsapp");
+  const proofBlock = needsProof
+    ? `<div class="pt-2 border-t border-ink/10 space-y-2">
+        <p class="text-xs text-ink/75">Este pedido todavía no tiene comprobante de transferencia.</p>
+        <input type="file" accept="image/*,application/pdf" data-my-proof-file="${escapeAttr(o.id)}"
+          aria-label="Comprobante de transferencia de este pedido" class="text-xs w-full" />
+        <button type="button" data-my-proof-btn="${escapeAttr(o.id)}"
+          class="tap w-full rounded-full bg-rose text-cream text-xs font-semibold py-2 hover:bg-rose/90 transition">📤 Subir comprobante</button>
+        <p data-my-proof-status="${escapeAttr(o.id)}" class="text-xs"></p>
+      </div>`
+    : "";
   return `
     <details class="rounded-xl border border-ink/10 overflow-hidden bg-white/40">
       <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-3 p-3 hover:bg-ink/5 transition">
@@ -4374,6 +4517,7 @@ function myOrderCardHTML(o) {
             </button>` : ""}
           ${orderWhatsAppButtonHTML(o)}
         </div>
+        ${proofBlock}
       </div>
     </details>`;
 }
@@ -4435,7 +4579,7 @@ function renderAccountOrdersStats(orders) {
   el.innerHTML = ACCOUNT_ORDERS_STATS.map((s) => {
     const active = accountOrdersStatusFilter === s.key;
     return `
-      <button type="button" data-stat-filter="${s.key}"
+      <button type="button" data-stat-filter="${s.key}" aria-pressed="${active}"
         class="flex flex-col items-center gap-0.5 rounded-lg py-2 transition ${active ? "bg-rose text-cream" : "bg-ink/5 text-ink hover:bg-ink/10"}">
         <span class="text-base font-bold">${counts[s.key]}</span>
         <span class="text-xs font-semibold ${active ? "text-cream/90" : "text-ink/75"}">${s.icon} ${s.label}</span>
@@ -4456,7 +4600,7 @@ function renderAccountOrdersRangeChips() {
   el.innerHTML = ACCOUNT_ORDERS_RANGES.map((r) => {
     const active = accountOrdersRangeFilter === r.key;
     return `
-      <button type="button" data-range-filter="${r.key}"
+      <button type="button" data-range-filter="${r.key}" aria-pressed="${active}"
         class="rounded-full px-3 py-1.5 text-xs font-semibold transition ${active ? "bg-ink text-cream" : "bg-ink/5 text-ink/75 hover:bg-ink/10"}">
         ${r.label}
       </button>`;
@@ -4493,8 +4637,41 @@ function applyAccountOrdersFilter() {
       reorderFromOrder(btn.dataset.reorder);
     });
   });
+  listEl.querySelectorAll("[data-my-proof-btn]").forEach((btn) => {
+    btn.addEventListener("click", () => uploadMyOrderProof(btn.dataset.myProofBtn));
+  });
 
   filteredEmptyEl.classList.toggle("hidden", sorted.length > 0 || myOrdersCache.length === 0);
+}
+
+/* Sube el comprobante de un pedido desde Mi cuenta (ver myOrderCardHTML). */
+async function uploadMyOrderProof(orderId) {
+  const input = document.querySelector(`[data-my-proof-file="${orderId}"]`);
+  const btn = document.querySelector(`[data-my-proof-btn="${orderId}"]`);
+  const statusEl = document.querySelector(`[data-my-proof-status="${orderId}"]`);
+  if (!input || !btn || !statusEl) return;
+  const show = (msg, ok) => {
+    statusEl.textContent = msg;
+    statusEl.className = `text-xs ${ok ? "text-ink/75" : "text-rose-ink"}`;
+  };
+  const file = input.files && input.files[0];
+  if (!file) return show("Selecciona una imagen o PDF primero.", false);
+  const proofError = validateProofFile(file);
+  if (proofError) return show(proofError, false);
+
+  btn.disabled = true;
+  btn.textContent = "Subiendo…";
+  try {
+    await uploadProofFile(orderId, file);
+    show("✅ ¡Comprobante recibido! Te confirmaremos tu pedido pronto.", true);
+    btn.textContent = "✅ Comprobante enviado";
+    const order = myOrdersCache.find((o) => o.id === orderId);
+    if (order) order.hasPaymentProof = true;
+  } catch (err) {
+    show(friendlyError(err, "No pudimos subir tu comprobante. Intenta de nuevo en un momento."), false);
+    btn.disabled = false;
+    btn.textContent = "📤 Subir comprobante";
+  }
 }
 
 /* Busca cada producto del pedido en el catálogo actual (por SKU) y lo
@@ -4694,6 +4871,7 @@ function initAccountPanel() {
 
 document.addEventListener("DOMContentLoaded", () => {
   window.scrollTo(0, 0);
+  handleMercadoPagoReturn();
   document.getElementById("year").textContent = new Date().getFullYear();
 
   document.getElementById("cart-toggle").addEventListener("click", () => {
