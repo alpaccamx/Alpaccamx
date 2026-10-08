@@ -267,7 +267,12 @@
       Boolean(search) && pendingOrders.length > 0
     );
 
-    renderHistory(filteredOrders);
+    // Los "por confirmar" ya salen arriba con sus botones; si también se
+    // pintan en "Todos tus pedidos", cada uno aparece dos veces.
+    renderHistory(
+      filteredOrders.filter((o) => o.status !== "pending"),
+      filteredOrders.some((o) => o.status === "pending")
+    );
     const total = allOrders.length;
     filterCountEl.textContent = filteredOrders.length === total
       ? `${total} pedido${total === 1 ? "" : "s"}`
@@ -314,9 +319,12 @@
     wireSupplierNoteButtons(ordersEl);
   }
 
-  function renderHistory(orders) {
+  function renderHistory(orders, pendingShownAbove = false) {
     historyTitleEl.style.display = "block";
     if (!orders.length) {
+      historyEmptyEl.textContent = pendingShownAbove
+        ? "Los pedidos por confirmar que coinciden aparecen arriba."
+        : "Todavía no tienes pedidos.";
       historyEmptyEl.style.display = "block";
       historyEl.innerHTML = "";
       return;
