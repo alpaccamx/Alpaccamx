@@ -252,12 +252,14 @@ exports.handler = async (event) => {
   }
 
   // "URL" de Netlify SIEMPRE apunta al dominio de producción, incluso en una
-  // Deploy Preview o un branch deploy -- así que el webhook y las páginas de
-  // regreso terminaban avisándole a producción de un pago de otro ambiente.
-  // "DEPLOY_PRIME_URL" sí es la URL de ESTE deploy (en producción, es la
-  // misma que "URL").
-  const siteUrl = (process.env.DEPLOY_PRIME_URL || process.env.URL || "https://alpacca.mx").replace(/\/$/, "");
-  console.log("DEBUG siteUrl resolution:", JSON.stringify({ DEPLOY_PRIME_URL: process.env.DEPLOY_PRIME_URL, URL: process.env.URL, DEPLOY_URL: process.env.DEPLOY_URL, CONTEXT: process.env.CONTEXT, resolved: siteUrl }));
+  // Deploy Preview o un branch deploy -- y en las funciones (no Edge
+  // Functions) de este sitio ni "DEPLOY_PRIME_URL" ni "DEPLOY_URL" llegan
+  // configuradas en tiempo de ejecución (confirmado con un log de
+  // diagnóstico). Así que el webhook y las páginas de regreso terminaban
+  // avisándole a producción de un pago de otro ambiente. La forma confiable
+  // de saber en qué ambiente estamos es leer el host de la propia petición.
+  const requestHost = (event.headers["x-forwarded-host"] || event.headers.host || "").trim();
+  const siteUrl = (requestHost ? `https://${requestHost}` : process.env.URL || "https://alpacca.mx").replace(/\/$/, "");
   const mpItems = order.items.map((it) => ({
     title: it.nombre.slice(0, 250),
     quantity: it.qty,
