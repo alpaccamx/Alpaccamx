@@ -116,7 +116,7 @@
 <!-- Resultados de búsqueda -->
 <section id="search-results-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="font-logo text-xl sm:text-2xl text-ink" id="search-results-title"></h2>
+    <h2 class="font-display text-xl sm:text-2xl text-ink" id="search-results-title"></h2>
     <button id="search-results-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar búsqueda</button>
   </div>
   <div id="search-results-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
@@ -125,9 +125,14 @@
 
 <!-- Catálogo completo -->
 <section id="catalog-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="font-logo text-xl sm:text-2xl text-ink">Catálogo completo</h2>
-    <button id="catalog-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar catálogo</button>
+  <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
+    <h2 class="font-display text-xl sm:text-2xl text-ink">Catálogo completo</h2>
+    <div class="flex items-center gap-3">
+      <button id="shipping-times-open" type="button" class="tap inline-flex items-center gap-1.5 rounded-full border border-lilac/50 bg-lilac/10 text-ink text-xs font-semibold px-3 py-1.5 hover:bg-lilac/20 transition">
+        🚚 Conoce nuestros tiempos de entrega
+      </button>
+      <button id="catalog-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar catálogo</button>
+    </div>
   </div>
   <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   <p id="catalog-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles por el momento.</p>
@@ -136,7 +141,7 @@
 <!-- Mis favoritos -->
 <section id="wishlist-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="font-logo text-xl sm:text-2xl text-ink">💗 Mis favoritos</h2>
+    <h2 class="font-display text-xl sm:text-2xl text-ink">💗 Mis favoritos</h2>
     <button id="wishlist-clear" type="button" aria-label="Cerrar favoritos" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
   <div id="wishlist-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
@@ -146,7 +151,7 @@
 <!-- En stock: entrega inmediata -->
 <section id="stock-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="font-logo text-xl sm:text-2xl text-ink">✅ En stock — entrega inmediata</h2>
+    <h2 class="font-display text-xl sm:text-2xl text-ink">✅ Stock en México 🇲🇽</h2>
     <button id="stock-clear" type="button" aria-label="Cerrar en stock" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
   <p class="text-xs text-ink/75 -mt-2 mb-4">Estos productos ya están en México, listos para enviarse — no pagan envío desde Corea.</p>
@@ -157,7 +162,7 @@
 <!-- Productos de una marca -->
 <section id="brand-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="font-logo text-xl sm:text-2xl text-ink" id="brand-products-title"></h2>
+    <h2 class="font-display text-xl sm:text-2xl text-ink" id="brand-products-title"></h2>
     <button id="brand-products-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Ver todas las marcas</button>
   </div>
   <div id="brand-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
@@ -167,7 +172,7 @@
 <!-- Productos de una categoría -->
 <section id="category-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="font-logo text-xl sm:text-2xl text-ink" id="category-products-title"></h2>
+    <h2 class="font-display text-xl sm:text-2xl text-ink" id="category-products-title"></h2>
     <button id="category-products-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar categoría</button>
   </div>
   <div id="category-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
@@ -177,7 +182,7 @@
 <!-- Productos de una preocupación de piel -->
 <section id="concern-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="font-logo text-xl sm:text-2xl text-ink" id="concern-products-title"></h2>
+    <h2 class="font-display text-xl sm:text-2xl text-ink" id="concern-products-title"></h2>
     <button id="concern-products-clear" type="button" aria-label="Cerrar preocupación" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
   <div id="concern-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
@@ -187,7 +192,7 @@
 <!-- Productos de un país -->
 <section id="country-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="font-logo text-xl sm:text-2xl text-ink" id="country-products-title"></h2>
+    <h2 class="font-display text-xl sm:text-2xl text-ink" id="country-products-title"></h2>
     <button id="country-products-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar país</button>
   </div>
   <div id="country-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
@@ -202,8 +207,7 @@
   <div class="relative rounded-3xl border border-ink/10 bg-white/40 p-4 sm:p-8">
     <button id="americano-close" type="button" class="tap absolute top-4 right-4 sm:top-6 sm:right-6 text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
     <div class="mb-2 pr-14">
-      <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Mayoreo</p>
-      <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1" id="americano-section-title">Cosmético Americano</h2>
+      <h2 class="font-display text-2xl sm:text-3xl text-ink" id="americano-section-title">Cosmético Americano</h2>
       <p class="text-sm text-ink/75 mt-1 max-w-xl" id="americano-min-order-note"></p>
       <p class="text-sm text-ink/75 mt-1 max-w-xl mb-6" id="americano-section-subtitle"></p>
     </div>
@@ -217,7 +221,7 @@
 <aside id="mobile-menu" role="dialog" aria-modal="true" aria-labelledby="mobile-menu-title" tabindex="-1" inert
   class="fixed top-0 left-0 h-full w-full bg-cream z-50 shadow-2xl -translate-x-full drawer flex flex-col sm:hidden">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
-    <h2 id="mobile-menu-title" class="font-logo text-2xl text-ink">Menú</h2>
+    <h2 id="mobile-menu-title" class="font-display text-2xl text-ink">Menú</h2>
     <button id="menu-close" type="button" aria-label="Cerrar menú" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
   </div>
   <nav id="mobile-menu-items" class="flex-1 overflow-y-auto">
@@ -259,8 +263,8 @@
   <div class="rounded-2xl bg-ink text-cream p-5 sm:p-6">
     <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
       <div>
-        <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-blush">⏰ Oferta por tiempo limitado</p>
-        <h2 class="font-logo text-xl sm:text-2xl mt-0.5" id="time-deal-title"></h2>
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-rose/20 text-blush text-xs font-semibold px-3 py-1">⏰ Por tiempo limitado</span>
+        <h2 class="font-display text-xl sm:text-2xl mt-2" id="time-deal-title"></h2>
         <p class="text-xs sm:text-sm text-cream/60 mt-0.5" id="time-deal-subtitle"></p>
       </div>
       <div id="time-deal-countdown" class="flex gap-2">
@@ -277,8 +281,7 @@
      reales que pintar (ver renderAll() en app.js). -->
 <section id="catalog-loading-skeleton" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
   <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Un momento</p>
-    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Preparando tu catálogo…</h2>
+    <h2 class="font-display text-2xl sm:text-3xl text-ink">Preparando tu catálogo…</h2>
   </div>
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
     <div class="animate-pulse rounded-2xl bg-white/60 border border-ink/10 overflow-hidden">
@@ -335,9 +338,9 @@
 <!-- Featured collections (tabs) -->
 <section id="featured-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">
   <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Elegidos por nuestros clientes</p>
-    <div class="flex items-center justify-center gap-2 flex-wrap mt-1">
-      <h2 class="font-logo text-2xl sm:text-3xl text-ink">Best Seller</h2>
+    <div class="flex items-center justify-center gap-2.5 flex-wrap">
+      <h2 class="font-display text-2xl sm:text-3xl text-ink">Best Seller</h2>
+      <span class="inline-flex items-center rounded-full bg-rose/10 text-rose-ink text-xs font-semibold px-2.5 py-1">Las más pedidas</span>
     </div>
   </div>
   <div id="featured-top" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
@@ -347,53 +350,62 @@
 
 <!-- Por qué elegir Alpacca -->
 <section id="why-alpacca" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
-  <div class="text-center mb-8">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Por qué Alpacca</p>
-    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">¿Por qué elegir Alpacca?</h2>
-  </div>
-  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
-    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
-      <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose/10 text-rose" aria-hidden="true">
-        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>
-      </span>
-      <p class="font-semibold text-ink mt-2">Catálogo seleccionado para ti</p>
-      <p class="text-sm text-ink/75 mt-1">Marcas coreanas y asiáticas que sabemos que se venden, no un catálogo genérico.</p>
-    </div>
-    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
-      <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose/10 text-rose" aria-hidden="true">
-        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="m9 12 2 2 4-4"/></svg>
-      </span>
-      <p class="font-semibold text-ink mt-2">Sin aranceles en México</p>
-      <p class="text-sm text-ink/75 mt-1">Absorbemos la importación a México: te ahorras todo el estrés de importar.</p>
-    </div>
-    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
-      <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose/10 text-rose" aria-hidden="true">
-        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-      </span>
-      <p class="font-semibold text-ink mt-2">Te ayudamos con tu pedido</p>
-      <p class="text-sm text-ink/75 mt-1">Mae revisa cada pedido y te acompaña por WhatsApp de principio a fin.</p>
-      <a href="#" id="why-alpacca-whatsapp" target="_blank" rel="noopener"
-        class="tap inline-block mt-2 text-xs font-semibold text-rose-ink hover:underline">Habla con Mae →<span class="sr-only"> (se abre en una pestaña nueva)</span></a>
-    </div>
-    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
-      <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose/10 text-rose" aria-hidden="true">
-        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
-      </span>
-      <p class="font-semibold text-ink mt-2">Mayoreo real</p>
-      <p class="text-sm text-ink/75 mt-1">Precios y presentaciones pensados para revender y obtener ganancias.</p>
-    </div>
-    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5">
-      <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose/10 text-rose" aria-hidden="true">
-        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
-      </span>
-      <p class="font-semibold text-ink mt-2">Logística resuelta</p>
-      <p class="text-sm text-ink/75 mt-1">Coordinamos compra, envío internacional y entrega hasta la puerta de tu casa o negocio.</p>
-    </div>
-    <div class="rounded-2xl bg-white/60 border border-ink/10 p-5 flex items-start gap-3">
-      <img src="./assets/mascot.webp" width="192" height="192" loading="lazy" decoding="async" alt="" aria-hidden="true" class="w-8 h-8 object-contain flex-shrink-0" />
+  <h2 class="font-display text-2xl sm:text-3xl text-ink mb-8">¿Por qué elegir Alpacca?</h2>
+  <div class="grid sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] gap-8 sm:gap-14 items-start">
+    <div class="flex sm:flex-col items-center sm:items-start gap-4 sm:gap-1">
+      <img src="./assets/mascot.webp" width="192" height="192" loading="lazy" decoding="async" alt="" aria-hidden="true" class="w-14 h-14 sm:w-16 sm:h-16 object-contain flex-shrink-0" />
       <div>
-        <p class="font-semibold text-ink">+4 años en esto</p>
-        <p class="text-sm text-ink/75 mt-1">Ayudamos a decenas de negocios a surtirse y crecer.</p>
+        <span class="font-logo text-5xl sm:text-6xl text-rose-deep leading-none block">+4</span>
+        <p class="font-semibold text-ink mt-2">años ayudando a negocios a surtirse y crecer</p>
+      </div>
+    </div>
+    <div class="divide-y divide-ink/10 border-t border-b border-ink/10 sm:border-t-0 sm:border-b-0">
+      <div class="flex gap-4 py-4 sm:pt-0">
+        <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-rose/10 text-rose shrink-0" aria-hidden="true">
+          <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>
+        </span>
+        <div>
+          <p class="font-semibold text-ink">Catálogo seleccionado para ti</p>
+          <p class="text-sm text-ink/75 mt-0.5">Marcas coreanas y asiáticas que sabemos que se venden, no un catálogo genérico.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 py-4">
+        <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-rose/10 text-rose shrink-0" aria-hidden="true">
+          <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="m9 12 2 2 4-4"/></svg>
+        </span>
+        <div>
+          <p class="font-semibold text-ink">Sin aranceles en México</p>
+          <p class="text-sm text-ink/75 mt-0.5">Absorbemos la importación a México: te ahorras todo el estrés de importar.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 py-4">
+        <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-rose/10 text-rose shrink-0" aria-hidden="true">
+          <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        </span>
+        <div>
+          <p class="font-semibold text-ink">Te ayudamos con tu pedido</p>
+          <p class="text-sm text-ink/75 mt-0.5">Mae revisa cada pedido y te acompaña por WhatsApp de principio a fin.
+            <a href="#" id="why-alpacca-whatsapp" target="_blank" rel="noopener" class="tap font-semibold text-rose-ink hover:underline whitespace-nowrap">Habla con Mae →<span class="sr-only"> (se abre en una pestaña nueva)</span></a>
+          </p>
+        </div>
+      </div>
+      <div class="flex gap-4 py-4">
+        <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-rose/10 text-rose shrink-0" aria-hidden="true">
+          <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+        </span>
+        <div>
+          <p class="font-semibold text-ink">Mayoreo real</p>
+          <p class="text-sm text-ink/75 mt-0.5">Precios y presentaciones pensados para revender y obtener ganancias.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 py-4 sm:pb-0">
+        <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-rose/10 text-rose shrink-0" aria-hidden="true">
+          <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+        </span>
+        <div>
+          <p class="font-semibold text-ink">Logística resuelta</p>
+          <p class="text-sm text-ink/75 mt-0.5">Coordinamos compra, envío internacional y entrega hasta la puerta de tu casa o negocio.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -402,7 +414,7 @@
 <!-- Banner promocional -->
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14">
   <div class="rounded-3xl bg-lilac-band text-cream px-6 sm:px-12 py-12 sm:py-16 text-center">
-    <h2 id="promo-title" class="font-logo text-2xl sm:text-4xl"></h2>
+    <h2 id="promo-title" class="font-display text-2xl sm:text-4xl"></h2>
     <p id="promo-subtitle" class="mt-2 text-cream max-w-lg mx-auto"></p>
     <a id="promo-cta" href="#" class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition active:scale-[0.97]"></a>
   </div>
@@ -411,8 +423,7 @@
 <!-- Cómo comprar -->
 <section id="how-to-buy" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
   <div class="text-center mb-8">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Así de sencillo</p>
-    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Comprar en Alpacca es fácil</h2>
+    <h2 class="font-display text-2xl sm:text-3xl text-ink">Comprar en Alpacca es fácil</h2>
   </div>
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
     <div>
@@ -441,8 +452,7 @@
 <!-- Marcas -->
 <section id="brands-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Cuidado con cariño</p>
-    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Marcas en el catálogo</h2>
+    <h2 class="font-display text-2xl sm:text-3xl text-ink">Marcas en el catálogo</h2>
   </div>
   <div id="brands-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
     <!-- marcas injected by JS -->
@@ -452,8 +462,7 @@
 <!-- Explora por preocupación de piel -->
 <section id="concerns-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Ve directo a lo que buscas</p>
-    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Explora por preocupación</h2>
+    <h2 class="font-display text-2xl sm:text-3xl text-ink">Explora por preocupación</h2>
   </div>
   <div id="concerns-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-3">
     <!-- tiles injected by JS -->
@@ -463,8 +472,8 @@
 <!-- Explora por tipo de piel (herramienta de ayuda, no es el foco principal) -->
 <section id="skintype-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="text-center mb-6">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Solo toma un minuto</p>
-    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">¿Cuál es tu tipo de piel?</h2>
+    <h2 class="font-display text-2xl sm:text-3xl text-ink">¿Cuál es tu tipo de piel?</h2>
+    <p class="text-sm text-ink/75 mt-1">Solo toma un minuto.</p>
   </div>
 
   <!-- Quiz -->
@@ -480,8 +489,8 @@
   <div id="skin-quiz-result" class="hidden">
     <div class="text-center mb-8">
       <span id="quiz-result-emoji" class="text-4xl block mb-2"></span>
-      <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Tu tipo de piel es</p>
-      <h3 class="font-logo text-2xl sm:text-3xl text-ink mt-1" id="quiz-result-label"></h3>
+      <p class="text-sm text-ink/75">Tu tipo de piel es</p>
+      <h3 class="font-display text-2xl sm:text-3xl text-ink mt-0.5" id="quiz-result-label"></h3>
       <button id="quiz-retake" type="button" class="tap mt-3 text-xs text-ink/75 hover:text-ink underline">Repetir el quiz</button>
     </div>
     <div id="skintype-row" class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"></div>
@@ -492,8 +501,7 @@
 <!-- Preguntas frecuentes -->
 <section id="faq" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
   <div class="text-center mb-8">
-    <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink/75">Antes de comprar</p>
-    <h2 class="font-logo text-2xl sm:text-3xl text-ink mt-1">Preguntas frecuentes</h2>
+    <h2 class="font-display text-2xl sm:text-3xl text-ink">Preguntas frecuentes</h2>
   </div>
   <div class="max-w-2xl mx-auto space-y-2.5" id="faq-list">
     <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden" open>
@@ -522,7 +530,8 @@
         <span class="font-semibold text-ink">¿Cuánto tarda en llegar mi pedido?</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/75 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-4">Depende del producto: lo que ya está en stock en México (✅ En stock) se envía de inmediato; lo que viene directo desde Corea tarda más porque incluye el envío internacional. Te damos un estimado de envío antes de pagar.</p>
+      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-2">Depende del producto: lo que ya está en stock en México (✅ Stock en México 🇲🇽) se envía de inmediato; lo que viene directo desde Corea tarda más porque incluye el envío internacional. Te damos un estimado de envío antes de pagar.</p>
+      <img src="./assets/shipping-korea-process.webp" alt="Proceso de envío de tu pedido desde nuestra bodega en Corea: 1) Orden (1-2 días hábiles), 2) Envío a USA (2-3 días hábiles), 3) Cruce a México (1-2 días hábiles), 4) Envío (1 día hábil), 5) Entrega (2-5 días hábiles por envío terrestre, 1-2 días hábiles por envío express). Los tiempos son estimados y pueden variar." loading="lazy" class="w-full h-auto rounded-xl px-4 pb-4" />
     </details>
     <details class="group rounded-xl border border-ink/10 bg-white/40 overflow-hidden">
       <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-3 p-4 hover:bg-ink/5 transition">
@@ -619,7 +628,7 @@
 <aside id="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-drawer-title" tabindex="-1" inert
   class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full drawer flex flex-col">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
-    <h2 id="cart-drawer-title" class="font-logo text-xl text-ink">Tu carrito</h2>
+    <h2 id="cart-drawer-title" class="font-display text-xl text-ink">Tu carrito</h2>
     <button id="cart-close" type="button" aria-label="Cerrar carrito" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
   </div>
   <p id="cart-switch-notice" class="hidden text-xs text-rose-ink text-center px-5 pt-3"></p>
@@ -825,7 +834,7 @@
 <aside id="account-drawer" role="dialog" aria-modal="true" aria-labelledby="account-drawer-title" tabindex="-1" inert
   class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full drawer flex flex-col">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
-    <h2 id="account-drawer-title" class="font-logo text-xl text-ink">Mi cuenta</h2>
+    <h2 id="account-drawer-title" class="font-display text-xl text-ink">Mi cuenta</h2>
     <button id="account-close" type="button" aria-label="Cerrar" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
   </div>
 
@@ -1013,7 +1022,7 @@
 <aside id="americano-cart-drawer" role="dialog" aria-modal="true" aria-labelledby="americano-cart-title" tabindex="-1" inert
   class="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-cream z-50 shadow-2xl translate-x-full drawer flex flex-col">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
-    <h2 id="americano-cart-title" class="font-logo text-xl text-ink">Cosmético Americano — tu pedido</h2>
+    <h2 id="americano-cart-title" class="font-display text-xl text-ink">Cosmético Americano — tu pedido</h2>
     <button id="americano-cart-close" type="button" aria-label="Cerrar carrito" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
   </div>
   <p id="americano-cart-switch-notice" class="hidden text-xs text-rose-ink text-center px-5 pt-3"></p>
@@ -1065,12 +1074,24 @@
   </div>
 </aside>
 
+<!-- Tiempos de entrega (infografía) -->
+<div id="shipping-times-overlay" role="dialog" aria-modal="true" aria-labelledby="shipping-times-title" tabindex="-1" inert
+  class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim flex items-center justify-center p-4">
+  <div class="modal-card bg-cream rounded-2xl shadow-2xl w-full max-w-lg p-4 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-2">
+      <h3 id="shipping-times-title" class="font-display text-lg text-ink">🚚 Tiempos de entrega</h3>
+      <button id="shipping-times-close" type="button" aria-label="Cerrar" class="-mr-2 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
+    </div>
+    <img src="./assets/shipping-korea-process.webp" alt="Proceso de envío de tu pedido desde nuestra bodega en Corea: 1) Orden (1-2 días hábiles), 2) Envío a USA (2-3 días hábiles), 3) Cruce a México (1-2 días hábiles), 4) Envío (1 día hábil), 5) Entrega (2-5 días hábiles por envío terrestre, 1-2 días hábiles por envío express). Los tiempos son estimados y pueden variar." class="w-full h-auto rounded-xl" />
+  </div>
+</div>
+
 <!-- Avísame cuando vuelva (producto agotado) -->
 <div id="restock-overlay" role="dialog" aria-modal="true" aria-labelledby="restock-title" tabindex="-1" inert
   class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim flex items-center justify-center p-4">
   <div class="modal-card bg-cream rounded-2xl shadow-2xl w-full max-w-sm p-5">
     <div class="flex items-center justify-between mb-1">
-      <h3 id="restock-title" class="font-logo text-lg text-ink">🔔 Avísame cuando vuelva</h3>
+      <h3 id="restock-title" class="font-display text-lg text-ink">🔔 Avísame cuando vuelva</h3>
       <button id="restock-close" type="button" aria-label="Cerrar" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
     </div>
     <p class="text-sm text-ink/75 mb-4" id="restock-product-name"></p>
@@ -1102,7 +1123,7 @@
   class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim flex items-center justify-center p-4">
   <div class="modal-card bg-cream rounded-2xl shadow-2xl w-full max-w-sm p-5">
     <div class="flex items-center justify-between mb-1">
-      <h3 id="review-title" class="font-logo text-lg text-ink">⭐ Calificar producto</h3>
+      <h3 id="review-title" class="font-display text-lg text-ink">⭐ Calificar producto</h3>
       <button id="review-close" type="button" aria-label="Cerrar" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
     </div>
     <p class="text-sm text-ink/75 mb-4" id="review-product-name"></p>
@@ -1133,7 +1154,7 @@
   class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim flex items-center justify-center p-4">
   <div class="modal-card bg-cream rounded-2xl shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto p-5">
     <div class="flex items-center justify-between mb-1">
-      <h3 class="font-logo text-lg text-ink" id="reviews-list-title">Reseñas</h3>
+      <h3 class="font-display text-lg text-ink" id="reviews-list-title">Reseñas</h3>
       <button id="reviews-list-close" type="button" aria-label="Cerrar" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
     </div>
     <p class="text-sm text-ink/75 mb-2" id="reviews-list-summary"></p>

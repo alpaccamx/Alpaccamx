@@ -653,14 +653,18 @@ por WhatsApp":
 
 1. Guarda la guía en el pedido (queda visible ahí mismo la próxima vez,
    con un aviso "🚚 Enviado").
-2. Abre WhatsApp (tu WhatsApp normal, no requiere ninguna API ni
-   configuración) con un mensaje ya escrito para el cliente, con su
-   número de teléfono como destinatario y el número de guía incluido —
-   solo te falta darle "Enviar".
+2. Si tienes configurada la plantilla `pedido_enviado` (ver más abajo),
+   le manda el aviso al cliente **en automático** por la API de WhatsApp
+   Business, sin que tengas que hacer nada más.
+3. Además, abre WhatsApp (tu WhatsApp normal) con el mismo mensaje ya
+   escrito para el cliente — te sirve como respaldo manual (por ejemplo
+   si la plantilla todavía no está aprobada, o el teléfono del pedido no
+   tiene el formato esperado): solo te falta darle "Enviar" ahí si
+   decides usarlo.
 
-No es 100% automático (tú das el último clic), pero funciona sin
-necesidad de configurar la API de WhatsApp Business ni esperar
-aprobaciones de Meta.
+Si no configuras la API de WhatsApp Business ni la plantilla
+`pedido_enviado`, el sitio sigue funcionando igual — simplemente el aviso
+al cliente se queda solo en el paso manual (2).
 
 ### Generar la guía real comparando Envíos Perros y Skydropx
 
@@ -681,8 +685,9 @@ primera):
    decides).
 4. Le das "Generar guía y avisar por WhatsApp" — se genera la guía real
    en la paquetería/plataforma que elegiste, se guarda el número de guía
-   en el pedido, y se abre WhatsApp con el aviso listo para el cliente
-   (mismo mecanismo que el botón manual).
+   en el pedido, y se manda el aviso al cliente (automático con la
+   plantilla `pedido_enviado` si está configurada, y de respaldo se abre
+   WhatsApp con el aviso listo — mismo mecanismo que el botón manual).
 
 Si una de las dos plataformas falla al cotizar (por ejemplo por no tener
 sus variables configuradas), el sitio simplemente muestra las opciones de
@@ -812,6 +817,79 @@ Para configurarlo:
 Si `WHATSAPP_CUSTOMER_PHONE_NUMBER_ID` no está configurado, o el pedido
 no tiene un teléfono de 10 dígitos, simplemente no se manda este mensaje
 en particular — el resto del flujo de pago sigue igual.
+
+### Aviso automático de envío al cliente (número de guía)
+
+Mismo mecanismo que la confirmación de pedido de arriba, pero para
+avisarle al cliente que su pedido **ya va en camino**, con el número de
+guía y la paquetería — se manda automáticamente en cuanto guardas o
+generas una guía en `/admin.html` (ver "Avisar al cliente el número de
+guía..." más arriba).
+
+Para activarlo:
+
+1. Crea la plantilla en **business.facebook.com → Administrador de
+   WhatsApp → Plantillas de mensajes → Crear plantilla**, en la **misma
+   cuenta de WhatsApp Business (producción)** donde ya tengas
+   `confirmacion_pedido`. Categoría "Utilidad", idioma "Spanish (MEX)",
+   con 3 variables en este orden: nombre del cliente, número de guía,
+   paquetería.
+2. Nómbrala exactamente **`pedido_enviado`**, cuerpo:
+   `¡Hola {{1}}! 📦 Tu pedido con Alpacca ya va en camino.\n\nNúmero de guía: {{2}}\nPaquetería: {{3}}`
+3. Espera a que Meta la apruebe (de minutos a un día) — no hace falta
+   tocar el código ni hacer otro deploy, en cuanto quede aprobada el
+   sitio la empieza a usar sola. Mientras tanto, o si el pedido no tiene
+   un teléfono de 10 dígitos, sigue funcionando el botón manual de
+   WhatsApp como respaldo.
+
+### Aviso automático de "pedido recibido" al cliente
+
+Se manda justo cuando el cliente hace su pedido, **antes** de que tú lo
+confirmes — para que sepa que ya llegó y está en revisión (tanto por
+correo como por WhatsApp). Mismo mecanismo que los avisos anteriores.
+
+Para activar la parte de WhatsApp:
+
+1. Crea la plantilla en la **misma cuenta de WhatsApp Business
+   (producción)** que las anteriores. Categoría "Utilidad", idioma
+   "Spanish (MEX)", con 3 variables en este orden: nombre del cliente,
+   número de orden, total del pedido.
+2. Nómbrala exactamente **`pedido_recibido`**, cuerpo:
+   `¡Hola {{1}}! 💗 Recibimos tu pedido #{{2}} por un total de {{3}}. Lo estamos revisando y en cuanto confirmemos tu pago te avisamos. ¡Gracias por tu compra en Alpacca!`
+3. Espera a que Meta la apruebe. El correo (siempre funciona, sin
+   depender de ninguna plantilla) ya está activo en cuanto hagas deploy.
+
+### Seguimiento automático de entrega ("¿todo bien con tu pedido?")
+
+Todos los días a las 9am (hora CDMX) el sitio revisa solo, con la API de
+[Shippo](https://goshippo.com), si algún pedido que ya se envió
+(cualquier paquetería: Envíos Perros, Skydropx, o guía puesta a mano) ya
+se marcó como entregado. En cuanto lo detecta, le manda al cliente un
+correo + WhatsApp preguntando si todo llegó bien — una sola vez por
+pedido.
+
+Para activarlo:
+
+1. Crea una cuenta gratuita en [goshippo.com](https://goshippo.com) si
+   no tienes una (Shippo **no genera la guía** aquí, solo se usa para
+   consultar el estatus de la que ya generaste con Envíos Perros/Skydropx
+   o escribiste a mano).
+2. En tu cuenta de Shippo ve a **Settings → API** y copia tu token (el
+   que empieza con `shippo_live_...`).
+3. En Netlify agrega la variable `SHIPPO_API_KEY` con ese valor.
+4. Crea la plantilla de WhatsApp igual que las anteriores (misma cuenta
+   de producción), categoría "Utilidad", idioma "Spanish (MEX)", con 2
+   variables en este orden: nombre del cliente, número de orden.
+   Nómbrala exactamente **`pedido_entregado`**, cuerpo:
+   `¡Hola {{1}}! 📦 Vimos que tu pedido #{{2}} ya fue entregado. ¿Todo llegó bien? Si algo no está bien, contáctanos y lo resolvemos. ¡Gracias por confiar en Alpacca!`
+
+Sin `SHIPPO_API_KEY` esta revisión diaria simplemente no encuentra nada
+que avisar (no truena). La paquetería guardada en el pedido (lo que haya
+puesto Envíos Perros/Skydropx, o lo que hayas escrito tú a mano) se
+traduce a lo que espera Shippo con una lista de paqueterías conocidas
+(Estafeta, FedEx, DHL, UPS, Redpack, Paquetexpress, 99 Minutos, J&T
+Express) — si aparece una paquetería nueva que no se reconoce, ese
+pedido simplemente se salta, sin avisar nada.
 
 ## 5. Cuentas de clientas (iniciar sesión, ver "Mis pedidos")
 

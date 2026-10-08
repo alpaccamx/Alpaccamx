@@ -50,11 +50,17 @@ function formatPriceMXN(n) {
 
 /* Plantilla base compartida por todos los correos -- header con el
    nombre de la tienda y un pie de página simple. */
+// URL pública del logo (mascota + nombre) para el encabezado de los
+// correos -- tiene que ser una URL absoluta (no una ruta relativa como
+// "./assets/...") porque el correo se ve fuera del sitio, en el cliente
+// de correo de quien lo recibe.
+const LOGO_URL = "https://alpacca.mx/assets/logo-wordmark.png";
+
 function baseEmailHTML(bodyHTML) {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; color: #2b2b2b;">
-      <div style="text-align: center; padding: 24px 0 8px;">
-        <span style="font-size: 22px; font-weight: 800; color: #e07a8f;">🌸 Alpacca</span>
+      <div style="text-align: center; padding: 20px 0 4px;">
+        <img src="${LOGO_URL}" alt="Alpacca" width="160" style="width: 160px; height: auto; display: inline-block;" />
       </div>
       <div style="background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08);">
         ${bodyHTML}
@@ -74,6 +80,66 @@ function resetPasswordEmailHTML(name, resetUrl) {
   `);
 }
 
+/* Desglosa subtotal + envío (Corea/nacional por separado si aplica, o un
+   solo renglón de envío si no). A diferencia de totalsBreakdownHTML() en
+   admin.js (que siempre muestra todo a precio de transferencia más la
+   comisión aparte, para que Mae vea su costo real), aquí cada renglón se
+   muestra YA al precio que de verdad se cobró: si se pagó con tarjeta, se
+   usa el desglose de envío a precio de tarjeta (shippingKoreaMXNTarjeta /
+   shippingNacionalMXNTarjeta) para que los renglones cuadren con
+   order.subtotal/shippingMXN (ya tarjeta) sin necesidad de mostrar una
+   comisión aparte -- cobrarla como renglón separado está prohibido en
+   México. */
+function orderBreakdownRowsHTML(order) {
+  const isTarjeta = order.source === "mercadopago";
+  const subtotal = Number(order.subtotal) || 0;
+  const shippingMXN = Number(order.shippingMXN) || 0;
+  const shippingKoreaMXN = isTarjeta
+    ? Number(order.shippingKoreaMXNTarjeta) || 0
+    : Number(order.shippingKoreaMXN) || 0;
+  const shippingNacionalMXN = isTarjeta
+    ? Number(order.shippingNacionalMXNTarjeta) || 0
+    : Number(order.shippingNacionalMXN) || 0;
+
+  const row = (label, amount) =>
+    `<div style="display:flex;justify-content:space-between;font-size:14px;padding:2px 0;"><span>${label}</span><span>${formatPriceMXN(amount)}</span></div>`;
+
+  const rows = [row("Subtotal productos", subtotal)];
+  if (shippingKoreaMXN > 0 || shippingNacionalMXN > 0) {
+    if (shippingKoreaMXN > 0) rows.push(row("🌏 Envío Corea", shippingKoreaMXN));
+    if (shippingNacionalMXN > 0) rows.push(row("🚚 Envío nacional", shippingNacionalMXN));
+  } else if (shippingMXN > 0) {
+    rows.push(row("Envío", shippingMXN));
+  }
+  return rows.join("");
+}
+
+function paymentMethodLabel(order) {
+  return order.source === "mercadopago" ? "💳 Pago con tarjeta" : "🏦 Pago por transferencia";
+}
+
+/* Se manda justo cuando el pedido se crea (ver create-order.js), ANTES
+   de que Mae lo confirme -- para que la clienta sepa que ya llegó y está
+   en revisión, en vez de quedarse sin ninguna señal hasta la
+   confirmación. */
+function orderPendingEmailHTML(order) {
+  const itemsHTML = (order.items || [])
+    .map((it) => `<li>${it.nombre} x${it.qty}</li>`)
+    .join("");
+  return baseEmailHTML(`
+    <p>¡Hola${order.customer?.name ? " " + order.customer.name : ""}! 💗</p>
+    <p>Recibimos tu pedido y lo estamos revisando. En cuanto confirme tu pago te aviso y lo preparo con mucho cariño para enviarlo.</p>
+    <p style="font-weight: 700; margin-top: 16px;">Pedido #${order.id.slice(0, 8).toUpperCase()}</p>
+    <ul style="padding-left: 18px; font-size: 14px;">${itemsHTML}</ul>
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #eee;">
+      ${orderBreakdownRowsHTML(order)}
+    </div>
+    <p style="font-weight: 800; color: #e07a8f; font-size: 18px; margin-top: 8px;">Total: ${formatPriceMXN(order.grandTotal)}</p>
+    <p style="font-size: 13px; color: #777;">${paymentMethodLabel(order)}</p>
+    <p>¡Gracias por tu compra!</p>
+  `);
+}
+
 function orderConfirmedEmailHTML(order) {
   const itemsHTML = (order.items || [])
     .map((it) => `<li>${it.nombre} x${it.qty}</li>`)
@@ -83,7 +149,11 @@ function orderConfirmedEmailHTML(order) {
     <p>Ya confirmé tu pedido y lo estoy preparando con mucho cariño. En cuanto lo envíe te aviso con tu número de guía.</p>
     <p style="font-weight: 700; margin-top: 16px;">Pedido #${order.id.slice(0, 8).toUpperCase()}</p>
     <ul style="padding-left: 18px; font-size: 14px;">${itemsHTML}</ul>
-    <p style="font-weight: 800; color: #e07a8f; font-size: 18px;">Total: ${formatPriceMXN(order.grandTotal)}</p>
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #eee;">
+      ${orderBreakdownRowsHTML(order)}
+    </div>
+    <p style="font-weight: 800; color: #e07a8f; font-size: 18px; margin-top: 8px;">Total: ${formatPriceMXN(order.grandTotal)}</p>
+    <p style="font-size: 13px; color: #777;">${paymentMethodLabel(order)}</p>
     <p>¡Gracias por confiar en mí!</p>
   `);
 }
@@ -102,6 +172,18 @@ function orderShippedEmailHTML(order) {
   `);
 }
 
+/* Seguimiento post-entrega -- se manda cuando check-deliveries-scheduled.js
+   detecta (vía Shippo) que una guía ya se marcó como entregada, para
+   preguntarle a la clienta si todo llegó bien. */
+function orderDeliveredEmailHTML(order) {
+  return baseEmailHTML(`
+    <p>¡Hola${order.customer?.name ? " " + order.customer.name : ""}! 📦💗</p>
+    <p>Vimos que tu pedido ya fue entregado. ¿Todo llegó bien?</p>
+    <p style="font-weight: 700; margin-top: 16px;">Pedido #${order.id.slice(0, 8).toUpperCase()}</p>
+    <p>Si algo no llegó como esperabas, contáctame y lo resolvemos. ¡Gracias por confiar en Alpacca!</p>
+  `);
+}
+
 function orderCancelledEmailHTML(order) {
   return baseEmailHTML(`
     <p>¡Hola${order.customer?.name ? " " + order.customer.name : ""}!</p>
@@ -114,7 +196,9 @@ function orderCancelledEmailHTML(order) {
 module.exports = {
   sendEmail,
   resetPasswordEmailHTML,
+  orderPendingEmailHTML,
   orderConfirmedEmailHTML,
   orderShippedEmailHTML,
+  orderDeliveredEmailHTML,
   orderCancelledEmailHTML,
 };

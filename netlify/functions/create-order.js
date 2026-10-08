@@ -41,10 +41,29 @@ const {
 } = require("./lib/blob-store.js");
 const { priceOrder, matchesClientTotals } = require("./lib/pricing.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
-const { notifySellerOrderCreated } = require("./lib/whatsapp.js");
+const { notifySellerOrderCreated, notifyCustomerOrderPending } = require("./lib/whatsapp.js");
+const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { sendEmail, orderPendingEmailHTML } = require("./lib/email.js");
 const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
 const MP_API = "https://api.mercadopago.com";
+
+// Aviso a la CLIENTA de que su pedido ya se recibió y está pendiente de
+// confirmación -- el correo solo se manda si tiene cuenta con ese teléfono
+// (los pedidos no guardan correo); el de WhatsApp (plantilla
+// "pedido_recibido") se intenta de todos modos, sin depender de que tenga
+// cuenta. Ninguno de los dos revienta si falla.
+async function notifyCustomerOrderReceived(order) {
+  const pendingCustomer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+  if (pendingCustomer?.email) {
+    await sendEmail({
+      to: pendingCustomer.email,
+      subject: "Recibimos tu pedido de Alpacca 📝",
+      html: orderPendingEmailHTML(order),
+    }).catch((err) => console.error("No se pudo mandar el correo de pedido recibido:", err));
+  }
+  await notifyCustomerOrderPending(order).catch((err) => console.error("No se pudo avisar por WhatsApp del pedido recibido:", err));
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -75,7 +94,7 @@ exports.handler = async (event) => {
 
   const {
     source, customer, items, subtotal, shippingMXN, subtotalBase, shippingMXNBase, grandTotal,
-    shippingKoreaMXN, shippingNacionalMXN, weightKg,
+    shippingKoreaMXN, shippingNacionalMXN, shippingKoreaMXNTarjeta, shippingNacionalMXNTarjeta, weightKg,
   } = body;
 
   // Datos mínimos de contacto y envío: el servidor no confía en que el
@@ -180,6 +199,9 @@ exports.handler = async (event) => {
       referencias: String((customer && customer.referencias) || ""),
       notes: String((customer && customer.notes) || ""),
     },
+    // Todos los montos y el desglose de envío salen de priceOrder (ver
+    // arriba): el navegador solo aporta nombre/marca para mostrar en
+    // /admin.html, nunca precios ni totales.
     items: priced.items.map((line, i) => ({
       sku: line.sku,
       nombre: String((items[i] && items[i].nombre) || line.nombre).slice(0, 250),
@@ -197,6 +219,8 @@ exports.handler = async (event) => {
     grandTotal: priced.grandTotal,
     shippingKoreaMXN: priced.shippingKoreaMXN,
     shippingNacionalMXN: priced.shippingNacionalMXN,
+    shippingKoreaMXNTarjeta: priced.shippingKoreaMXNTarjeta,
+    shippingNacionalMXNTarjeta: priced.shippingNacionalMXNTarjeta,
     weightKg: priced.weightKg,
   };
 
@@ -208,11 +232,14 @@ exports.handler = async (event) => {
     return jsonResponse(500, { error: "No se pudo guardar el pedido." });
   }
 
-  // Aviso inmediato al dueño del negocio de que hay un pedido nuevo, aún
-  // sin confirmar (si WHATSAPP_ACCESS_TOKEN no está configurado, o algo
-  // falla, notifySellerOrderCreated no revienta -- solo no manda nada).
+  // Avisos de "pedido nuevo, aún sin confirmar": al dueño y a la clienta.
+  // Van DESPUÉS de que el pedido ya existe de verdad (preferencia de
+  // Mercado Pago creada, si aplica) -- si algo falla antes, nadie recibe
+  // un aviso de un pedido que no se pudo completar. Ninguno de los dos
+  // revienta si falla (WhatsApp/correo sin configurar, número inválido).
   if (source === "transferencia" || source === "whatsapp") {
     await notifySellerOrderCreated(order);
+    await notifyCustomerOrderReceived(order);
     if (idemKey) await completeIdempotencyKey(idemKey, { orderId: order.id });
     return jsonResponse(200, { orderId: order.id });
   }
@@ -275,6 +302,7 @@ exports.handler = async (event) => {
     const redirectUrl = isTestToken ? pref.sandbox_init_point : pref.init_point;
 
     await notifySellerOrderCreated(order);
+    await notifyCustomerOrderReceived(order);
     if (idemKey) await completeIdempotencyKey(idemKey, { orderId: order.id, redirectUrl });
     return jsonResponse(200, { orderId: order.id, redirectUrl });
   } catch (err) {

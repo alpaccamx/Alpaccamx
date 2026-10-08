@@ -477,6 +477,11 @@ async function priceOrder({ source, items, customer, soldMap }) {
     grandTotal: round2(subtotal + shippingMXN),
     shippingKoreaMXN: shipping ? shipping.coreaMXN : 0,
     shippingNacionalMXN: shipping ? shipping.nacionalMXN : 0,
+    // Mismo desglose pero a precio de tarjeta -- lo usa el correo de
+    // confirmación (lib/email.js) para que sus renglones cuadren con lo
+    // que de verdad se cobró cuando source="mercadopago".
+    shippingKoreaMXNTarjeta: shipping ? shipping.coreaMXNTarjeta : 0,
+    shippingNacionalMXNTarjeta: shipping ? shipping.nacionalMXNTarjeta : 0,
     weightKg: round2(weight),
     cardFeeMXN: round2(Math.max(0, (subtotal - subtotalBase) + (shippingMXN - shippingMXNBase))),
   };

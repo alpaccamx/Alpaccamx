@@ -36,8 +36,20 @@ const { withLock } = require("./blob-store.js");
 
 const { randomBytes } = require("crypto");
 const jwt = require("jsonwebtoken");
+const { parseCSV } = require("./csv.js");
 
 const SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets";
+
+// Mismo link que CONFIG.GOOGLE_SHEET_CSV_URL en app.js (el catálogo
+// principal, publicado como CSV) -- se usa SOLO para rellenar
+// nombre/marca de las filas de Stock que los dejan vacíos a propósito
+// porque el SKU ya existe en el catálogo principal (ver "Nombre (solo
+// si es producto nuevo)" en el README). Si alguna vez cambias el link
+// de "Publicar en la web" de tu catálogo en app.js, actualízalo aquí
+// también para que el inventario del admin siga mostrando los nombres
+// correctos.
+const CATALOG_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=114583060&single=true&output=csv";
 const SKU_ALIASES = ["sku", "codigo", "código"];
 const PIEZAS_ALIASES = ["piezas disponibles", "piezas", "cantidad", "stock"];
 const PRECIO_ALIASES = ["precio mxn", "precio", "price"];
@@ -289,6 +301,183 @@ async function appendStockProduct(fields) {
   }
 }
 
+/* Catálogo principal (nombre/marca por SKU) -- "mejor esfuerzo": si
+   falla, regresa un Map vacío y listStockProducts() simplemente deja
+   esas filas con el nombre/marca que ya tuvieran (puede que vacío).
+   Nunca truena. */
+async function fetchCatalogNameLookup() {
+  const lookup = new Map();
+  try {
+    const res = await fetch(CATALOG_CSV_URL);
+    if (!res.ok) return lookup;
+    const text = await res.text();
+    const rows = parseCSV(text);
+    if (!rows.length) return lookup;
+    const headers = rows[0].map((h) => h.trim().toLowerCase());
+    const iSku = findColumnIndex(headers, SKU_ALIASES);
+    const iNombre = findColumnIndex(headers, NOMBRE_ALIASES);
+    const iMarca = findColumnIndex(headers, MARCA_ALIASES);
+    if (iSku < 0) return lookup;
+    rows.slice(1).forEach((row) => {
+      const sku = String(row[iSku] || "").trim();
+      if (!sku) return;
+      lookup.set(sku, {
+        nombre: iNombre >= 0 ? String(row[iNombre] || "").trim() : "",
+        marca: iMarca >= 0 ? String(row[iMarca] || "").trim() : "",
+      });
+    });
+  } catch (err) {
+    console.error("Error leyendo el catálogo principal para el inventario:", err);
+  }
+  return lookup;
+}
+
+/* Lee toda la pestaña de Stock y la regresa como lista de objetos (uno
+   por producto), para mostrarla en una tabla editable en /admin.html --
+   ver admin-list-stock.js. Filas sin SKU se ignoran (igual que
+   csvToStockData en app.js). Si un producto no tiene nombre/marca
+   propios en Stock (lo normal para un SKU que ya existe en el catálogo
+   principal, ver "Nombre (solo si es producto nuevo)" en el README), se
+   completan con los del catálogo principal -- para que la tabla no
+   muestre renglones en blanco. */
+async function listStockProducts() {
+  const [sheet, catalogLookup] = await Promise.all([readStockTab(), fetchCatalogNameLookup()]);
+  if (!sheet) return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
+  const { headers, rows } = sheet;
+
+  const iSku = findColumnIndex(headers, SKU_ALIASES);
+  if (iSku < 0) return { ok: false, error: 'No se encontró la columna "SKU" en la pestaña de Stock.' };
+  const iPiezas = findColumnIndex(headers, PIEZAS_ALIASES);
+  const iPrecio = findColumnIndex(headers, PRECIO_ALIASES);
+  const iPrecioTarjeta = findColumnIndex(headers, PRECIO_TARJETA_ALIASES);
+  const iNombre = findColumnIndex(headers, NOMBRE_ALIASES);
+  const iMarca = findColumnIndex(headers, MARCA_ALIASES);
+  const iImagen = findColumnIndex(headers, IMAGEN_ALIASES);
+  const iDescripcion = findColumnIndex(headers, DESCRIPCION_ALIASES);
+  const iCategoria = findColumnIndex(headers, CATEGORIA_ALIASES);
+  const iPeso = findColumnIndex(headers, PESO_ALIASES);
+
+  const get = (row, i) => (i >= 0 && row[i] != null ? String(row[i]).trim() : "");
+  const products = [];
+  rows.slice(1).forEach((row) => {
+    const sku = get(row, iSku);
+    if (!sku) return;
+    const fromCatalog = catalogLookup.get(sku);
+    products.push({
+      sku,
+      nombre: get(row, iNombre) || (fromCatalog && fromCatalog.nombre) || "",
+      marca: get(row, iMarca) || (fromCatalog && fromCatalog.marca) || "",
+      piezas: parseInt(get(row, iPiezas).replace(/[^0-9-]/g, ""), 10) || 0,
+      precio: parseFloat(get(row, iPrecio).replace(/[^0-9.]/g, "")) || 0,
+      precioTarjeta: parseFloat(get(row, iPrecioTarjeta).replace(/[^0-9.]/g, "")) || 0,
+      categoria: get(row, iCategoria),
+      peso: parseFloat(get(row, iPeso).replace(/[^0-9.]/g, "")) || 0,
+      imagen: get(row, iImagen),
+      descripcion: get(row, iDescripcion),
+    });
+  });
+  return { ok: true, products };
+}
+
+/* Actualiza una o varias columnas de la fila que coincide con "sku" --
+   ver admin-update-stock-product.js. "fields" trae solo las columnas que
+   cambiaron (las demás de esa fila se quedan tal cual). "piezas" se
+   manda como el valor NUEVO ya calculado (sumar/restar se resuelve del
+   lado de /admin.html antes de llamar esto), no como un delta.
+   Regresa { ok: true } o { ok: false, error } -- nunca truena. */
+async function updateStockProductFields(sku, fields) {
+  const sheet = await readStockTab();
+  if (!sheet) return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
+  const { spreadsheetId, tab, token, headers, rows } = sheet;
+
+  const iSku = findColumnIndex(headers, SKU_ALIASES);
+  if (iSku < 0) return { ok: false, error: 'No se encontró la columna "SKU" en la pestaña de Stock.' };
+
+  const rowIndex = rows.findIndex((row, idx) => idx > 0 && String(row[iSku] || "").trim() === sku);
+  if (rowIndex < 0) return { ok: false, error: `No se encontró ningún producto con el SKU "${sku}" en tu Stock.` };
+
+  const columnIndexByField = {
+    piezas: findColumnIndex(headers, PIEZAS_ALIASES),
+    precio: findColumnIndex(headers, PRECIO_ALIASES),
+    precioTarjeta: findColumnIndex(headers, PRECIO_TARJETA_ALIASES),
+    nombre: findColumnIndex(headers, NOMBRE_ALIASES),
+    marca: findColumnIndex(headers, MARCA_ALIASES),
+    imagen: findColumnIndex(headers, IMAGEN_ALIASES),
+    descripcion: findColumnIndex(headers, DESCRIPCION_ALIASES),
+    categoria: findColumnIndex(headers, CATEGORIA_ALIASES),
+    peso: findColumnIndex(headers, PESO_ALIASES),
+  };
+
+  const currentRow = rows[rowIndex].slice();
+  while (currentRow.length < headers.length) currentRow.push("");
+  const updates = [];
+  for (const [field, value] of Object.entries(fields)) {
+    const colIndex = columnIndexByField[field];
+    if (colIndex == null || colIndex < 0) continue;
+    currentRow[colIndex] = value;
+    updates.push({
+      range: `${tab}!${columnIndexToLetter(colIndex)}${rowIndex + 1}`,
+      values: [[value]],
+    });
+  }
+  if (!updates.length) return { ok: false, error: "No hay ningún cambio que guardar." };
+
+  try {
+    const batchRes = await fetch(`${SHEETS_API}/${spreadsheetId}/values:batchUpdate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ valueInputOption: "RAW", data: updates }),
+    });
+    const batchData = await batchRes.json();
+    if (!batchRes.ok) {
+      console.error(`Error actualizando el producto "${sku}" en Stock:`, batchData);
+      return { ok: false, error: "Google rechazó la escritura -- revisa que el Sheet esté compartido con la cuenta de servicio." };
+    }
+    console.log(`Producto "${sku}" actualizado en Stock:`, JSON.stringify(fields));
+    return { ok: true };
+  } catch (err) {
+    console.error(`Error de red actualizando el producto "${sku}" en Stock:`, err);
+    return { ok: false, error: "No se pudo conectar con Google Sheets. Intenta de nuevo." };
+  }
+}
+
+/* "Quita" un producto de Stock sin borrar la fila de verdad (evita
+   mover/desfasar el resto de las filas si algo sale mal a medio
+   camino) -- simplemente deja todas sus columnas vacías. Una fila sin
+   SKU se ignora tanto en csvToStockData (app.js) como en
+   listStockProducts() de arriba, así que el producto desaparece del
+   sitio y de esta tabla igual que si se hubiera borrado. */
+async function deleteStockProduct(sku) {
+  const sheet = await readStockTab();
+  if (!sheet) return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
+  const { spreadsheetId, tab, token, headers, rows } = sheet;
+
+  const iSku = findColumnIndex(headers, SKU_ALIASES);
+  if (iSku < 0) return { ok: false, error: 'No se encontró la columna "SKU" en la pestaña de Stock.' };
+
+  const rowIndex = rows.findIndex((row, idx) => idx > 0 && String(row[iSku] || "").trim() === sku);
+  if (rowIndex < 0) return { ok: false, error: `No se encontró ningún producto con el SKU "${sku}" en tu Stock.` };
+
+  try {
+    const lastCol = columnIndexToLetter(headers.length - 1);
+    const range = `${tab}!A${rowIndex + 1}:${lastCol}${rowIndex + 1}`;
+    const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/${encodeURIComponent(range)}:clear`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error(`Error quitando el producto "${sku}" de Stock:`, data);
+      return { ok: false, error: "Google rechazó la escritura -- revisa que el Sheet esté compartido con la cuenta de servicio." };
+    }
+    console.log(`Producto "${sku}" quitado de Stock.`);
+    return { ok: true };
+  } catch (err) {
+    console.error(`Error de red quitando el producto "${sku}" de Stock:`, err);
+    return { ok: false, error: "No se pudo conectar con Google Sheets. Intenta de nuevo." };
+  }
+}
+
 /* Construye { sku: qty } a partir de items de un pedido, con el mismo
    filtro que applyStockDecrement en blob-store.js (solo artículos "en
    stock" con SKU y cantidad > 0) -- para llamar applySheetStockDelta con
@@ -353,4 +542,12 @@ async function applySheetStockDelta(deltaBySku) {
   });
 }
 
-module.exports = { applySheetStockDelta, deltaFromItems, appendStockProduct, readBankDetailsTab };
+module.exports = {
+  applySheetStockDelta,
+  deltaFromItems,
+  appendStockProduct,
+  readBankDetailsTab,
+  listStockProducts,
+  updateStockProductFields,
+  deleteStockProduct,
+};

@@ -4,6 +4,12 @@
    CONFIG — edita estos valores con los datos de tu negocio
    ====================================================================== */
 const CONFIG = {
+  // Pon en "false" para quitar el botón "MXN $ / USD $" de la barra de
+  // arriba -- los precios se muestran siempre en pesos (que es como se
+  // cobra de verdad) sin que el cliente pueda cambiar a dólares de
+  // referencia. Vuelve a ponerlo en "true" para reactivarlo.
+  CURRENCY_TOGGLE_ENABLED: false,
+
   // Google Sheets: Archivo > Compartir > Publicar en la Web > elige la
   // hoja > formato "Valores separados por comas (.csv)" > Publicar.
   // Pega aquí el link que te da Google.
@@ -222,6 +228,13 @@ const CONFIG = {
   // propio). No comparte carrito ni pedido mínimo con el resto del sitio.
   // ------------------------------------------------------------------
   AMERICANO: {
+    // Pon en "false" para apagar por completo la colección (la pestaña
+    // del menú deja de aparecer y la sección no se puede abrir) sin
+    // borrar nada de tu Google Sheet -- en cuanto lo vuelvas a poner en
+    // "true" todo tu catálogo de Cosmético Americano regresa tal cual
+    // estaba.
+    ENABLED: false,
+
     // Google Sheet publicado como CSV (mismo procedimiento que el catálogo
     // principal, ver README) con columnas: Nombre, Marca, Precio USD,
     // PrecioOriginal USD, Precio, PrecioOriginal, MOQ (mínimo de unidades
@@ -355,7 +368,8 @@ let americanoCart = loadAmericanoCart();
 // pestaña Config -- así el dólar mostrado respeta el mismo margen que el
 // peso, en vez de mostrar directo la columna "Precio USD" del catálogo
 // (que es SU COSTO mayorista, no un precio de venta).
-let displayCurrency = localStorage.getItem("displayCurrency") === "USD" ? "USD" : "MXN";
+let displayCurrency =
+  CONFIG.CURRENCY_TOGGLE_ENABLED && localStorage.getItem("displayCurrency") === "USD" ? "USD" : "MXN";
 
 function formatPrice(n) {
   const mxn = n || 0;
@@ -373,7 +387,7 @@ function formatPrice(n) {
 function updateCurrencyToggleButton() {
   const btn = document.getElementById("currency-toggle");
   if (!btn) return;
-  const available = shippingSettings.exchangeRate > 0;
+  const available = CONFIG.CURRENCY_TOGGLE_ENABLED && shippingSettings.exchangeRate > 0;
   btn.classList.toggle("hidden", !available);
   btn.textContent = displayCurrency === "USD" ? "USD $" : "MXN $";
   btn.setAttribute("aria-label", `${btn.textContent}, cambiar moneda`);
@@ -573,6 +587,22 @@ function initRestock() {
     if (e.target.id === "restock-overlay") closeRestockModal();
   });
   document.getElementById("restock-form").addEventListener("submit", handleRestockSubmit);
+}
+
+/* Pop-up con la infografía de tiempos de entrega, junto a "Catálogo
+   completo" -- mismo patrón de ventana accesible que "Avísame cuando
+   vuelva" (ver DIALOGS arriba), pero sin formulario, solo la imagen. */
+function wireShippingTimesModal() {
+  const openBtn = document.getElementById("shipping-times-open");
+  const overlay = document.getElementById("shipping-times-overlay");
+  const closeBtn = document.getElementById("shipping-times-close");
+  if (!openBtn || !overlay || !closeBtn) return;
+  const close = () => overlay.classList.add("opacity-0", "pointer-events-none");
+  openBtn.addEventListener("click", () => overlay.classList.remove("opacity-0", "pointer-events-none"));
+  closeBtn.addEventListener("click", close);
+  overlay.addEventListener("click", (e) => {
+    if (e.target.id === "shipping-times-overlay") close();
+  });
 }
 
 /* ======================================================================
@@ -1546,6 +1576,7 @@ async function loadProducts() {
    configuró CONFIG.AMERICANO.SHEET_CSV_URL, la sección completa se oculta.
    ====================================================================== */
 async function loadAmericanoProducts() {
+  if (!CONFIG.AMERICANO.ENABLED) return;
   const url = CONFIG.AMERICANO.SHEET_CSV_URL;
   const isPlaceholder = !url || url.includes("PEGA_AQUI");
   if (isPlaceholder) return;
@@ -1834,7 +1865,7 @@ function getMenuItems() {
   }
 
   if (products.some((p) => p.enStock)) {
-    items.push({ type: "link", label: "✅ En stock", href: "#stock-section" });
+    items.push({ type: "link", label: "✅ Stock en México 🇲🇽", href: "#stock-section" });
   }
 
   const brandsSection = document.getElementById("brands-section");
@@ -2013,6 +2044,18 @@ function closeMobileMenu() {
 /* ======================================================================
    Tarjeta de producto — reutilizada por Best Seller y tipo de piel.
    ====================================================================== */
+/* Badge "Entrega inmediata · N piezas" / "Agotado" para productos que
+   vienen de la pestaña Stock (p.enStock). Se separa en su propia función
+   porque, cuando el producto tiene varios tonos (hasVariants), el stock
+   es distinto para cada tono -- no se puede mostrar hasta que el
+   cliente elija uno (ver wireVariantSelectors). */
+function stockBadgeHTML(p) {
+  if (!p.enStock) return "";
+  return p.stockPiezas > 0
+    ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
+    : `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Agotado</span>`;
+}
+
 function productCardHTML(p, { rank } = {}) {
   const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
   const hasVariants = p.variants && p.variants.length > 1;
@@ -2031,13 +2074,7 @@ function productCardHTML(p, { rank } = {}) {
       </div>
       <div class="p-3 flex flex-col flex-1">
         <div class="flex flex-wrap gap-1 mb-1">
-          ${
-            p.enStock
-              ? p.stockPiezas > 0
-                ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">✅ Entrega inmediata · ${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
-                : `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Agotado</span>`
-              : ""
-          }
+          <span data-card-stock-badge>${hasVariants ? "" : stockBadgeHTML(p)}</span>
           ${
             p.presentacion
               ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -2170,6 +2207,9 @@ function wireVariantSelectors(container) {
 
       const badgeEl = card.querySelector("[data-card-badge]");
       if (badgeEl) badgeEl.innerHTML = variant.disponible ? "" : agotadoBadgeHTML();
+
+      const stockBadgeEl = card.querySelector("[data-card-stock-badge]");
+      if (stockBadgeEl) stockBadgeEl.innerHTML = stockBadgeHTML(variant);
 
       const imgEl = card.querySelector("[data-card-img]");
       if (imgEl && variant.imagen) imgEl.src = variant.imagen;
@@ -2844,8 +2884,21 @@ function openFullCatalog() {
    que termine, refreshCurrentView() la vuelve a pintar en cuanto llegan
    más datos, sin que tenga que salir y volver a entrar.
    ====================================================================== */
+/* Marca (alfabético, sin distinguir mayúsculas/acentos) y, dentro de la
+   misma marca, nombre -- los productos sin marca capturada se van hasta
+   el final en vez de mezclarse al principio. */
+function compareByMarcaThenNombre(a, b) {
+  const marcaA = a.marca || "";
+  const marcaB = b.marca || "";
+  if (!marcaA && marcaB) return 1;
+  if (marcaA && !marcaB) return -1;
+  const marcaCompare = marcaA.localeCompare(marcaB, "es", { sensitivity: "base" });
+  if (marcaCompare !== 0) return marcaCompare;
+  return (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
+}
+
 function renderStockGrid() {
-  const items = groupVariants(products.filter((p) => p.enStock));
+  const items = groupVariants(products.filter((p) => p.enStock)).sort(compareByMarcaThenNombre);
   const grid = document.getElementById("stock-grid");
   const empty = document.getElementById("stock-empty");
   if (!items.length) {
@@ -2882,7 +2935,7 @@ function refreshCurrentView() {
 function renderFaqMinOrder() {
   const faqMinOrder = document.getElementById("faq-min-order");
   if (faqMinOrder && CONFIG.MIN_ORDER_MXN) {
-    faqMinOrder.textContent = `Es de ${formatPrice(CONFIG.MIN_ORDER_MXN)} en productos que encargamos desde Corea. Los productos ✅ En stock (entrega inmediata) no tienen mínimo.`;
+    faqMinOrder.textContent = `Es de ${formatPrice(CONFIG.MIN_ORDER_MXN)} en productos que encargamos desde Corea. Los productos ✅ Stock en México 🇲🇽 no tienen mínimo.`;
   }
 }
 
@@ -3322,6 +3375,7 @@ function updateNacionalShippingUI() {
   if (!Object.keys(cart).length || cp.length !== 5) {
     row.classList.add("hidden");
     renderGrandTotal();
+    updateTransferNote();
     return;
   }
 
@@ -3335,6 +3389,33 @@ function updateNacionalShippingUI() {
   }
   row.classList.remove("hidden");
   renderGrandTotal();
+  updateTransferNote();
+}
+
+/* Nota de "ahorras $X por transferencia" debajo del total -- aparte de
+   renderGrandTotal() porque también depende del CP (envío nacional), pero
+   con los precios de TARJETA para comparar. Es su propia función (no solo
+   código suelto dentro de renderCart()) para que updateNacionalShippingUI()
+   -- que corre cada vez que la clienta escribe su CP, sin volver a llamar
+   a renderCart() completo -- también la mantenga al día; si no, esta nota
+   se quedaba con el envío de antes de escribir el CP (p.ej. $0 si el
+   carrito se abrió sin CP todavía), sin cuadrar con el total real de
+   arriba, que sí se actualiza con cada CP nuevo. */
+function updateTransferNote() {
+  const transferNote = document.getElementById("cart-mp-surcharge-note");
+  if (!transferNote) return;
+  const items = Object.entries(cart);
+  const total = cartTotal();
+  const cp = document.getElementById("customer-cp").value.trim();
+  const shippingForNote = shippingEstimate(cartWeight(), cp, cartWeightNonStock());
+  const totalConEnvio = total + (shippingForNote ? shippingForNote.totalMXN : 0);
+  const tarjetaTotalConEnvio = cartTotalTarjeta() + (shippingForNote ? shippingForNote.totalMXNTarjeta : 0);
+  if (items.length && tarjetaTotalConEnvio > totalConEnvio + 0.5) {
+    transferNote.textContent = `🏦 Pagando por transferencia ahorras ${formatPrice(tarjetaTotalConEnvio - totalConEnvio)} (precio con tarjeta, incluyendo envío: ${formatPrice(tarjetaTotalConEnvio)})`;
+    transferNote.classList.remove("hidden");
+  } else {
+    transferNote.classList.add("hidden");
+  }
 }
 
 function renderGrandTotal() {
@@ -3389,20 +3470,6 @@ function renderCart() {
   const payBtn = document.getElementById("pay-mercadopago");
   sendBtn.disabled = items.length === 0 || belowMin;
   if (payBtn) payBtn.disabled = items.length === 0 || belowMin;
-
-  const transferNote = document.getElementById("cart-mp-surcharge-note");
-  if (transferNote) {
-    const cp = document.getElementById("customer-cp").value.trim();
-    const shippingForNote = shippingEstimate(cartWeight(), cp, cartWeightNonStock());
-    const totalConEnvio = total + (shippingForNote ? shippingForNote.totalMXN : 0);
-    const tarjetaTotalConEnvio = cartTotalTarjeta() + (shippingForNote ? shippingForNote.totalMXNTarjeta : 0);
-    if (items.length && tarjetaTotalConEnvio > totalConEnvio + 0.5) {
-      transferNote.textContent = `🏦 Pagando por transferencia ahorras ${formatPrice(tarjetaTotalConEnvio - totalConEnvio)} (precio con tarjeta, incluyendo envío: ${formatPrice(tarjetaTotalConEnvio)})`;
-      transferNote.classList.remove("hidden");
-    } else {
-      transferNote.classList.add("hidden");
-    }
-  }
 
   const focusBefore = captureCartFocus(wrap);
 
@@ -3538,6 +3605,7 @@ const DIALOGS = [
   { panel: "restock-overlay", close: "restock-close", closedClass: "opacity-0" },
   { panel: "review-overlay", close: "review-close", closedClass: "opacity-0" },
   { panel: "reviews-list-overlay", close: "reviews-list-close", closedClass: "opacity-0" },
+  { panel: "shipping-times-overlay", close: "shipping-times-close", closedClass: "opacity-0" },
 ];
 
 // Pila de paneles abiertos; el último es el que está hasta arriba.
@@ -4077,10 +4145,16 @@ async function payWithMercadoPago() {
         subtotalBase,
         shippingMXNBase,
         grandTotal: subtotal + shippingMXN,
-        // Desglose de envío (siempre a precio de transferencia, igual que
-        // shippingMXNBase) y peso, para que /admin.html pueda mostrarlos.
+        // Desglose de envío a precio de transferencia (igual que
+        // shippingMXNBase), para que /admin.html pueda mostrarlo tal cual
+        // siempre cobra Mae internamente, y también a precio de tarjeta
+        // (lo que realmente se cobró aquí), para que el correo a la
+        // clienta pueda desglosarlo renglón por renglón con el precio que
+        // de verdad pagó. Más el peso, para que /admin.html lo muestre.
         shippingKoreaMXN: shipping ? shipping.coreaMXN : 0,
         shippingNacionalMXN: shipping ? shipping.nacionalMXN : 0,
+        shippingKoreaMXNTarjeta: shipping ? shipping.coreaMXNTarjeta : 0,
+        shippingNacionalMXNTarjeta: shipping ? shipping.nacionalMXNTarjeta : 0,
         weightKg: weight,
       }),
     });
@@ -4989,6 +5063,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initWishlist();
   initRestock();
   initReviews();
+  wireShippingTimesModal();
 
   // Por si alguien traía carritos de ambas colecciones guardados de antes
   // de que el carrito fuera uno solo: se queda el de Skincare Coreano.

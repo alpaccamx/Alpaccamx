@@ -36,6 +36,50 @@
   const STOCK_CSV_URL_FOR_MARCA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=2144351337&single=true&output=csv";
   let skuToInfo = new Map();
 
+  // Mismo CSV "Config" (clave | valor) que usa app.js para calcular el
+  // "Precio Tarjeta" del catálogo -- aquí se lee el mismo % para
+  // autocompletar el campo "Precio tarjeta" del formulario de "Agregar
+  // producto en Stock" en cuanto se escribe el precio de transferencia.
+  const CONFIG_CSV_URL_FOR_CARD_PCT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=442348645&single=true&output=csv";
+  const CARD_PCT_KEY_ALIASES = ["descuentoportransferencia", "descuentotransferencia", "descuentoportransferenciaporciento"];
+  let cardSurchargePct = null;
+  // true en cuanto la usuaria escribe algo ELLA MISMA en "Precio tarjeta"
+  // -- a partir de ahí se deja de autocompletar ese campo, para no pisar
+  // un precio que decidió poner a mano. Se resetea al abrir/limpiar el
+  // formulario (ver toggleAddStockForm/resetStockForm más abajo).
+  let tarjetaManuallyEdited = false;
+
+  async function loadCardSurchargePct() {
+    try {
+      const res = await fetch(CONFIG_CSV_URL_FOR_CARD_PCT, { cache: "no-store" });
+      if (!res.ok) return;
+      const rows = parseCSVForMarca(await res.text());
+      for (const r of rows) {
+        const key = (r[0] || "").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+        if (CARD_PCT_KEY_ALIASES.includes(key)) {
+          const num = parseFloat((r[1] || "").replace(/[^0-9.,-]/g, "").replace(",", "."));
+          if (!Number.isNaN(num)) cardSurchargePct = num;
+        }
+      }
+    } catch (err) {
+      // Sin esto, el campo "Precio tarjeta" simplemente se sigue llenando
+      // a mano como antes -- no rompe nada.
+    }
+  }
+
+  function autoFillPrecioTarjeta() {
+    if (tarjetaManuallyEdited || cardSurchargePct == null) return;
+    const precioEl = document.getElementById("stock-precio");
+    const tarjetaEl = document.getElementById("stock-precio-tarjeta");
+    const precio = Number(precioEl.value);
+    if (!precio || precio <= 0) { tarjetaEl.value = ""; return; }
+    tarjetaEl.value = Math.ceil(precio * (1 + cardSurchargePct / 100));
+  }
+
+  function resetTarjetaAutoFill() {
+    tarjetaManuallyEdited = false;
+  }
+
   // Lista para el autocompletado de "+ Agregar producto" (ver
   // editItemRowHTML / initProductAutocomplete más abajo) -- se arma con
   // los mismos dos CSV de arriba, sin pedir nada extra por separado.
@@ -238,6 +282,7 @@
       o.customer?.colonia,
       o.customer?.municipio,
       orderNumber(o),
+      o.supplierOrderNumber,
       ...((o.items || []).map((it) => it.nombre)),
       ...((o.items || []).map((it) => itemMarca(it))),
     ].filter(Boolean).join(" ").toLowerCase();
@@ -266,6 +311,7 @@
     wireEditButtons(ordersEl);
     wireProofLinkButtons(ordersEl);
     wireSupplierPromptButtons(ordersEl);
+    wireSupplierNoteButtons(ordersEl);
   }
 
   function renderHistory(orders) {
@@ -297,6 +343,7 @@
     wireEditButtons(historyEl);
     wireProofLinkButtons(historyEl);
     wireSupplierPromptButtons(historyEl);
+    wireSupplierNoteButtons(historyEl);
   }
 
   function wireCopyAddressButtons(container) {
@@ -352,7 +399,15 @@
      ya va en camino" listo para mandarle al cliente -- un clic, no manda
      nada solo, tú le das "Enviar" desde WhatsApp. La pestaña se abre
      ANTES de guardar (en blanco) para que el navegador no la bloquee por
-     no ser ya parte del clic; se le pone la URL real después. */
+     no ser ya parte del clic; se le pone la URL real después.
+
+     Importante: NO se le pasa "noopener" a window.open() porque en
+     Chrome eso hace que regrese null (no se puede redirigir después, y
+     el botón se queda sin hacer nada, sin ningún error -- así se
+     reportó este bug). En su lugar, se corta la referencia opener a
+     mano justo después de abrir la ventana, que da la misma protección
+     de seguridad (evita que wa.me pueda controlar esta pestaña) sin
+     perder la ventana en Chrome. */
   async function sendTracking(orderId, btn) {
     const numberInput = document.querySelector(`[data-tracking-number="${orderId}"]`);
     const carrierInput = document.querySelector(`[data-tracking-carrier="${orderId}"]`);
@@ -366,7 +421,8 @@
     const order = allOrders.find((o) => o.id === orderId);
     if (!order) return;
 
-    const waWindow = window.open("", "_blank", "noopener");
+    const waWindow = window.open("", "_blank");
+    if (waWindow) waWindow.opener = null;
 
     const originalText = btn.textContent;
     btn.disabled = true;
@@ -770,7 +826,8 @@
   /* Genera la guía con la paquetería elegida, guarda el número de guía en
      el pedido y abre WhatsApp con el aviso listo para el cliente -- mismo
      truco de abrir la pestaña en blanco antes del await para que el
-     navegador no la bloquee. */
+     navegador no la bloquee, y mismo cuidado con "noopener" que en
+     sendTracking() de arriba (sin él, Chrome regresa null). */
   async function generateGuide(orderId, btn) {
     const errorEl = document.querySelector(`[data-guide-error="${orderId}"]`);
     errorEl.textContent = "";
@@ -799,7 +856,8 @@
     if (interiorVal) destination.interiorNumber = interiorVal;
 
     const order = allOrders.find((o) => o.id === orderId);
-    const waWindow = window.open("", "_blank", "noopener");
+    const waWindow = window.open("", "_blank");
+    if (waWindow) waWindow.opener = null;
 
     const originalText = btn.textContent;
     btn.disabled = true;
@@ -1104,6 +1162,66 @@ ${itemLines}
     });
   }
 
+  /* Nota interna (NUNCA se le muestra al cliente): el número de pedido
+     que da Asian Beauty Wholesale al comprarle, para que Mae pueda
+     relacionar un pedido de su tienda con su compra al proveedor. Se
+     guarda con su propio botón, igual que el número de guía -- no se
+     manda solo al escribir. */
+  function supplierNoteBlockHTML(o) {
+    return `
+      <div class="supplier-note-block">
+        <p class="hint">📝 Número de pedido en ABW (solo para tu organización -- nunca se le muestra al cliente)</p>
+        <div class="row">
+          <input type="text" placeholder="Ej. 10293-AB" data-supplier-order-number="${o.id}" value="${escapeHtml(o.supplierOrderNumber || "")}" />
+          <button type="button" class="btn-secondary" data-save-supplier-order="${o.id}">💾 Guardar</button>
+        </div>
+      </div>`;
+  }
+
+  async function saveSupplierOrderNumber(orderId, btn) {
+    const input = document.querySelector(`[data-supplier-order-number="${orderId}"]`);
+    if (!input) return;
+    const supplierOrderNumber = input.value.trim();
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-update-supplier-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ orderId, supplierOrderNumber }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus(data.error || "No se pudo guardar la nota.");
+        return;
+      }
+      const order = allOrders.find((o) => o.id === orderId);
+      if (order) order.supplierOrderNumber = supplierOrderNumber;
+      btn.textContent = "✅ Guardado";
+      setTimeout(() => { btn.textContent = originalText; }, 1500);
+    } catch (err) {
+      setStatus("No se pudo conectar con el servidor.");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function wireSupplierNoteButtons(container) {
+    container.querySelectorAll("[data-save-supplier-order]").forEach((btn) => {
+      btn.addEventListener("click", () => saveSupplierOrderNumber(btn.dataset.saveSupplierOrder, btn));
+    });
+    container.querySelectorAll("[data-supplier-order-number]").forEach((input) => {
+      input.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        const orderId = input.dataset.supplierOrderNumber;
+        const btn = document.querySelector(`[data-save-supplier-order="${orderId}"]`);
+        if (btn) saveSupplierOrderNumber(orderId, btn);
+      });
+    });
+  }
+
   function wireProofLinkButtons(container) {
     container.querySelectorAll("[data-view-proof]").forEach((btn) => {
       btn.addEventListener("click", () => viewPaymentProof(btn.dataset.viewProof, btn));
@@ -1112,12 +1230,35 @@ ${itemLines}
 
   // La clave de admin ya NO va en la URL (quedaba guardada en el
   // historial del navegador y en los logs del servidor) -- se manda
-  // como header, igual que el resto de las llamadas a /admin-*. La
-  // pestaña se abre ANTES del fetch (así el navegador no la bloquea
-  // como popup, solo permite window.open() dentro del mismo clic) y
-  // se le pone la URL del comprobante ya cargado hasta que llega.
+  // como header, igual que el resto de las llamadas a /admin-*.
+  //
+  // El comprobante se muestra en un visor DENTRO de la misma página
+  // (ver #proof-viewer-overlay en admin.html), no en una pestaña nueva
+  // -- se probó abrir una pestaña con window.open() + blob:, pero eso
+  // se rompe según el navegador: en Chrome, window.open("", "_blank",
+  // "noopener") regresa null (no se puede redirigir después) y en
+  // Safari/WebKit la pestaña nueva simplemente no logra cargar un
+  // blob: creado en la ventana de origen -- en ambos casos se quedaba
+  // en blanco para siempre. Un <iframe> en la MISMA página con el
+  // mismo blob: sí funciona en todos los navegadores probados.
+  let currentProofBlobUrl = null;
+
+  function openProofViewer(blobUrl) {
+    currentProofBlobUrl = blobUrl;
+    document.getElementById("proof-viewer-frame").src = blobUrl;
+    document.getElementById("proof-viewer-overlay").style.display = "flex";
+  }
+
+  function closeProofViewer() {
+    document.getElementById("proof-viewer-overlay").style.display = "none";
+    document.getElementById("proof-viewer-frame").src = "about:blank";
+    if (currentProofBlobUrl) {
+      URL.revokeObjectURL(currentProofBlobUrl);
+      currentProofBlobUrl = null;
+    }
+  }
+
   async function viewPaymentProof(orderId, btn) {
-    const win = window.open("", "_blank", "noopener");
     const original = btn.textContent;
     btn.disabled = true;
     btn.textContent = "Cargando...";
@@ -1127,15 +1268,8 @@ ${itemLines}
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      if (win) {
-        win.location.href = blobUrl;
-      } else {
-        window.open(blobUrl, "_blank", "noopener");
-      }
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      openProofViewer(URL.createObjectURL(blob));
     } catch (err) {
-      if (win) win.close();
       setStatus("No se pudo cargar el comprobante de pago.");
     } finally {
       btn.disabled = false;
@@ -1271,6 +1405,7 @@ ${itemLines}
     // botón/prompt en pendingCardHTML, así que aquí se omite para no
     // repetir el mismo id en la página.
     const supplierBlock = o.status === "pending" ? "" : supplierPromptBlockHTML(o);
+    const supplierNote = o.status === "pending" ? "" : supplierNoteBlockHTML(o);
     return `
       <div class="order-card" style="border-left-color:${borderColor};">
         <div class="top">
@@ -1289,6 +1424,7 @@ ${itemLines}
         ${guideBlockHTML(o)}
         ${editBlock}
         ${supplierBlock}
+        ${supplierNote}
         ${deleteBtn}
       </div>`;
   }
@@ -1308,6 +1444,7 @@ ${itemLines}
         ${proofLinkHTML(o)}
         ${editBlockHTML(o)}
         ${supplierPromptBlockHTML(o)}
+        ${supplierNoteBlockHTML(o)}
         <div class="actions">
           <button class="btn-primary" data-confirm="${o.id}" title="Esto resta las piezas vendidas del stock automáticamente">✅ Ya me pagó</button>
           <button class="btn-danger" data-cancel="${o.id}">✕ No pagó / Cancelar</button>
@@ -1363,8 +1500,10 @@ ${itemLines}
 
   /* ======================================================================
      Agregar producto nuevo a la pestaña de Stock (ver
-     admin-add-stock-product.js) -- se escribe directo en el Google Sheet,
-     no hace falta que Mae lo abra a mano.
+     admin-add-stock-product.js) -- vive DENTRO del panel de Inventario
+     (arriba de la tabla), para productos que todavía no existen. Al
+     agregarse, se inserta también en inventoryProducts para que aparezca
+     de inmediato en la tabla de abajo sin tener que recargar.
      ====================================================================== */
   function toggleAddStockForm() {
     const form = document.getElementById("add-stock-form");
@@ -1373,7 +1512,75 @@ ${itemLines}
     if (opening) {
       document.getElementById("stock-add-error").textContent = "";
       document.getElementById("stock-add-success").style.display = "none";
+      resetTarjetaAutoFill();
     }
+  }
+
+  /* Varios tonos/colores del mismo producto: cada uno se guarda como su
+     propia fila en Stock (mismo nombre base + "(#tono)" al final), que el
+     catálogo agrupa solo en una tarjeta con selector -- ver groupVariants()
+     en app.js. Precio/marca/categoria/peso/foto/descripción son los
+     mismos para todos los tonos; solo cambian el tono, sus piezas y su
+     SKU. */
+  function tonoRowHTML() {
+    return `
+      <div class="stock-tono-row" data-tono-row>
+        <input type="text" class="tono-label" placeholder="Tono/color (ej. #21 Light Beige) *" />
+        <input type="number" class="tono-piezas" placeholder="Piezas *" min="1" step="1" />
+        <input type="text" class="tono-sku" placeholder="SKU (opcional)" />
+        <button type="button" class="btn-danger tono-remove">✕</button>
+      </div>`;
+  }
+
+  function addTonoRow() {
+    const list = document.getElementById("stock-tonos-list");
+    list.insertAdjacentHTML("beforeend", tonoRowHTML());
+    const row = list.lastElementChild;
+    row.querySelector(".tono-remove").addEventListener("click", () => removeTonoRow(row));
+  }
+
+  function removeTonoRow(row) {
+    const list = document.getElementById("stock-tonos-list");
+    if (list.children.length <= 1) return; // siempre deja al menos un renglón
+    row.remove();
+  }
+
+  function toggleMultiTono() {
+    const checked = document.getElementById("stock-multi-tono-toggle").checked;
+    document.getElementById("stock-tonos-section").style.display = checked ? "flex" : "none";
+    document.getElementById("stock-single-piezas-row").style.display = checked ? "none" : "flex";
+    const list = document.getElementById("stock-tonos-list");
+    if (checked && !list.children.length) {
+      addTonoRow();
+      addTonoRow();
+    }
+  }
+
+  function resetTonoRows() {
+    const list = document.getElementById("stock-tonos-list");
+    list.innerHTML = "";
+    document.getElementById("stock-multi-tono-toggle").checked = false;
+    toggleMultiTono();
+  }
+
+  async function addStockProductRequest(body) {
+    const res = await fetch("/.netlify/functions/admin-add-stock-product", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    return { ok: res.ok, data };
+  }
+
+  /* Inserta un producto recién agregado hasta arriba de la tabla de
+     inventario, sin esperar a que se recargue desde el Sheet -- solo si
+     el panel ya cargó su lista (si no, loadInventory() la traerá
+     completa de todos modos la próxima vez que se abra). */
+  function addToInventoryList(product) {
+    if (!inventoryLoaded) return;
+    inventoryProducts.unshift(product);
+    renderInventoryList();
   }
 
   async function submitAddStockProduct() {
@@ -1383,49 +1590,355 @@ ${itemLines}
     successEl.style.display = "none";
 
     const nombre = document.getElementById("stock-nombre").value.trim();
-    const piezas = Number(document.getElementById("stock-piezas").value);
     const precio = Number(document.getElementById("stock-precio").value);
-
-    if (!nombre) { errorEl.textContent = "Falta el nombre del producto."; return; }
-    if (!piezas || piezas <= 0) { errorEl.textContent = "Las piezas deben ser un número mayor a 0."; return; }
-    if (!precio || precio <= 0) { errorEl.textContent = "El precio debe ser un número mayor a 0."; return; }
-
-    const body = {
-      nombre,
-      piezas,
+    const sharedFields = {
       precio,
       precioTarjeta: document.getElementById("stock-precio-tarjeta").value || undefined,
       marca: document.getElementById("stock-marca").value.trim(),
       categoria: document.getElementById("stock-categoria").value.trim(),
       descripcion: document.getElementById("stock-descripcion").value.trim(),
       peso: document.getElementById("stock-peso").value || undefined,
-      sku: document.getElementById("stock-sku").value.trim(),
       imagen: document.getElementById("stock-imagen").value.trim(),
     };
 
+    if (!nombre) { errorEl.textContent = "Falta el nombre del producto."; return; }
+    if (!precio || precio <= 0) { errorEl.textContent = "El precio debe ser un número mayor a 0."; return; }
+
+    const isMultiTono = document.getElementById("stock-multi-tono-toggle").checked;
     const btn = document.getElementById("stock-add-submit");
     const originalText = btn.textContent;
+
+    if (!isMultiTono) {
+      const piezas = Number(document.getElementById("stock-piezas").value);
+      if (!piezas || piezas <= 0) { errorEl.textContent = "Las piezas deben ser un número mayor a 0."; return; }
+
+      btn.disabled = true;
+      btn.textContent = "Agregando...";
+      try {
+        const { ok, data } = await addStockProductRequest({
+          ...sharedFields,
+          nombre,
+          piezas,
+          sku: document.getElementById("stock-sku").value.trim(),
+        });
+        if (!ok) { errorEl.textContent = data.error || "No se pudo agregar el producto."; return; }
+        successEl.textContent = `✅ "${nombre}" se agregó a tu Stock con el SKU ${data.sku}.`;
+        successEl.style.display = "block";
+        addToInventoryList({
+          sku: data.sku, nombre, marca: sharedFields.marca, piezas,
+          precio: sharedFields.precio, precioTarjeta: Number(sharedFields.precioTarjeta) || 0,
+          categoria: sharedFields.categoria, peso: Number(sharedFields.peso) || 0,
+          imagen: sharedFields.imagen, descripcion: sharedFields.descripcion,
+        });
+        ["stock-nombre", "stock-marca", "stock-piezas", "stock-precio", "stock-precio-tarjeta",
+         "stock-categoria", "stock-peso", "stock-sku", "stock-imagen", "stock-descripcion"]
+          .forEach((id) => { document.getElementById(id).value = ""; });
+        resetTarjetaAutoFill();
+      } catch (err) {
+        errorEl.textContent = "No se pudo conectar con el servidor.";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+      return;
+    }
+
+    // Modo varios tonos: una fila por cada tono, mismo nombre base.
+    const rows = Array.from(document.querySelectorAll("#stock-tonos-list [data-tono-row]"));
+    const tonos = [];
+    for (const row of rows) {
+      let label = row.querySelector(".tono-label").value.trim();
+      const piezas = Number(row.querySelector(".tono-piezas").value);
+      const sku = row.querySelector(".tono-sku").value.trim();
+      if (!label && !piezas && !sku) continue; // renglón vacío, se ignora
+      if (!label) { errorEl.textContent = "Falta el tono/color en alguno de los renglones."; return; }
+      if (!label.startsWith("#")) label = `#${label}`;
+      if (!piezas || piezas <= 0) { errorEl.textContent = `Faltan las piezas del tono "${label}".`; return; }
+      tonos.push({ label, piezas, sku });
+    }
+    if (tonos.length < 2) { errorEl.textContent = "Agrega al menos 2 tonos, o desmarca la casilla de varios tonos."; return; }
+
     btn.disabled = true;
     btn.textContent = "Agregando...";
+    const added = [];
+    const failed = [];
+    for (const tono of tonos) {
+      try {
+        const { ok, data } = await addStockProductRequest({
+          ...sharedFields,
+          nombre: `${nombre} (${tono.label})`,
+          piezas: tono.piezas,
+          sku: tono.sku,
+        });
+        if (ok) {
+          added.push({ tono: tono.label, sku: data.sku });
+          addToInventoryList({
+            sku: data.sku, nombre: `${nombre} (${tono.label})`, marca: sharedFields.marca, piezas: tono.piezas,
+            precio: sharedFields.precio, precioTarjeta: Number(sharedFields.precioTarjeta) || 0,
+            categoria: sharedFields.categoria, peso: Number(sharedFields.peso) || 0,
+            imagen: sharedFields.imagen, descripcion: sharedFields.descripcion,
+          });
+        } else {
+          failed.push({ tono: tono.label, error: data.error || "No se pudo agregar." });
+        }
+      } catch (err) {
+        failed.push({ tono: tono.label, error: "No se pudo conectar con el servidor." });
+      }
+    }
+    btn.disabled = false;
+    btn.textContent = originalText;
+
+    if (added.length) {
+      successEl.textContent = `✅ Se agregaron ${added.length} tono(s) de "${nombre}": ${added.map((a) => `${a.tono} (SKU ${a.sku})`).join(", ")}.`;
+      successEl.style.display = "block";
+    }
+    if (failed.length) {
+      errorEl.textContent = `No se pudieron agregar ${failed.length} tono(s): ${failed.map((f) => `${f.tono} (${f.error})`).join("; ")}`;
+    }
+    if (!failed.length) {
+      ["stock-nombre", "stock-marca", "stock-precio", "stock-precio-tarjeta",
+       "stock-categoria", "stock-peso", "stock-imagen", "stock-descripcion"]
+        .forEach((id) => { document.getElementById(id).value = ""; });
+      resetTonoRows();
+      resetTarjetaAutoFill();
+    }
+  }
+
+  /* ======================================================================
+     Inventario (ver admin-list-stock.js / admin-update-stock-product.js /
+     admin-delete-stock-product.js) -- tabla para ver, editar, sumar/restar
+     piezas y quitar productos que YA están publicados en tu pestaña de
+     Stock, sin tener que abrir el Excel. El formulario de arriba
+     ("Agregar producto en Stock") es para los que todavía no existen.
+     ====================================================================== */
+  let inventoryLoaded = false;
+  let inventoryProducts = [];
+  let inventorySearchTerm = "";
+
+  function toggleInventoryPanel() {
+    const panel = document.getElementById("inventory-panel");
+    const opening = panel.style.display === "none";
+    panel.style.display = opening ? "flex" : "none";
+    if (opening && !inventoryLoaded) loadInventory();
+  }
+
+  async function loadInventory() {
+    const listEl = document.getElementById("inventory-list");
+    const emptyEl = document.getElementById("inventory-empty");
+    const loadingEl = document.getElementById("inventory-loading");
+    const errorEl = document.getElementById("inventory-error");
+    listEl.innerHTML = "";
+    emptyEl.style.display = "none";
+    errorEl.textContent = "";
+    loadingEl.style.display = "block";
     try {
-      const res = await fetch("/.netlify/functions/admin-add-stock-product", {
+      const res = await fetch("/.netlify/functions/admin-list-stock", {
+        headers: { "x-admin-key": adminKey },
+      });
+      const data = await res.json();
+      loadingEl.style.display = "none";
+      if (!res.ok) {
+        errorEl.textContent = data.error || "No se pudo cargar tu inventario.";
+        return;
+      }
+      inventoryLoaded = true;
+      inventoryProducts = data.products || [];
+      renderInventoryList();
+    } catch (err) {
+      loadingEl.style.display = "none";
+      errorEl.textContent = "No se pudo conectar con el servidor.";
+    }
+  }
+
+  // Placeholder gris con un ícono de cámara -- se usa de entrada si el
+  // producto no tiene foto, y también si la URL que se escribe no carga
+  // (onerror), para nunca mostrar el ícono roto del navegador.
+  const INV_IMG_PLACEHOLDER =
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" rx="8" fill="#eee"/><text x="22" y="27" font-size="18" text-anchor="middle">📷</text></svg>'
+    );
+
+  function inventoryRowHTML(p) {
+    const imgSrc = p.imagen ? escapeHtml(p.imagen) : INV_IMG_PLACEHOLDER;
+    return `
+      <div class="inventory-row" data-inv-row="${escapeHtml(p.sku)}">
+        <div class="inv-top">
+          <img class="inv-thumb" src="${imgSrc}" alt="" onerror="this.src='${INV_IMG_PLACEHOLDER}'" />
+          <input type="text" class="inv-nombre" value="${escapeHtml(p.nombre)}" placeholder="Nombre" />
+          <input type="text" class="inv-marca" value="${escapeHtml(p.marca)}" placeholder="Marca" style="flex:1 1 110px;min-width:90px;" />
+          <span class="inv-sku">SKU: ${escapeHtml(p.sku)}</span>
+        </div>
+        <input type="text" class="inv-imagen" value="${escapeHtml(p.imagen)}" placeholder="Link de la foto" />
+        <div class="inv-fields">
+          <div class="inventory-qty">
+            <button type="button" class="inv-qty-dec" title="Restar 1">−</button>
+            <input type="number" class="inv-piezas" value="${p.piezas}" min="0" step="1" title="Piezas disponibles" />
+            <button type="button" class="inv-qty-inc" title="Sumar 1">+</button>
+          </div>
+          <input type="number" class="inv-precio" value="${p.precio || ""}" min="0" step="1" placeholder="Precio MXN" title="Precio transferencia (MXN)" />
+          <input type="number" class="inv-precio-tarjeta" value="${p.precioTarjeta || ""}" min="0" step="1" placeholder="Precio tarjeta" title="Precio tarjeta (MXN)" />
+          <input type="text" class="inv-categoria" value="${escapeHtml(p.categoria)}" placeholder="Categoría" />
+          <input type="number" class="inv-peso" value="${p.peso || ""}" min="0" step="0.01" placeholder="Peso (kg)" title="Peso en kg" />
+        </div>
+        <div class="inv-actions">
+          <button type="button" class="btn-primary inv-save">💾 Guardar</button>
+          <button type="button" class="btn-danger inv-delete">🗑️ Quitar</button>
+          <span class="inv-status"></span>
+        </div>
+      </div>`;
+  }
+
+  function matchesInventorySearch(p, query) {
+    if (!query) return true;
+    const haystack = normalizeForSearch(`${p.nombre} ${p.marca} ${p.sku}`);
+    return haystack.includes(normalizeForSearch(query));
+  }
+
+  /* Siempre por marca (alfabético, sin distinguir mayúsculas/acentos) y,
+     dentro de la misma marca, por nombre -- las marcas sin capturar
+     (vacías) se van hasta el final en vez de mezclarse al principio. */
+  function compareByMarcaThenNombre(a, b) {
+    const marcaA = a.marca || "";
+    const marcaB = b.marca || "";
+    if (!marcaA && marcaB) return 1;
+    if (marcaA && !marcaB) return -1;
+    const marcaCompare = marcaA.localeCompare(marcaB, "es", { sensitivity: "base" });
+    if (marcaCompare !== 0) return marcaCompare;
+    return (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
+  }
+
+  function renderInventoryList() {
+    const listEl = document.getElementById("inventory-list");
+    const emptyEl = document.getElementById("inventory-empty");
+    const filtered = inventoryProducts
+      .filter((p) => matchesInventorySearch(p, inventorySearchTerm))
+      .sort(compareByMarcaThenNombre);
+
+    if (!inventoryProducts.length) {
+      listEl.innerHTML = "";
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "No hay ningún producto en tu Stock todavía.";
+      return;
+    }
+    if (!filtered.length) {
+      listEl.innerHTML = "";
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "Ningún producto coincide con tu búsqueda.";
+      return;
+    }
+    emptyEl.style.display = "none";
+    listEl.innerHTML = filtered.map(inventoryRowHTML).join("");
+    wireInventoryRow(listEl);
+  }
+
+  function wireInventoryRow(container) {
+    container.querySelectorAll("[data-inv-row]").forEach((row) => {
+      const sku = row.dataset.invRow;
+      const piezasInput = row.querySelector(".inv-piezas");
+
+      row.querySelector(".inv-qty-dec").addEventListener("click", () => {
+        piezasInput.value = Math.max(0, Number(piezasInput.value || 0) - 1);
+      });
+      row.querySelector(".inv-qty-inc").addEventListener("click", () => {
+        piezasInput.value = Number(piezasInput.value || 0) + 1;
+      });
+      row.querySelector(".inv-imagen").addEventListener("input", (e) => {
+        const thumb = row.querySelector(".inv-thumb");
+        thumb.src = e.target.value.trim() || INV_IMG_PLACEHOLDER;
+      });
+      // Al corregir el precio de transferencia, recalcula también el de
+      // tarjeta con la misma fórmula del catálogo -- igual que en
+      // "Agregar producto en Stock". Si la usuaria edita el precio de
+      // tarjeta a mano, se deja de tocar (row.dataset.tarjetaManual) hasta
+      // que la lista se vuelva a pintar (ej. al guardar o buscar).
+      row.querySelector(".inv-precio").addEventListener("input", (e) => {
+        if (row.dataset.tarjetaManual || cardSurchargePct == null) return;
+        const precio = Number(e.target.value);
+        const tarjetaEl = row.querySelector(".inv-precio-tarjeta");
+        tarjetaEl.value = precio > 0 ? Math.ceil(precio * (1 + cardSurchargePct / 100)) : "";
+      });
+      row.querySelector(".inv-precio-tarjeta").addEventListener("input", () => {
+        row.dataset.tarjetaManual = "1";
+      });
+      row.querySelector(".inv-save").addEventListener("click", (e) => saveInventoryRow(sku, row, e.currentTarget));
+      row.querySelector(".inv-delete").addEventListener("click", (e) => deleteInventoryRow(sku, row, e.currentTarget));
+    });
+  }
+
+  async function saveInventoryRow(sku, row, btn) {
+    const statusEl = row.querySelector(".inv-status");
+    statusEl.textContent = "";
+    statusEl.style.color = "";
+
+    const body = {
+      sku,
+      nombre: row.querySelector(".inv-nombre").value.trim(),
+      marca: row.querySelector(".inv-marca").value.trim(),
+      piezas: Number(row.querySelector(".inv-piezas").value) || 0,
+      precio: Number(row.querySelector(".inv-precio").value) || 0,
+      precioTarjeta: Number(row.querySelector(".inv-precio-tarjeta").value) || 0,
+      categoria: row.querySelector(".inv-categoria").value.trim(),
+      peso: Number(row.querySelector(".inv-peso").value) || 0,
+      imagen: row.querySelector(".inv-imagen").value.trim(),
+    };
+
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-update-stock-product", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
         body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
-        errorEl.textContent = data.error || "No se pudo agregar el producto.";
+        statusEl.style.color = "#b03a2e";
+        statusEl.textContent = data.error || "No se pudo guardar.";
         return;
       }
-      successEl.textContent = `✅ "${nombre}" se agregó a tu Stock con el SKU ${data.sku}.`;
-      successEl.style.display = "block";
-      ["stock-nombre", "stock-marca", "stock-piezas", "stock-precio", "stock-precio-tarjeta",
-       "stock-categoria", "stock-peso", "stock-sku", "stock-imagen", "stock-descripcion"]
-        .forEach((id) => { document.getElementById(id).value = ""; });
+      const product = inventoryProducts.find((p) => p.sku === sku);
+      if (product) Object.assign(product, body);
+      statusEl.style.color = "#17803d";
+      statusEl.textContent = "✅ Guardado";
+      setTimeout(() => { statusEl.textContent = ""; }, 2000);
     } catch (err) {
-      errorEl.textContent = "No se pudo conectar con el servidor.";
+      statusEl.style.color = "#b03a2e";
+      statusEl.textContent = "No se pudo conectar con el servidor.";
     } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  async function deleteInventoryRow(sku, row, btn) {
+    const nombre = row.querySelector(".inv-nombre").value.trim() || sku;
+    if (!confirm(`¿Quitar "${nombre}" de tu Stock? Ya no se mostrará en el sitio.`)) return;
+
+    const statusEl = row.querySelector(".inv-status");
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Quitando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-delete-stock-product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ sku }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        statusEl.style.color = "#b03a2e";
+        statusEl.textContent = data.error || "No se pudo quitar.";
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+      inventoryProducts = inventoryProducts.filter((p) => p.sku !== sku);
+      renderInventoryList();
+    } catch (err) {
+      statusEl.style.color = "#b03a2e";
+      statusEl.textContent = "No se pudo conectar con el servidor.";
       btn.disabled = false;
       btn.textContent = originalText;
     }
@@ -2189,6 +2702,7 @@ ${itemLines}
     toolbar.style.display = "flex";
     fetchOrders();
     loadSkuMarcaMap();
+    loadCardSurchargePct();
   }
 
   function resetTabs() {
@@ -2226,6 +2740,9 @@ ${itemLines}
     filterSearchEl.value = "";
     filterCountEl.textContent = "";
     document.getElementById("add-stock-form").style.display = "none";
+    document.getElementById("inventory-panel").style.display = "none";
+    inventoryLoaded = false;
+    inventoryProducts = [];
     document.getElementById("restock-requests-panel").style.display = "none";
     restockRequestsLoaded = false;
     document.getElementById("reviews-panel").style.display = "none";
@@ -2239,6 +2756,16 @@ ${itemLines}
     resetTabs();
   }
 
+  document.getElementById("proof-viewer-close").addEventListener("click", closeProofViewer);
+  document.getElementById("proof-viewer-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "proof-viewer-overlay") closeProofViewer();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && document.getElementById("proof-viewer-overlay").style.display !== "none") {
+      closeProofViewer();
+    }
+  });
+
   document.getElementById("login-btn").addEventListener("click", login);
   document.getElementById("admin-key-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter") login();
@@ -2249,6 +2776,15 @@ ${itemLines}
   document.getElementById("export-btn").addEventListener("click", exportCSV);
   document.getElementById("add-stock-toggle").addEventListener("click", toggleAddStockForm);
   document.getElementById("stock-add-submit").addEventListener("click", submitAddStockProduct);
+  document.getElementById("stock-multi-tono-toggle").addEventListener("change", toggleMultiTono);
+  document.getElementById("stock-precio").addEventListener("input", autoFillPrecioTarjeta);
+  document.getElementById("stock-precio-tarjeta").addEventListener("input", () => { tarjetaManuallyEdited = true; });
+  document.getElementById("stock-tono-add-row").addEventListener("click", addTonoRow);
+  document.getElementById("inventory-toggle").addEventListener("click", toggleInventoryPanel);
+  document.getElementById("inventory-search").addEventListener("input", (e) => {
+    inventorySearchTerm = e.target.value;
+    renderInventoryList();
+  });
   document.getElementById("restock-requests-toggle").addEventListener("click", toggleRestockPanel);
   document.getElementById("reviews-toggle").addEventListener("click", toggleReviewsPanel);
   document.getElementById("usa-orders-toggle").addEventListener("click", toggleUsaOrdersPanel);
@@ -2316,4 +2852,5 @@ ${itemLines}
     toolbar.style.display = "flex";
     fetchOrders();
     loadSkuMarcaMap();
+    loadCardSurchargePct();
   }

@@ -21,6 +21,9 @@
 const { getOrder, updateOrderFields } = require("./lib/blob-store.js");
 const enviosPerros = require("./lib/enviosperros.js");
 const skydropx = require("./lib/skydropx.js");
+const { notifyCustomerOrderShipped } = require("./lib/whatsapp.js");
+const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
@@ -102,6 +105,18 @@ exports.handler = async (event) => {
       carrier: carrierLabel,
       shippedAt: new Date().toISOString(),
     });
+
+    // Igual que en admin-add-tracking.js: solo se manda si la clienta
+    // tiene cuenta con ese teléfono (los pedidos no guardan correo).
+    const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+    if (customer?.email) {
+      await sendEmail({
+        to: customer.email,
+        subject: "Tu pedido de Alpacca ya va en camino 📦",
+        html: orderShippedEmailHTML(order),
+      });
+    }
+    await notifyCustomerOrderShipped(order);
 
     return jsonResponse(200, { order });
   } catch (err) {

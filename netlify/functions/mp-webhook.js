@@ -14,6 +14,8 @@ const { getOrder, transitionOrder, transitionOrderFrom, applyStockDecrement, adj
 const { notifySellerOrderPaid, notifyCustomerOrderConfirmed, notifySellerPaymentNeedsReview } = require("./lib/whatsapp.js");
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { TOLERANCE_MXN } = require("./lib/pricing.js");
+const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { sendEmail, orderConfirmedEmailHTML } = require("./lib/email.js");
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -108,6 +110,18 @@ exports.handler = async (event) => {
     if (!order.notifiedAt) {
       await notifySellerOrderPaid(order);
       await notifyCustomerOrderConfirmed(order);
+
+      // Igual que en admin-confirm-order.js: solo se manda si la clienta
+      // tiene cuenta con ese teléfono (los pedidos no guardan correo).
+      const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+      if (customer?.email) {
+        await sendEmail({
+          to: customer.email,
+          subject: "Tu pedido de Alpacca fue confirmado 🎉",
+          html: orderConfirmedEmailHTML(order),
+        }).catch((err) => console.error("No se pudo mandar el correo de confirmación:", err));
+      }
+
       await updateOrderFields(orderId, { notifiedAt: new Date().toISOString() });
     }
 

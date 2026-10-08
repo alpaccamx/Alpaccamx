@@ -9,6 +9,7 @@
 const { getOrder, updateOrderFields } = require("./lib/blob-store.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
+const { notifyCustomerOrderShipped } = require("./lib/whatsapp.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
@@ -57,6 +58,7 @@ exports.handler = async (event) => {
         html: orderShippedEmailHTML(order),
       });
     }
+    await notifyCustomerOrderShipped(order);
 
     return jsonResponse(200, { order });
   } catch (err) {
