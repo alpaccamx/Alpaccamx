@@ -1,3 +1,5 @@
+const { randomUUID } = require("crypto");
+
 // Almacenamiento compartido (Netlify Blobs) para:
 //   - "orders": un registro por pedido (WhatsApp o Mercado Pago), usado
 //     para saber qué descontar de stock cuando se confirma el pago.
@@ -46,6 +48,10 @@ function getStockSoldStore() {
   return getStore({ name: "stock-sold", consistency: "strong", ...blobsClientOptions() });
 }
 
+function getIdempotencyStore() {
+  return getStore({ name: "order-idempotency", consistency: "strong", ...blobsClientOptions() });
+}
+
 function getPaymentProofsStore() {
   return getStore({ name: "payment-proofs", consistency: "strong", ...blobsClientOptions() });
 }
@@ -60,6 +66,15 @@ async function getSoldMap() {
   const store = getStockSoldStore();
   const data = await store.get(SOLD_MAP_KEY, { type: "json" });
   return data || {};
+}
+
+/* Piezas vendidas que hay que restar al stock que muestra el sitio.
+   Si la sincronización con el Google Sheet está activa (GOOGLE_SHEETS_STOCK_TAB),
+   el Sheet ya tiene restadas las ventas (ver README sección 6), así que aquí
+   se regresa vacío: restarlas otra vez dejaría el stock subestimado. */
+async function getEffectiveSoldMap() {
+  if (process.env.GOOGLE_SHEETS_STOCK_TAB) return {};
+  return getSoldMap();
 }
 
 /* Suma qty a cada SKU en el mapa de vendidos. Usa "onlyIfMatch"/"onlyIfNew"
@@ -108,6 +123,62 @@ async function adjustStockSold(deltaBySku) {
   throw new Error("No se pudo ajustar el stock vendido (conflicto de concurrencia).");
 }
 
+/* Clave de idempotencia de un intento de pedido. Evita que una recarga o un
+   reintento de red registre el mismo pedido dos veces: la primera petición
+   reserva la clave; las siguientes reciben el resultado ya guardado (o un
+   aviso de "en curso"). Una reserva que quedó colgada más de 2 minutos se
+   libera para poder reintentar. */
+const IDEM_STALE_MS = 2 * 60 * 1000;
+
+async function claimIdempotencyKey(key) {
+  const store = getIdempotencyStore();
+  const res = await store.setJSON(key, { status: "in_progress", at: Date.now() }, { onlyIfNew: true });
+  if (res.modified) return { claimed: true, existing: null };
+  const existing = await store.get(key, { type: "json" });
+  if (existing && existing.status === "in_progress" && Date.now() - existing.at > IDEM_STALE_MS) {
+    await store.delete(key);
+    return { claimed: false, existing: { status: "stale" } };
+  }
+  return { claimed: false, existing: existing || { status: "in_progress" } };
+}
+
+async function completeIdempotencyKey(key, value) {
+  await getIdempotencyStore().setJSON(key, { status: "done", ...value });
+}
+
+async function releaseIdempotencyKey(key) {
+  await getIdempotencyStore().delete(key).catch(() => {});
+}
+
+/* Bloqueo sencillo con vencimiento, para que una sola función a la vez haga
+   una lectura-modificación-escritura de un recurso compartido (p. ej. la
+   pestaña de Stock del Sheet). Si el dueño del bloqueo muere sin soltarlo,
+   el bloqueo vence solo a los ttlMs. */
+async function withLock(name, fn, { ttlMs = 30 * 1000, waitMs = 20 * 1000 } = {}) {
+  const store = getStore({ name: "locks", consistency: "strong", ...blobsClientOptions() });
+  const token = randomUUID();
+  const started = Date.now();
+  for (;;) {
+    const now = Date.now();
+    const mine = { token, expiresAt: now + ttlMs };
+    const created = await store.setJSON(name, mine, { onlyIfNew: true });
+    if (created.modified) break;
+    const current = await store.getWithMetadata(name, { type: "json" });
+    if (current && current.data && current.data.expiresAt < now) {
+      const taken = await store.setJSON(name, mine, { onlyIfMatch: current.etag });
+      if (taken.modified) break;
+    }
+    if (now - started > waitMs) throw new Error(`No se pudo obtener el bloqueo "${name}".`);
+    await new Promise((r) => setTimeout(r, 250 + Math.random() * 250));
+  }
+  try {
+    return await fn();
+  } finally {
+    const current = await store.get(name, { type: "json" }).catch(() => null);
+    if (current && current.token === token) await store.delete(name).catch(() => {});
+  }
+}
+
 async function saveNewOrder(order) {
   const store = getOrdersStore();
   const result = await store.setJSON(order.id, order, { onlyIfNew: true });
@@ -131,6 +202,22 @@ async function transitionOrder(orderId, toStatus, extra = {}) {
     if (!existing) return { order: null, transitioned: false };
     const order = existing.data;
     if (order.status !== "pending") return { order, transitioned: false };
+    const updated = { ...order, ...extra, status: toStatus };
+    const result = await store.setJSON(orderId, updated, { onlyIfMatch: existing.etag });
+    if (result.modified) return { order: updated, transitioned: true };
+  }
+  throw new Error(`No se pudo actualizar el pedido a "${toStatus}" (conflicto de concurrencia).`);
+}
+
+/* Igual que transitionOrder, pero desde cualquier estado de origen (ej. de
+   "paid" a "refunded"). Solo cambia el pedido si está en fromStatus. */
+async function transitionOrderFrom(orderId, fromStatus, toStatus, extra = {}) {
+  const store = getOrdersStore();
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const existing = await store.getWithMetadata(orderId, { type: "json" });
+    if (!existing) return { order: null, transitioned: false };
+    const order = existing.data;
+    if (order.status !== fromStatus) return { order, transitioned: false };
     const updated = { ...order, ...extra, status: toStatus };
     const result = await store.setJSON(orderId, updated, { onlyIfMatch: existing.etag });
     if (result.modified) return { order: updated, transitioned: true };
@@ -220,11 +307,17 @@ async function deleteRestockRequest(id) {
 module.exports = {
   blobsClientOptions,
   getSoldMap,
+  getEffectiveSoldMap,
   applyStockDecrement,
   adjustStockSold,
   saveNewOrder,
+  withLock,
+  claimIdempotencyKey,
+  completeIdempotencyKey,
+  releaseIdempotencyKey,
   getOrder,
   transitionOrder,
+  transitionOrderFrom,
   listOrders,
   deleteOrder,
   updateOrderFields,

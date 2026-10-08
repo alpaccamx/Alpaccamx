@@ -31,6 +31,7 @@
 <link rel="preload" as="font" type="font/woff2" href="./fonts/ReadyToParty-latin.woff2" crossorigin>
 </head>
 <body class="bg-cream text-ink font-body antialiased">
+<a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-cream focus:text-ink focus:px-3 focus:py-2 focus:rounded-lg">Saltar al contenido</a>
 
 <!-- Top bar -->
 <div class="bg-[#fdd2de] text-ink text-xs sm:text-sm">
@@ -87,7 +88,7 @@
       </button>
 
       <button id="cart-toggle" type="button" aria-label="Abrir carrito"
-        class="relative inline-flex items-center gap-2 rounded-full bg-rose text-cream px-4 py-2 min-h-[44px] text-sm font-semibold hover:bg-rose/90 transition">
+        class="relative inline-flex items-center gap-2 rounded-full bg-rose text-cream px-4 py-2 min-h-[44px] text-sm font-semibold hover:bg-rose/90 transition active:scale-[0.97]">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         <span class="hidden sm:inline" id="cart-total-header">$0.00</span>
         <span id="cart-count" class="absolute -top-2 -right-2 bg-blush text-ink text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
@@ -96,7 +97,7 @@
   </div>
 
   <!-- Category nav (desktop) -->
-  <div id="category-nav-row" class="hidden sm:block border-t border-ink/10 relative">
+  <div id="category-nav-row" role="navigation" aria-label="Categorías" class="hidden sm:block border-t border-ink/10 relative">
     <button id="nav-prev" type="button" aria-label="Ver categorías anteriores"
       class="flex absolute left-0 top-0 bottom-0 z-10 items-center px-3.5 bg-gradient-to-r from-cream to-transparent">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -111,12 +112,12 @@
   </div>
 </header>
 
-<main>
+<main id="main">
 <!-- Resultados de búsqueda -->
 <section id="search-results-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-display text-xl sm:text-2xl text-ink" id="search-results-title"></h2>
-    <button id="search-results-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar búsqueda</button>
+    <button id="search-results-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar búsqueda</button>
   </div>
   <div id="search-results-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   <p id="search-results-empty" class="hidden text-center text-ink/75 py-6">No encontramos productos que coincidan con tu búsqueda.</p>
@@ -130,7 +131,7 @@
       <button id="shipping-times-open" type="button" class="tap inline-flex items-center gap-1.5 rounded-full border border-lilac/50 bg-lilac/10 text-ink text-xs font-semibold px-3 py-1.5 hover:bg-lilac/20 transition">
         🚚 Conoce nuestros tiempos de entrega
       </button>
-      <button id="catalog-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar catálogo</button>
+      <button id="catalog-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar catálogo</button>
     </div>
   </div>
   <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
@@ -141,7 +142,7 @@
 <section id="wishlist-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-display text-xl sm:text-2xl text-ink">💗 Mis favoritos</h2>
-    <button id="wishlist-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
+    <button id="wishlist-clear" type="button" aria-label="Cerrar favoritos" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
   <div id="wishlist-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   <p id="wishlist-empty" class="hidden text-center text-ink/75 py-6">Todavía no has guardado productos — toca el ❤️ en cualquier producto para guardarlo aquí.</p>
@@ -151,7 +152,7 @@
 <section id="stock-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-display text-xl sm:text-2xl text-ink">✅ Stock en México 🇲🇽</h2>
-    <button id="stock-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
+    <button id="stock-clear" type="button" aria-label="Cerrar en stock" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
   <p class="text-xs text-ink/75 -mt-2 mb-4">Estos productos ya están en México, listos para enviarse — no pagan envío desde Corea.</p>
   <div id="stock-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
@@ -162,7 +163,7 @@
 <section id="brand-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-display text-xl sm:text-2xl text-ink" id="brand-products-title"></h2>
-    <button id="brand-products-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Ver todas las marcas</button>
+    <button id="brand-products-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Ver todas las marcas</button>
   </div>
   <div id="brand-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   <p id="brand-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles de esta marca por ahora.</p>
@@ -172,7 +173,7 @@
 <section id="category-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-display text-xl sm:text-2xl text-ink" id="category-products-title"></h2>
-    <button id="category-products-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar categoría</button>
+    <button id="category-products-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar categoría</button>
   </div>
   <div id="category-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   <p id="category-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles en esta categoría por ahora.</p>
@@ -182,7 +183,7 @@
 <section id="concern-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-display text-xl sm:text-2xl text-ink" id="concern-products-title"></h2>
-    <button id="concern-products-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
+    <button id="concern-products-clear" type="button" aria-label="Cerrar preocupación" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
   <div id="concern-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   <p id="concern-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles para esto por ahora.</p>
@@ -192,7 +193,7 @@
 <section id="country-products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-display text-xl sm:text-2xl text-ink" id="country-products-title"></h2>
-    <button id="country-products-clear" type="button" class="text-xs text-ink/75 hover:text-ink underline">Cerrar país</button>
+    <button id="country-products-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar país</button>
   </div>
   <div id="country-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   <p id="country-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles de este país por ahora.</p>
@@ -204,7 +205,7 @@
      alguien le da clic en el menú (ver showHomeView). -->
 <section id="americano-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
   <div class="relative rounded-3xl border border-ink/10 bg-white/40 p-4 sm:p-8">
-    <button id="americano-close" type="button" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
+    <button id="americano-close" type="button" class="tap absolute top-4 right-4 sm:top-6 sm:right-6 text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
     <div class="mb-2 pr-14">
       <h2 class="font-display text-2xl sm:text-3xl text-ink" id="americano-section-title">Cosmético Americano</h2>
       <p class="text-sm text-ink/75 mt-1 max-w-xl" id="americano-min-order-note"></p>
@@ -240,7 +241,7 @@
   <div id="hero-dots" class="absolute bottom-0 sm:bottom-2 left-0 right-0 z-10 flex justify-center"></div>
   <!-- Pausa/reanuda el cambio automático de slides (WCAG 2.2.2). Se
        muestra solo si hay más de un slide (ver updateHeroPauseButton). -->
-  <button id="hero-pause" type="button" aria-label="Pausar el banner" aria-pressed="false"
+  <button id="hero-pause" type="button" aria-label="Pausar el banner"
     class="hidden absolute bottom-0 right-2 sm:bottom-2 sm:right-4 z-10 w-11 h-11 items-center justify-center rounded-full text-ink/75 hover:text-ink transition-colors">
     <span class="w-8 h-8 rounded-full bg-cream/90 shadow flex items-center justify-center"></span>
   </button>
@@ -248,7 +249,7 @@
 
 <!-- Scrolling ticker (se pausa al pasar el mouse, con el foco o con su botón) -->
 <div id="ticker" class="relative bg-lilac-band text-cream overflow-hidden py-2 coarse:py-3.5">
-  <button id="ticker-pause" type="button" aria-label="Pausar los mensajes" aria-pressed="false"
+  <button id="ticker-pause" type="button" aria-label="Pausar los mensajes"
     class="tap absolute inset-y-0 right-0 z-10 flex items-center pl-6 pr-2 bg-gradient-to-l from-lilac-band via-lilac-band to-transparent text-cream/90 hover:text-cream">
     <span class="w-6 h-6 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></span>
   </button>
@@ -384,7 +385,7 @@
         <div>
           <p class="font-semibold text-ink">Te ayudamos con tu pedido</p>
           <p class="text-sm text-ink/75 mt-0.5">Mae revisa cada pedido y te acompaña por WhatsApp de principio a fin.
-            <a href="#" id="why-alpacca-whatsapp" target="_blank" rel="noopener" class="tap font-semibold text-rose-ink hover:underline whitespace-nowrap">Habla con Mae →</a>
+            <a href="#" id="why-alpacca-whatsapp" target="_blank" rel="noopener" class="tap font-semibold text-rose-ink hover:underline whitespace-nowrap">Habla con Mae →<span class="sr-only"> (se abre en una pestaña nueva)</span></a>
           </p>
         </div>
       </div>
@@ -415,7 +416,7 @@
   <div class="rounded-3xl bg-lilac-band text-cream px-6 sm:px-12 py-12 sm:py-16 text-center">
     <h2 id="promo-title" class="font-display text-2xl sm:text-4xl"></h2>
     <p id="promo-subtitle" class="mt-2 text-cream max-w-lg mx-auto"></p>
-    <a id="promo-cta" href="#" class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition"></a>
+    <a id="promo-cta" href="#" class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition active:scale-[0.97]"></a>
   </div>
 </section>
 
@@ -478,10 +479,10 @@
   <!-- Quiz -->
   <div id="skin-quiz" class="max-w-xl mx-auto">
     <div class="flex justify-center gap-1.5 mb-5" id="quiz-progress"></div>
-    <p id="quiz-question" class="text-center font-semibold text-ink text-lg mb-5"></p>
+    <p id="quiz-question" tabindex="-1" aria-live="polite" class="text-center font-semibold text-ink text-lg mb-5"></p>
     <div id="quiz-options" class="grid sm:grid-cols-2 gap-3"></div>
     <button id="quiz-back" type="button"
-      class="hidden mx-auto mt-5 block text-xs text-ink/75 hover:text-ink underline">&larr; Pregunta anterior</button>
+      class="tap hidden mx-auto mt-5 block text-xs text-ink/75 hover:text-ink underline">&larr; Pregunta anterior</button>
   </div>
 
   <!-- Resultado -->
@@ -490,7 +491,7 @@
       <span id="quiz-result-emoji" class="text-4xl block mb-2"></span>
       <p class="text-sm text-ink/75">Tu tipo de piel es</p>
       <h3 class="font-display text-2xl sm:text-3xl text-ink mt-0.5" id="quiz-result-label"></h3>
-      <button id="quiz-retake" type="button" class="mt-3 text-xs text-ink/75 hover:text-ink underline">Repetir el quiz</button>
+      <button id="quiz-retake" type="button" class="tap mt-3 text-xs text-ink/75 hover:text-ink underline">Repetir el quiz</button>
     </div>
     <div id="skintype-row" class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"></div>
     <p id="skintype-empty" class="hidden text-center text-ink/75 py-6">Pronto agregaremos productos para tu tipo de piel.</p>
@@ -614,9 +615,9 @@
 </footer>
 
 <!-- Floating WhatsApp contact -->
-<a id="whatsapp-float" href="#" target="_blank" rel="noopener"
+<a id="whatsapp-float" href="#" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp (se abre en una pestaña nueva)"
   class="fixed bottom-5 left-5 z-30 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] text-ink font-semibold text-sm w-12 h-12 sm:w-auto sm:h-auto sm:px-4 sm:py-3 shadow-lg hover:opacity-90 transition">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5 shrink-0" fill="currentColor"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5 shrink-0" fill="currentColor" aria-hidden="true"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
   <span class="hidden sm:inline">Contáctanos</span>
 </a>
 
@@ -673,42 +674,43 @@
     </div>
 
     <form id="quote-form" class="space-y-3">
+      <p class="text-xs text-ink/75">Los campos marcados con * son obligatorios.</p>
       <div>
         <label for="customer-name" class="block text-xs font-semibold text-ink/75 mb-1">Tu nombre *</label>
-        <input id="customer-name" required type="text" placeholder="Nombre completo"
+        <input id="customer-name" autocomplete="name" required type="text" placeholder="Nombre completo"
           class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
       <div>
         <label for="customer-phone" class="block text-xs font-semibold text-ink/75 mb-1">Tu teléfono *</label>
-        <input id="customer-phone" required type="tel" placeholder="55 1234 5678"
+        <input id="customer-phone" autocomplete="tel" required type="tel" placeholder="55 1234 5678"
           class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
       <p class="text-xs font-semibold text-ink/75 pt-1">📦 Datos de envío (para tu guía de paquetería)</p>
       <div>
         <label for="customer-street" class="block text-xs font-semibold text-ink/75 mb-1">Calle y número *</label>
-        <input id="customer-street" required type="text" placeholder="Ej. Av. Reforma 123"
+        <input id="customer-street" autocomplete="address-line1" required type="text" placeholder="Ej. Av. Reforma 123"
           class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
       <div>
         <label for="customer-colonia" class="block text-xs font-semibold text-ink/75 mb-1">Colonia *</label>
-        <input id="customer-colonia" required type="text" placeholder="Ej. Roma Norte"
+        <input id="customer-colonia" autocomplete="address-line2" required type="text" placeholder="Ej. Roma Norte"
           class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label for="customer-municipio" class="block text-xs font-semibold text-ink/75 mb-1">Municipio/Alcaldía *</label>
-          <input id="customer-municipio" required type="text" placeholder="Ej. Cuauhtémoc"
+          <input id="customer-municipio" autocomplete="address-level2" required type="text" placeholder="Ej. Cuauhtémoc"
             class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
         <div>
           <label for="customer-cp" class="block text-xs font-semibold text-ink/75 mb-1">Código postal *</label>
-          <input id="customer-cp" required type="text" inputmode="numeric" maxlength="5" placeholder="Ej. 06700"
+          <input id="customer-cp" autocomplete="postal-code" required type="text" inputmode="numeric" maxlength="5" placeholder="Ej. 06700"
             class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
       </div>
       <div>
         <label for="customer-estado" class="block text-xs font-semibold text-ink/75 mb-1">Estado *</label>
-        <select id="customer-estado" required
+        <select id="customer-estado" autocomplete="address-level1" required
           class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac">
           <option value="" selected disabled>Selecciona tu estado</option>
           <option>Aguascalientes</option>
@@ -759,16 +761,16 @@
         <input id="customer-consent" required type="checkbox"
           class="mt-1 h-4 w-4 shrink-0" />
         <label for="customer-consent" class="text-xs text-ink/75">
-          He leído y acepto el <a href="./privacidad.html" target="_blank" rel="noopener" class="text-rose-ink underline">Aviso de Privacidad</a>,
-          los <a href="./terminos.html" target="_blank" rel="noopener" class="text-rose-ink underline">Términos y Condiciones</a> y la
-          <a href="./reembolsos.html" target="_blank" rel="noopener" class="text-rose-ink underline">Política de Reembolsos</a>. *
+          He leído y acepto el <a href="./privacidad.html" target="_blank" rel="noopener" class="text-rose-ink underline">Aviso de Privacidad<span class="sr-only"> (se abre en una pestaña nueva)</span></a>,
+          los <a href="./terminos.html" target="_blank" rel="noopener" class="text-rose-ink underline">Términos y Condiciones<span class="sr-only"> (se abre en una pestaña nueva)</span></a> y la
+          <a href="./reembolsos.html" target="_blank" rel="noopener" class="text-rose-ink underline">Política de Reembolsos<span class="sr-only"> (se abre en una pestaña nueva)</span></a>. *
         </label>
       </div>
 
       <p id="cart-error" role="alert" class="hidden rounded-lg border border-rose-deep/30 bg-rose/10 px-3 py-2 text-sm text-rose-ink"></p>
 
       <button id="pay-mercadopago" type="button"
-        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#0074C2] text-white font-semibold py-3 hover:bg-[#00609F] transition disabled:opacity-40 disabled:cursor-not-allowed">
+        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#0074C2] text-white font-semibold py-3 hover:bg-[#00609F] transition active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed">
         <span>💳 Pagar con Mercado Pago</span>
       </button>
       <p class="text-xs text-center text-ink/75">Se abrirá Mercado Pago para pagar en línea con tarjeta.</p>
@@ -792,7 +794,7 @@
       </div>
 
       <button id="send-quote" type="submit"
-        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose text-cream font-semibold py-3 hover:bg-rose/90 transition disabled:opacity-40 disabled:cursor-not-allowed">
+        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose text-cream font-semibold py-3 hover:bg-rose/90 transition active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed">
         <span>✅ Confirmar pedido por transferencia</span>
       </button>
       <p class="text-xs text-center text-ink/75">No se realiza ningún cobro aquí. Se registra tu pedido junto con tu comprobante.</p>
@@ -896,8 +898,8 @@
           <input id="signup-consent" required type="checkbox"
             class="mt-1 h-4 w-4 shrink-0" />
           <label for="signup-consent" class="text-xs text-ink/75">
-            He leído y acepto el <a href="./privacidad.html" target="_blank" rel="noopener" class="text-rose-ink underline">Aviso de Privacidad</a>
-            y los <a href="./terminos.html" target="_blank" rel="noopener" class="text-rose-ink underline">Términos y Condiciones</a>. *
+            He leído y acepto el <a href="./privacidad.html" target="_blank" rel="noopener" class="text-rose-ink underline">Aviso de Privacidad<span class="sr-only"> (se abre en una pestaña nueva)</span></a>
+            y los <a href="./terminos.html" target="_blank" rel="noopener" class="text-rose-ink underline">Términos y Condiciones<span class="sr-only"> (se abre en una pestaña nueva)</span></a>. *
           </label>
         </div>
         <p id="signup-error" role="alert" class="hidden text-xs text-rose-ink"></p>
@@ -1128,8 +1130,8 @@
     <form id="review-form">
       <div id="review-fields" class="space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-ink/75 mb-1">Tu calificación</label>
-          <div id="review-stars" class="flex gap-1"></div>
+          <label id="review-rating-label" class="block text-xs font-semibold text-ink/75 mb-1">Tu calificación</label>
+          <div id="review-stars" role="group" aria-labelledby="review-rating-label" class="flex gap-1"></div>
         </div>
         <div>
           <label for="review-comment" class="block text-xs font-semibold text-ink/75 mb-1">Comentario (opcional)</label>

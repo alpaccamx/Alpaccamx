@@ -229,6 +229,13 @@ async function notifyCustomerOrderConfirmed(order) {
   }
 }
 
+/* Aviso de texto libre al dueño cuando un pago aprobado necesita revisión
+   manual (monto distinto al pedido, o pago llegó a un pedido cancelado). */
+async function notifySellerPaymentNeedsReview(order, reason) {
+  const text = `⚠️ Pago de Mercado Pago que necesita revisión. Pedido #${String(order.id).slice(0, 8)} de ${order.customer?.name || "cliente"}, total ${formatPriceMXN(order.grandTotal)}. Motivo: ${reason}. Revísalo en /admin.html antes de surtir.`;
+  await notifySellerWhatsApp(text);
+}
+
 /* Aviso de "ya recibimos tu pedido, lo estamos revisando" para el
    CLIENTE -- se manda justo cuando se crea el pedido (ver
    create-order.js), antes de que se confirme el pago. Mismo mecanismo
@@ -401,6 +408,7 @@ module.exports = {
   notifySellerOrderPaid,
   notifyCustomerOrderPending,
   notifyCustomerOrderConfirmed,
+  notifySellerPaymentNeedsReview,
   notifyCustomerOrderShipped,
   notifyCustomerOrderDelivered,
 };

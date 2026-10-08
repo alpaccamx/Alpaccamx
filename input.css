@@ -133,14 +133,16 @@ html {
    ====================================================================== */
 
 /* Paneles laterales (carritos, Mi cuenta, menú móvil). La clase cerrada
-   (translate-x-full) marca la salida: más rápida y acelerando. */
+   (translate-x-full) marca la salida: más rápida. Se usa la misma curva
+   de desaceleración que la entrada: un ease-in arrancaría lento justo
+   cuando la persona está mirando. */
 .drawer {
   transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out;
 }
 .drawer.translate-x-full,
 .drawer.-translate-x-full {
   transition-duration: 220ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Fondos oscuros detrás de paneles y ventanas. */
@@ -169,6 +171,37 @@ html {
   opacity: 0;
 }
 
+/* Desplegables (marcas, categorías, país): aparecen desde su botón con un
+   fundido y una escala corta, y se cierran igual. allow-discrete permite
+   animar display; @starting-style da el punto de partida al abrir. */
+.menu-panel {
+  transform-origin: top left;
+  transition: opacity 150ms cubic-bezier(0.23, 1, 0.32, 1), transform 150ms cubic-bezier(0.23, 1, 0.32, 1), display 150ms allow-discrete;
+}
+.menu-panel.hidden {
+  opacity: 0;
+  transform: scale(0.96);
+  display: none;
+}
+@starting-style {
+  .menu-panel:not(.hidden) {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* En celular el :hover queda pegado después de tocar (la foto de la tarjeta
+   se queda ampliada). Estos efectos solo se aplican con mouse o puntero fino.
+   "html" sube la especificidad, igual que en el bloque de reduced-motion. */
+@media (hover: none) {
+  html .group:hover .group-hover\:scale-105 {
+    transform: none;
+  }
+  html .hover\:shadow-lg:hover {
+    box-shadow: none;
+  }
+}
+
 /* Barra deslizante: se detiene con el mouse encima, con el foco del
    teclado, con su botón de pausa o fuera de pantalla. */
 #ticker:hover .animate-marquee,
@@ -194,6 +227,13 @@ html {
   }
   .hero-slide {
     transition-duration: 200ms;
+  }
+  .menu-panel {
+    transition: opacity 120ms ease-out, display 120ms allow-discrete;
+    transform: none;
+  }
+  .menu-panel.hidden {
+    transform: none;
   }
   /* "html" sube la especificidad: Tailwind escribe sus reglas hover:
      al final del archivo, después de este bloque. */

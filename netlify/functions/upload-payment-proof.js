@@ -13,12 +13,24 @@
 
 const { getOrder, updateOrderFields, savePaymentProof } = require("./lib/blob-store.js");
 const { detectFileType } = require("./lib/file-signature.js");
+const { verifyCustomerToken } = require("./lib/customer-auth.js");
+const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
+  }
+
+  const customerEmail = verifyCustomerToken(event);
+  if (!customerEmail) {
+    return jsonResponse(401, { error: "Inicia sesión para subir tu comprobante." });
+  }
+
+  const rateLimit = await checkRateLimit(`proof:${getClientIp(event)}`, { max: 30, windowMs: 60 * 60 * 1000 });
+  if (!rateLimit.allowed) {
+    return jsonResponse(429, { error: "Demasiados intentos. Espera un poco e intenta de nuevo." });
   }
 
   let body;
@@ -65,7 +77,17 @@ exports.handler = async (event) => {
 
   try {
     const order = await getOrder(orderId);
-    if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
+    // Mismo mensaje para "no existe" y "no es tuyo", para no revelar qué
+    // folios existen.
+    if (!order || String(order.customerEmail || "") !== String(customerEmail).toLowerCase()) {
+      return jsonResponse(404, { error: "Pedido no encontrado." });
+    }
+    if (order.status !== "pending") {
+      return jsonResponse(409, { error: "Este pedido ya no acepta comprobantes." });
+    }
+    if (order.source !== "transferencia" && order.source !== "whatsapp") {
+      return jsonResponse(409, { error: "Este pedido no se paga por transferencia." });
+    }
 
     await savePaymentProof(orderId, buffer, { contentType: safeContentType, filename: String(filename || "comprobante") });
     await updateOrderFields(orderId, {

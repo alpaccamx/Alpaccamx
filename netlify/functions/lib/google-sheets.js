@@ -1,3 +1,4 @@
+const { withLock } = require("./blob-store.js");
 // Escribe en tu Google Sheet de Stock (columna "Piezas Disponibles") cada
 // vez que se confirma un pago o se edita un pedido -- para que el número
 // que ves en tu Sheet sea siempre el que de verdad queda disponible, en
@@ -499,18 +500,19 @@ async function applySheetStockDelta(deltaBySku) {
   const entries = Object.entries(deltaBySku || {}).filter(([, delta]) => delta);
   if (!entries.length) return;
 
-  const sheet = await readStockTab();
-  if (!sheet) return;
-  const { spreadsheetId, tab, token, headers, rows } = sheet;
+  // Lectura y escritura dentro de un bloqueo: dos pagos a la vez no pueden
+  // leer el mismo valor y perder uno de los descuentos.
+  await withLock("stock-sheet", async () => {
+    const sheet = await readStockTab();
+    if (!sheet) return;
+    const { spreadsheetId, tab, token, headers, rows } = sheet;
 
-  const iSku = findColumnIndex(headers, SKU_ALIASES);
-  const iPiezas = findColumnIndex(headers, PIEZAS_ALIASES);
-  if (iSku < 0 || iPiezas < 0) {
-    console.error('No se encontraron las columnas "SKU" / "Piezas Disponibles" en la pestaña de Stock.');
-    return;
-  }
+    const iSku = findColumnIndex(headers, SKU_ALIASES);
+    const iPiezas = findColumnIndex(headers, PIEZAS_ALIASES);
+    if (iSku < 0 || iPiezas < 0) {
+      throw new Error('No se encontraron las columnas "SKU" / "Piezas Disponibles" en la pestaña de Stock.');
+    }
 
-  try {
     const deltaMap = new Map(entries);
     const colLetter = columnIndexToLetter(iPiezas);
     const updates = [];
@@ -525,20 +527,19 @@ async function applySheetStockDelta(deltaBySku) {
 
     if (!updates.length) return;
 
+    // Si esto falla se lanza el error: quien llama decide si reintentar (el
+    // webhook de Mercado Pago sí lo hace; ver sus marcas de aplicado).
     const batchRes = await fetch(`${SHEETS_API}/${spreadsheetId}/values:batchUpdate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ valueInputOption: "RAW", data: updates }),
     });
-    const batchData = await batchRes.json();
+    const batchData = await batchRes.json().catch(() => ({}));
     if (!batchRes.ok) {
-      console.error("Error actualizando la pestaña de Stock:", batchData);
-    } else {
-      console.log("Pestaña de Stock actualizada:", JSON.stringify(updates));
+      throw new Error("Error actualizando la pestaña de Stock: " + JSON.stringify(batchData));
     }
-  } catch (err) {
-    console.error("Error de red actualizando la pestaña de Stock:", err);
-  }
+    console.log("Pestaña de Stock actualizada:", JSON.stringify(updates));
+  });
 }
 
 module.exports = {

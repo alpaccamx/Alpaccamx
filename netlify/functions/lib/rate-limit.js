@@ -4,12 +4,10 @@
 // orders/stock -- ver blob-store.js) para llevar la cuenta entre
 // invocaciones de la función, que no comparten memoria entre sí.
 //
-// No es un rate limiter de nivel producción (puede haber una condición
-// de carrera si llegan dos peticiones al mismo tiempo exacto, y no hay
-// limpieza automática de claves viejas más que su propia expiración
-// lógica) -- es intencionalmente simple, pensado para frenar abuso
-// obvio (miles de intentos automatizados) en un sitio pequeño, no para
-// tráfico a gran escala.
+// Es intencionalmente simple (ventana fija, sin limpieza automática más
+// que la expiración de la clave), pensado para frenar abuso obvio en un
+// sitio pequeño, no para tráfico a gran escala. El conteo usa control de
+// versiones, así que dos peticiones simultáneas no se pierden.
 
 const { getStore } = require("@netlify/blobs");
 const { blobsClientOptions } = require("./blob-store.js");
@@ -38,23 +36,35 @@ function getClientIp(event) {
 async function checkRateLimit(key, { max, windowMs }) {
   try {
     const store = getRateLimitStore();
-    const now = Date.now();
-    const record = (await store.get(key, { type: "json" })) || { count: 0, windowStart: now };
+    // Lectura, suma y escritura condicionadas a la versión (etag): si otra
+    // petición escribió primero, se vuelve a leer y se suma sobre el valor
+    // nuevo. Así dos peticiones simultáneas no pueden pasar el límite juntas.
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const now = Date.now();
+      const existing = await store.getWithMetadata(key, { type: "json" });
+      const record = (existing && existing.data) || { count: 0, windowStart: now };
+      if (now - record.windowStart > windowMs) {
+        record.count = 0;
+        record.windowStart = now;
+      }
+      record.count += 1;
+      const options = existing && existing.etag
+        ? { onlyIfMatch: existing.etag, metadata: { expiresAt: record.windowStart + windowMs } }
+        : { onlyIfNew: true, metadata: { expiresAt: record.windowStart + windowMs } };
+      const result = await store.setJSON(key, record, options);
+      if (!result.modified) continue;
 
-    if (now - record.windowStart > windowMs) {
-      record.count = 0;
-      record.windowStart = now;
+      if (record.count > max) {
+        const retryAfterSeconds = Math.ceil((record.windowStart + windowMs - now) / 1000);
+        return { allowed: false, retryAfterSeconds: Math.max(retryAfterSeconds, 1) };
+      }
+      return { allowed: true };
     }
-
-    record.count += 1;
-    await store.setJSON(key, record, { metadata: { expiresAt: record.windowStart + windowMs } });
-
-    if (record.count > max) {
-      const retryAfterSeconds = Math.ceil((record.windowStart + windowMs - now) / 1000);
-      return { allowed: false, retryAfterSeconds: Math.max(retryAfterSeconds, 1) };
-    }
-    return { allowed: true };
+    throw new Error("conflicto de concurrencia en el límite de intentos");
   } catch (err) {
+    // Fallar abierto a propósito: si Netlify Blobs no responde, no se bloquea
+    // el login ni los pedidos de una clienta real. El costo es que, en ese
+    // momento, el límite no se aplica.
     console.error("Rate limiter falló, se deja pasar la petición:", err);
     return { allowed: true };
   }

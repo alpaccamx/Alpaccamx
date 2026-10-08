@@ -32,7 +32,15 @@ async function createCustomer({ email, passwordHash, name, phone }) {
     createdAt: new Date().toISOString(),
   };
   const result = await store.setJSON(key, customer, { onlyIfNew: true });
-  if (!result.modified) throw new Error("Ya existe una cuenta con ese correo.");
+  if (!result.modified) {
+    // Código distinguible: si falla el acceso a Blobs (sitio mal configurado,
+    // por ejemplo sin NETLIFY_BLOBS_TOKEN en un deploy preview), el error que
+    // llega aquí es OTRO -- no queremos decirle a quien se registra "ya
+    // existe una cuenta" cuando en realidad el sitio no pudo guardar nada.
+    const err = new Error("Ya existe una cuenta con ese correo.");
+    err.code = "EMAIL_EXISTS";
+    throw err;
+  }
   return customer;
 }
 
