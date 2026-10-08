@@ -257,6 +257,7 @@ exports.handler = async (event) => {
   // "DEPLOY_PRIME_URL" sí es la URL de ESTE deploy (en producción, es la
   // misma que "URL").
   const siteUrl = (process.env.DEPLOY_PRIME_URL || process.env.URL || "https://alpacca.mx").replace(/\/$/, "");
+  console.log("DEBUG siteUrl resolution:", JSON.stringify({ DEPLOY_PRIME_URL: process.env.DEPLOY_PRIME_URL, URL: process.env.URL, DEPLOY_URL: process.env.DEPLOY_URL, CONTEXT: process.env.CONTEXT, resolved: siteUrl }));
   const mpItems = order.items.map((it) => ({
     title: it.nombre.slice(0, 250),
     quantity: it.qty,
