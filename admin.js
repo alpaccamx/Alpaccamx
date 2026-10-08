@@ -446,6 +446,15 @@
       const phoneDigits = (order.customer?.phone || "").replace(/[^0-9]/g, "");
       const waNumber = phoneDigits.length === 10 ? "521" + phoneDigits : phoneDigits;
 
+      // Si el servidor ya lo mandó desde el número de Alpacca en Meta
+      // (plantilla "pedido_enviado"), no hace falta abrir tu WhatsApp.
+      if (data.whatsappSent) {
+        if (waWindow) waWindow.close();
+        await fetchOrders();
+        setStatus("✅ Guía guardada y aviso enviado por WhatsApp desde el número de Alpacca.");
+        return;
+      }
+
       if (waNumber) {
         const name = order.customer?.name || "";
         const lines = [
@@ -456,13 +465,14 @@
         if (carrier) lines.push(`Paquetería: ${carrier}`);
         const message = lines.join("\n");
         if (waWindow) waWindow.location.href = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
-      } else {
-        if (waWindow) waWindow.close();
-        setStatus("Guía guardada, pero el pedido no tiene teléfono para avisar por WhatsApp.");
+      } else if (waWindow) {
+        waWindow.close();
       }
 
-      setStatus("");
-      fetchOrders();
+      await fetchOrders();
+      setStatus(waNumber
+        ? "⚠️ Guía guardada. Meta no aceptó el envío automático (revisa que la plantilla \"pedido_enviado\" esté aprobada), así que se abrió tu WhatsApp como respaldo."
+        : "Guía guardada, pero el pedido no tiene teléfono para avisar por WhatsApp.");
     } catch (err) {
       if (waWindow) waWindow.close();
       setStatus("No se pudo conectar con el servidor.");
@@ -893,6 +903,13 @@
       const carrier = data.order.carrier;
       const waNumber = phoneDigits.length === 10 ? "521" + phoneDigits : phoneDigits;
 
+      if (data.whatsappSent) {
+        if (waWindow) waWindow.close();
+        await fetchOrders();
+        setStatus("✅ Guía generada y aviso enviado por WhatsApp desde el número de Alpacca.");
+        return;
+      }
+
       if (waNumber) {
         const name = order?.customer?.name || destination.name || "";
         const lines = [
@@ -907,8 +924,10 @@
         waWindow.close();
       }
 
-      setStatus("");
-      fetchOrders();
+      await fetchOrders();
+      setStatus(waNumber
+        ? "⚠️ Guía generada. Meta no aceptó el envío automático (revisa que la plantilla \"pedido_enviado\" esté aprobada), así que se abrió tu WhatsApp como respaldo."
+        : "Guía generada, pero el pedido no tiene teléfono para avisar por WhatsApp.");
     } catch (err) {
       if (waWindow) waWindow.close();
       errorEl.textContent = "No se pudo conectar con el servidor.";

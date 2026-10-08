@@ -58,9 +58,9 @@ exports.handler = async (event) => {
         html: orderShippedEmailHTML(order),
       });
     }
-    await notifyCustomerOrderShipped(order);
+    const whatsappSent = await notifyCustomerOrderShipped(order);
 
-    return jsonResponse(200, { order });
+    return jsonResponse(200, { order, whatsappSent });
   } catch (err) {
     console.error("Error guardando la guía del pedido:", err);
     return jsonResponse(500, { error: "No se pudo guardar la guía." });
