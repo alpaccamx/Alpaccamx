@@ -251,7 +251,12 @@ exports.handler = async (event) => {
     return jsonResponse(500, { error: "Mercado Pago no está configurado todavía en el sitio." });
   }
 
-  const siteUrl = (process.env.URL || "https://alpacca.mx").replace(/\/$/, "");
+  // "URL" de Netlify SIEMPRE apunta al dominio de producción, incluso en una
+  // Deploy Preview o un branch deploy -- así que el webhook y las páginas de
+  // regreso terminaban avisándole a producción de un pago de otro ambiente.
+  // "DEPLOY_PRIME_URL" sí es la URL de ESTE deploy (en producción, es la
+  // misma que "URL").
+  const siteUrl = (process.env.DEPLOY_PRIME_URL || process.env.URL || "https://alpacca.mx").replace(/\/$/, "");
   const mpItems = order.items.map((it) => ({
     title: it.nombre.slice(0, 250),
     quantity: it.qty,
