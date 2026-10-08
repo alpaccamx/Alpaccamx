@@ -50,8 +50,11 @@ exports.handler = async (event) => {
   try {
     await createCustomer({ email, passwordHash, name, phone });
   } catch (err) {
+    if (err.code === "EMAIL_EXISTS") {
+      return jsonResponse(409, { error: "Ya existe una cuenta con ese correo." });
+    }
     console.error("Error creando la cuenta:", err);
-    return jsonResponse(409, { error: "Ya existe una cuenta con ese correo." });
+    return jsonResponse(503, { error: "No pudimos crear tu cuenta en este momento. Intenta de nuevo en un momento." });
   }
 
   let token;
