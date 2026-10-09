@@ -1584,7 +1584,6 @@ async function loadAmericanoProducts() {
   syncAmericanoCartWithProducts();
   renderAmericanoSection();
   renderAmericanoCart();
-  renderCategoryNav();
   renderMobileMenu();
 }
 
@@ -1791,8 +1790,8 @@ function wireHeroControls() {
 }
 
 /* ======================================================================
-   Ítems del menú — se usan tanto en la barra horizontal de escritorio
-   (siempre visible, debajo del header) como en el menú ☰ de móvil.
+   Ítems del menú ☰ (en celular y en escritorio; los accesos principales
+   también están en los íconos redondos del inicio).
    "Marcas" es un caso especial: en vez de enlazar directo a la sección,
    trae la lista de marcas para mostrarse como menú desplegable.
    ====================================================================== */
@@ -1830,11 +1829,8 @@ function getMenuItems() {
   return items;
 }
 
-function menuItemHTML(item, variant) {
-  const isHorizontal = variant === "horizontal";
-  const base = isHorizontal
-    ? "inline-flex items-center h-9 px-4 rounded-full bg-pill hover:bg-ink/[0.08] text-[13px] font-medium whitespace-nowrap"
-    : "block px-5 py-4 border-b border-ink/10 font-semibold uppercase text-sm tracking-wide";
+function menuItemHTML(item) {
+  const base = "block px-5 py-4 border-b border-ink/10 font-semibold uppercase text-sm tracking-wide";
 
   if (item.type === "brands" || item.type === "categories" || item.type === "country") {
     const key = item.type;
@@ -1847,19 +1843,6 @@ function menuItemHTML(item, variant) {
             class="block w-full text-left px-4 py-2 coarse:py-3 text-sm text-ink/75 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(v)}</button>`
       )
       .join("");
-    if (isHorizontal) {
-      return `<div class="relative" data-${key}-dropdown>
-        <button type="button" data-${key}-toggle aria-expanded="false"
-          class="${base} text-ink/80 hover:text-ink transition inline-flex items-center gap-1">
-          ${escapeHtml(item.label)}
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div data-${key}-panel
-          class="menu-panel hidden fixed w-52 max-h-80 overflow-y-auto rounded-xl border border-ink/10 bg-cream shadow-lg py-2 z-50">
-          ${dropdownOptions}
-        </div>
-      </div>`;
-    }
     return `<div data-${key}-dropdown>
       <button type="button" data-${key}-toggle aria-expanded="false"
         class="${base} w-full text-left text-ink/80 hover:text-ink transition inline-flex items-center justify-between">
@@ -1948,27 +1931,12 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ======================================================================
-   Navegación de escritorio (barra horizontal con flechas, siempre visible)
-   ====================================================================== */
-function renderCategoryNav() {
-  const nav = document.getElementById("category-nav");
-  const items = getMenuItems();
-  nav.innerHTML = items.map((item) => menuItemHTML(item, "horizontal")).join("");
-  wireMenuItems(nav);
-
-  const prevBtn = document.getElementById("nav-prev");
-  const nextBtn = document.getElementById("nav-next");
-  prevBtn.addEventListener("click", () => nav.scrollBy({ left: -200, behavior: scrollBehavior() }));
-  nextBtn.addEventListener("click", () => nav.scrollBy({ left: 200, behavior: scrollBehavior() }));
-}
-
-/* ======================================================================
    Menú móvil (☰)
    ====================================================================== */
 function renderMobileMenu() {
   const nav = document.getElementById("mobile-menu-items");
   const items = getMenuItems();
-  nav.innerHTML = items.map((item) => menuItemHTML(item, "vertical")).join("");
+  nav.innerHTML = items.map((item) => menuItemHTML(item)).join("");
   wireMenuItems(nav, closeMobileMenu);
 }
 
@@ -3040,7 +3008,7 @@ function renderAll() {
   // espera, se quita el esqueleto de carga.
   document.getElementById("catalog-loading-skeleton").classList.add("hidden");
 
-  // El orden importa: renderCategoryNav/renderMobileMenu leen qué secciones
+  // El orden importa: renderQuickIcons/renderMobileMenu leen qué secciones
   // quedaron visibles, así que corren después de decidir esa visibilidad.
   renderTimeDeal();
   renderBestSellers();
@@ -3048,7 +3016,6 @@ function renderAll() {
   renderSkinTypeSection();
   renderBrands();
   renderQuickIcons();
-  renderCategoryNav();
   renderMobileMenu();
   renderCart();
 }

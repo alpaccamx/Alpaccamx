@@ -52,7 +52,7 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:h-16 sm:py-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
     <div class="flex items-center gap-3">
       <button id="menu-toggle" type="button" aria-label="Abrir menú"
-        class="sm:hidden text-ink -ml-2.5 p-2.5">
+        class="text-ink -ml-2.5 p-2.5 rounded-full hover:bg-ink/5 transition">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <a href="#top" class="tap block">
@@ -93,23 +93,6 @@
         <span id="cart-count" class="absolute top-0 left-[22px] bg-sale text-white text-[11px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">0</span>
       </button>
     </div>
-  </div>
-
-  <!-- Category nav (desktop) -->
-  <!-- Pastillas al estilo StyleKorean: en celular también se muestran
-       (se deslizan con el dedo), en escritorio llevan flechas. -->
-  <div id="category-nav-row" role="navigation" aria-label="Categorías" class="block relative">
-    <button id="nav-prev" type="button" aria-label="Ver categorías anteriores"
-      class="hidden sm:flex absolute left-0 top-0 bottom-0 z-10 items-center px-3.5 bg-gradient-to-r from-cream to-transparent">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-    </button>
-    <div id="category-nav" class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto px-4 sm:px-10 h-12 whitespace-nowrap [scrollbar-width:none]">
-      <!-- category links injected by JS -->
-    </div>
-    <button id="nav-next" type="button" aria-label="Ver más categorías"
-      class="hidden sm:flex absolute right-0 top-0 bottom-0 z-10 items-center px-3.5 bg-gradient-to-l from-cream to-transparent">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-    </button>
   </div>
 </header>
 
@@ -218,9 +201,9 @@
 </section>
 
 <!-- Mobile menu overlay + drawer -->
-<div id="menu-overlay" aria-hidden="true" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim sm:hidden"></div>
+<div id="menu-overlay" aria-hidden="true" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim"></div>
 <aside id="mobile-menu" role="dialog" aria-modal="true" aria-labelledby="mobile-menu-title" tabindex="-1" inert
-  class="fixed top-0 left-0 h-full w-full bg-cream z-50 shadow-2xl -translate-x-full drawer flex flex-col sm:hidden">
+  class="fixed top-0 left-0 h-full w-full sm:w-[380px] bg-cream z-50 shadow-2xl -translate-x-full drawer flex flex-col">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
     <h2 id="mobile-menu-title" class="font-display text-2xl text-ink">Menú</h2>
     <button id="menu-close" type="button" aria-label="Cerrar menú" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
