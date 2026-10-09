@@ -1270,15 +1270,52 @@ ${itemLines}
   // mismo blob: sí funciona en todos los navegadores probados.
   let currentProofBlobUrl = null;
 
-  function openProofViewer(blobUrl) {
+  // Las fotos van en un <img> ajustado a la ventana (en el <iframe>, el
+  // iPhone las mostraba a tamaño real y había que deslizarse para verlas
+  // completas). Los PDF, o si la foto no se puede mostrar, siguen en el
+  // <iframe>.
+  function showProofIn(kind) {
+    const isImg = kind === "img";
+    document.getElementById("proof-viewer-frame").style.display = isImg ? "none" : "block";
+    document.getElementById("proof-viewer-img-wrap").style.display = isImg ? "block" : "none";
+    document.getElementById("proof-viewer-hint").style.display = isImg ? "block" : "none";
+  }
+
+  function setProofZoom(zoomed) {
+    const img = document.getElementById("proof-viewer-img");
+    img.dataset.zoomed = zoomed ? "1" : "";
+    img.style.width = zoomed ? "auto" : "100%";
+    img.style.height = zoomed ? "auto" : "100%";
+    img.style.maxWidth = zoomed ? "none" : "";
+    img.style.cursor = zoomed ? "zoom-out" : "zoom-in";
+  }
+
+  function openProofViewer(blobUrl, contentType) {
     currentProofBlobUrl = blobUrl;
-    document.getElementById("proof-viewer-frame").src = blobUrl;
+    const frame = document.getElementById("proof-viewer-frame");
+    const img = document.getElementById("proof-viewer-img");
+    if (contentType === "application/pdf") {
+      showProofIn("frame");
+      frame.src = blobUrl;
+    } else {
+      setProofZoom(false);
+      showProofIn("img");
+      img.onerror = () => {
+        img.onerror = null;
+        showProofIn("frame");
+        frame.src = blobUrl;
+      };
+      img.src = blobUrl;
+    }
     document.getElementById("proof-viewer-overlay").style.display = "flex";
   }
 
   function closeProofViewer() {
     document.getElementById("proof-viewer-overlay").style.display = "none";
     document.getElementById("proof-viewer-frame").src = "about:blank";
+    const img = document.getElementById("proof-viewer-img");
+    img.onerror = null;
+    img.removeAttribute("src");
     if (currentProofBlobUrl) {
       URL.revokeObjectURL(currentProofBlobUrl);
       currentProofBlobUrl = null;
@@ -1295,7 +1332,7 @@ ${itemLines}
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const blob = await res.blob();
-      openProofViewer(URL.createObjectURL(blob));
+      openProofViewer(URL.createObjectURL(blob), blob.type);
     } catch (err) {
       setStatus("No se pudo cargar el comprobante de pago.");
     } finally {
@@ -2784,6 +2821,9 @@ ${itemLines}
   }
 
   document.getElementById("proof-viewer-close").addEventListener("click", closeProofViewer);
+  document.getElementById("proof-viewer-img").addEventListener("click", (e) => {
+    setProofZoom(!e.currentTarget.dataset.zoomed);
+  });
   document.getElementById("proof-viewer-overlay").addEventListener("click", (e) => {
     if (e.target.id === "proof-viewer-overlay") closeProofViewer();
   });
