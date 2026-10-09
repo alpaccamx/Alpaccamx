@@ -39,10 +39,23 @@
 @layer base {
   input::placeholder,
   textarea::placeholder {
-    color: rgb(61 58 66 / 0.72);
+    color: rgb(17 17 17 / 0.6);
+  }
+  /* Letras un poco más juntas, como StyleKorean (-0.35px a 14px). */
+  body {
+    letter-spacing: -0.02em;
   }
 }
 
+/* Títulos de sección (font-display) con peso firme, como StyleKorean.
+   Va en "components" para que un font-bold/font-medium explícito en el
+   HTML lo pueda sobrescribir. */
+@layer components {
+  .font-display {
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+}
 @layer utilities {
   /* Área de toque de al menos 44×44 px sin cambiar cómo se ve el
      control: un pseudo-elemento invisible centrado sobre él. Para

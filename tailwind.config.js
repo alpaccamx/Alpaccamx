@@ -4,8 +4,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        cream: "#fffcf4",
-        ink: "#3d3a42",
+        // Fondo blanco y texto casi negro, al estilo de StyleKorean. Se
+        // conserva el nombre "cream" porque se usa en todo el sitio (fondos
+        // y texto sobre botones rosas).
+        cream: "#ffffff",
+        ink: "#111111",
+        // Gris muy claro para pastillas de navegación/filtros y fondo de
+        // las fotos de producto.
+        pill: "#f7f7fb",
+        // Rojo para descuentos (como el "40%" de StyleKorean).
+        sale: "#fc123e",
         // Rosa de dos tonos: el rosa brillante (DEFAULT) es solo para
         // rellenos sin texto (círculos de íconos, corazón de favoritos,
         // puntos del banner, tintes). Todo lo que lleva texto usa "deep"
@@ -27,8 +35,10 @@ module.exports = {
         blush: "#f6cadb",
       },
       fontFamily: {
-        display: ["Josefin Sans", "sans-serif"],
-        body: ["Nunito", "sans-serif"],
+        // Inter: misma base latina que Pretendard (la fuente de
+        // StyleKorean), y sí está en Google Fonts.
+        display: ["Inter", "sans-serif"],
+        body: ["Inter", "sans-serif"],
         logo: ["Ready to Party", "sans-serif"],
       },
       animation: {

@@ -1892,7 +1892,7 @@ function getMenuItems() {
 function menuItemHTML(item, variant) {
   const isHorizontal = variant === "horizontal";
   const base = isHorizontal
-    ? "inline-flex items-center h-11 text-sm font-semibold whitespace-nowrap"
+    ? "inline-flex items-center h-9 px-4 rounded-full bg-pill hover:bg-ink/[0.08] text-[13px] font-medium whitespace-nowrap"
     : "block px-5 py-4 border-b border-ink/10 font-semibold uppercase text-sm tracking-wide";
 
   if (item.type === "brands" || item.type === "categories" || item.type === "country") {
@@ -2052,8 +2052,15 @@ function closeMobileMenu() {
 function stockBadgeHTML(p) {
   if (!p.enStock) return "";
   return p.stockPiezas > 0
-    ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
-    : `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Agotado</span>`;
+    ? `<span class="inline-block w-fit text-[11px] font-medium px-1.5 py-px rounded border border-green-700/40 text-green-700">${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
+    : `<span class="inline-block w-fit text-[11px] font-medium px-1.5 py-px rounded border border-sale/40 text-sale">Agotado</span>`;
+}
+
+/* Etiquetas chicas con borde (como "Best"/"New" en StyleKorean). */
+function presentacionTagHTML(p) {
+  if (!p.presentacion) return "";
+  const tone = p.presentacion.startsWith("Caja") ? "border-lilac/60 text-lilac-ink" : "border-ink/20 text-ink/70";
+  return `<span class="inline-block w-fit text-[11px] font-medium px-1.5 py-px rounded border ${tone}">${escapeHtml(p.presentacion)}</span>`;
 }
 
 function productCardHTML(p, { rank } = {}) {
@@ -2063,34 +2070,27 @@ function productCardHTML(p, { rank } = {}) {
   // el botón está deshabilitado nada más porque falta elegir un tono
   // (hasVariants), que es una razón distinta.
   const outOfStock = !hasVariants && (!p.disponible || (p.enStock && p.stockPiezas <= 0));
+  // Estilo StyleKorean: sin caja alrededor, foto sobre gris claro, marca
+  // en negrita, nombre en 2 líneas, precio fuerte y etiquetas chicas con
+  // borde. Los data-* son los que usan el carrito, los tonos
+  // (wireVariantSelectors busca ".group") y "Avísame" -- no quitarlos.
   return `
-    <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full transition duration-200 hover:shadow-lg hover:border-rose/30">
-      <div class="aspect-square bg-blush/20 overflow-hidden relative">
-        ${rank ? `<span class="absolute top-2 left-2 z-10 w-8 h-8 rounded-full bg-rose text-cream font-logo text-base flex items-center justify-center shadow">${rank}</span>` : ""}
+    <div class="group flex flex-col h-full">
+      <div class="aspect-square bg-pill overflow-hidden relative rounded-md">
+        ${rank ? `<span class="absolute top-0 left-0 z-10 min-w-[1.5rem] h-6 px-1.5 bg-ink text-cream text-xs font-semibold flex items-center justify-center rounded-br-md tabular-nums">${rank}</span>` : ""}
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-105 transition duration-200" />
+          class="w-full h-full object-cover group-hover:scale-[1.03] transition duration-300" />
         <div data-card-badge class="absolute top-2 ${rank ? "right-2" : "left-2"}">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
         ${wishlistButtonHTML(p.id)}
       </div>
-      <div class="p-3 flex flex-col flex-1">
-        <div class="flex flex-wrap gap-1 mb-1">
-          <span data-card-stock-badge>${hasVariants ? "" : stockBadgeHTML(p)}</span>
-          ${
-            p.presentacion
-              ? `<span class="inline-block w-fit text-xs font-semibold px-2 py-0.5 rounded-full ${
-                  p.presentacion.startsWith("Caja") ? "bg-lilac/20 text-lilac-ink" : "bg-blush/50 text-ink/80"
-                }">${escapeHtml(p.presentacion)}</span>`
-              : ""
-          }
-        </div>
-        <span class="text-xs uppercase tracking-wider text-ink/75">${escapeHtml(p.marca || p.categoria)}</span>
-        <h3 class="font-semibold ${productNameSizeClass(p.nombre)} text-ink leading-snug mt-0.5" title="${escapeAttr(p.nombre)}">${escapeHtml(p.nombre)}</h3>
-        ${p.capacidad ? `<span class="text-xs text-ink/75">${escapeHtml(p.capacidad)}</span>` : ""}
-        ${productReviewSummaryHTML(p)}
+      <div class="pt-2.5 flex flex-col flex-1">
+        <span class="text-[13px] font-bold text-ink leading-tight truncate">${escapeHtml(p.marca || p.categoria)}</span>
+        <h3 class="text-[13px] text-ink/80 leading-snug mt-0.5 line-clamp-2 min-h-[2.4em]" title="${escapeAttr(p.nombre)}">${escapeHtml(p.nombre)}</h3>
+        ${p.capacidad ? `<span class="text-xs text-ink/60">${escapeHtml(p.capacidad)}</span>` : ""}
         ${
           hasVariants
             ? `<select data-variant-select aria-label="Elige la versión de ${escapeHtml(p.nombre)}"
-                class="mt-1 w-full truncate text-xs border border-ink/15 rounded-md pl-1.5 pr-5 py-1 bg-white/70 text-ink/80 focus:outline-none focus:ring-2 focus:ring-lilac">
+                class="mt-1.5 w-full truncate text-xs border border-ink/15 rounded-md pl-1.5 pr-5 py-1 bg-white text-ink/80 focus:outline-none focus:ring-2 focus:ring-rose/30">
                 <option value="" selected disabled>Selecciona una versión</option>
                 ${p.variants
                   .map((v) => `<option value="${escapeAttr(v.product.id)}">${escapeHtml(v.label)}</option>`)
@@ -2098,24 +2098,29 @@ function productCardHTML(p, { rank } = {}) {
               </select>`
             : ""
         }
-        <div class="mt-auto pt-3">
+        <div class="mt-auto pt-2">
           <div class="leading-tight tabular-nums">
-            <span data-card-price class="font-display font-semibold text-lg text-ink block">${formatPrice(p.precio)}</span>
-            <!-- Altura fija de 3 líneas (52 px, contando sus márgenes): así los precios de una misma fila quedan
-                 alineados aunque unas tarjetas traigan "c/u" y otras no. -->
+            <span data-card-price class="font-bold text-base text-ink block">${formatPrice(p.precio)}</span>
+            <!-- Altura fija para que los precios de una misma fila queden alineados aunque unas
+                 tarjetas traigan "c/u" o precio con tarjeta y otras no. -->
             <div class="min-h-[3.25rem]">
               <span data-card-unit>${boxUnitPriceHTML(p)}</span>
               <span data-card-tarjeta>${cardPriceNoteHTML(p)}</span>
             </div>
           </div>
+          ${productReviewSummaryHTML(p)}
+          <div class="flex flex-wrap gap-1 mt-1 min-h-[1.25rem]">
+            <span data-card-stock-badge class="empty:hidden">${hasVariants ? "" : stockBadgeHTML(p)}</span>
+            ${presentacionTagHTML(p)}
+          </div>
           ${
             outOfStock
               ? `<button type="button" data-restock="${escapeAttr(p.id)}" aria-label="Avísame cuando vuelva ${escapeHtml(p.nombre)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
-                  class="tap mt-2 w-full rounded-full border border-rose text-rose-ink text-sm font-semibold px-3 py-2 hover:bg-rose/10 transition">
+                  class="tap mt-2 w-full h-9 rounded-md border border-rose/60 text-rose-ink text-[13px] font-semibold px-3 hover:bg-rose/10 transition">
                   🔔 Avísame
                 </button>`
               : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""} aria-label="Agregar ${escapeHtml(p.nombre)} al carrito"
-                  class="tap mt-2 w-full rounded-full bg-rose text-cream text-sm font-semibold px-3 py-2 hover:bg-rose/90 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                  class="tap mt-2 w-full h-9 rounded-md border border-ink/15 bg-white text-ink text-[13px] font-semibold px-3 hover:bg-ink hover:text-cream hover:border-ink transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-ink">
                   Agregar
                 </button>`
           }
@@ -2125,7 +2130,7 @@ function productCardHTML(p, { rank } = {}) {
 }
 
 function agotadoBadgeHTML() {
-  return `<span class="bg-ink text-cream text-xs font-bold uppercase px-2 py-1 rounded-full">Agotado</span>`;
+  return `<span class="bg-ink/85 text-cream text-[11px] font-semibold px-2 py-0.5 rounded-sm">Agotado</span>`;
 }
 
 /* Agrupa variantes de tono/color o tipo/aroma del mismo producto en una
