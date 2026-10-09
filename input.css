@@ -154,6 +154,8 @@ html {
 }
 .drawer.translate-x-full,
 .drawer.-translate-x-full {
+  /* Cerrados, su sombra se asomaba como una franja gris en la orilla. */
+  box-shadow: none;
   transition-duration: 220ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -176,12 +178,15 @@ html {
   transition-duration: 180ms;
 }
 
-/* Banner: fundido cruzado entre slides (ver renderHeroSlide en app.js). */
-.hero-slide {
-  transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1);
+/* Banner en tarjetas: la fila ocupa todo el ancho de la pantalla (así
+   se asoma la siguiente tarjeta hasta la orilla), pero la primera
+   tarjeta y el contador se alinean con el contenido (max-w-7xl). */
+.hero-row {
+  padding-inline: max(1rem, calc((100vw - 80rem) / 2 + 2rem));
+  scroll-padding-inline: max(1rem, calc((100vw - 80rem) / 2 + 2rem));
 }
-.hero-slide.is-entering {
-  opacity: 0;
+.hero-controls {
+  right: max(1.75rem, calc((100vw - 80rem) / 2 + 2.75rem));
 }
 
 /* Desplegables (marcas, categorías, país): aparecen desde su botón con un
@@ -215,15 +220,6 @@ html {
   }
 }
 
-/* Barra deslizante: se detiene con el mouse encima, con el foco del
-   teclado, con su botón de pausa o fuera de pantalla. */
-#ticker:hover .animate-marquee,
-#ticker:focus-within .animate-marquee,
-#ticker[data-paused] .animate-marquee,
-#ticker[data-offscreen] .animate-marquee {
-  animation-play-state: paused;
-}
-
 /* Menos movimiento: nada se desliza ni se mueve solo; lo que comunica
    un cambio de estado (fundidos, color) se conserva, más corto. */
 @media (prefers-reduced-motion: reduce) {
@@ -238,9 +234,6 @@ html {
   .opacity-0 > .modal-card {
     transform: none;
   }
-  .hero-slide {
-    transition-duration: 200ms;
-  }
   .menu-panel {
     transition: opacity 120ms ease-out, display 120ms allow-discrete;
     transform: none;
@@ -252,21 +245,6 @@ html {
      al final del archivo, después de este bloque. */
   html .group:hover .group-hover\:scale-105 {
     transform: none;
-  }
-  /* El ticker se queda quieto: una sola copia de los mensajes en una
-     línea, centrada si cabe; si no (celular), se desliza con el dedo al
-     ritmo de quien lee. */
-  .animate-marquee {
-    animation: none;
-    justify-content: safe center;
-    column-gap: 2rem;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-inline: 1rem;
-  }
-  .ticker-dup,
-  #ticker-pause {
-    display: none;
   }
   .animate-pulse {
     animation-duration: 3s;

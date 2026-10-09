@@ -41,15 +41,6 @@ module.exports = {
         body: ["Inter", "sans-serif"],
         logo: ["Ready to Party", "sans-serif"],
       },
-      animation: {
-        marquee: "marquee 22s linear infinite",
-      },
-      keyframes: {
-        marquee: {
-          "0%": { transform: "translateX(0)" },
-          "100%": { transform: "translateX(-50%)" },
-        },
-      },
     },
   },
   plugins: [

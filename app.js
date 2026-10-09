@@ -67,13 +67,6 @@ const CONFIG = {
   // momento de pagar. Si no agregas esa columna, se cobra igual que por
   // transferencia.
 
-  // Mensajes que se muestran en la barra deslizante debajo del banner.
-  TICKER_MESSAGES: [
-    "Envíos a todo México 🇲🇽",
-    "Descuento pagando por transferencia 🏦",
-    "Atención por WhatsApp 💬",
-  ],
-
   // Íconos de redes sociales en la barra superior. Pon "" en href para ocultar uno.
   SOCIAL_LINKS: [
     { name: "Facebook", href: "", icon: "facebook" },
@@ -1618,127 +1611,69 @@ function renderTopBar() {
    ====================================================================== */
 let heroIndex = 0;
 let heroTimer = null;
-let heroRenderToken = 0;
 // El banner avanza solo cada 6 s, salvo que: la clienta lo pausó con el
 // botón, tiene el mouse o el foco del teclado encima, no está en
 // pantalla, o la pestaña está oculta. Si pidió menos movimiento en su
 // sistema, arranca en pausa (puede darle "play" si quiere).
 const heroHold = { user: prefersReducedMotion.matches, hover: false, focus: false, offscreen: false };
 
-function heroSlideHTML(slide) {
-  const secondaryHref = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una pregunta.`);
-  return slide.image
-    ? `<picture class="block w-full h-full">
-        ${
-          slide.imageMobile
-            ? `<source media="(max-width: 639px)" srcset="${escapeAttr(slide.imageMobile)}">`
-            : ""
-        }
-        <img src="${escapeAttr(slide.image)}" alt="${escapeAttr(slide.imageAlt || "")}" ${heroIndex === 0 ? 'fetchpriority="high"' : 'decoding="async"'}
-          class="w-full h-full object-contain sm:object-cover sm:object-center" />
-      </picture>`
-    : `
-    <div class="text-center px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
-      ${
-        slide.eyebrow
-          ? `<p class="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-rose-ink mb-2">${escapeHtml(slide.eyebrow)}</p>`
-          : ""
-      }
-      <h2 class="font-logo text-3xl sm:text-5xl text-ink text-balance">${escapeHtml(slide.title)}</h2>
-      <p class="mt-3 text-ink/75 max-w-xl mx-auto">${escapeHtml(slide.subtitle || "")}</p>
-      <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-        ${
-          slide.ctaText
-            ? `<a href="${escapeAttr(slide.ctaHref || "#")}"
-                class="inline-block rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition">
-                ${escapeHtml(slide.ctaText)}
-              </a>`
-            : ""
-        }
-        ${
-          slide.ctaSecondaryText && secondaryHref
-            ? `<a href="${escapeAttr(secondaryHref)}" target="_blank" rel="noopener"
-                class="inline-block rounded-full border border-ink/20 text-ink font-semibold px-6 py-3 hover:border-rose hover:text-rose transition">
-                ${escapeHtml(slide.ctaSecondaryText)}
-              </a>`
-            : ""
-        }
-      </div>
-    </div>`;
+/* Banner estilo StyleKorean: tarjetas redondeadas lado a lado (en
+   escritorio se ven 3 y se asoma la siguiente; en celular una y un
+   pedazo de la otra). Se usa la imagen "imageMobile" (casi cuadrada),
+   que es la que tiene el texto grande y legible en una tarjeta. */
+function heroSlideHTML(slide, i) {
+  const src = slide.imageMobile || slide.image;
+  const inner = src
+    ? `<img src="${escapeAttr(src)}" alt="${escapeAttr(slide.imageAlt || "")}" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"'}
+        class="w-full h-full object-cover" />`
+    : `<div class="w-full h-full flex flex-col justify-end p-5 bg-pill">
+        <h2 class="font-display text-xl text-ink">${escapeHtml(slide.title || "")}</h2>
+        <p class="text-sm text-ink/75 mt-1">${escapeHtml(slide.subtitle || "")}</p>
+      </div>`;
+  const href = slide.ctaHref || "";
+  const tag = href ? "a" : "div";
+  return `<${tag} ${href ? `href="${escapeAttr(href)}"` : ""} data-hero-card
+    class="hero-card snap-start shrink-0 w-[84vw] sm:w-[44vw] lg:w-[25rem] aspect-[780/680] rounded-2xl overflow-hidden bg-pill block">${inner}</${tag}>`;
 }
 
-/* Cambio de slide con fundido cruzado: el slide nuevo se pone encima,
-   transparente, y solo se hace visible cuando su imagen ya cargó (así
-   nunca se ve un hueco en blanco); el anterior se quita al terminar. */
+function heroCards() {
+  return [...document.querySelectorAll("#hero-slides [data-hero-card]")];
+}
+
+/* Lleva la fila a la tarjeta heroIndex (sin mover la página). */
 function renderHeroSlide() {
   const slides = CONFIG.HERO_SLIDES || [];
   if (!slides.length) return;
   const stage = document.getElementById("hero-slides");
-  const previous = [...stage.children];
-  const isFirst = previous.length === 0;
-
-  const next = document.createElement("div");
-  next.className = "hero-slide absolute inset-0 flex items-center justify-center";
-  if (!isFirst) next.classList.add("is-entering");
-  next.innerHTML = heroSlideHTML(slides[heroIndex]);
-  stage.appendChild(next);
-
-  const token = ++heroRenderToken;
-  const img = next.querySelector("img");
-  const ready =
-    img && !isFirst
-      ? Promise.race([img.decode().catch(() => {}), new Promise((r) => setTimeout(r, 1500))])
-      : Promise.resolve();
-  ready.then(() => {
-    if (token !== heroRenderToken) return; // ya se pidió otro slide
-    requestAnimationFrame(() => next.classList.remove("is-entering"));
-    previous.forEach((el) => {
-      el.inert = true;
-      el.setAttribute("aria-hidden", "true");
-      setTimeout(() => el.remove(), 750);
-    });
-  });
-
+  if (!stage.children.length) {
+    stage.innerHTML = slides.map(heroSlideHTML).join("");
+  } else {
+    const cards = heroCards();
+    const card = cards[heroIndex];
+    if (card) {
+      heroScrollingTo = heroIndex;
+      stage.scrollTo({ left: card.offsetLeft - cards[0].offsetLeft, behavior: scrollBehavior() });
+    }
+  }
   renderHeroDots();
 }
 
+let heroScrollingTo = null;
+
+/* Contador "1 | 6" como el de StyleKorean. */
 function renderHeroDots() {
   const slides = CONFIG.HERO_SLIDES || [];
-  const dots = document.getElementById("hero-dots");
-  // Si los puntos ya existen, solo se actualiza cuál está activo. Volver
-  // a crearlos reemplazaba el punto que estaba bajo el mouse, y el
-  // navegador ya no avisaba cuando el mouse salía del banner.
-  const existing = dots.querySelectorAll("[data-dot]");
-  if (existing.length === slides.length && slides.length > 1) {
-    existing.forEach((dot, i) => {
-      const active = i === heroIndex;
-      dot.firstElementChild.classList.toggle("bg-rose", active);
-      dot.firstElementChild.classList.toggle("bg-ink/20", !active);
-      if (active) dot.setAttribute("aria-current", "true");
-      else dot.removeAttribute("aria-current");
-    });
-    return;
-  }
-  dots.innerHTML =
-    slides.length < 2
-      ? ""
-      : slides
-          .map(
-            (_, i) => `<button type="button" data-dot="${i}" aria-label="Ver slide ${i + 1} de ${slides.length}"
-        ${i === heroIndex ? 'aria-current="true"' : ""}
-        class="w-9 h-11 flex items-center justify-center"><span class="w-2.5 h-2.5 rounded-full transition-colors ${i === heroIndex ? "bg-rose" : "bg-ink/20"}"></span></button>`
-          )
-          .join("");
+  const counter = document.getElementById("hero-dots");
+  const controls = document.getElementById("hero-controls");
+  if (controls) controls.classList.toggle("hidden", slides.length < 2);
+  counter.innerHTML = `<span class="text-cream">${heroIndex + 1}</span><span class="mx-1.5 text-cream/50">|</span><span class="text-cream/70">${slides.length}</span>`;
+}
 
-  dots.querySelectorAll("[data-dot]").forEach((dot) => {
-    dot.addEventListener("click", () => {
-      const i = Number(dot.dataset.dot);
-      if (i === heroIndex) return;
-      heroIndex = i;
-      renderHeroSlide();
-      restartHeroTimer();
-    });
-  });
+function stepHero(delta) {
+  const slides = CONFIG.HERO_SLIDES || [];
+  if (slides.length < 2) return;
+  heroIndex = (heroIndex + delta + slides.length) % slides.length;
+  renderHeroSlide();
 }
 
 function heroShouldRun() {
@@ -1753,9 +1688,12 @@ function restartHeroTimer() {
   if (!heroShouldRun()) return;
   const slides = CONFIG.HERO_SLIDES || [];
   heroTimer = setInterval(() => {
-    heroIndex = (heroIndex + 1) % slides.length;
+    // Si ya se ve la última tarjeta completa, se regresa al inicio.
+    const stage = document.getElementById("hero-slides");
+    const atEnd = stage.scrollLeft + stage.clientWidth >= stage.scrollWidth - 4;
+    heroIndex = atEnd ? 0 : (heroIndex + 1) % slides.length;
     renderHeroSlide();
-  }, 6000);
+  }, 5000);
 }
 
 const HERO_PAUSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>`;
@@ -1779,6 +1717,40 @@ function updateHeroPauseButton() {
 
 function wireHeroControls() {
   const hero = document.getElementById("top");
+  const stage = document.getElementById("hero-slides");
+  document.getElementById("hero-prev").addEventListener("click", () => {
+    stepHero(-1);
+    restartHeroTimer();
+  });
+  document.getElementById("hero-next").addEventListener("click", () => {
+    const atEnd = stage.scrollLeft + stage.clientWidth >= stage.scrollWidth - 4;
+    if (atEnd) heroIndex = (CONFIG.HERO_SLIDES || []).length - 1;
+    stepHero(1);
+    restartHeroTimer();
+  });
+  // Al deslizar con el dedo, el contador sigue a la tarjeta de la
+  // izquierda.
+  let scrollIdle = null;
+  stage.addEventListener("scroll", () => {
+    clearTimeout(scrollIdle);
+    scrollIdle = setTimeout(() => {
+      const cards = heroCards();
+      if (!cards.length) return;
+      const base = cards[0].offsetLeft;
+      let nearest = 0;
+      cards.forEach((c, i) => {
+        if (Math.abs(c.offsetLeft - base - stage.scrollLeft) < Math.abs(cards[nearest].offsetLeft - base - stage.scrollLeft)) nearest = i;
+      });
+      if (heroScrollingTo !== null) {
+        heroScrollingTo = null;
+        return;
+      }
+      if (nearest !== heroIndex) {
+        heroIndex = nearest;
+        renderHeroDots();
+      }
+    }, 120);
+  }, { passive: true });
   document.getElementById("hero-pause").addEventListener("click", () => {
     heroHold.user = !heroHold.user;
     restartHeroTimer();
@@ -1815,37 +1787,6 @@ function wireHeroControls() {
       heroHold.offscreen = !entry.isIntersecting;
       restartHeroTimer();
     }).observe(hero);
-  }
-}
-
-/* ======================================================================
-   Barra deslizante (ticker)
-   ====================================================================== */
-function renderTicker() {
-  const messages = CONFIG.TICKER_MESSAGES || [];
-  if (!messages.length) return;
-  const items = messages.map((m) => `<span>${escapeHtml(m)}</span>`).join("");
-  // Se duplica el contenido para que la animación haga un loop continuo;
-  // la copia se oculta a lectores de pantalla (si no, leían todo dos
-  // veces) y se esconde del todo si se pidió menos movimiento.
-  const copy = messages.map((m) => `<span class="ticker-dup" aria-hidden="true">${escapeHtml(m)}</span>`).join("");
-  document.getElementById("ticker-track").innerHTML = items + copy;
-}
-
-function wireTickerControls() {
-  const ticker = document.getElementById("ticker");
-  const btn = document.getElementById("ticker-pause");
-  if (!ticker || !btn) return;
-  btn.addEventListener("click", () => {
-    const paused = ticker.toggleAttribute("data-paused");
-    btn.setAttribute("aria-label", paused ? "Reanudar los mensajes" : "Pausar los mensajes");
-    btn.querySelector("span").innerHTML = paused ? HERO_PLAY_ICON : HERO_PAUSE_ICON;
-  });
-  // Fuera de pantalla no tiene caso seguir moviéndolo.
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(([entry]) => {
-      ticker.toggleAttribute("data-offscreen", !entry.isIntersecting);
-    }).observe(ticker);
   }
 }
 
@@ -2084,7 +2025,20 @@ function productCardHTML(p, { rank } = {}) {
         ${wishlistButtonHTML(p.id)}
       </div>
       <div class="pt-2.5 flex flex-col flex-1">
-        <span class="text-[13px] font-bold text-ink leading-tight truncate">${escapeHtml(p.marca || p.categoria)}</span>
+        <div class="flex items-start justify-between gap-1.5">
+          <span class="text-[13px] font-bold text-ink leading-tight truncate pt-1">${escapeHtml(p.marca || p.categoria)}</span>
+          ${
+            outOfStock
+              ? `<button type="button" data-restock="${escapeAttr(p.id)}" aria-label="Avísame cuando vuelva ${escapeHtml(p.nombre)}" title="Avísame cuando vuelva" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
+                  class="tap shrink-0 -mr-1 w-8 h-8 inline-flex items-center justify-center rounded-full text-rose-ink hover:bg-rose/10 transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </button>`
+              : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""} aria-label="Agregar ${escapeHtml(p.nombre)} al carrito" title="${hasVariants ? "Elige una versión" : "Agregar al carrito"}"
+                  class="tap shrink-0 -mr-1 w-8 h-8 inline-flex items-center justify-center rounded-full text-ink hover:bg-ink hover:text-cream transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-ink">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.6 12.2a1.8 1.8 0 0 0 1.8 1.4h8.4a1.8 1.8 0 0 0 1.8-1.4L21 7H6"/></svg>
+                </button>`
+          }
+        </div>
         <h3 class="text-[13px] text-ink/80 leading-snug mt-0.5 line-clamp-2 min-h-[2.4em]" title="${escapeAttr(p.nombre)}">${escapeHtml(p.nombre)}</h3>
         ${p.capacidad ? `<span class="text-xs text-ink/60">${escapeHtml(p.capacidad)}</span>` : ""}
         ${
@@ -2098,32 +2052,17 @@ function productCardHTML(p, { rank } = {}) {
               </select>`
             : ""
         }
-        <div class="mt-auto pt-2">
+        <div class="mt-auto pt-1.5">
           <div class="leading-tight tabular-nums">
-            <span data-card-price class="font-bold text-base text-ink block">${formatPrice(p.precio)}</span>
-            <!-- Altura fija para que los precios de una misma fila queden alineados aunque unas
-                 tarjetas traigan "c/u" o precio con tarjeta y otras no. -->
-            <div class="min-h-[3.25rem]">
-              <span data-card-unit>${boxUnitPriceHTML(p)}</span>
-              <span data-card-tarjeta>${cardPriceNoteHTML(p)}</span>
-            </div>
+            <span data-card-price class="font-bold text-[15px] text-ink block">${formatPrice(p.precio)}</span>
+            <span data-card-unit>${boxUnitPriceHTML(p)}</span>
+            <span data-card-tarjeta>${cardPriceNoteHTML(p)}</span>
           </div>
           ${productReviewSummaryHTML(p)}
-          <div class="flex flex-wrap gap-1 mt-1 min-h-[1.25rem]">
+          <div class="flex flex-wrap gap-1 mt-1.5 empty:hidden">
             <span data-card-stock-badge class="empty:hidden">${hasVariants ? "" : stockBadgeHTML(p)}</span>
             ${presentacionTagHTML(p)}
           </div>
-          ${
-            outOfStock
-              ? `<button type="button" data-restock="${escapeAttr(p.id)}" aria-label="Avísame cuando vuelva ${escapeHtml(p.nombre)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
-                  class="tap mt-2 w-full h-9 rounded-md border border-rose/60 text-rose-ink text-[13px] font-semibold px-3 hover:bg-rose/10 transition">
-                  🔔 Avísame
-                </button>`
-              : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""} aria-label="Agregar ${escapeHtml(p.nombre)} al carrito"
-                  class="tap mt-2 w-full h-9 rounded-md border border-ink/15 bg-white text-ink text-[13px] font-semibold px-3 hover:bg-ink hover:text-cream hover:border-ink transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-ink">
-                  Agregar
-                </button>`
-          }
         </div>
       </div>
     </div>`;
@@ -2222,13 +2161,11 @@ function wireVariantSelectors(container) {
   });
 }
 
-/* Debajo del precio: si el producto tiene un precio distinto con
-   tarjeta, se aclara que el precio grande es por transferencia y cuánto
-   cuesta con tarjeta. Líneas cortas para que quepan en tarjetas angostas. */
+/* Debajo del precio (que es el de transferencia): cuánto cuesta con
+   tarjeta, en una sola línea discreta como en StyleKorean. */
 function cardPriceNoteHTML(p) {
   if (!(p.precioTarjeta && p.precioTarjeta > p.precio + 0.5)) return "";
-  return `<span class="block text-xs text-ink/75 mt-0.5">🏦 Por transferencia</span>
-    <span class="block text-xs text-lilac-ink font-semibold">Con tarjeta: ${formatPrice(p.precioTarjeta)}</span>`;
+  return `<span class="block text-xs text-ink/60 mt-0.5">Con tarjeta: ${formatPrice(p.precioTarjeta)}</span>`;
 }
 
 /* Para presentaciones "Caja con N piezas", muestra el costo por pieza
@@ -2238,7 +2175,7 @@ function boxUnitPriceHTML(p) {
   if (!match) return "";
   const qty = Number(match[1]);
   if (!qty) return "";
-  return `<span class="block text-xs text-ink/75 mt-0.5">${formatPrice(p.precio / qty)} c/u</span>`;
+  return `<span class="block text-xs text-ink/60 mt-0.5">${formatPrice(p.precio / qty)} c/u</span>`;
 }
 
 function wireAddButtons(container) {
@@ -2397,12 +2334,9 @@ function renderTimeDeal() {
 
   document.getElementById("time-deal-title").textContent = deal.title || "Oferta por tiempo limitado";
   document.getElementById("time-deal-subtitle").textContent = deal.subtitle || "";
+  mountProductRow(document.getElementById("time-deal-row"), items);
 
-  const row = document.getElementById("time-deal-row");
-  row.innerHTML = items.map((p) => `<div class="w-40 sm:w-48 flex-shrink-0 snap-start">${productCardHTML(p)}</div>`).join("");
-  wireAddButtons(row);
-  wireVariantSelectors(row);
-
+  // "D-2 11:15:31" en rosa junto al título, como en StyleKorean.
   const updateCountdown = () => {
     const diffMs = endsAt - new Date();
     if (diffMs <= 0) {
@@ -2411,21 +2345,10 @@ function renderTimeDeal() {
       return;
     }
     const totalSeconds = Math.floor(diffMs / 1000);
-    const units = [
-      { label: "días", value: Math.floor(totalSeconds / 86400) },
-      { label: "hrs", value: Math.floor((totalSeconds % 86400) / 3600) },
-      { label: "min", value: Math.floor((totalSeconds % 3600) / 60) },
-      { label: "seg", value: totalSeconds % 60 },
-    ];
-    document.getElementById("time-deal-countdown").innerHTML = units
-      .map(
-        (u) => `
-        <div class="flex flex-col items-center">
-          <span class="bg-cream/10 rounded-lg px-2.5 py-1.5 text-lg font-bold font-mono min-w-[2.75rem] text-center">${String(u.value).padStart(2, "0")}</span>
-          <span class="text-xs text-cream/60 mt-0.5">${u.label}</span>
-        </div>`
-      )
-      .join("");
+    const days = Math.floor(totalSeconds / 86400);
+    const pad = (n) => String(n).padStart(2, "0");
+    const clock = `${pad(Math.floor((totalSeconds % 86400) / 3600))}:${pad(Math.floor((totalSeconds % 3600) / 60))}:${pad(totalSeconds % 60)}`;
+    document.getElementById("time-deal-countdown").textContent = days > 0 ? `D-${days} ${clock}` : clock;
   };
 
   updateCountdown();
@@ -2433,20 +2356,150 @@ function renderTimeDeal() {
   section.classList.remove("hidden");
 }
 
+/* ======================================================================
+   Filas de productos que se deslizan (estilo StyleKorean). Cada fila va
+   dentro de un [data-row-wrap] con flechas [data-row-prev]/[data-row-next]
+   (solo en escritorio) y pestañas tipo pastilla arriba.
+   ====================================================================== */
+const ROW_CARD_CLASS = "snap-start shrink-0 w-[44%] sm:w-[30%] lg:w-[calc((100%_-_5rem)/6)]";
+
+function mountProductRow(container, items, { ranked = false } = {}) {
+  container.innerHTML = items
+    .map((p, i) => `<div class="${ROW_CARD_CLASS}">${productCardHTML(p, ranked ? { rank: i + 1 } : {})}</div>`)
+    .join("");
+  container.scrollLeft = 0;
+  wireAddButtons(container);
+  wireVariantSelectors(container);
+}
+
+function tabPillsHTML(tabs, activeKey, attr) {
+  return tabs
+    .map((t) => {
+      const active = t.key === activeKey;
+      return `<button type="button" ${attr}="${escapeAttr(t.key)}" aria-pressed="${active}"
+        class="tap inline-flex items-center h-9 px-4 rounded-full text-[13px] font-medium whitespace-nowrap transition ${
+          active ? "bg-ink text-cream" : "bg-pill text-ink/80 hover:bg-ink/[0.08]"
+        }">${escapeHtml(t.label)}</button>`;
+    })
+    .join("");
+}
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-row-prev], [data-row-next]");
+  if (!btn) return;
+  const row = btn.closest("[data-row-wrap]").querySelector("[data-row]");
+  const dir = btn.hasAttribute("data-row-next") ? 1 : -1;
+  row.scrollBy({ left: dir * row.clientWidth * 0.85, behavior: scrollBehavior() });
+});
+
+/* ======================================================================
+   Best Seller -- productos cuya columna "Destacado" incluye "Best
+   Seller" (en el orden del Google Sheet), numerados, en una fila con
+   pestañas por categoría. Si no hay ninguno, la sección se oculta.
+   ====================================================================== */
+let bestSellerTab = "all";
+
 function renderBestSellers() {
   const section = document.getElementById("featured-section");
-  const items = groupVariants(products.filter((p) => !p.enStock && (p.destacado || []).includes("Best Seller"))).slice(0, 6);
+  const all = groupVariants(products.filter((p) => !p.enStock && (p.destacado || []).includes("Best Seller")));
 
-  if (!items.length) {
+  if (!all.length) {
     section.classList.add("hidden");
     return;
   }
   section.classList.remove("hidden");
 
-  const grid = document.getElementById("featured-top");
-  grid.innerHTML = items.map((p, i) => productCardHTML(p, { rank: i + 1 })).join("");
-  wireAddButtons(grid);
-  wireVariantSelectors(grid);
+  const cats = [...new Set(all.map((p) => p.categoria).filter(Boolean))];
+  const tabs = cats.length >= 2 ? [{ key: "all", label: "Todo" }, ...cats.map((c) => ({ key: c, label: c }))] : [];
+  if (!tabs.some((t) => t.key === bestSellerTab)) bestSellerTab = "all";
+
+  const tabsEl = document.getElementById("featured-tabs");
+  tabsEl.innerHTML = tabPillsHTML(tabs, bestSellerTab, "data-bs-tab");
+  tabsEl.classList.toggle("hidden", !tabs.length);
+  tabsEl.onclick = (e) => {
+    const btn = e.target.closest("[data-bs-tab]");
+    if (!btn) return;
+    bestSellerTab = btn.dataset.bsTab;
+    renderBestSellers();
+  };
+
+  const items = bestSellerTab === "all" ? all : all.filter((p) => p.categoria === bestSellerTab);
+  mountProductRow(document.getElementById("featured-top"), items.slice(0, 20), { ranked: true });
+}
+
+/* ======================================================================
+   Íconos redondos de accesos rápidos (debajo del banner), como los de
+   StyleKorean. Cada uno lleva la foto de un producto de esa sección.
+   ====================================================================== */
+const QUICK_ICON_SVG = {
+  truck: `<svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+  tag: `<svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/></svg>`,
+};
+
+function renderQuickIcons() {
+  const el = document.getElementById("quick-icons");
+  if (!el) return;
+  const used = new Set();
+  const pickImg = (list) => {
+    const p = list.find((x) => x.imagen && !used.has(x.imagen));
+    if (!p) return "";
+    used.add(p.imagen);
+    return p.imagen;
+  };
+  const avail = products.filter((p) => !p.enStock);
+  const icons = [];
+
+  const best = avail.filter((p) => (p.destacado || []).includes("Best Seller"));
+  if (best.length) {
+    icons.push({ key: "best", label: "Best Seller", img: pickImg(best) });
+  }
+  const stock = products.filter((p) => p.enStock);
+  if (stock.length) {
+    icons.push({ key: "stock", label: "Stock en México", img: pickImg(stock) });
+  }
+  icons.push({ key: "catalog", label: "Catálogo completo", img: pickImg(avail.slice().reverse()) });
+
+  const counts = new Map();
+  avail.forEach((p) => p.categoria && counts.set(p.categoria, (counts.get(p.categoria) || 0) + 1));
+  [...counts.entries()]
+    .sort((x, y) => y[1] - x[1])
+    .slice(0, 6)
+    .forEach(([cat]) => {
+      icons.push({ key: `cat:${cat}`, label: cat, img: pickImg(avail.filter((p) => p.categoria === cat)) });
+    });
+
+  if (!document.getElementById("brands-section").classList.contains("hidden")) {
+    icons.push({ key: "brands", label: "Marcas", svg: QUICK_ICON_SVG.tag });
+  }
+  icons.push({ key: "shipping", label: "Tiempos de entrega", svg: QUICK_ICON_SVG.truck });
+
+  el.innerHTML = icons
+    .map(
+      (ic) => `<button type="button" data-quick="${escapeAttr(ic.key)}"
+        class="group shrink-0 w-[4.75rem] sm:w-24 flex flex-col items-center gap-2 text-center">
+        <span class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-pill overflow-hidden flex items-center justify-center text-ink/80 ring-1 ring-ink/5 group-hover:ring-ink/30 transition">
+          ${
+            ic.img
+              ? `<img src="${escapeAttr(ic.img)}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover" />`
+              : ic.svg || ""
+          }
+        </span>
+        <span class="text-xs font-medium text-ink leading-tight">${escapeHtml(ic.label)}</span>
+      </button>`
+    )
+    .join("");
+
+  el.onclick = (e) => {
+    const btn = e.target.closest("[data-quick]");
+    if (!btn) return;
+    const key = btn.dataset.quick;
+    if (key === "best") document.getElementById("featured-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+    else if (key === "stock") openStockSection();
+    else if (key === "catalog") openFullCatalog();
+    else if (key === "brands") document.getElementById("brands-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+    else if (key === "shipping") document.getElementById("shipping-times-open").click();
+    else if (key.startsWith("cat:")) showCategoryProducts(key.slice(4));
+  };
 }
 
 /* ======================================================================
@@ -2595,9 +2648,11 @@ function renderPromoBanner() {
    ====================================================================== */
 const BRANDS_PREVIEW_COUNT_DEFAULT = 5;
 
+let brandTab = null;
+
 function renderBrands(showAll = false) {
   const section = document.getElementById("brands-section");
-  const allBrands = [...new Set(products.map((p) => p.marca).filter(Boolean))].sort();
+  const allBrands = [...new Set(products.filter((p) => !p.enStock).map((p) => p.marca).filter(Boolean))].sort();
   if (!allBrands.length) {
     section.classList.add("hidden");
     return;
@@ -2612,28 +2667,35 @@ function renderBrands(showAll = false) {
   const rest = allBrands.filter((b) => !featuredLower.includes(b.toLowerCase()));
   const brands = [...featured, ...rest];
   const previewCount = featured.length || BRANDS_PREVIEW_COUNT_DEFAULT;
-
-  const brandButton = (b) => `<button type="button" data-brand="${escapeAttr(b)}"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose hover:text-rose-ink transition"><span>${escapeHtml(b)}</span></button>`;
+  if (!brandTab || !brands.includes(brandTab)) brandTab = brands[0];
 
   const hasMore = !showAll && brands.length > previewCount;
   const visibleBrands = hasMore ? brands.slice(0, previewCount) : brands;
+  if (!visibleBrands.includes(brandTab)) visibleBrands.push(brandTab);
 
-  const moreTile = hasMore
-    ? `<button type="button" id="brands-show-more"
-        class="rounded-xl border border-ink/10 bg-white/50 py-4 px-3 text-center text-sm font-semibold text-ink/75 hover:border-rose hover:text-rose-ink transition">Y más</button>`
-    : "";
+  const tabsEl = document.getElementById("brands-grid");
+  tabsEl.innerHTML =
+    tabPillsHTML(visibleBrands.map((b) => ({ key: b, label: b })), brandTab, "data-brand-tab") +
+    (hasMore
+      ? `<button type="button" id="brands-show-more"
+          class="tap inline-flex items-center h-9 px-4 rounded-full border border-ink/15 text-[13px] font-medium whitespace-nowrap text-ink/80 hover:border-ink/40 transition">Todas las marcas +</button>`
+      : "");
+  tabsEl.onclick = (e) => {
+    if (e.target.closest("#brands-show-more")) {
+      renderBrands(true);
+      return;
+    }
+    const btn = e.target.closest("[data-brand-tab]");
+    if (!btn) return;
+    brandTab = btn.dataset.brandTab;
+    renderBrands(showAll || !hasMore);
+  };
 
-  document.getElementById("brands-grid").innerHTML = visibleBrands.map(brandButton).join("") + moreTile;
-
-  document.querySelectorAll("[data-brand]").forEach((btn) => {
-    btn.addEventListener("click", () => showBrandProducts(btn.dataset.brand));
-  });
-
-  const showMoreBtn = document.getElementById("brands-show-more");
-  if (showMoreBtn) {
-    showMoreBtn.addEventListener("click", () => renderBrands(true));
-  }
+  const items = groupVariants(products.filter((p) => !p.enStock && p.marca === brandTab));
+  mountProductRow(document.getElementById("brands-row"), items.slice(0, 20));
+  const more = document.getElementById("brands-more");
+  more.textContent = `Ver todo ${brandTab}`;
+  more.onclick = () => showBrandProducts(brandTab);
 }
 
 function showBrandProducts(marca) {
@@ -2730,33 +2792,39 @@ function productMatchesConcern(p, concern) {
   });
 }
 
+let concernTab = null;
+
 function renderConcernTiles() {
   const section = document.getElementById("concerns-section");
   const concerns = CONFIG.SKIN_CONCERNS || [];
-  const withCounts = concerns
-    .map((c) => ({ ...c, count: products.filter((p) => productMatchesConcern(p, c)).length }))
-    .filter((c) => c.count > 0);
+  const withItems = concerns
+    .map((c) => ({ ...c, items: groupVariants(products.filter((p) => !p.enStock && productMatchesConcern(p, c))) }))
+    .filter((c) => c.items.length > 0);
 
-  if (!withCounts.length) {
+  if (!withItems.length) {
     section.classList.add("hidden");
     return;
   }
   section.classList.remove("hidden");
+  if (!withItems.some((c) => c.key === concernTab)) concernTab = withItems[0].key;
+  const current = withItems.find((c) => c.key === concernTab);
 
-  document.getElementById("concerns-grid").innerHTML = withCounts
-    .map(
-      (c) => `
-      <button type="button" data-concern="${escapeAttr(c.key)}"
-        class="flex flex-col items-center gap-1.5 rounded-2xl border border-ink/10 bg-white/60 py-4 px-2 hover:border-rose/40 hover:shadow-md transition">
-        <span class="text-2xl" aria-hidden="true">${c.emoji}</span>
-        <span class="text-xs font-semibold text-ink text-center leading-tight">${escapeHtml(c.label)}</span>
-      </button>`
-    )
-    .join("");
+  const tabsEl = document.getElementById("concerns-grid");
+  tabsEl.innerHTML = tabPillsHTML(
+    withItems.map((c) => ({ key: c.key, label: `${c.emoji} ${c.label}` })),
+    concernTab,
+    "data-concern-tab"
+  );
+  tabsEl.onclick = (e) => {
+    const btn = e.target.closest("[data-concern-tab]");
+    if (!btn) return;
+    concernTab = btn.dataset.concernTab;
+    renderConcernTiles();
+  };
 
-  document.getElementById("concerns-grid").querySelectorAll("[data-concern]").forEach((btn) => {
-    btn.addEventListener("click", () => showConcernProducts(btn.dataset.concern));
-  });
+  mountProductRow(document.getElementById("concerns-row"), current.items.slice(0, 20));
+  const more = document.getElementById("concerns-more");
+  more.onclick = () => showConcernProducts(concernTab);
 }
 
 function showConcernProducts(key) {
@@ -2979,6 +3047,7 @@ function renderAll() {
   renderConcernTiles();
   renderSkinTypeSection();
   renderBrands();
+  renderQuickIcons();
   renderCategoryNav();
   renderMobileMenu();
   renderCart();
@@ -5059,8 +5128,6 @@ document.addEventListener("DOMContentLoaded", () => {
   renderHeroSlide();
   wireHeroControls();
   restartHeroTimer();
-  renderTicker();
-  wireTickerControls();
   renderPromoBanner();
   renderBenefits();
   initWhatsAppFloat();
