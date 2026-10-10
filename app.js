@@ -936,7 +936,7 @@ function csvToProducts(text) {
       return {
         id: get(iSku) || `row${n}`,
         nombre: get(iNombre) || "Producto sin nombre",
-        categoria: get(iCategoria) || "General",
+        categoria: normalizeCategoria(get(iCategoria)) || "General",
         marca: get(iMarca),
         precio,
         precioTarjeta,
@@ -1339,7 +1339,7 @@ function csvToStockData(text) {
         marca: get(iMarca),
         imagen: get(iImagen),
         descripcion: get(iDescripcion),
-        categoria: get(iCategoria),
+        categoria: normalizeCategoria(get(iCategoria)),
         pesoKg,
       });
     }
@@ -2424,9 +2424,21 @@ const CATEGORY_ICONS = {
   maquillaje: "maquillaje",
   suplementos: "suplementos",
   "cuidado capilar": "capilar",
-  "cuidado del cabello": "capilar",
   "cuidado corporal": "corporal",
 };
+
+/* Categorías con distinto nombre en el Sheet que son la misma: se
+   juntan en una sola (así no salen dos círculos ni dos filtros iguales).
+   La llave va sin acentos ni mayúsculas. */
+const CATEGORY_ALIASES = {
+  "cuidado del cabello": "Cuidado Capilar",
+  "cuidado capilar": "Cuidado Capilar",
+};
+
+function normalizeCategoria(cat) {
+  const clean = (cat || "").trim();
+  return CATEGORY_ALIASES[normalizeForSearch(clean)] || clean;
+}
 
 function renderQuickIcons() {
   const el = document.getElementById("quick-icons");
