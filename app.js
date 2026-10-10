@@ -2905,14 +2905,17 @@ function renderSearchResults(query) {
   // Cada palabra se busca por separado en marca + nombre + categoría
   // juntos, así "shiseido oil" encuentra los aceites de Shiseido aunque
   // la marca y el nombre estén en columnas distintas.
+  // Los de Stock en México (entrega inmediata) salen primero; se agrupan
+  // aparte de los de Corea para no mezclar sus tonos en un mismo selector.
   const words = q.split(/\s+/).filter(Boolean);
-  const items = groupVariants(
-    products.filter((p) => {
-      if (p.enStock) return false;
-      const haystack = normalizeForSearch(`${p.marca} ${p.nombre} ${p.categoria}`);
-      return words.every((w) => haystack.includes(w));
-    })
-  );
+  const matches = products.filter((p) => {
+    const haystack = normalizeForSearch(`${p.marca} ${p.nombre} ${p.categoria}`);
+    return words.every((w) => haystack.includes(w));
+  });
+  const items = [
+    ...groupVariants(matches.filter((p) => p.enStock)).sort(compareByMarcaThenNombre),
+    ...groupVariants(matches.filter((p) => !p.enStock)),
+  ];
 
   document.getElementById("search-results-title").textContent = `Resultados para "${query.trim()}"`;
   showHomeView("search");
