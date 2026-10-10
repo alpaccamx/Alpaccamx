@@ -2009,20 +2009,7 @@ function productCardHTML(p, { rank } = {}) {
         ${wishlistButtonHTML(p.id)}
       </div>
       <div class="pt-2.5 flex flex-col flex-1">
-        <div class="flex items-start justify-between gap-1.5">
-          <span class="text-[13px] font-bold text-ink leading-tight truncate pt-1">${escapeHtml(p.marca || p.categoria)}</span>
-          ${
-            outOfStock
-              ? `<button type="button" data-restock="${escapeAttr(p.id)}" aria-label="Avísame cuando vuelva ${escapeHtml(p.nombre)}" title="Avísame cuando vuelva" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
-                  class="tap shrink-0 -mr-1 w-8 h-8 inline-flex items-center justify-center rounded-full text-rose-ink hover:bg-rose/10 transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                </button>`
-              : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""} aria-label="Agregar ${escapeHtml(p.nombre)} al carrito" title="${hasVariants ? "Elige una versión" : "Agregar al carrito"}"
-                  class="tap shrink-0 -mr-1 w-8 h-8 inline-flex items-center justify-center rounded-full text-ink hover:bg-ink hover:text-cream transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-ink">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.6 12.2a1.8 1.8 0 0 0 1.8 1.4h8.4a1.8 1.8 0 0 0 1.8-1.4L21 7H6"/></svg>
-                </button>`
-          }
-        </div>
+        <span class="text-[13px] font-bold text-ink leading-tight truncate">${escapeHtml(p.marca || p.categoria)}</span>
         <h3 class="text-[13px] text-ink/80 leading-snug mt-0.5 line-clamp-2 min-h-[2.4em]" title="${escapeAttr(p.nombre)}">${escapeHtml(p.nombre)}</h3>
         ${p.capacidad ? `<span class="text-xs text-ink/60">${escapeHtml(p.capacidad)}</span>` : ""}
         ${
@@ -2047,6 +2034,19 @@ function productCardHTML(p, { rank } = {}) {
             <span data-card-stock-badge class="empty:hidden">${hasVariants ? "" : stockBadgeHTML(p)}</span>
             ${presentacionTagHTML(p)}
           </div>
+          ${
+            outOfStock
+              ? `<button type="button" data-restock="${escapeAttr(p.id)}" aria-label="Avísame cuando vuelva ${escapeHtml(p.nombre)}" title="Avísame cuando vuelva" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
+                  class="tap mt-2.5 w-full h-9 inline-flex items-center justify-center gap-1.5 rounded-full border border-rose/60 text-rose-ink text-[13px] font-semibold hover:bg-rose/10 transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  Avísame
+                </button>`
+              : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""} aria-label="Agregar ${escapeHtml(p.nombre)} al carrito" title="${hasVariants ? "Elige una versión" : "Agregar al carrito"}"
+                  class="tap mt-2.5 w-full h-9 inline-flex items-center justify-center gap-1.5 rounded-full border border-ink text-ink text-[13px] font-semibold hover:bg-ink hover:text-cream transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-ink">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.6 12.2a1.8 1.8 0 0 0 1.8 1.4h8.4a1.8 1.8 0 0 0 1.8-1.4L21 7H6"/></svg>
+                  Agregar
+                </button>`
+          }
         </div>
       </div>
     </div>`;
