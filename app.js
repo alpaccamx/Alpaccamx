@@ -87,8 +87,24 @@ const CONFIG = {
       imageAlt: "Cuida tu piel en cualquier momento y lugar: base Clio, sérum y crema solar Goodal, labial Ink Velvet.",
     },
     {
+      imageCard: "assets/hero/hero-medicube-card.webp",
+      imageAlt: "Medicube -- Trata. Cuida. Transforma. Limpiador en gel PDRN, sérum TXA Niacinamide 15 y sérum Deep Vita C.",
+    },
+    {
       imageCard: "assets/hero/hero-anua-100-serum-card.webp",
       imageAlt: "Anua 100+ PDRN: el sérum No.1 de Corea -- rutina con sérum, crema y discos iluminadores para una piel más firme e hidratada.",
+    },
+    {
+      imageCard: "assets/hero/hero-torriden-cellmazing-card.webp",
+      imageAlt: "Torriden Cellmazing: rutina reafirmante con crema, contorno de ojos, ampolleta y mascarilla de gel.",
+    },
+    {
+      imageCard: "assets/hero/hero-numbuzin-70-card.webp",
+      imageAlt: "Grandes ahorros para una piel más sana: hasta 70% de descuento en numbuzin.",
+    },
+    {
+      imageCard: "assets/hero/hero-nida-skincare-card.webp",
+      imageAlt: "El mejor skincare coreano: cremas, sérums y contorno de ojos NIDA.",
     },
   ],
 
@@ -1670,8 +1686,9 @@ function renderHeroSlide() {
   stage.innerHTML = loop
     ? [...slides.map((s, i) => heroSlideHTML(s, i, true)), ...slides.map((s, i) => heroSlideHTML(s, i, false)), ...slides.map((s, i) => heroSlideHTML(s, i, true))].join("")
     : heroSlideHTML(slides[0], 0, false);
-  // Arranca con la del medio al centro.
-  const start = Math.floor((slides.length - 1) / 2);
+  // Arranca con el primer slide al centro (es el que se precarga en
+  // index.html); gracias a las copias, igual tiene una tarjeta a cada lado.
+  const start = 0;
   stage.classList.add("hero-no-anim");
   scrollHeroTo(loop ? slides.length + start : 0, false);
   void stage.offsetWidth;
