@@ -74,46 +74,20 @@ const CONFIG = {
     { name: "TikTok", href: "", icon: "tiktok" },
   ],
 
-  // Slides del banner principal. Agrega o quita objetos para más o menos slides.
-  // "imageMobile" es opcional: si lo pones, esa imagen se usa en pantallas
-  // angostas (celular) y "image" se usa en pantallas sm y más grandes
-  // (tablet/escritorio). Si lo dejas vacío, se usa "image" en ambas.
-  // "imageCard" es la versión vertical 4:5 (972 × 1215 px, como los
-  // banners de StyleKorean) que se usa en las tarjetas del banner. Si al
-  // menos un slide la tiene, solo se muestran los que la tienen (las
-  // imágenes horizontales se cortarían en una tarjeta vertical).
+  // Slides del banner principal (tarjetas verticales, como StyleKorean).
+  // "imageCard" es la imagen vertical 4:5 de 972 × 1215 px. Agrega o quita
+  // objetos para más o menos tarjetas.
   HERO_SLIDES: [
     {
-      image: "assets/hero/hero-anua-50-descuento.webp",
-      imageMobile: "assets/hero/hero-anua-50-descuento-mobile.webp",
-      imageAlt: "Hasta 50% de descuento en tus productos Anua favoritos: ampolla, tónico, sérum y crema.",
-    },
-    {
-      image: "assets/hero/hero-productos-coleccion.webp",
-      imageMobile: "assets/hero/hero-productos-coleccion-mobile.webp",
-      imageAlt: "Colección de skincare coreano Alpacca: COSRX, Anua, Beauty of Joseon, mixsoon, haruharu wonder y AXIS-Y.",
-    },
-    {
-      image: "assets/hero/hero-nida-skincare.webp",
-      imageMobile: "assets/hero/hero-nida-skincare-mobile.webp",
-      imageAlt: "El mejor skincare coreano NIDA: crema hidratante, contorno de ojos y sérums.",
-    },
-    {
       imageCard: "assets/hero/hero-anua-txa-card.webp",
-      image: "assets/hero/hero-anua-txa.webp",
-      imageMobile: "assets/hero/hero-anua-txa-mobile.webp",
       imageAlt: "Anua TXA: kit para una piel más luminosa y radiante -- mascarilla, sérum, tónico y almohadillas.",
     },
     {
       imageCard: "assets/hero/hero-cuida-tu-piel-card.webp",
-      image: "assets/hero/hero-cuida-tu-piel.webp",
-      imageMobile: "assets/hero/hero-cuida-tu-piel-mobile.webp",
       imageAlt: "Cuida tu piel en cualquier momento y lugar: base Clio, sérum y crema solar Goodal, labial Ink Velvet.",
     },
     {
       imageCard: "assets/hero/hero-anua-100-serum-card.webp",
-      image: "assets/hero/hero-anua-100-serum.webp",
-      imageMobile: "assets/hero/hero-anua-100-serum-mobile.webp",
       imageAlt: "Anua 100+ PDRN: el sérum No.1 de Corea -- rutina con sérum, crema y discos iluminadores para una piel más firme e hidratada.",
     },
   ],
@@ -1623,30 +1597,21 @@ let heroTimer = null;
 // sistema, arranca en pausa (puede darle "play" si quiere).
 const heroHold = { user: prefersReducedMotion.matches, hover: false, focus: false, offscreen: false };
 
-/* Banner estilo StyleKorean: tarjetas redondeadas lado a lado (en
-   escritorio se ven 3 y se asoma la siguiente; en celular una y un
-   pedazo de la otra). Se usa "imageCard" (vertical 4:5); si un slide no
-   la tiene, "imageMobile" (casi cuadrada, con el texto legible). */
+/* Banner estilo StyleKorean: tarjetas verticales 4:5 redondeadas lado a
+   lado (en escritorio se ven 3 y se asoma la siguiente; en celular una
+   y un pedazo de la otra). */
 function heroSlides() {
-  const all = CONFIG.HERO_SLIDES || [];
-  const vertical = all.filter((s) => s.imageCard);
-  return vertical.length ? vertical : all;
+  return (CONFIG.HERO_SLIDES || []).filter((s) => s.imageCard);
 }
 
 function heroSlideHTML(slide, i) {
-  const src = slide.imageCard || slide.imageMobile || slide.image;
-  const ratio = slide.imageCard ? "aspect-[4/5]" : "aspect-[780/680]";
-  const inner = src
-    ? `<img src="${escapeAttr(src)}" alt="${escapeAttr(slide.imageAlt || "")}" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"'}
-        class="w-full h-full object-cover" />`
-    : `<div class="w-full h-full flex flex-col justify-end p-5 bg-pill">
-        <h2 class="font-display text-xl text-ink">${escapeHtml(slide.title || "")}</h2>
-        <p class="text-sm text-ink/75 mt-1">${escapeHtml(slide.subtitle || "")}</p>
-      </div>`;
   const href = slide.ctaHref || "";
   const tag = href ? "a" : "div";
   return `<${tag} ${href ? `href="${escapeAttr(href)}"` : ""} data-hero-card
-    class="hero-card snap-start shrink-0 w-[78vw] sm:w-[42vw] lg:w-[24.5rem] ${ratio} rounded-2xl overflow-hidden bg-pill block">${inner}</${tag}>`;
+    class="hero-card snap-start shrink-0 w-[78vw] sm:w-[42vw] lg:w-[24.5rem] aspect-[4/5] rounded-2xl overflow-hidden bg-pill block">
+    <img src="${escapeAttr(slide.imageCard)}" alt="${escapeAttr(slide.imageAlt || "")}" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"'}
+      class="w-full h-full object-cover" />
+  </${tag}>`;
 }
 
 function heroCards() {
@@ -1656,7 +1621,10 @@ function heroCards() {
 /* Lleva la fila a la tarjeta heroIndex (sin mover la página). */
 function renderHeroSlide() {
   const slides = heroSlides();
-  if (!slides.length) return;
+  if (!slides.length) {
+    document.getElementById("top").classList.add("hidden");
+    return;
+  }
   const stage = document.getElementById("hero-slides");
   if (!stage.children.length) {
     stage.innerHTML = slides.map(heroSlideHTML).join("");
