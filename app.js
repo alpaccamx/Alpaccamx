@@ -936,7 +936,7 @@ function csvToProducts(text) {
       return {
         id: get(iSku) || `row${n}`,
         nombre: get(iNombre) || "Producto sin nombre",
-        categoria: get(iCategoria) || "General",
+        categoria: normalizeCategoria(get(iCategoria)) || "General",
         marca: get(iMarca),
         precio,
         precioTarjeta,
@@ -1339,7 +1339,7 @@ function csvToStockData(text) {
         marca: get(iMarca),
         imagen: get(iImagen),
         descripcion: get(iDescripcion),
-        categoria: get(iCategoria),
+        categoria: normalizeCategoria(get(iCategoria)),
         pesoKg,
       });
     }
@@ -2415,14 +2415,35 @@ function renderBestSellers() {
    Íconos redondos de accesos rápidos (debajo del banner), como los de
    StyleKorean. Cada uno lleva la foto de un producto de esa sección.
    ====================================================================== */
-const QUICK_ICON_SVG = {
-  truck: `<svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
-  tag: `<svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/></svg>`,
+/* Íconos ilustrados (assets/icons/, 240×240 sobre fondo rosita). Las
+   categorías se buscan sin acentos ni mayúsculas; si una no tiene ícono,
+   se usa la foto de uno de sus productos. */
+const QUICK_ICON_DIR = "./assets/icons/";
+const CATEGORY_ICONS = {
+  skincare: "skincare",
+  maquillaje: "maquillaje",
+  suplementos: "suplementos",
+  "cuidado capilar": "capilar",
+  "cuidado corporal": "corporal",
 };
+
+/* Categorías con distinto nombre en el Sheet que son la misma: se
+   juntan en una sola (así no salen dos círculos ni dos filtros iguales).
+   La llave va sin acentos ni mayúsculas. */
+const CATEGORY_ALIASES = {
+  "cuidado del cabello": "Cuidado Capilar",
+  "cuidado capilar": "Cuidado Capilar",
+};
+
+function normalizeCategoria(cat) {
+  const clean = (cat || "").trim();
+  return CATEGORY_ALIASES[normalizeForSearch(clean)] || clean;
+}
 
 function renderQuickIcons() {
   const el = document.getElementById("quick-icons");
   if (!el) return;
+  const icon = (name) => `${QUICK_ICON_DIR}${name}.webp`;
   const used = new Set();
   const pickImg = (list) => {
     const p = list.find((x) => x.imagen && !used.has(x.imagen));
@@ -2433,15 +2454,13 @@ function renderQuickIcons() {
   const avail = products.filter((p) => !p.enStock);
   const icons = [];
 
-  const best = avail.filter((p) => (p.destacado || []).includes("Best Seller"));
-  if (best.length) {
-    icons.push({ key: "best", label: "Best Seller", img: pickImg(best) });
+  if (avail.some((p) => (p.destacado || []).includes("Best Seller"))) {
+    icons.push({ key: "best", label: "Best Seller", img: icon("best") });
   }
-  const stock = products.filter((p) => p.enStock);
-  if (stock.length) {
-    icons.push({ key: "stock", label: "Stock en México", img: pickImg(stock) });
+  if (products.some((p) => p.enStock)) {
+    icons.push({ key: "stock", label: "Stock en México", img: icon("stock") });
   }
-  icons.push({ key: "catalog", label: "Catálogo completo", img: pickImg(avail.slice().reverse()) });
+  icons.push({ key: "catalog", label: "Catálogo completo", img: icon("catalogo") });
 
   const counts = new Map();
   avail.forEach((p) => p.categoria && counts.set(p.categoria, (counts.get(p.categoria) || 0) + 1));
@@ -2449,23 +2468,28 @@ function renderQuickIcons() {
     .sort((x, y) => y[1] - x[1])
     .slice(0, 6)
     .forEach(([cat]) => {
-      icons.push({ key: `cat:${cat}`, label: cat, img: pickImg(avail.filter((p) => p.categoria === cat)) });
+      const named = CATEGORY_ICONS[normalizeForSearch(cat).trim()];
+      icons.push({
+        key: `cat:${cat}`,
+        label: cat,
+        img: named ? icon(named) : pickImg(avail.filter((p) => p.categoria === cat)),
+      });
     });
 
   if (!document.getElementById("brands-section").classList.contains("hidden")) {
-    icons.push({ key: "brands", label: "Marcas", svg: QUICK_ICON_SVG.tag });
+    icons.push({ key: "brands", label: "Marcas", img: icon("marcas") });
   }
-  icons.push({ key: "shipping", label: "Tiempos de entrega", svg: QUICK_ICON_SVG.truck });
+  icons.push({ key: "shipping", label: "Tiempos de entrega", img: icon("envio") });
 
   el.innerHTML = icons
     .map(
       (ic) => `<button type="button" data-quick="${escapeAttr(ic.key)}"
         class="group shrink-0 w-[4.75rem] sm:w-24 flex flex-col items-center gap-2 text-center">
-        <span class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-pill overflow-hidden flex items-center justify-center text-ink/80 ring-1 ring-ink/5 group-hover:ring-ink/30 transition">
+        <span class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#fdecf2] overflow-hidden flex items-center justify-center ring-1 ring-rose/10 group-hover:ring-rose/50 group-hover:-translate-y-0.5 transition">
           ${
             ic.img
               ? `<img src="${escapeAttr(ic.img)}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover" />`
-              : ic.svg || ""
+              : ""
           }
         </span>
         <span class="text-xs font-medium text-ink leading-tight">${escapeHtml(ic.label)}</span>
