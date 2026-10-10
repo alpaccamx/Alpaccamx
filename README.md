@@ -255,6 +255,15 @@ todo está configurado, el carrito muestra cada tramo por separado (ej.
 los suma al "Total estimado" que el cliente realmente paga o transfiere
 — no es solo una nota de referencia.
 
+**Cajas: un envío desde Corea por cada caja.** Cada producto cuya
+columna Presentación empieza con "Caja" (ej. "Caja con 54 piezas") se
+cotiza en su propio envío Corea→México con su propio peso, y todas las
+piezas individuales van juntas en otro envío. Ej.: 2 cajas + piezas
+sueltas = 3 envíos, cada uno con su tarifa de `TarifasCorea`, y el
+carrito lo indica ("✈️ Envío Corea→México (3 envíos)"). El envío
+nacional se sigue cotizando una sola vez con el peso total, y el pedido
+mínimo no cambia. Los productos en stock no pagan este tramo.
+
 Si el peso o el código postal del cliente caen fuera de las tablas que
 cargaste, esa parte del envío simplemente no se puede calcular; el
 carrito le avisa "Te contactaremos para confirmarlo" en vez de un monto,
