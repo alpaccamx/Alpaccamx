@@ -78,6 +78,10 @@ const CONFIG = {
   // "imageMobile" es opcional: si lo pones, esa imagen se usa en pantallas
   // angostas (celular) y "image" se usa en pantallas sm y más grandes
   // (tablet/escritorio). Si lo dejas vacío, se usa "image" en ambas.
+  // "imageCard" es la versión vertical 4:5 (972 × 1215 px, como los
+  // banners de StyleKorean) que se usa en las tarjetas del banner. Si al
+  // menos un slide la tiene, solo se muestran los que la tienen (las
+  // imágenes horizontales se cortarían en una tarjeta vertical).
   HERO_SLIDES: [
     {
       image: "assets/hero/hero-anua-50-descuento.webp",
@@ -95,16 +99,19 @@ const CONFIG = {
       imageAlt: "El mejor skincare coreano NIDA: crema hidratante, contorno de ojos y sérums.",
     },
     {
+      imageCard: "assets/hero/hero-anua-txa-card.webp",
       image: "assets/hero/hero-anua-txa.webp",
       imageMobile: "assets/hero/hero-anua-txa-mobile.webp",
       imageAlt: "Anua TXA: kit para una piel más luminosa y radiante -- mascarilla, sérum, tónico y almohadillas.",
     },
     {
+      imageCard: "assets/hero/hero-cuida-tu-piel-card.webp",
       image: "assets/hero/hero-cuida-tu-piel.webp",
       imageMobile: "assets/hero/hero-cuida-tu-piel-mobile.webp",
       imageAlt: "Cuida tu piel en cualquier momento y lugar: base Clio, sérum y crema solar Goodal, labial Ink Velvet.",
     },
     {
+      imageCard: "assets/hero/hero-anua-100-serum-card.webp",
       image: "assets/hero/hero-anua-100-serum.webp",
       imageMobile: "assets/hero/hero-anua-100-serum-mobile.webp",
       imageAlt: "Anua 100+ PDRN: el sérum No.1 de Corea -- rutina con sérum, crema y discos iluminadores para una piel más firme e hidratada.",
@@ -1618,10 +1625,17 @@ const heroHold = { user: prefersReducedMotion.matches, hover: false, focus: fals
 
 /* Banner estilo StyleKorean: tarjetas redondeadas lado a lado (en
    escritorio se ven 3 y se asoma la siguiente; en celular una y un
-   pedazo de la otra). Se usa la imagen "imageMobile" (casi cuadrada),
-   que es la que tiene el texto grande y legible en una tarjeta. */
+   pedazo de la otra). Se usa "imageCard" (vertical 4:5); si un slide no
+   la tiene, "imageMobile" (casi cuadrada, con el texto legible). */
+function heroSlides() {
+  const all = CONFIG.HERO_SLIDES || [];
+  const vertical = all.filter((s) => s.imageCard);
+  return vertical.length ? vertical : all;
+}
+
 function heroSlideHTML(slide, i) {
-  const src = slide.imageMobile || slide.image;
+  const src = slide.imageCard || slide.imageMobile || slide.image;
+  const ratio = slide.imageCard ? "aspect-[4/5]" : "aspect-[780/680]";
   const inner = src
     ? `<img src="${escapeAttr(src)}" alt="${escapeAttr(slide.imageAlt || "")}" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"'}
         class="w-full h-full object-cover" />`
@@ -1632,7 +1646,7 @@ function heroSlideHTML(slide, i) {
   const href = slide.ctaHref || "";
   const tag = href ? "a" : "div";
   return `<${tag} ${href ? `href="${escapeAttr(href)}"` : ""} data-hero-card
-    class="hero-card snap-start shrink-0 w-[84vw] sm:w-[44vw] lg:w-[25rem] aspect-[780/680] rounded-2xl overflow-hidden bg-pill block">${inner}</${tag}>`;
+    class="hero-card snap-start shrink-0 w-[78vw] sm:w-[42vw] lg:w-[24.5rem] ${ratio} rounded-2xl overflow-hidden bg-pill block">${inner}</${tag}>`;
 }
 
 function heroCards() {
@@ -1641,7 +1655,7 @@ function heroCards() {
 
 /* Lleva la fila a la tarjeta heroIndex (sin mover la página). */
 function renderHeroSlide() {
-  const slides = CONFIG.HERO_SLIDES || [];
+  const slides = heroSlides();
   if (!slides.length) return;
   const stage = document.getElementById("hero-slides");
   if (!stage.children.length) {
@@ -1661,7 +1675,7 @@ let heroScrollingTo = null;
 
 /* Contador "1 | 6" como el de StyleKorean. */
 function renderHeroDots() {
-  const slides = CONFIG.HERO_SLIDES || [];
+  const slides = heroSlides();
   const counter = document.getElementById("hero-dots");
   const controls = document.getElementById("hero-controls");
   if (controls) controls.classList.toggle("hidden", slides.length < 2);
@@ -1669,14 +1683,14 @@ function renderHeroDots() {
 }
 
 function stepHero(delta) {
-  const slides = CONFIG.HERO_SLIDES || [];
+  const slides = heroSlides();
   if (slides.length < 2) return;
   heroIndex = (heroIndex + delta + slides.length) % slides.length;
   renderHeroSlide();
 }
 
 function heroShouldRun() {
-  const slides = CONFIG.HERO_SLIDES || [];
+  const slides = heroSlides();
   return slides.length > 1 && !document.hidden && !Object.values(heroHold).some(Boolean);
 }
 
@@ -1685,7 +1699,7 @@ function restartHeroTimer() {
   heroTimer = null;
   updateHeroPauseButton();
   if (!heroShouldRun()) return;
-  const slides = CONFIG.HERO_SLIDES || [];
+  const slides = heroSlides();
   heroTimer = setInterval(() => {
     // Si ya se ve la última tarjeta completa, se regresa al inicio.
     const stage = document.getElementById("hero-slides");
@@ -1701,7 +1715,7 @@ const HERO_PLAY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3
 function updateHeroPauseButton() {
   const btn = document.getElementById("hero-pause");
   if (!btn) return;
-  const multiple = (CONFIG.HERO_SLIDES || []).length > 1;
+  const multiple = heroSlides().length > 1;
   btn.classList.toggle("hidden", !multiple);
   btn.classList.toggle("flex", multiple);
   const paused = heroHold.user;
@@ -1723,7 +1737,7 @@ function wireHeroControls() {
   });
   document.getElementById("hero-next").addEventListener("click", () => {
     const atEnd = stage.scrollLeft + stage.clientWidth >= stage.scrollWidth - 4;
-    if (atEnd) heroIndex = (CONFIG.HERO_SLIDES || []).length - 1;
+    if (atEnd) heroIndex = heroSlides().length - 1;
     stepHero(1);
     restartHeroTimer();
   });
