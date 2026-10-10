@@ -2860,7 +2860,8 @@ function showConcernProducts(key) {
 }
 
 /* ======================================================================
-   Búsqueda — filtra por nombre, marca y categoría. Solo busca al enviar
+   Búsqueda — cada palabra debe estar en la marca, el nombre o la
+   categoría (en cualquier orden). Solo busca al enviar
    (Enter o el botón de lupa), no en cada tecla.
    ====================================================================== */
 function normalizeForSearch(s) {
@@ -2901,14 +2902,16 @@ function renderSearchResults(query) {
     return;
   }
 
+  // Cada palabra se busca por separado en marca + nombre + categoría
+  // juntos, así "shiseido oil" encuentra los aceites de Shiseido aunque
+  // la marca y el nombre estén en columnas distintas.
+  const words = q.split(/\s+/).filter(Boolean);
   const items = groupVariants(
-    products.filter(
-      (p) =>
-        !p.enStock &&
-        (normalizeForSearch(p.nombre).includes(q) ||
-          normalizeForSearch(p.marca).includes(q) ||
-          normalizeForSearch(p.categoria).includes(q))
-    )
+    products.filter((p) => {
+      if (p.enStock) return false;
+      const haystack = normalizeForSearch(`${p.marca} ${p.nombre} ${p.categoria}`);
+      return words.every((w) => haystack.includes(w));
+    })
   );
 
   document.getElementById("search-results-title").textContent = `Resultados para "${query.trim()}"`;
