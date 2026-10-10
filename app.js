@@ -87,6 +87,10 @@ const CONFIG = {
       imageAlt: "Cuida tu piel en cualquier momento y lugar: base Clio, sérum y crema solar Goodal, labial Ink Velvet.",
     },
     {
+      imageCard: "assets/hero/hero-girl-dinner-card.webp",
+      imageAlt: "Girl Dinner: contorno de ojos Dr.Melaxin, sérum Medicube EGF Peptide y bruma Anua servidos en un plato de corazón.",
+    },
+    {
       imageCard: "assets/hero/hero-anua-oferta-30-card.webp",
       imageAlt: "Oferta: hasta 30% de descuento en tus productos Anua favoritos -- ampolla 80+, sérum 10+, tónico 77+ y crema 100+.",
     },
