@@ -87,24 +87,36 @@ const CONFIG = {
       imageAlt: "Cuida tu piel en cualquier momento y lugar: base Clio, sérum y crema solar Goodal, labial Ink Velvet.",
     },
     {
-      imageCard: "assets/hero/hero-medicube-card.webp",
-      imageAlt: "Medicube -- Trata. Cuida. Transforma. Limpiador en gel PDRN, sérum TXA Niacinamide 15 y sérum Deep Vita C.",
+      imageCard: "assets/hero/hero-anua-oferta-30-card.webp",
+      imageAlt: "Oferta: hasta 30% de descuento en tus productos Anua favoritos -- ampolla 80+, sérum 10+, tónico 77+ y crema 100+.",
     },
     {
       imageCard: "assets/hero/hero-anua-100-serum-card.webp",
       imageAlt: "Anua 100+ PDRN: el sérum No.1 de Corea -- rutina con sérum, crema y discos iluminadores para una piel más firme e hidratada.",
     },
     {
-      imageCard: "assets/hero/hero-torriden-cellmazing-card.webp",
-      imageAlt: "Torriden Cellmazing: rutina reafirmante con crema, contorno de ojos, ampolleta y mascarilla de gel.",
+      imageCard: "assets/hero/hero-medicube-card.webp",
+      imageAlt: "Medicube -- Trata. Cuida. Transforma. Limpiador en gel PDRN, sérum TXA Niacinamide 15 y sérum Deep Vita C.",
+    },
+    {
+      imageCard: "assets/hero/hero-nida-skincare-card.webp",
+      imageAlt: "El mejor skincare coreano: cremas, sérums y contorno de ojos NIDA.",
+    },
+    {
+      imageCard: "assets/hero/hero-medicube-toner-card.webp",
+      imageAlt: "Elige tu tónico Medicube: luminosidad, calma o ilumina. ¿Cuál es para ti?",
     },
     {
       imageCard: "assets/hero/hero-numbuzin-70-card.webp",
       imageAlt: "Grandes ahorros para una piel más sana: hasta 70% de descuento en numbuzin.",
     },
     {
-      imageCard: "assets/hero/hero-nida-skincare-card.webp",
-      imageAlt: "El mejor skincare coreano: cremas, sérums y contorno de ojos NIDA.",
+      imageCard: "assets/hero/hero-torriden-cellmazing-card.webp",
+      imageAlt: "Torriden Cellmazing: rutina reafirmante con crema, contorno de ojos, ampolleta y mascarilla de gel.",
+    },
+    {
+      imageCard: "assets/hero/hero-pdrn-card.webp",
+      imageAlt: "PDRN: estimula la regeneración celular, repara la piel y mejora la elasticidad -- crema, sérum, mascarilla y esencia.",
     },
   ],
 
