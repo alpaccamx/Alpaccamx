@@ -39,10 +39,23 @@
 @layer base {
   input::placeholder,
   textarea::placeholder {
-    color: rgb(61 58 66 / 0.72);
+    color: rgb(17 17 17 / 0.6);
+  }
+  /* Letras un poco más juntas, como StyleKorean (-0.35px a 14px). */
+  body {
+    letter-spacing: -0.02em;
   }
 }
 
+/* Títulos de sección (font-display) con peso firme, como StyleKorean.
+   Va en "components" para que un font-bold/font-medium explícito en el
+   HTML lo pueda sobrescribir. */
+@layer components {
+  .font-display {
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+}
 @layer utilities {
   /* Área de toque de al menos 44×44 px sin cambiar cómo se ve el
      control: un pseudo-elemento invisible centrado sobre él. Para
@@ -76,7 +89,7 @@ html {
 }
 @media (min-width: 640px) {
   html {
-    scroll-padding-top: 7.5rem;
+    scroll-padding-top: 5rem;
   }
 }
 
@@ -87,29 +100,6 @@ html {
 @media (pointer: coarse) {
   :is(input, select, textarea)[class] {
     font-size: 16px;
-  }
-}
-
-/* Celular acostado (pantalla ancha pero muy baja): el header fijo con
-   la segunda fila de categorías ocupaba casi un tercio de la pantalla.
-   Aquí se usa la navegación de celular (☰ + panel) y el header queda en
-   una sola fila. Los IDs ganan sobre las clases sm:hidden / sm:block. */
-@media (min-width: 640px) and (max-height: 520px) {
-  #category-nav-row {
-    display: none;
-  }
-  #menu-toggle {
-    display: inline-block;
-  }
-  #mobile-menu {
-    display: flex;
-    max-width: 24rem;
-  }
-  #menu-overlay {
-    display: block;
-  }
-  html {
-    scroll-padding-top: 4.5rem;
   }
 }
 
@@ -141,6 +131,8 @@ html {
 }
 .drawer.translate-x-full,
 .drawer.-translate-x-full {
+  /* Cerrados, su sombra se asomaba como una franja gris en la orilla. */
+  box-shadow: none;
   transition-duration: 220ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -163,12 +155,38 @@ html {
   transition-duration: 180ms;
 }
 
-/* Banner: fundido cruzado entre slides (ver renderHeroSlide en app.js). */
-.hero-slide {
-  transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1);
+/* Banner en tarjetas: la fila ocupa todo el ancho de la pantalla y deja
+   margen a los lados para que la primera y la última tarjeta también
+   puedan quedar al centro. La tarjeta del centro (.is-center) es la
+   principal: baja un poco, crece y lleva sombra; las demás se encogen y
+   se ven tenues. */
+.hero-row {
+  --hero-card-w: 74vw;
+  padding-inline: calc((100vw - var(--hero-card-w)) / 2);
 }
-.hero-slide.is-entering {
-  opacity: 0;
+@media (min-width: 640px) {
+  .hero-row {
+    --hero-card-w: 40vw;
+  }
+}
+@media (min-width: 1024px) {
+  .hero-row {
+    --hero-card-w: 24rem;
+  }
+}
+.hero-card {
+  width: var(--hero-card-w);
+  transform: scale(0.9);
+  opacity: 0.6;
+  transition: transform 450ms cubic-bezier(0.16, 1, 0.3, 1), opacity 450ms ease, box-shadow 450ms ease;
+}
+.hero-no-anim .hero-card {
+  transition: none;
+}
+.hero-card.is-center {
+  transform: translateY(1.25rem) scale(1);
+  opacity: 1;
+  box-shadow: 0 22px 45px -18px rgb(17 17 17 / 0.45);
 }
 
 /* Desplegables (marcas, categorías, país): aparecen desde su botón con un
@@ -202,15 +220,6 @@ html {
   }
 }
 
-/* Barra deslizante: se detiene con el mouse encima, con el foco del
-   teclado, con su botón de pausa o fuera de pantalla. */
-#ticker:hover .animate-marquee,
-#ticker:focus-within .animate-marquee,
-#ticker[data-paused] .animate-marquee,
-#ticker[data-offscreen] .animate-marquee {
-  animation-play-state: paused;
-}
-
 /* Menos movimiento: nada se desliza ni se mueve solo; lo que comunica
    un cambio de estado (fundidos, color) se conserva, más corto. */
 @media (prefers-reduced-motion: reduce) {
@@ -225,8 +234,8 @@ html {
   .opacity-0 > .modal-card {
     transform: none;
   }
-  .hero-slide {
-    transition-duration: 200ms;
+  .hero-card {
+    transition: opacity 200ms ease;
   }
   .menu-panel {
     transition: opacity 120ms ease-out, display 120ms allow-discrete;
@@ -239,21 +248,6 @@ html {
      al final del archivo, después de este bloque. */
   html .group:hover .group-hover\:scale-105 {
     transform: none;
-  }
-  /* El ticker se queda quieto: una sola copia de los mensajes en una
-     línea, centrada si cabe; si no (celular), se desliza con el dedo al
-     ritmo de quien lee. */
-  .animate-marquee {
-    animation: none;
-    justify-content: safe center;
-    column-gap: 2rem;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-inline: 1rem;
-  }
-  .ticker-dup,
-  #ticker-pause {
-    display: none;
   }
   .animate-pulse {
     animation-duration: 3s;

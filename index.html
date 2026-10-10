@@ -20,40 +20,39 @@
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./styles.css">
 <!-- Precargas: el navegador empieza a bajar estos archivos de inmediato,
      sin esperar a que corra app.js (que es quien pinta el banner).
      OJO: si cambias el PRIMER slide de CONFIG.HERO_SLIDES en app.js,
-     cambia también estas dos rutas. -->
-<link rel="preload" as="image" href="./assets/hero/hero-anua-50-descuento-mobile.webp" media="(max-width: 639px)" fetchpriority="high">
-<link rel="preload" as="image" href="./assets/hero/hero-anua-50-descuento.webp" media="(min-width: 640px)" fetchpriority="high">
+     cambia también esta ruta (la primera tarjeta con "imageCard"). -->
+<link rel="preload" as="image" href="./assets/hero/hero-anua-txa-card.webp" fetchpriority="high">
 <link rel="preload" as="font" type="font/woff2" href="./fonts/ReadyToParty-latin.woff2" crossorigin>
 </head>
 <body class="bg-cream text-ink font-body antialiased">
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-cream focus:text-ink focus:px-3 focus:py-2 focus:rounded-lg">Saltar al contenido</a>
 
 <!-- Top bar -->
-<div class="bg-[#fdd2de] text-ink text-xs sm:text-sm">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-10 flex items-center justify-between gap-4">
+<div class="bg-pill text-ink/80 text-xs">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-between gap-4">
     <div id="social-links" class="hidden sm:flex items-center gap-3">
       <!-- social icons injected by JS -->
     </div>
-    <p class="flex-1 sm:flex-none text-center font-semibold truncate" id="shipping-message"></p>
+    <p class="flex-1 sm:flex-none text-center font-medium truncate" id="shipping-message"></p>
     <div class="flex items-center gap-4 shrink-0">
       <button id="currency-toggle" type="button"
-        class="tap hidden text-ink font-semibold h-10 inline-flex items-center hover:decoration-solid transition underline decoration-dotted underline-offset-2"
+        class="tap hidden text-ink font-semibold h-9 inline-flex items-center hover:decoration-solid transition underline decoration-dotted underline-offset-2"
         aria-label="Cambiar entre pesos y dólares">MXN $</button>
     </div>
   </div>
 </div>
 
 <!-- Header -->
-<header class="sticky top-0 z-40 bg-cream/95 backdrop-blur border-b border-ink/10">
+<header class="sticky top-0 z-40 bg-cream border-b border-ink/10">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:h-16 sm:py-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
     <div class="flex items-center gap-3">
       <button id="menu-toggle" type="button" aria-label="Abrir menú"
-        class="sm:hidden text-ink -ml-2.5 p-2.5">
+        class="text-ink -ml-2.5 p-2.5 rounded-full hover:bg-ink/5 transition">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <a href="#top" class="tap block">
@@ -67,7 +66,7 @@
     <form id="search-form" role="search" class="order-3 w-full sm:order-none sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-md sm:mx-4">
       <div class="relative">
         <input id="search-input" type="search" enterkeyhint="search" placeholder="Buscar productos..." aria-label="Buscar productos"
-          class="w-full rounded-full border border-ink/20 bg-white/70 pl-4 pr-10 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
+          class="w-full rounded-lg border-[1.5px] border-rose/70 bg-white pl-4 pr-10 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:border-rose focus:ring-2 focus:ring-rose/20" />
         <button type="submit" aria-label="Buscar"
           class="tap absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -77,38 +76,23 @@
 
     <div class="order-2 sm:order-none flex items-center gap-1 sm:gap-2">
       <button id="wishlist-toggle" type="button" aria-label="Mis favoritos"
-        class="relative inline-flex items-center justify-center w-11 h-11 rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 transition">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <span id="wishlist-count" class="hidden absolute -top-1 -right-1 bg-blush text-ink text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
+        class="relative inline-flex items-center justify-center w-11 h-11 rounded-full text-ink hover:bg-ink/5 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span id="wishlist-count" class="hidden absolute top-0.5 right-0.5 bg-sale text-white text-[11px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">0</span>
       </button>
 
       <button id="account-toggle" type="button" aria-label="Mi cuenta"
-        class="inline-flex items-center justify-center w-11 h-11 rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 transition">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full text-ink hover:bg-ink/5 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </button>
 
       <button id="cart-toggle" type="button" aria-label="Abrir carrito"
-        class="relative inline-flex items-center gap-2 rounded-full bg-rose text-cream px-4 py-2 min-h-[44px] text-sm font-semibold hover:bg-rose/90 transition active:scale-[0.97]">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-        <span class="hidden sm:inline" id="cart-total-header">$0.00</span>
-        <span id="cart-count" class="absolute -top-2 -right-2 bg-blush text-ink text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
+        class="relative inline-flex items-center gap-1.5 h-11 min-w-[44px] justify-center rounded-full px-2.5 text-ink hover:bg-ink/5 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.6 12.2a1.8 1.8 0 0 0 1.8 1.4h8.4a1.8 1.8 0 0 0 1.8-1.4L21 7H6"/></svg>
+        <span class="hidden lg:inline text-sm font-semibold tabular-nums" id="cart-total-header">$0.00</span>
+        <span id="cart-count" class="absolute top-0 left-[22px] bg-sale text-white text-[11px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">0</span>
       </button>
     </div>
-  </div>
-
-  <!-- Category nav (desktop) -->
-  <div id="category-nav-row" role="navigation" aria-label="Categorías" class="hidden sm:block border-t border-ink/10 relative">
-    <button id="nav-prev" type="button" aria-label="Ver categorías anteriores"
-      class="flex absolute left-0 top-0 bottom-0 z-10 items-center px-3.5 bg-gradient-to-r from-cream to-transparent">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-    </button>
-    <div id="category-nav" class="flex items-center gap-6 overflow-x-auto px-4 sm:px-10 h-11 whitespace-nowrap [scrollbar-width:none]">
-      <!-- category links injected by JS -->
-    </div>
-    <button id="nav-next" type="button" aria-label="Ver más categorías"
-      class="flex absolute right-0 top-0 bottom-0 z-10 items-center px-3.5 bg-gradient-to-l from-cream to-transparent">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-    </button>
   </div>
 </header>
 
@@ -119,7 +103,7 @@
     <h2 class="font-display text-xl sm:text-2xl text-ink" id="search-results-title"></h2>
     <button id="search-results-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar búsqueda</button>
   </div>
-  <div id="search-results-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <div id="search-results-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8"></div>
   <p id="search-results-empty" class="hidden text-center text-ink/75 py-6">No encontramos productos que coincidan con tu búsqueda.</p>
 </section>
 
@@ -134,7 +118,7 @@
       <button id="catalog-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar catálogo</button>
     </div>
   </div>
-  <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8"></div>
   <p id="catalog-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles por el momento.</p>
 </section>
 
@@ -144,7 +128,7 @@
     <h2 class="font-display text-xl sm:text-2xl text-ink">💗 Mis favoritos</h2>
     <button id="wishlist-clear" type="button" aria-label="Cerrar favoritos" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
-  <div id="wishlist-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <div id="wishlist-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8"></div>
   <p id="wishlist-empty" class="hidden text-center text-ink/75 py-6">Todavía no has guardado productos — toca el ❤️ en cualquier producto para guardarlo aquí.</p>
 </section>
 
@@ -155,7 +139,7 @@
     <button id="stock-clear" type="button" aria-label="Cerrar en stock" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
   <p class="text-xs text-ink/75 -mt-2 mb-4">Estos productos ya están en México, listos para enviarse — no pagan envío desde Corea.</p>
-  <div id="stock-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <div id="stock-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8"></div>
   <p id="stock-empty" class="hidden text-center text-ink/75 py-6">Por el momento no hay productos en stock para entrega inmediata.</p>
 </section>
 
@@ -165,7 +149,7 @@
     <h2 class="font-display text-xl sm:text-2xl text-ink" id="brand-products-title"></h2>
     <button id="brand-products-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Ver todas las marcas</button>
   </div>
-  <div id="brand-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <div id="brand-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8"></div>
   <p id="brand-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles de esta marca por ahora.</p>
 </section>
 
@@ -175,7 +159,7 @@
     <h2 class="font-display text-xl sm:text-2xl text-ink" id="category-products-title"></h2>
     <button id="category-products-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar categoría</button>
   </div>
-  <div id="category-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <div id="category-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8"></div>
   <p id="category-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles en esta categoría por ahora.</p>
 </section>
 
@@ -185,7 +169,7 @@
     <h2 class="font-display text-xl sm:text-2xl text-ink" id="concern-products-title"></h2>
     <button id="concern-products-clear" type="button" aria-label="Cerrar preocupación" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
   </div>
-  <div id="concern-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <div id="concern-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8"></div>
   <p id="concern-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles para esto por ahora.</p>
 </section>
 
@@ -195,7 +179,7 @@
     <h2 class="font-display text-xl sm:text-2xl text-ink" id="country-products-title"></h2>
     <button id="country-products-clear" type="button" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar país</button>
   </div>
-  <div id="country-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  <div id="country-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8"></div>
   <p id="country-products-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles de este país por ahora.</p>
 </section>
 
@@ -211,15 +195,15 @@
       <p class="text-sm text-ink/75 mt-1 max-w-xl" id="americano-min-order-note"></p>
       <p class="text-sm text-ink/75 mt-1 max-w-xl mb-6" id="americano-section-subtitle"></p>
     </div>
-    <div id="americano-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    <div id="americano-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8"></div>
     <p id="americano-empty" class="hidden text-center text-ink/75 py-6">No hay productos disponibles en esta colección por el momento.</p>
   </div>
 </section>
 
 <!-- Mobile menu overlay + drawer -->
-<div id="menu-overlay" aria-hidden="true" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim sm:hidden"></div>
+<div id="menu-overlay" aria-hidden="true" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim"></div>
 <aside id="mobile-menu" role="dialog" aria-modal="true" aria-labelledby="mobile-menu-title" tabindex="-1" inert
-  class="fixed top-0 left-0 h-full w-full bg-cream z-50 shadow-2xl -translate-x-full drawer flex flex-col sm:hidden">
+  class="fixed top-0 left-0 h-full w-full sm:w-[380px] bg-cream z-50 shadow-2xl -translate-x-full drawer flex flex-col">
   <div class="flex items-center justify-between px-5 py-4 border-b border-ink/10">
     <h2 id="mobile-menu-title" class="font-display text-2xl text-ink">Menú</h2>
     <button id="menu-close" type="button" aria-label="Cerrar menú" class="-mr-3 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
@@ -230,48 +214,54 @@
 </aside>
 
 <div id="homepage-sections">
-<!-- Hero -->
-<section id="top" class="relative bg-cream overflow-hidden h-[340px] sm:h-[38.333vw]">
+<!-- Hero: tarjetas redondeadas que se deslizan, como StyleKorean -->
+<section id="top" class="relative pt-4 sm:pt-6">
   <!-- Los slides del banner son imágenes, así que la página no tenía
        título principal para lectores de pantalla ni buscadores. -->
   <h1 class="sr-only">Alpacca — Skincare coreano y asiático al mayoreo</h1>
-  <div id="hero-slides" class="absolute inset-0 flex items-center justify-center">
-    <!-- slide content injected by JS -->
+  <div class="relative">
+    <div id="hero-slides" class="hero-row relative flex items-start gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pt-2 pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <!-- tarjetas injected by JS -->
+    </div>
+    <!-- Contador "1 | 6" con flechas y pausa (WCAG 2.2.2), centrado
+         debajo de la tarjeta principal. -->
+    <div id="hero-controls" class="hidden w-fit mx-auto -mt-6 items-center h-8 rounded-full bg-ink/60 backdrop-blur text-cream text-xs font-medium tabular-nums pl-1 pr-1 [&:not(.hidden)]:flex">
+      <button id="hero-prev" type="button" aria-label="Banner anterior" class="tap w-7 h-7 flex items-center justify-center rounded-full hover:bg-cream/15">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div id="hero-dots" class="px-1"></div>
+      <button id="hero-next" type="button" aria-label="Siguiente banner" class="tap w-7 h-7 flex items-center justify-center rounded-full hover:bg-cream/15">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+      <button id="hero-pause" type="button" aria-label="Pausar el banner" class="tap hidden w-7 h-7 items-center justify-center rounded-full hover:bg-cream/15">
+        <span class="flex items-center justify-center"></span>
+      </button>
+    </div>
   </div>
-  <div id="hero-dots" class="absolute bottom-0 sm:bottom-2 left-0 right-0 z-10 flex justify-center"></div>
-  <!-- Pausa/reanuda el cambio automático de slides (WCAG 2.2.2). Se
-       muestra solo si hay más de un slide (ver updateHeroPauseButton). -->
-  <button id="hero-pause" type="button" aria-label="Pausar el banner"
-    class="hidden absolute bottom-0 right-2 sm:bottom-2 sm:right-4 z-10 w-11 h-11 items-center justify-center rounded-full text-ink/75 hover:text-ink transition-colors">
-    <span class="w-8 h-8 rounded-full bg-cream/90 shadow flex items-center justify-center"></span>
-  </button>
 </section>
 
-<!-- Scrolling ticker (se pausa al pasar el mouse, con el foco o con su botón) -->
-<div id="ticker" class="relative bg-lilac-band text-cream overflow-hidden py-2 coarse:py-3.5">
-  <button id="ticker-pause" type="button" aria-label="Pausar los mensajes"
-    class="tap absolute inset-y-0 right-0 z-10 flex items-center pl-6 pr-2 bg-gradient-to-l from-lilac-band via-lilac-band to-transparent text-cream/90 hover:text-cream">
-    <span class="w-6 h-6 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></span>
-  </button>
-  <div id="ticker-track" class="flex gap-12 whitespace-nowrap animate-marquee min-h-4 sm:min-h-5 text-xs sm:text-sm font-semibold uppercase tracking-wide">
-    <!-- ticker items injected by JS (duplicated for seamless loop) -->
-  </div>
-</div>
+<!-- Accesos rápidos: íconos redondos (injected by JS, ver renderQuickIcons) -->
+<section aria-label="Accesos rápidos" class="max-w-7xl mx-auto pt-6 sm:pt-8">
+  <div id="quick-icons" class="flex gap-2 sm:gap-4 overflow-x-auto px-4 sm:px-6 lg:px-8 sm:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"></div>
+</section>
 
 <!-- Oferta por tiempo limitado -->
 <section id="time-deal-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">
-  <div class="rounded-2xl bg-ink text-cream p-5 sm:p-6">
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-      <div>
-        <span class="inline-flex items-center gap-1.5 rounded-full bg-rose/20 text-blush text-xs font-semibold px-3 py-1">⏰ Por tiempo limitado</span>
-        <h2 class="font-display text-xl sm:text-2xl mt-2" id="time-deal-title"></h2>
-        <p class="text-xs sm:text-sm text-cream/60 mt-0.5" id="time-deal-subtitle"></p>
-      </div>
-      <div id="time-deal-countdown" class="flex gap-2">
-        <!-- días/horas/min/seg injected by JS -->
-      </div>
-    </div>
-    <div id="time-deal-row" class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"></div>
+  <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-4">
+    <h2 class="font-display text-xl sm:text-[22px] text-ink" id="time-deal-title"></h2>
+    <span id="time-deal-countdown" class="text-rose-ink font-bold text-lg sm:text-xl tabular-nums" role="timer" aria-live="off"></span>
+    <p class="w-full text-sm text-ink/60" id="time-deal-subtitle"></p>
+  </div>
+  <div data-row-wrap class="relative">
+    <div id="time-deal-row" data-row class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory -mx-4 px-4 scroll-px-4 sm:mx-0 sm:px-0 sm:scroll-px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"></div>
+    <button type="button" data-row-prev aria-label="Ver anteriores"
+      class="hidden lg:flex absolute -left-4 top-[calc(50%-4rem)] z-10 w-10 h-10 items-center justify-center rounded-full bg-cream border border-ink/10 shadow-md text-ink hover:border-ink/30 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button type="button" data-row-next aria-label="Ver más"
+      class="hidden lg:flex absolute -right-4 top-[calc(50%-4rem)] z-10 w-10 h-10 items-center justify-center rounded-full bg-cream border border-ink/10 shadow-md text-ink hover:border-ink/30 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
   </div>
 </section>
 
@@ -335,16 +325,77 @@
   </div>
 </section>
 
-<!-- Featured collections (tabs) -->
+<!-- Best Seller: pestañas por categoría + fila que se desliza -->
 <section id="featured-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">
-  <div class="text-center mb-6">
-    <div class="flex items-center justify-center gap-2.5 flex-wrap">
-      <h2 class="font-display text-2xl sm:text-3xl text-ink">Best Seller</h2>
-      <span class="inline-flex items-center rounded-full bg-rose/10 text-rose-ink text-xs font-semibold px-2.5 py-1">Las más pedidas</span>
+  <h2 class="font-display text-xl sm:text-[22px] text-ink flex items-center gap-1">Best Seller
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+  </h2>
+  <div id="featured-tabs" class="flex gap-2 overflow-x-auto mt-3 -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"></div>
+  <div data-row-wrap class="relative mt-4">
+    <div id="featured-top" data-row class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory -mx-4 px-4 scroll-px-4 sm:mx-0 sm:px-0 sm:scroll-px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <!-- best sellers injected by JS -->
     </div>
+    <button type="button" data-row-prev aria-label="Ver anteriores"
+      class="hidden lg:flex absolute -left-4 top-[calc(50%-4rem)] z-10 w-10 h-10 items-center justify-center rounded-full bg-cream border border-ink/10 shadow-md text-ink hover:border-ink/30 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button type="button" data-row-next aria-label="Ver más"
+      class="hidden lg:flex absolute -right-4 top-[calc(50%-4rem)] z-10 w-10 h-10 items-center justify-center rounded-full bg-cream border border-ink/10 shadow-md text-ink hover:border-ink/30 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
   </div>
-  <div id="featured-top" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
-    <!-- top 6 injected by JS -->
+</section>
+
+<!-- Por preocupación de piel: pestañas + fila -->
+<section id="concerns-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">
+  <div class="flex items-center justify-between gap-4">
+    <h2 class="font-display text-xl sm:text-[22px] text-ink">Por preocupación de piel</h2>
+    <button id="concerns-more" type="button" class="tap text-[13px] text-ink/70 hover:text-ink whitespace-nowrap">Ver todo</button>
+  </div>
+  <div id="concerns-grid" class="flex gap-2 overflow-x-auto mt-3 -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <!-- pestañas injected by JS -->
+  </div>
+  <div data-row-wrap class="relative mt-4">
+    <div id="concerns-row" data-row class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory -mx-4 px-4 scroll-px-4 sm:mx-0 sm:px-0 sm:scroll-px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"></div>
+    <button type="button" data-row-prev aria-label="Ver anteriores"
+      class="hidden lg:flex absolute -left-4 top-[calc(50%-4rem)] z-10 w-10 h-10 items-center justify-center rounded-full bg-cream border border-ink/10 shadow-md text-ink hover:border-ink/30 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button type="button" data-row-next aria-label="Ver más"
+      class="hidden lg:flex absolute -right-4 top-[calc(50%-4rem)] z-10 w-10 h-10 items-center justify-center rounded-full bg-cream border border-ink/10 shadow-md text-ink hover:border-ink/30 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div>
+</section>
+
+<!-- Marcas destacadas: pestañas por marca + fila -->
+<section id="brands-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">
+  <div class="flex items-center justify-between gap-4">
+    <h2 class="font-display text-xl sm:text-[22px] text-ink">Marcas destacadas</h2>
+    <button id="brands-more" type="button" class="tap text-[13px] text-ink/70 hover:text-ink whitespace-nowrap">Ver todo</button>
+  </div>
+  <div id="brands-grid" class="flex gap-2 overflow-x-auto mt-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <!-- marcas injected by JS -->
+  </div>
+  <div data-row-wrap class="relative mt-4">
+    <div id="brands-row" data-row class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory -mx-4 px-4 scroll-px-4 sm:mx-0 sm:px-0 sm:scroll-px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"></div>
+    <button type="button" data-row-prev aria-label="Ver anteriores"
+      class="hidden lg:flex absolute -left-4 top-[calc(50%-4rem)] z-10 w-10 h-10 items-center justify-center rounded-full bg-cream border border-ink/10 shadow-md text-ink hover:border-ink/30 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button type="button" data-row-next aria-label="Ver más"
+      class="hidden lg:flex absolute -right-4 top-[calc(50%-4rem)] z-10 w-10 h-10 items-center justify-center rounded-full bg-cream border border-ink/10 shadow-md text-ink hover:border-ink/30 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div>
+</section>
+
+<!-- Banner promocional -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14">
+  <div class="rounded-2xl bg-pill text-ink px-6 sm:px-12 py-10 sm:py-14 text-center">
+    <h2 id="promo-title" class="font-display text-2xl sm:text-4xl"></h2>
+    <p id="promo-subtitle" class="mt-2 text-ink/70 max-w-lg mx-auto"></p>
+    <a id="promo-cta" href="#" class="inline-block mt-6 rounded-md bg-ink text-cream font-semibold px-6 py-3 hover:bg-ink/85 transition active:scale-[0.97]"></a>
   </div>
 </section>
 
@@ -411,15 +462,6 @@
   </div>
 </section>
 
-<!-- Banner promocional -->
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14">
-  <div class="rounded-3xl bg-lilac-band text-cream px-6 sm:px-12 py-12 sm:py-16 text-center">
-    <h2 id="promo-title" class="font-display text-2xl sm:text-4xl"></h2>
-    <p id="promo-subtitle" class="mt-2 text-cream max-w-lg mx-auto"></p>
-    <a id="promo-cta" href="#" class="inline-block mt-6 rounded-full bg-rose text-cream font-semibold px-6 py-3 hover:bg-rose/90 transition active:scale-[0.97]"></a>
-  </div>
-</section>
-
 <!-- Cómo comprar -->
 <section id="how-to-buy" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
   <div class="text-center mb-8">
@@ -446,26 +488,6 @@
       <p class="font-semibold text-ink mt-1">Confirmamos tu pedido</p>
       <p class="text-sm text-ink/75 mt-1">Revisamos tu pago y armamos tu envío.</p>
     </div>
-  </div>
-</section>
-
-<!-- Marcas -->
-<section id="brands-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
-  <div class="text-center mb-6">
-    <h2 class="font-display text-2xl sm:text-3xl text-ink">Marcas en el catálogo</h2>
-  </div>
-  <div id="brands-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-    <!-- marcas injected by JS -->
-  </div>
-</section>
-
-<!-- Explora por preocupación de piel -->
-<section id="concerns-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
-  <div class="text-center mb-6">
-    <h2 class="font-display text-2xl sm:text-3xl text-ink">Explora por preocupación</h2>
-  </div>
-  <div id="concerns-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-3">
-    <!-- tiles injected by JS -->
   </div>
 </section>
 
@@ -616,9 +638,8 @@
 
 <!-- Floating WhatsApp contact -->
 <a id="whatsapp-float" href="#" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp (se abre en una pestaña nueva)"
-  class="fixed bottom-5 left-5 z-30 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] text-ink font-semibold text-sm w-12 h-12 sm:w-auto sm:h-auto sm:px-4 sm:py-3 shadow-lg hover:opacity-90 transition">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5 shrink-0" fill="currentColor" aria-hidden="true"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
-  <span class="hidden sm:inline">Contáctanos</span>
+  class="fixed bottom-5 right-5 z-30 inline-flex items-center justify-center rounded-full bg-[#25D366] text-white w-14 h-14 shadow-lg hover:scale-105 transition">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="currentColor" aria-hidden="true"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
 </a>
 
 <!-- Cart overlay -->
