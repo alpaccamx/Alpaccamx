@@ -113,6 +113,7 @@ function csvToProducts(text) {
   const iDisponible = findCol(headers, ["disponible", "stock", "available"]);
   const iSku = findCol(headers, ["sku", "codigo", "código"]);
   const iPeso = findCol(headers, ["peso", "peso (kg)", "peso kg", "weight", "pesokg"]);
+  const iPresentacion = findCol(headers, ["presentacion", "presentación", "empaque", "variante", "unidad"]);
 
   return rows
     .slice(1)
@@ -135,6 +136,7 @@ function csvToProducts(text) {
         precio,
         precioTarjeta,
         peso: parseFloat(pesoRaw) || 0,
+        presentacion: get(iPresentacion),
         disponible,
       };
     })
@@ -307,19 +309,42 @@ function koreaShippingUSD(state, pesoKg, useTarjeta = false) {
   return baseTarjeta + extraKg * extraTarjeta;
 }
 
-function shippingEstimate(state, pesoKg, cp, koreaPesoKg = pesoKg) {
+/* Igual que koreaParcelWeights() en app.js: cada caja ("Caja con N
+   piezas") viaja en su propio envío desde Corea y las piezas individuales
+   juntas en otro. */
+function koreaParcelWeights(lines) {
+  const parcels = [];
+  let loose = 0;
+  for (const l of lines) {
+    const peso = l.peso || 0;
+    if (/^caja/i.test(l.presentacion || "")) {
+      for (let i = 0; i < l.qty; i++) if (peso > 0) parcels.push(peso);
+    } else {
+      loose += peso * l.qty;
+    }
+  }
+  if (loose > 0) parcels.unshift(loose);
+  return parcels;
+}
+
+function koreaParcelsUSD(state, parcels, useTarjeta = false) {
+  return parcels.reduce((sum, kg) => sum + koreaShippingUSD(state, kg, useTarjeta), 0);
+}
+
+function shippingEstimate(state, pesoKg, cp, korea = pesoKg) {
   if (pesoKg <= 0) return null;
-  const hasKorea = koreaPesoKg > 0 && state.korea.tiers.length > 0 && state.settings.exchangeRate > 0;
+  const parcels = (Array.isArray(korea) ? korea : [korea]).filter((kg) => kg > 0);
+  const hasKorea = parcels.length > 0 && state.korea.tiers.length > 0 && state.settings.exchangeRate > 0;
   const nacionalMXN = nacionalShippingMXN(state, cp, pesoKg);
   const hasNacional = nacionalMXN !== null;
   if (!hasKorea && !hasNacional) return null;
 
-  const coreaUSD = hasKorea ? koreaShippingUSD(state, koreaPesoKg) : 0;
+  const coreaUSD = hasKorea ? koreaParcelsUSD(state, parcels) : 0;
   const coreaMXN = coreaUSD * (state.settings.exchangeRate || 0);
   const totalMXN = coreaMXN + (nacionalMXN || 0);
 
   const nacionalMXNTarjeta = hasNacional ? nacionalShippingMXN(state, cp, pesoKg, true) || 0 : 0;
-  const coreaUSDTarjeta = hasKorea ? koreaShippingUSD(state, koreaPesoKg, true) : 0;
+  const coreaUSDTarjeta = hasKorea ? koreaParcelsUSD(state, parcels, true) : 0;
   const coreaMXNTarjeta = coreaUSDTarjeta * (state.settings.exchangeRate || 0);
   const totalMXNTarjeta = coreaMXNTarjeta + nacionalMXNTarjeta;
 
@@ -327,6 +352,7 @@ function shippingEstimate(state, pesoKg, cp, koreaPesoKg = pesoKg) {
     hasKorea, hasNacional, coreaUSD,
     coreaMXN, nacionalMXN: nacionalMXN || 0, totalMXN,
     coreaMXNTarjeta, nacionalMXNTarjeta, totalMXNTarjeta,
+    coreaEnvios: hasKorea ? parcels.length : 0,
   };
 }
 
@@ -417,6 +443,7 @@ async function priceOrder({ source, items, customer, soldMap }) {
         precioBase: base,
         precio: useTarjeta ? tarjeta : base,
         peso,
+        presentacion: (main && main.presentacion) || "",
       });
       continue;
     }
@@ -435,6 +462,7 @@ async function priceOrder({ source, items, customer, soldMap }) {
       precioBase: base,
       precio: useTarjeta ? tarjeta : base,
       peso: main.peso || 0,
+      presentacion: main.presentacion || "",
     });
   }
 
@@ -454,12 +482,12 @@ async function priceOrder({ source, items, customer, soldMap }) {
   const subtotal = lines.reduce((s, l) => s + l.precio * l.qty, 0);
   const subtotalBase = lines.reduce((s, l) => s + l.precioBase * l.qty, 0);
   const weight = lines.reduce((s, l) => s + l.peso * l.qty, 0);
-  const weightNonStock = lines.reduce((s, l) => s + (l.enStock ? 0 : l.peso * l.qty), 0);
+  const koreaParcels = koreaParcelWeights(lines.filter((l) => !l.enStock));
 
   const cp = String((customer && customer.cp) || "");
   let shipping = null;
   if (weight > 0) {
-    shipping = shippingEstimate(state, weight, cp, weightNonStock);
+    shipping = shippingEstimate(state, weight, cp, koreaParcels);
     if (!shipping) {
       return { ok: false, status: 400, error: "No pudimos calcular el envío para tu código postal. Revisa que esté bien escrito." };
     }
@@ -482,6 +510,8 @@ async function priceOrder({ source, items, customer, soldMap }) {
     // que de verdad se cobró cuando source="mercadopago".
     shippingKoreaMXNTarjeta: shipping ? shipping.coreaMXNTarjeta : 0,
     shippingNacionalMXNTarjeta: shipping ? shipping.nacionalMXNTarjeta : 0,
+    // Cuántos envíos desde Corea se cotizaron (cada caja va aparte).
+    shippingKoreaEnvios: shipping ? shipping.coreaEnvios : 0,
     weightKg: round2(weight),
     cardFeeMXN: round2(Math.max(0, (subtotal - subtotalBase) + (shippingMXN - shippingMXNBase))),
   };
@@ -510,6 +540,7 @@ module.exports = {
   csvToNacionalRates,
   csvToKoreaShippingTiers,
   shippingEstimate,
+  koreaParcelWeights,
   CSV_URLS,
   TOLERANCE_MXN,
   MIN_ORDER_MXN,

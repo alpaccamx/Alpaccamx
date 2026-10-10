@@ -1211,17 +1211,45 @@ function koreaShippingUSD(pesoKg, useTarjeta = false) {
   return baseTarjeta + extraKg * extraTarjeta;
 }
 
-/* koreaPesoKg: peso de solo los productos que SÍ vienen de Corea (todos,
-   salvo los marcados "en stock" -- esos ya están en México y no pagan
-   este tramo). Si no se pasa, se asume igual a pesoKg (compatibilidad). */
-function shippingEstimate(pesoKg, cp, koreaPesoKg = pesoKg) {
+/* Envío Corea→México por paquetes: cada caja ("Caja con N piezas") viaja
+   en su propio envío, y todas las piezas individuales juntas en otro.
+   Recibe los productos que SÍ vienen de Corea ({ peso, qty, presentacion })
+   y regresa la lista de pesos, uno por envío (piezas sueltas primero). */
+function koreaParcelWeights(lines) {
+  const parcels = [];
+  let loose = 0;
+  for (const l of lines) {
+    const peso = l.peso || 0;
+    if (/^caja/i.test(l.presentacion || "")) {
+      for (let i = 0; i < l.qty; i++) if (peso > 0) parcels.push(peso);
+    } else {
+      loose += peso * l.qty;
+    }
+  }
+  if (loose > 0) parcels.unshift(loose);
+  return parcels;
+}
+
+/* Suma la tarifa de cada envío desde Corea (cada uno con su propio tramo
+   de la tabla de tarifas). */
+function koreaParcelsUSD(parcels, useTarjeta = false) {
+  return parcels.reduce((sum, kg) => sum + koreaShippingUSD(kg, useTarjeta), 0);
+}
+
+/* korea: lista de pesos de los envíos desde Corea (ver
+   koreaParcelWeights; los productos "en stock" ya están en México y no
+   pagan este tramo). Un número se toma como un solo envío. Si no se
+   pasa, se asume un solo envío con pesoKg (compatibilidad). El envío
+   nacional se sigue cotizando una sola vez con el peso total. */
+function shippingEstimate(pesoKg, cp, korea = pesoKg) {
   if (pesoKg <= 0) return null;
-  const hasKorea = koreaPesoKg > 0 && shippingKoreaRates.tiers.length > 0 && shippingSettings.exchangeRate > 0;
+  const parcels = (Array.isArray(korea) ? korea : [korea]).filter((kg) => kg > 0);
+  const hasKorea = parcels.length > 0 && shippingKoreaRates.tiers.length > 0 && shippingSettings.exchangeRate > 0;
   const nacionalMXN = nacionalShippingMXN(cp, pesoKg);
   const hasNacional = nacionalMXN !== null;
   if (!hasKorea && !hasNacional) return null;
 
-  const coreaUSD = hasKorea ? koreaShippingUSD(koreaPesoKg) : 0;
+  const coreaUSD = hasKorea ? koreaParcelsUSD(parcels) : 0;
   const coreaMXN = coreaUSD * (shippingSettings.exchangeRate || 0);
   const totalMXN = coreaMXN + (nacionalMXN || 0);
 
@@ -1232,7 +1260,7 @@ function shippingEstimate(pesoKg, cp, koreaPesoKg = pesoKg) {
   // también se cobra a través de la terminal, así que le aplica la misma
   // diferencia entre ambos métodos de pago.
   const nacionalMXNTarjeta = hasNacional ? nacionalShippingMXN(cp, pesoKg, true) || 0 : 0;
-  const coreaUSDTarjeta = hasKorea ? koreaShippingUSD(koreaPesoKg, true) : 0;
+  const coreaUSDTarjeta = hasKorea ? koreaParcelsUSD(parcels, true) : 0;
   const coreaMXNTarjeta = coreaUSDTarjeta * (shippingSettings.exchangeRate || 0);
   const totalMXNTarjeta = coreaMXNTarjeta + nacionalMXNTarjeta;
 
@@ -1240,6 +1268,7 @@ function shippingEstimate(pesoKg, cp, koreaPesoKg = pesoKg) {
     hasKorea, hasNacional, coreaUSD,
     coreaMXN, nacionalMXN: nacionalMXN || 0, totalMXN,
     coreaMXNTarjeta, nacionalMXNTarjeta, totalMXNTarjeta,
+    coreaEnvios: hasKorea ? parcels.length : 0,
   };
 }
 
@@ -3437,12 +3466,13 @@ function cartWeight() {
   return Object.values(cart).reduce((sum, it) => sum + (it.product.peso || 0) * it.qty, 0);
 }
 
-/* Peso de solo los productos que NO están en stock (los que sí vienen de
-   Corea y pagan ese tramo de envío). */
-function cartWeightNonStock() {
-  return Object.values(cart).reduce(
-    (sum, it) => sum + (it.product.enStock ? 0 : (it.product.peso || 0) * it.qty),
-    0
+/* Envíos desde Corea del carrito: solo los productos que NO están en
+   stock; cada caja en su propio envío (ver koreaParcelWeights). */
+function cartKoreaParcels() {
+  return koreaParcelWeights(
+    Object.values(cart)
+      .filter((it) => !it.product.enStock)
+      .map((it) => ({ peso: it.product.peso, qty: it.qty, presentacion: it.product.presentacion }))
   );
 }
 
@@ -3510,7 +3540,7 @@ function updateNacionalShippingUI() {
     return;
   }
 
-  const shipping = shippingEstimate(cartWeight(), cp, cartWeightNonStock());
+  const shipping = shippingEstimate(cartWeight(), cp, cartKoreaParcels());
   if (shipping && shipping.hasNacional) {
     label.textContent = `🚚 Envío nacional (estimado) a CP ${cp}`;
     amount.textContent = formatPrice(shipping.nacionalMXN);
@@ -3538,7 +3568,7 @@ function updateTransferNote() {
   const items = Object.entries(cart);
   const total = cartTotal();
   const cp = document.getElementById("customer-cp").value.trim();
-  const shippingForNote = shippingEstimate(cartWeight(), cp, cartWeightNonStock());
+  const shippingForNote = shippingEstimate(cartWeight(), cp, cartKoreaParcels());
   const totalConEnvio = total + (shippingForNote ? shippingForNote.totalMXN : 0);
   const tarjetaTotalConEnvio = cartTotalTarjeta() + (shippingForNote ? shippingForNote.totalMXNTarjeta : 0);
   if (items.length && tarjetaTotalConEnvio > totalConEnvio + 0.5) {
@@ -3551,7 +3581,7 @@ function updateTransferNote() {
 
 function renderGrandTotal() {
   const cp = document.getElementById("customer-cp").value.trim();
-  const shipping = shippingEstimate(cartWeight(), cp, cartWeightNonStock());
+  const shipping = shippingEstimate(cartWeight(), cp, cartKoreaParcels());
 
   let grandTotal = cartTotal();
   if (shipping && shipping.hasKorea) grandTotal += shipping.coreaMXN;
@@ -3588,9 +3618,12 @@ function renderCart() {
   }
 
   const koreaRow = document.getElementById("cart-shipping-korea-row");
-  const shipping = shippingEstimate(cartWeight(), "", cartWeightNonStock());
+  const shipping = shippingEstimate(cartWeight(), "", cartKoreaParcels());
   if (items.length && shipping && shipping.hasKorea) {
     document.getElementById("cart-shipping-korea").textContent = formatPrice(shipping.coreaMXN);
+    // Cada caja viaja en su propio envío: se avisa cuántos son.
+    document.getElementById("cart-shipping-korea-label").textContent =
+      shipping.coreaEnvios > 1 ? `✈️ Envío Corea→México (${shipping.coreaEnvios} envíos)` : "✈️ Envío Corea→México";
     koreaRow.classList.remove("hidden");
   } else {
     koreaRow.classList.add("hidden");
@@ -4051,7 +4084,7 @@ function recordTransferOrder() {
     const items = cartItemsForOrder();
     const subtotal = cartTotal();
     const weight = cartWeight();
-    const shipping = shippingEstimate(weight, c.cp, cartWeightNonStock());
+    const shipping = shippingEstimate(weight, c.cp, cartKoreaParcels());
     const shippingMXN = shipping ? shipping.totalMXN : 0;
 
     const fingerprint = JSON.stringify({ source: "transferencia", c, items, subtotal, shippingMXN, weight });
@@ -4253,7 +4286,7 @@ async function payWithMercadoPago() {
 
   try {
     const weight = cartWeight();
-    const shipping = shippingEstimate(weight, c.cp, cartWeightNonStock());
+    const shipping = shippingEstimate(weight, c.cp, cartKoreaParcels());
     const shippingMXN = shipping ? shipping.totalMXNTarjeta : 0;
     const subtotal = cartTotalTarjeta();
     // Precios/envío sin la comisión de tarjeta, solo para que

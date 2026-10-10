@@ -52,10 +52,11 @@ function extractConst(name) {
 function loadAppFunctions() {
   const source = [
     extractConst("SHIPPING_SETTING_ALIASES"),
+    extractConst("CATEGORY_ALIASES"),
     ...[
-      "parseCSV", "findCol", "normalizeKey", "normalizeMoneyCell", "csvToProducts", "csvToStockData",
+      "normalizeForSearch", "normalizeCategoria", "parseCSV", "findCol", "normalizeKey", "normalizeMoneyCell", "csvToProducts", "csvToStockData",
       "csvToShippingSettings", "csvToNacionalRates", "csvToKoreaShippingTiers",
-      "ceilTo", "nacionalShippingMXN", "koreaShippingUSD", "shippingEstimate",
+      "ceilTo", "nacionalShippingMXN", "koreaShippingUSD", "koreaParcelWeights", "koreaParcelsUSD", "shippingEstimate",
     ].map((n) => extractFunction(n)),
   ].join("\n");
   const ctx = { shippingSettings: {}, shippingNacionalRates: [], shippingKoreaRates: { tiers: [], extraPerKgUSD: 0, extraPerKgTarjetaUSD: null } };
@@ -104,6 +105,7 @@ test("catálogo: precios y pesos coinciden con app.js", async () => {
     assert.equal(sp.precioTarjeta, ap.precioTarjeta, `precioTarjeta ${ap.id}`);
     assert.equal(sp.peso, ap.peso, `peso ${ap.id}`);
     assert.equal(sp.disponible, ap.disponible, `disponible ${ap.id}`);
+    assert.equal(sp.presentacion, ap.presentacion, `presentacion ${ap.id}`);
   }
 });
 
@@ -129,7 +131,9 @@ test("envío: mismo resultado que app.js para varios códigos postales y pesos",
   let compared = 0;
   for (const cp of cps) {
     for (const peso of pesos) {
-      for (const korea of [peso, peso / 2, 0]) {
+      // Un número = un solo envío; una lista = varios envíos desde Corea
+      // (cada caja aparte de las piezas individuales).
+      for (const korea of [peso, peso / 2, 0, [peso / 2, peso / 4, peso / 4], [0.5, 4.2, 4.2]]) {
         const a = app.shippingEstimate(peso, cp, korea);
         const s = pricing.shippingEstimate(state, peso, cp, korea);
         assert.deepEqual(s, plain(a), `envío diferente cp=${cp} peso=${peso} korea=${korea}`);
@@ -156,7 +160,11 @@ test("pedido completo: total del servidor igual al del navegador (transferencia 
   // superan el mínimo de pedido (cuando aplica).
   const products = pricing.csvToProducts(catalogText).filter((p) => p.disponible && p.precio > 0 && !p.id.startsWith("row"));
   assert.ok(products.length >= 3, "el catálogo debe tener al menos 3 productos disponibles");
-  const pick = products.slice(0, 3);
+  // Piezas individuales y al menos una caja (cada caja es su propio envío
+  // desde Corea), para probar la cotización por paquetes.
+  const pieces = products.filter((p) => !/^caja/i.test(p.presentacion || "")).slice(0, 2);
+  const box = products.find((p) => /^caja/i.test(p.presentacion || ""));
+  const pick = box ? [...pieces, box] : products.slice(0, 3);
   const items = pick.map((p) => ({ sku: p.id, qty: 2, enStock: false }));
   const cp = "06000";
 
@@ -165,7 +173,9 @@ test("pedido completo: total del servidor igual al del navegador (transferencia 
     const cart = pick.map((p, i) => ({ p, qty: items[i].qty }));
     const clientSubtotal = cart.reduce((s, { p, qty }) => s + (useTarjeta ? p.precioTarjeta : p.precio) * qty, 0);
     const clientWeight = cart.reduce((s, { p, qty }) => s + (p.peso || 0) * qty, 0);
-    const shipping = app.shippingEstimate(clientWeight, cp, 0 + clientWeight);
+    const parcels = app.koreaParcelWeights(cart.map(({ p, qty }) => ({ peso: p.peso, qty, presentacion: p.presentacion })));
+    if (box) assert.equal(parcels.length, 3, "2 cajas + piezas individuales = 3 envíos desde Corea");
+    const shipping = app.shippingEstimate(clientWeight, cp, parcels);
     const clientShipping = shipping ? (useTarjeta ? shipping.totalMXNTarjeta : shipping.totalMXN) : 0;
     const client = { subtotal: clientSubtotal, shippingMXN: clientShipping, grandTotal: clientSubtotal + clientShipping };
 
@@ -177,6 +187,7 @@ test("pedido completo: total del servidor igual al del navegador (transferencia 
     assert.ok(Math.abs(priced.subtotal - client.subtotal) < 0.01, `subtotal ${source}`);
     assert.ok(Math.abs(priced.shippingMXN - client.shippingMXN) < 0.01, `envío ${source}`);
     assert.ok(Math.abs(priced.grandTotal - client.grandTotal) < 0.01, `total ${source}`);
+    if (box) assert.equal(priced.shippingKoreaEnvios, 3, `envíos desde Corea ${source}`);
     assert.equal(pricing.matchesClientTotals(priced, client), true);
   }
 });
