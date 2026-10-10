@@ -155,15 +155,38 @@ html {
   transition-duration: 180ms;
 }
 
-/* Banner en tarjetas: la fila ocupa todo el ancho de la pantalla (así
-   se asoma la siguiente tarjeta hasta la orilla), pero la primera
-   tarjeta y el contador se alinean con el contenido (max-w-7xl). */
+/* Banner en tarjetas: la fila ocupa todo el ancho de la pantalla y deja
+   margen a los lados para que la primera y la última tarjeta también
+   puedan quedar al centro. La tarjeta del centro (.is-center) es la
+   principal: baja un poco, crece y lleva sombra; las demás se encogen y
+   se ven tenues. */
 .hero-row {
-  padding-inline: max(1rem, calc((100vw - 80rem) / 2 + 2rem));
-  scroll-padding-inline: max(1rem, calc((100vw - 80rem) / 2 + 2rem));
+  --hero-card-w: 74vw;
+  padding-inline: calc((100vw - var(--hero-card-w)) / 2);
 }
-.hero-controls {
-  right: max(1.75rem, calc((100vw - 80rem) / 2 + 2.75rem));
+@media (min-width: 640px) {
+  .hero-row {
+    --hero-card-w: 40vw;
+  }
+}
+@media (min-width: 1024px) {
+  .hero-row {
+    --hero-card-w: 24rem;
+  }
+}
+.hero-card {
+  width: var(--hero-card-w);
+  transform: scale(0.9);
+  opacity: 0.6;
+  transition: transform 450ms cubic-bezier(0.16, 1, 0.3, 1), opacity 450ms ease, box-shadow 450ms ease;
+}
+.hero-no-anim .hero-card {
+  transition: none;
+}
+.hero-card.is-center {
+  transform: translateY(1.25rem) scale(1);
+  opacity: 1;
+  box-shadow: 0 22px 45px -18px rgb(17 17 17 / 0.45);
 }
 
 /* Desplegables (marcas, categorías, país): aparecen desde su botón con un
@@ -210,6 +233,9 @@ html {
   }
   .opacity-0 > .modal-card {
     transform: none;
+  }
+  .hero-card {
+    transition: opacity 200ms ease;
   }
   .menu-panel {
     transition: opacity 120ms ease-out, display 120ms allow-discrete;

@@ -1598,18 +1598,19 @@ let heroTimer = null;
 const heroHold = { user: prefersReducedMotion.matches, hover: false, focus: false, offscreen: false };
 
 /* Banner estilo StyleKorean: tarjetas verticales 4:5 redondeadas lado a
-   lado (en escritorio se ven 3 y se asoma la siguiente; en celular una
-   y un pedazo de la otra). */
+   lado. La del centro es la principal: un poco más abajo, más grande y
+   con sombra; las de los lados más chicas y tenues (ver .hero-card en
+   input.css). Al deslizar, la que queda al centro toma ese lugar. */
 function heroSlides() {
   return (CONFIG.HERO_SLIDES || []).filter((s) => s.imageCard);
 }
 
-function heroSlideHTML(slide, i) {
+function heroSlideHTML(slide, i, clone) {
   const href = slide.ctaHref || "";
   const tag = href ? "a" : "div";
-  return `<${tag} ${href ? `href="${escapeAttr(href)}"` : ""} data-hero-card
-    class="hero-card snap-start shrink-0 w-[78vw] sm:w-[42vw] lg:w-[24.5rem] aspect-[4/5] rounded-2xl overflow-hidden bg-pill block">
-    <img src="${escapeAttr(slide.imageCard)}" alt="${escapeAttr(slide.imageAlt || "")}" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"'}
+  return `<${tag} ${href ? `href="${escapeAttr(href)}"` : ""} data-hero-card ${clone ? 'aria-hidden="true" inert' : ""}
+    class="hero-card snap-center shrink-0 aspect-[4/5] rounded-2xl overflow-hidden bg-pill block">
+    <img src="${escapeAttr(slide.imageCard)}" alt="${clone ? "" : escapeAttr(slide.imageAlt || "")}" ${i === 0 && !clone ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"'}
       class="w-full h-full object-cover" />
   </${tag}>`;
 }
@@ -1618,7 +1619,46 @@ function heroCards() {
   return [...document.querySelectorAll("#hero-slides [data-hero-card]")];
 }
 
-/* Lleva la fila a la tarjeta heroIndex (sin mover la página). */
+/* Para que la tarjeta principal siempre tenga una a cada lado, la fila
+   lleva 3 copias de los slides (las de los extremos son solo de
+   adorno: inert y ocultas a lectores de pantalla). heroPos es la
+   posición en esa fila; al terminar de moverse a una copia, se salta sin
+   animación a la tarjeta igual de en medio. heroIndex = heroPos % n. */
+let heroPos = 0;
+let heroScrollingTo = null;
+
+function heroCenterLeft(stage, card) {
+  return card.offsetLeft + card.offsetWidth / 2 - stage.clientWidth / 2;
+}
+
+function markHeroCenter(pos) {
+  heroCards().forEach((c, i) => c.classList.toggle("is-center", i === pos));
+}
+
+function scrollHeroTo(pos, smooth) {
+  const stage = document.getElementById("hero-slides");
+  const card = heroCards()[pos];
+  if (!card) return;
+  heroPos = pos;
+  heroIndex = pos % heroSlides().length;
+  heroScrollingTo = smooth ? pos : null;
+  stage.scrollTo({ left: heroCenterLeft(stage, card), behavior: smooth ? scrollBehavior() : "auto" });
+  markHeroCenter(pos);
+  renderHeroDots();
+}
+
+/* Si quedó en una copia, salta a la misma tarjeta de en medio sin que se
+   note (se apagan las transiciones un instante). */
+function normalizeHeroPos() {
+  const n = heroSlides().length;
+  if (heroPos >= n && heroPos < 2 * n) return;
+  const stage = document.getElementById("hero-slides");
+  stage.classList.add("hero-no-anim");
+  scrollHeroTo(n + (heroPos % n), false);
+  void stage.offsetWidth;
+  stage.classList.remove("hero-no-anim");
+}
+
 function renderHeroSlide() {
   const slides = heroSlides();
   if (!slides.length) {
@@ -1626,20 +1666,17 @@ function renderHeroSlide() {
     return;
   }
   const stage = document.getElementById("hero-slides");
-  if (!stage.children.length) {
-    stage.innerHTML = slides.map(heroSlideHTML).join("");
-  } else {
-    const cards = heroCards();
-    const card = cards[heroIndex];
-    if (card) {
-      heroScrollingTo = heroIndex;
-      stage.scrollTo({ left: card.offsetLeft - cards[0].offsetLeft, behavior: scrollBehavior() });
-    }
-  }
-  renderHeroDots();
+  const loop = slides.length > 1;
+  stage.innerHTML = loop
+    ? [...slides.map((s, i) => heroSlideHTML(s, i, true)), ...slides.map((s, i) => heroSlideHTML(s, i, false)), ...slides.map((s, i) => heroSlideHTML(s, i, true))].join("")
+    : heroSlideHTML(slides[0], 0, false);
+  // Arranca con la del medio al centro.
+  const start = Math.floor((slides.length - 1) / 2);
+  stage.classList.add("hero-no-anim");
+  scrollHeroTo(loop ? slides.length + start : 0, false);
+  void stage.offsetWidth;
+  stage.classList.remove("hero-no-anim");
 }
-
-let heroScrollingTo = null;
 
 /* Contador "1 | 6" como el de StyleKorean. */
 function renderHeroDots() {
@@ -1651,10 +1688,9 @@ function renderHeroDots() {
 }
 
 function stepHero(delta) {
-  const slides = heroSlides();
-  if (slides.length < 2) return;
-  heroIndex = (heroIndex + delta + slides.length) % slides.length;
-  renderHeroSlide();
+  if (heroSlides().length < 2) return;
+  normalizeHeroPos();
+  scrollHeroTo(heroPos + delta, true);
 }
 
 function heroShouldRun() {
@@ -1667,14 +1703,7 @@ function restartHeroTimer() {
   heroTimer = null;
   updateHeroPauseButton();
   if (!heroShouldRun()) return;
-  const slides = heroSlides();
-  heroTimer = setInterval(() => {
-    // Si ya se ve la última tarjeta completa, se regresa al inicio.
-    const stage = document.getElementById("hero-slides");
-    const atEnd = stage.scrollLeft + stage.clientWidth >= stage.scrollWidth - 4;
-    heroIndex = atEnd ? 0 : (heroIndex + 1) % slides.length;
-    renderHeroSlide();
-  }, 5000);
+  heroTimer = setInterval(() => stepHero(1), 5000);
 }
 
 const HERO_PAUSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>`;
@@ -1704,34 +1733,39 @@ function wireHeroControls() {
     restartHeroTimer();
   });
   document.getElementById("hero-next").addEventListener("click", () => {
-    const atEnd = stage.scrollLeft + stage.clientWidth >= stage.scrollWidth - 4;
-    if (atEnd) heroIndex = heroSlides().length - 1;
     stepHero(1);
     restartHeroTimer();
   });
-  // Al deslizar con el dedo, el contador sigue a la tarjeta de la
-  // izquierda.
+  // Al deslizar con el dedo, la tarjeta que queda más cerca del centro
+  // se vuelve la principal (se resalta en vivo; el contador al final).
   let scrollIdle = null;
+  const nearestToCenter = () => {
+    const mid = stage.scrollLeft + stage.clientWidth / 2;
+    let nearest = 0;
+    heroCards().forEach((c, i, cards) => {
+      const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid);
+      const best = cards[nearest];
+      if (d < Math.abs(best.offsetLeft + best.offsetWidth / 2 - mid)) nearest = i;
+    });
+    return nearest;
+  };
   stage.addEventListener("scroll", () => {
+    if (heroScrollingTo === null) markHeroCenter(nearestToCenter());
     clearTimeout(scrollIdle);
     scrollIdle = setTimeout(() => {
-      const cards = heroCards();
-      if (!cards.length) return;
-      const base = cards[0].offsetLeft;
-      let nearest = 0;
-      cards.forEach((c, i) => {
-        if (Math.abs(c.offsetLeft - base - stage.scrollLeft) < Math.abs(cards[nearest].offsetLeft - base - stage.scrollLeft)) nearest = i;
-      });
-      if (heroScrollingTo !== null) {
-        heroScrollingTo = null;
-        return;
-      }
-      if (nearest !== heroIndex) {
-        heroIndex = nearest;
+      heroScrollingTo = null;
+      const nearest = nearestToCenter();
+      if (nearest !== heroPos) {
+        heroPos = nearest;
+        heroIndex = nearest % heroSlides().length;
+        markHeroCenter(nearest);
         renderHeroDots();
       }
-    }, 120);
+      normalizeHeroPos();
+    }, 150);
   }, { passive: true });
+  // Al cambiar el tamaño de la ventana, se vuelve a centrar.
+  window.addEventListener("resize", () => scrollHeroTo(heroPos, false));
   document.getElementById("hero-pause").addEventListener("click", () => {
     heroHold.user = !heroHold.user;
     restartHeroTimer();

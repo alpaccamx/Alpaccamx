@@ -220,12 +220,12 @@
        título principal para lectores de pantalla ni buscadores. -->
   <h1 class="sr-only">Alpacca — Skincare coreano y asiático al mayoreo</h1>
   <div class="relative">
-    <div id="hero-slides" class="hero-row relative flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div id="hero-slides" class="hero-row relative flex items-start gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pt-2 pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <!-- tarjetas injected by JS -->
     </div>
-    <!-- Contador "1 | 6" con flechas y pausa (WCAG 2.2.2), sobre la
-         esquina inferior derecha del banner. -->
-    <div id="hero-controls" class="hero-controls hidden absolute bottom-3 z-10 items-center h-8 rounded-full bg-ink/60 backdrop-blur text-cream text-xs font-medium tabular-nums pl-1 pr-1 [&:not(.hidden)]:flex">
+    <!-- Contador "1 | 6" con flechas y pausa (WCAG 2.2.2), centrado
+         debajo de la tarjeta principal. -->
+    <div id="hero-controls" class="hidden w-fit mx-auto -mt-6 items-center h-8 rounded-full bg-ink/60 backdrop-blur text-cream text-xs font-medium tabular-nums pl-1 pr-1 [&:not(.hidden)]:flex">
       <button id="hero-prev" type="button" aria-label="Banner anterior" class="tap w-7 h-7 flex items-center justify-center rounded-full hover:bg-cream/15">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
