@@ -107,6 +107,10 @@ const CONFIG = {
       imageAlt: "El mejor skincare coreano: cremas, sérums y contorno de ojos NIDA.",
     },
     {
+      imageCard: "assets/hero/hero-regalo-labios-card.webp",
+      imageAlt: "Un regalo para ti, para consentirte: tinta Rom&nd Glasting Color, esencia de labios Torriden Solid In y tinta Amuse.",
+    },
+    {
       imageCard: "assets/hero/hero-medicube-toner-card.webp",
       imageAlt: "Elige tu tónico Medicube: luminosidad, calma o ilumina. ¿Cuál es para ti?",
     },
