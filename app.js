@@ -2018,11 +2018,18 @@ function stockBadgeHTML(p) {
     : `<span class="inline-block w-fit text-[11px] font-medium px-1.5 py-px rounded border border-sale/40 text-sale">Agotado</span>`;
 }
 
-/* Etiquetas chicas con borde (como "Best"/"New" en StyleKorean). */
+/* Las cajas se distinguen a primera vista de la pieza individual:
+   etiqueta morada rellena con 📦 y marco lila en la foto (ver
+   productCardHTML); la pieza individual va en gris discreto. */
+function isCajaPresentacion(p) {
+  return /^caja/i.test(p.presentacion || "");
+}
+
 function presentacionTagHTML(p) {
   if (!p.presentacion) return "";
-  const tone = p.presentacion.startsWith("Caja") ? "border-lilac/60 text-lilac-ink" : "border-ink/20 text-ink/70";
-  return `<span class="inline-block w-fit text-[11px] font-medium px-1.5 py-px rounded border ${tone}">${escapeHtml(p.presentacion)}</span>`;
+  return isCajaPresentacion(p)
+    ? `<span class="inline-flex items-center gap-1 w-fit text-[11px] font-semibold px-2 py-0.5 rounded bg-lilac-band text-cream">📦 ${escapeHtml(p.presentacion)}</span>`
+    : `<span class="inline-block w-fit text-[11px] font-medium px-2 py-0.5 rounded bg-ink/[0.06] text-ink/70">${escapeHtml(p.presentacion)}</span>`;
 }
 
 function productCardHTML(p, { rank } = {}) {
@@ -2038,7 +2045,7 @@ function productCardHTML(p, { rank } = {}) {
   // (wireVariantSelectors busca ".group") y "Avísame" -- no quitarlos.
   return `
     <div class="group flex flex-col h-full">
-      <div class="aspect-square bg-pill overflow-hidden relative rounded-md">
+      <div class="aspect-square ${isCajaPresentacion(p) ? "bg-lilac/15 border-2 border-lilac/70" : "bg-pill"} overflow-hidden relative rounded-md">
         ${rank ? `<span class="absolute top-0 left-0 z-10 min-w-[1.5rem] h-6 px-1.5 bg-ink text-cream text-xs font-semibold flex items-center justify-center rounded-br-md tabular-nums">${rank}</span>` : ""}
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
           class="w-full h-full object-cover group-hover:scale-[1.03] transition duration-300" />
