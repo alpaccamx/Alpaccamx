@@ -125,6 +125,62 @@ async function moveRows(body) {
   }
 }
 
+/* Cambiar celdas de renglones existentes, buscándolos por SKU. Body:
+     { updates: [{ sku, fields: { Imagen: "https://..." } }], dryRun }
+   Solo toca las columnas indicadas (por nombre de encabezado). Si un SKU
+   no existe o aparece más de una vez, ese cambio se reporta y se salta. */
+async function updateRows(body) {
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  const updates = body.updates;
+  if (!updates.length || updates.length > 2000) return jsonResponse(400, { error: "Entre 1 y 2000 cambios por llamada." });
+  const token = await getAccessToken();
+  if (!token) return jsonResponse(500, { error: "No se pudo autenticar con Google Sheets." });
+  try {
+    const meta = await api(token, `${spreadsheetId}?fields=sheets.properties`);
+    const sheet = (meta.sheets || []).find((s) => s.properties.sheetId === CATALOG_GID);
+    if (!sheet) return jsonResponse(500, { error: "No encontré la pestaña del catálogo en el Sheet." });
+    const quoted = `'${sheet.properties.title.replace(/'/g, "''")}'`;
+    const current = await api(token, `${spreadsheetId}/values/${encodeURIComponent(`${quoted}!A:AZ`)}`);
+    const rows = current.values || [];
+    const lower = (rows[0] || []).map((h) => String(h || "").trim().toLowerCase());
+    const iSku = lower.indexOf("sku");
+    if (iSku < 0) return jsonResponse(500, { error: 'No encontré la columna "SKU".' });
+    const rowsBySku = new Map();
+    rows.slice(1).forEach((r, i) => {
+      const sku = String(r[iSku] || "").trim();
+      if (sku) rowsBySku.set(sku, [...(rowsBySku.get(sku) || []), i + 2]);
+    });
+    const data = [];
+    const skipped = [];
+    for (const u of updates) {
+      const sku = String(u.sku || "").trim();
+      const found = rowsBySku.get(sku) || [];
+      if (found.length !== 1) {
+        skipped.push({ sku, reason: found.length ? "SKU repetido" : "no existe" });
+        continue;
+      }
+      for (const [key, value] of Object.entries(u.fields || {})) {
+        const col = lower.indexOf(String(key).trim().toLowerCase());
+        if (col < 0) {
+          skipped.push({ sku, reason: `columna "${key}" no existe` });
+          continue;
+        }
+        data.push({ range: `${quoted}!${columnLetter(col)}${found[0]}`, values: [[value]] });
+      }
+    }
+    if (body.dryRun || !data.length) return jsonResponse(200, { dryRun: !!body.dryRun, cells: data.length, skipped });
+    await api(token, `${spreadsheetId}/values:batchUpdate`, {
+      method: "POST",
+      body: JSON.stringify({ valueInputOption: "USER_ENTERED", data }),
+    });
+    console.log(`Catálogo: ${data.length} celdas actualizadas`);
+    return jsonResponse(200, { dryRun: false, cells: data.length, skipped });
+  } catch (err) {
+    console.error("Error actualizando el catálogo:", err);
+    return jsonResponse(502, { error: `Google Sheets: ${err.message}` });
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
 
@@ -142,6 +198,7 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "JSON inválido." });
   }
   if (Array.isArray(body.moves)) return moveRows(body);
+  if (Array.isArray(body.updates)) return updateRows(body);
 
   const input = Array.isArray(body.rows) ? body.rows : [];
   if (!input.length) return jsonResponse(400, { error: "No hay renglones para agregar." });
