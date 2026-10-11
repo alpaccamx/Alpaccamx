@@ -543,6 +543,7 @@ async function applySheetStockDelta(deltaBySku) {
 }
 
 module.exports = {
+  getAccessToken,
   applySheetStockDelta,
   deltaFromItems,
   appendStockProduct,
