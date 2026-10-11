@@ -61,6 +61,70 @@ async function api(token, path, options = {}) {
   return data;
 }
 
+/* Reordenar renglones del catálogo (ej. acomodar productos nuevos junto a
+   los de su marca/familia) con "mover filas" de Google, que ajusta solo
+   las fórmulas de precio. Body:
+     { moves: [{ from, to }],            // índices de renglón base 0, en el
+                                          // orden en que se aplican (semántica
+                                          // de moveDimension: "to" en
+                                          // coordenadas antes de quitar el origen)
+       verify: { startRow, skus: [...] } }// SKUs esperados desde ese renglón
+   Antes de mover se comprueba que la hoja siga igual (verify); si no,
+   no se mueve nada. Regresa los SKUs de ese rango ya reordenado. */
+async function moveRows(body) {
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  const moves = body.moves;
+  const verify = body.verify || {};
+  const startRow = Number(verify.startRow);
+  const skus = Array.isArray(verify.skus) ? verify.skus.map(String) : [];
+  if (!moves.length || !startRow || startRow < 2 || !skus.length) {
+    return jsonResponse(400, { error: "Faltan moves o verify (startRow, skus)." });
+  }
+  const minIndex = startRow - 1;
+  const maxIndex = startRow - 1 + skus.length;
+  for (const m of moves) {
+    if (!Number.isInteger(m.from) || !Number.isInteger(m.to) || m.from < minIndex || m.from >= maxIndex || m.to < minIndex || m.to > maxIndex) {
+      return jsonResponse(400, { error: "Hay un movimiento fuera del rango verificado." });
+    }
+  }
+  const token = await getAccessToken();
+  if (!token) return jsonResponse(500, { error: "No se pudo autenticar con Google Sheets." });
+  try {
+    const meta = await api(token, `${spreadsheetId}?fields=sheets.properties`);
+    const sheet = (meta.sheets || []).find((s) => s.properties.sheetId === CATALOG_GID);
+    if (!sheet) return jsonResponse(500, { error: "No encontré la pestaña del catálogo en el Sheet." });
+    const quoted = `'${sheet.properties.title.replace(/'/g, "''")}'`;
+    const header = await api(token, `${spreadsheetId}/values/${encodeURIComponent(`${quoted}!1:1`)}`);
+    const iSku = ((header.values || [])[0] || []).map((h) => String(h).trim().toLowerCase()).indexOf("sku");
+    if (iSku < 0) return jsonResponse(500, { error: 'No encontré la columna "SKU".' });
+    const col = columnLetter(iSku);
+    const skuRange = `${quoted}!${col}${startRow}:${col}${startRow + skus.length - 1}`;
+    const readSkus = async () =>
+      ((await api(token, `${spreadsheetId}/values/${encodeURIComponent(skuRange)}`)).values || []).map((r) => String(r[0] || "").trim());
+    const before = await readSkus();
+    if (before.length !== skus.length || before.some((v, i) => v !== skus[i])) {
+      return jsonResponse(409, { error: "La hoja cambió desde que se leyó; no se movió nada." });
+    }
+    await api(token, `${spreadsheetId}:batchUpdate`, {
+      method: "POST",
+      body: JSON.stringify({
+        requests: moves.map((m) => ({
+          moveDimension: {
+            source: { sheetId: CATALOG_GID, dimension: "ROWS", startIndex: m.from, endIndex: m.from + 1 },
+            destinationIndex: m.to,
+          },
+        })),
+      }),
+    });
+    const after = await readSkus();
+    console.log(`Catálogo: ${moves.length} renglones reordenados desde el renglón ${startRow}`);
+    return jsonResponse(200, { moved: moves.length, skus: after });
+  } catch (err) {
+    console.error("Error reordenando el catálogo:", err);
+    return jsonResponse(502, { error: `Google Sheets: ${err.message}` });
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
 
@@ -77,6 +141,8 @@ exports.handler = async (event) => {
   } catch {
     return jsonResponse(400, { error: "JSON inválido." });
   }
+  if (Array.isArray(body.moves)) return moveRows(body);
+
   const input = Array.isArray(body.rows) ? body.rows : [];
   if (!input.length) return jsonResponse(400, { error: "No hay renglones para agregar." });
   if (input.length > MAX_ROWS) return jsonResponse(400, { error: `Máximo ${MAX_ROWS} renglones por llamada.` });
