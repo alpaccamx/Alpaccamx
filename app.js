@@ -2077,7 +2077,7 @@ function productCardHTML(p, { rank } = {}) {
       <div class="aspect-square ${isCajaPresentacion(p) ? "bg-lilac/15 border-2 border-lilac/70" : "bg-pill"} overflow-hidden relative rounded-md">
         ${rank ? `<span class="absolute top-0 left-0 z-10 min-w-[1.5rem] h-6 px-1.5 bg-ink text-cream text-xs font-semibold flex items-center justify-center rounded-br-md tabular-nums">${rank}</span>` : ""}
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-[1.03] transition duration-300" />
+          class="w-full h-full object-contain group-hover:scale-[1.03] transition duration-300" />
         <div data-card-badge class="absolute top-2 ${rank ? "right-2" : "left-2"}">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
         ${wishlistButtonHTML(p.id)}
       </div>
@@ -2270,7 +2270,7 @@ function americanoProductCardHTML(p) {
     <div class="group rounded-2xl bg-white/60 border border-ink/10 overflow-hidden flex flex-col h-full transition duration-200 hover:shadow-lg hover:border-rose/30">
       <div class="aspect-square bg-blush/20 overflow-hidden relative">
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-105 transition duration-200" />
+          class="w-full h-full object-contain group-hover:scale-105 transition duration-200" />
         <div data-card-badge class="absolute top-2 left-2">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
       </div>
       <div class="p-3 flex flex-col flex-1">
