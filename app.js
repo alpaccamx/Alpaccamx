@@ -2169,6 +2169,15 @@ function groupVariants(list) {
     // misma presentación exacta; un producto con un solo tono se muestra
     // tal cual, sin lista.
     if (shadeLabel) {
+      // Si el primero de la familia llegó sin tono (se guardó tal cual) y
+      // ahora aparece otro con tono, se convierte en familia con selector
+      // incluyendo al primero; si no, "variants" no existe y truena.
+      if (!entry.variants) {
+        const plain = entry;
+        entry = { ...plain, nombre: baseName, variants: [{ label: plain.nombre || baseName, product: plain }] };
+        order[order.indexOf(plain)] = entry;
+        groups.set(key, entry);
+      }
       entry.variants.push({ label: shadeLabel, product: p });
     } else if (isNewFamily) {
       order[order.length - 1] = p;
@@ -2574,10 +2583,17 @@ function renderQuickIcons() {
     const btn = e.target.closest("[data-quick]");
     if (!btn) return;
     const key = btn.dataset.quick;
-    if (key === "best") document.getElementById("featured-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+    // Best Seller y Marcas viven en el inicio: si está abierta otra vista
+    // (catálogo, una categoría, etc.) primero se regresa al inicio, si no
+    // la sección está oculta y el botón no hace nada.
+    const goHomeTo = (id) => {
+      if (currentHomeView !== "home") showHomeView("home");
+      document.getElementById(id).scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+    };
+    if (key === "best") goHomeTo("featured-section");
     else if (key === "stock") openStockSection();
     else if (key === "catalog") openFullCatalog();
-    else if (key === "brands") document.getElementById("brands-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+    else if (key === "brands") goHomeTo("brands-section");
     else if (key === "shipping") document.getElementById("shipping-times-open").click();
     else if (key.startsWith("cat:")) showCategoryProducts(key.slice(4));
   };
