@@ -16,6 +16,16 @@
 //
 // Nunca duplica: los renglones cuyo SKU ya existe en la pestaña se
 // saltan. Con dryRun: true solo reporta qué haría, sin escribir.
+//
+// Se escribe en columnas EXACTAS (A..última) justo debajo del último
+// renglón, en vez de usar "append": el append de Google detecta "la
+// tabla" por su cuenta y llegó a pegar los renglones corridos varias
+// columnas a la derecha.
+//
+// Reparación: { rows, startRow: N, clearToColumn: "V" } reescribe esos
+// renglones empezando en el renglón N (y borra hasta la columna indicada),
+// solo si la columna A de esos renglones está vacía -- nunca pisa
+// productos existentes.
 // Después de escribir, vuelve a leer los renglones agregados y regresa
 // sus valores calculados (para verificar que las fórmulas funcionaron).
 
@@ -89,7 +99,10 @@ exports.handler = async (event) => {
     const iSku = lower.indexOf("sku");
     if (iSku < 0) return jsonResponse(500, { error: 'No encontré la columna "SKU" en el catálogo.' });
 
-    const existing = new Set(rows.slice(1).map((r) => String(r[iSku] || "").trim()).filter(Boolean));
+    const startRow = Number(body.startRow) || 0;
+    const existing = startRow
+      ? new Set()
+      : new Set(rows.slice(1).map((r) => String(r[iSku] || "").trim()).filter(Boolean));
     const unknownKeys = new Set();
     const toAppend = [];
     const skipped = [];
@@ -127,12 +140,43 @@ exports.handler = async (event) => {
     };
     if (body.dryRun || !toAppend.length) return jsonResponse(200, { dryRun: !!body.dryRun, ...summary });
 
-    const appended = await api(
+    let firstRow;
+    let width = headers.length;
+    if (startRow) {
+      if (startRow < 2) return jsonResponse(400, { error: "startRow inválido." });
+      const endRow = startRow + toAppend.length - 1;
+      const colA = await api(token, `${spreadsheetId}/values/${encodeURIComponent(`${quoted}!A${startRow}:A${endRow}`)}`);
+      if ((colA.values || []).some((r) => String(r[0] || "").trim())) {
+        return jsonResponse(409, { error: "Esos renglones ya tienen nombre en la columna A; no se sobrescriben." });
+      }
+      const clearTo = String(body.clearToColumn || "").toUpperCase();
+      if (/^[A-Z]{1,2}$/.test(clearTo)) {
+        const toIndex = clearTo.split("").reduce((n, ch) => n * 26 + (ch.charCodeAt(0) - 64), 0) - 1;
+        width = Math.max(width, toIndex + 1);
+      }
+      firstRow = startRow;
+    } else {
+      // Debajo del último renglón con datos; si la hoja no tiene renglones
+      // vacíos suficientes, se agregan.
+      firstRow = rows.length + 1;
+      const needed = firstRow + toAppend.length - 1 - sheet.properties.gridProperties.rowCount;
+      if (needed > 0) {
+        await api(token, `${spreadsheetId}:batchUpdate`, {
+          method: "POST",
+          body: JSON.stringify({
+            requests: [{ appendDimension: { sheetId: CATALOG_GID, dimension: "ROWS", length: needed } }],
+          }),
+        });
+      }
+    }
+    const values = toAppend.map((r) => [...r, ...new Array(Math.max(0, width - r.length)).fill("")]);
+    const range = `${quoted}!A${firstRow}:${columnLetter(width - 1)}${firstRow + values.length - 1}`;
+    const written = await api(
       token,
-      `${spreadsheetId}/values/${encodeURIComponent(`${quoted}!A:${columnLetter(headers.length - 1)}`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-      { method: "POST", body: JSON.stringify({ values: toAppend }) }
+      `${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+      { method: "PUT", body: JSON.stringify({ values }) }
     );
-    const updatedRange = appended.updates && appended.updates.updatedRange;
+    const updatedRange = written.updatedRange;
 
     // Vuelve a leer lo que se agregó, ya calculado, para verificar.
     let check = null;
