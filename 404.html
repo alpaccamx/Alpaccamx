@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Página no encontrada — Alpacca</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/assets/favicon-32.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body class="bg-cream text-ink font-body antialiased">
+<header class="border-b border-ink/10">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+    <a href="/"><img src="/assets/logo-wordmark.webp" width="365" height="120" alt="Alpacca" class="h-9 w-auto" /></a>
+    <a href="/" class="text-sm font-semibold text-ink/75 hover:text-ink transition">&larr; Ir a la tienda</a>
+  </div>
+</header>
+<main class="max-w-xl mx-auto px-4 sm:px-6 py-14 text-center flex flex-col items-center gap-5">
+  <img src="/assets/mascot.webp" width="160" height="160" alt="" class="w-32 h-32" />
+  <h1 class="font-display text-3xl font-bold">No encontramos esta página</h1>
+  <p class="text-ink/75">Puede que el enlace esté incompleto o que el producto ya no exista. Busca lo que necesitas:</p>
+  <form action="/" method="get" role="search" class="w-full flex gap-2">
+    <label for="q404" class="sr-only">Buscar productos</label>
+    <input id="q404" name="q" type="search" placeholder="Ej. Anua tónico" class="flex-1 min-w-0 rounded-full border-[1.5px] border-rose/70 bg-white px-4 py-2.5 text-base focus:outline-none focus:border-rose focus:ring-2 focus:ring-rose/20" />
+    <button type="submit" class="rounded-full bg-rose-deep text-cream font-semibold px-5 py-2.5 hover:bg-rose-ink transition">Buscar</button>
+  </form>
+  <div class="flex flex-wrap justify-center gap-2 text-sm">
+    <a href="/?ver=catalogo" class="rounded-full border border-ink/15 px-4 py-2 hover:bg-ink/5">Catálogo completo</a>
+    <a href="/?ver=stock" class="rounded-full border border-ink/15 px-4 py-2 hover:bg-ink/5">Stock en México</a>
+    <a href="/" class="rounded-full border border-ink/15 px-4 py-2 hover:bg-ink/5">Inicio</a>
+  </div>
+</main>
+</body>
+</html>
