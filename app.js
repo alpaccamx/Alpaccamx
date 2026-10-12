@@ -79,8 +79,7 @@ const CONFIG = {
   // Slides del banner principal (tarjetas verticales, como StyleKorean).
   // "imageCard" es la imagen vertical 4:5 de 972 × 1215 px. Agrega o quita
   // objetos para más o menos tarjetas.
-  // Cada banner lleva a sus productos (ctaHref). Se dejaron 5: los que
-  // anuncian marcas que sí están en el catálogo. Las imágenes de los que
+  // Cada banner lleva a sus productos (ctaHref). Las imágenes de los que
   // se quitaron siguen en assets/hero por si quieres regresarlos.
   HERO_SLIDES: [
     {
@@ -107,6 +106,16 @@ const CONFIG = {
       imageCard: "assets/hero/hero-nida-skincare-card.webp",
       imageAlt: "El mejor skincare coreano: cremas, sérums y contorno de ojos NIDA.",
       ctaHref: "?marca=NIDA",
+    },
+    // numbuzin y Torriden todavía no están en el catálogo: sin link hasta
+    // que se agreguen (entonces ctaHref: "?marca=..." como los demás).
+    {
+      imageCard: "assets/hero/hero-numbuzin-70-card.webp",
+      imageAlt: "Grandes ahorros para una piel más sana: hasta 70% de descuento en numbuzin.",
+    },
+    {
+      imageCard: "assets/hero/hero-torriden-cellmazing-card.webp",
+      imageAlt: "Torriden Cellmazing: rutina reafirmante con crema, contorno de ojos, ampolleta y mascarilla de gel.",
     },
   ],
 
