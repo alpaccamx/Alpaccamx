@@ -37,10 +37,18 @@ exports.handler = async (event) => {
   }
 };
 
-/* Quita del pedido lo que es solo para Mae (su costo en ABW y el tipo de
-   cambio de ese día) antes de mandárselo a la clienta. */
+/* Quita del pedido lo que es solo para Mae (su costo en ABW, el tipo de
+   cambio de ese día, su número de compra con el proveedor, el historial
+   de etapas y marcas internas) antes de mandárselo a la clienta. La
+   etapa ("stage") sí se manda: la clienta ve en qué va su pedido. */
+const PRIVATE_ORDER_FIELDS = [
+  "exchangeRate", "supplierOrderNumber", "stageHistory", "reviewReason", "paymentReceivedAfterStatus",
+  "stockBlobAppliedAt", "sheetAppliedAt", "notifiedAt", "paymentId", "deliveryFollowupSentAt",
+];
+
 function publicOrder(o) {
-  const { exchangeRate, ...rest } = o;
+  const rest = { ...o };
+  PRIVATE_ORDER_FIELDS.forEach((k) => delete rest[k]);
   return {
     ...rest,
     items: (o.items || []).map(({ costoUSD, ...it }) => it),

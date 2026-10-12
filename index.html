@@ -865,6 +865,25 @@
 
   <div class="flex-1 overflow-y-auto px-5 py-5">
 
+    <!-- Bienvenida (sin sesión): para qué sirve tener cuenta -->
+    <div id="account-welcome" class="mb-5">
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blush/70 via-blush/30 to-lilac/30 px-5 pt-5 pb-4">
+        <img src="./assets/mascot.webp" width="192" height="192" alt="" aria-hidden="true" class="absolute -right-3 -bottom-5 w-24 h-24 object-contain opacity-90" />
+        <p class="font-logo text-3xl text-rose-deep leading-none">Tu cuenta Alpacca</p>
+        <p class="text-sm text-ink/75 mt-2 max-w-[15rem]">Todo lo de tus compras en un solo lugar.</p>
+        <ul class="mt-4 grid gap-2 text-sm text-ink max-w-[13.5rem]">
+          <li class="flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center shrink-0" aria-hidden="true">📦</span>Sigue tu pedido paso a paso</li>
+          <li class="flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center shrink-0" aria-hidden="true">🔁</span>Repite un pedido con un toque</li>
+          <li class="flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center shrink-0" aria-hidden="true">💗</span>Tus favoritos y lo que más compras</li>
+          <li class="flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center shrink-0" aria-hidden="true">⭐</span>Califica lo que ya probaste</li>
+        </ul>
+      </div>
+      <div class="mt-4 grid grid-cols-2 gap-1 rounded-full bg-ink/5 p-1" role="tablist" aria-label="Entrar o crear cuenta">
+        <button type="button" role="tab" id="acct-tab-login" data-acct-tab="login" class="rounded-full py-2 text-sm font-semibold transition">Iniciar sesión</button>
+        <button type="button" role="tab" id="acct-tab-signup" data-acct-tab="signup" class="rounded-full py-2 text-sm font-semibold transition">Crear cuenta</button>
+      </div>
+    </div>
+
     <!-- Iniciar sesión -->
     <div id="account-view-login">
       <p id="login-notice" role="status" class="hidden mb-3 rounded-lg bg-green-100 px-3 py-2 text-sm text-green-700"></p>
@@ -976,26 +995,47 @@
       </form>
     </div>
 
-    <!-- Sesión iniciada: mis pedidos -->
+    <!-- Sesión iniciada: mi panel -->
     <div id="account-view-orders" class="hidden">
-      <div class="flex items-center justify-between gap-2 mb-1">
-        <p class="text-sm text-ink/75">¡Hola, <span id="account-name" class="font-semibold text-ink"></span>! 👋</p>
+      <!-- Encabezado con saludo y números -->
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blush/70 via-blush/30 to-lilac/30 p-4">
+        <div class="relative flex items-center gap-3 pr-12">
+          <span id="account-avatar" aria-hidden="true" class="w-14 h-14 shrink-0 rounded-full bg-white text-rose-deep font-display font-bold text-lg flex items-center justify-center shadow-sm ring-2 ring-white/70"></span>
+          <div class="min-w-0">
+            <h3 class="font-logo text-[1.75rem] leading-none text-rose-deep truncate">Hola, <span id="account-name"></span></h3>
+            <p id="account-member" class="text-xs text-ink/75 mt-1.5"></p>
+          </div>
+        </div>
         <button type="button" id="account-settings-toggle" aria-label="Editar mis datos"
-          class="shrink-0 inline-flex items-center justify-center w-11 h-11 -mr-2 rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 transition">
+          class="absolute top-2 right-2 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 text-ink/75 hover:text-ink hover:bg-white transition shadow-sm">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
+        <div id="account-kpis" class="relative grid grid-cols-3 gap-2 mt-4"></div>
       </div>
-      <p id="account-orders-summary" class="hidden text-xs text-ink/75 mb-4"></p>
-      <p id="account-orders-status" class="hidden text-xs text-rose-ink font-semibold mb-3"></p>
+      <p id="account-orders-summary" class="hidden"></p>
+      <p id="account-orders-status" class="hidden mt-3 rounded-xl bg-blush/30 px-3 py-2 text-xs text-rose-ink font-semibold"></p>
 
-      <div id="account-orders-stats" class="hidden grid grid-cols-4 gap-1.5 mb-3"></div>
-      <div id="account-orders-range" class="hidden flex gap-1.5 mb-4"></div>
+      <div id="account-current" class="mt-4"></div>
+      <div id="account-quick" class="mt-4 grid grid-cols-2 gap-2"></div>
+      <div id="account-top" class="mt-6"></div>
+      <div id="account-favs" class="mt-6"></div>
 
-      <div id="account-orders-list" class="space-y-2.5"></div>
-      <p id="account-orders-empty" class="hidden text-center text-ink/75 text-sm py-6">Aún no tienes pedidos.</p>
-      <p id="account-orders-filtered-empty" class="hidden text-center text-ink/75 text-sm py-6">No hay pedidos con ese filtro.</p>
-      <p id="account-orders-loading" class="text-center text-ink/75 text-sm py-6">Cargando tus pedidos…</p>
-      <button type="button" id="account-logout" class="tap w-full text-xs text-ink/75 hover:text-ink underline text-center mt-6 pt-5 border-t border-ink/10">Cerrar sesión</button>
+      <section class="mt-7" aria-labelledby="account-orders-title">
+        <h4 id="account-orders-title" class="font-display text-lg text-ink mb-3">Mis pedidos</h4>
+        <div id="account-orders-stats" class="hidden flex gap-1.5 overflow-x-auto -mx-5 px-5 mb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"></div>
+        <div id="account-orders-range" class="hidden flex gap-1.5 mb-4"></div>
+        <div id="account-orders-list" class="space-y-3"></div>
+        <div id="account-orders-empty" class="hidden text-center py-8">
+          <img src="./assets/mascot.webp" width="192" height="192" alt="" aria-hidden="true" class="w-20 h-20 object-contain mx-auto mb-3" />
+          <p class="text-sm text-ink/75">Aún no tienes pedidos. ¡Tu primera rutina te espera!</p>
+          <a href="?ver=catalogo" data-acct-close class="inline-block mt-3 rounded-full bg-ink text-cream text-sm font-semibold px-5 py-2.5">Ver el catálogo</a>
+        </div>
+        <p id="account-orders-filtered-empty" class="hidden text-center text-ink/75 text-sm py-6">No hay pedidos con ese filtro.</p>
+        <p id="account-orders-loading" class="text-center text-ink/75 text-sm py-6">Cargando tus pedidos…</p>
+      </section>
+
+      <div id="account-profile" class="mt-7"></div>
+      <button type="button" id="account-logout" class="tap w-full text-xs text-ink/75 hover:text-ink underline text-center mt-4 pt-4 border-t border-ink/10">Cerrar sesión</button>
     </div>
 
     <!-- Sesión iniciada: editar mis datos -->
