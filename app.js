@@ -107,6 +107,31 @@ const CONFIG = {
       imageAlt: "El mejor skincare coreano: cremas, sérums y contorno de ojos NIDA.",
       ctaHref: "?marca=NIDA",
     },
+    {
+      imageCard: "assets/hero/hero-cuida-tu-piel-card.webp",
+      imageAlt: "Cuida tu piel en cualquier momento y lugar: base Clio, sérum y crema solar Goodal, labial Ink Velvet.",
+      ctaHref: "?marca=CLIO",
+    },
+    {
+      imageCard: "assets/hero/hero-girl-dinner-card.webp",
+      imageAlt: "Girl Dinner: contorno de ojos Dr.Melaxin, sérum Medicube EGF Peptide y bruma Anua servidos en un plato de corazón.",
+      ctaHref: "?marca=Dr.Melaxin",
+    },
+    {
+      imageCard: "assets/hero/hero-regalo-labios-card.webp",
+      imageAlt: "Un regalo para ti, para consentirte: tinta Rom&nd Glasting Color, esencia de labios Torriden Solid In y tinta Amuse.",
+      ctaHref: "?marca=rom%26nd",
+    },
+    {
+      imageCard: "assets/hero/hero-medicube-toner-card.webp",
+      imageAlt: "Elige tu tónico Medicube: luminosidad, calma o ilumina. ¿Cuál es para ti?",
+      ctaHref: "?q=medicube+toner",
+    },
+    {
+      imageCard: "assets/hero/hero-pdrn-card.webp",
+      imageAlt: "PDRN: estimula la regeneración celular, repara la piel y mejora la elasticidad -- crema, sérum, mascarilla y esencia.",
+      ctaHref: "?q=pdrn",
+    },
     // numbuzin y Torriden todavía no están en el catálogo: sin link hasta
     // que se agreguen (entonces ctaHref: "?marca=..." como los demás).
     {
