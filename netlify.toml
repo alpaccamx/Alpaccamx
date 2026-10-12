@@ -65,3 +65,20 @@
   from = "/sitemap.xml"
   to = "/.netlify/functions/sitemap"
   status = 200
+
+# Ficha de producto: alpacca.mx/?p=SKU sirve la tienda con el título, la
+# foto y los datos de ese producto (para Google y para la vista previa al
+# compartir el link). Solo aplica cuando viene ?p=; la portada normal
+# sigue siendo el index.html estático.
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/product-page?sku=:p"
+  status = 200
+  force = true
+  query = {p = ":p"}
+
+# Catálogo ligero que baja la tienda (ver netlify/functions/catalog-light.js).
+[[redirects]]
+  from = "/catalogo.csv"
+  to = "/.netlify/functions/catalog-light"
+  status = 200

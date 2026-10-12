@@ -1,5 +1,6 @@
 // Mapa del sitio para Google (alpacca.mx/sitemap.xml, ver netlify.toml):
-// portada, catálogo, Stock en México, marcas y categorías.
+// portada, catálogo, Stock en México, marcas, categorías y la ficha de
+// cada producto disponible (alpacca.mx/?p=SKU).
 
 const { loadCatalog, isAvailable } = require("./lib/catalog-source.js");
 
@@ -22,6 +23,12 @@ exports.handler = async () => {
     const cats = [...new Set(avail.map((r) => r.Categoria).filter(Boolean))].sort();
     marcas.forEach((m) => urls.push({ loc: `${BASE}?marca=${encodeURIComponent(m)}`, pri: "0.7" }));
     cats.forEach((c) => urls.push({ loc: `${BASE}?categoria=${encodeURIComponent(c)}`, pri: "0.6" }));
+    const seen = new Set();
+    avail.forEach((r) => {
+      if (!r.SKU || seen.has(r.SKU)) return;
+      seen.add(r.SKU);
+      urls.push({ loc: `${BASE}?p=${encodeURIComponent(r.SKU)}`, pri: "0.5" });
+    });
   } catch (err) {
     console.error("sitemap: no se pudo leer el catálogo", err);
   }
