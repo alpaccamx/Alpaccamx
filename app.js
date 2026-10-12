@@ -79,54 +79,34 @@ const CONFIG = {
   // Slides del banner principal (tarjetas verticales, como StyleKorean).
   // "imageCard" es la imagen vertical 4:5 de 972 × 1215 px. Agrega o quita
   // objetos para más o menos tarjetas.
+  // Cada banner lleva a sus productos (ctaHref). Se dejaron 5: los que
+  // anuncian marcas que sí están en el catálogo. Las imágenes de los que
+  // se quitaron siguen en assets/hero por si quieres regresarlos.
   HERO_SLIDES: [
-    {
-      imageCard: "assets/hero/hero-anua-txa-card.webp",
-      imageAlt: "Anua TXA: kit para una piel más luminosa y radiante -- mascarilla, sérum, tónico y almohadillas.",
-    },
-    {
-      imageCard: "assets/hero/hero-cuida-tu-piel-card.webp",
-      imageAlt: "Cuida tu piel en cualquier momento y lugar: base Clio, sérum y crema solar Goodal, labial Ink Velvet.",
-    },
-    {
-      imageCard: "assets/hero/hero-girl-dinner-card.webp",
-      imageAlt: "Girl Dinner: contorno de ojos Dr.Melaxin, sérum Medicube EGF Peptide y bruma Anua servidos en un plato de corazón.",
-    },
     {
       imageCard: "assets/hero/hero-anua-oferta-30-card.webp",
       imageAlt: "Oferta: hasta 30% de descuento en tus productos Anua favoritos -- ampolla 80+, sérum 10+, tónico 77+ y crema 100+.",
+      ctaHref: "?marca=ANUA",
     },
     {
       imageCard: "assets/hero/hero-anua-100-serum-card.webp",
       imageAlt: "Anua 100+ PDRN: el sérum No.1 de Corea -- rutina con sérum, crema y discos iluminadores para una piel más firme e hidratada.",
+      ctaHref: "?q=anua+pdrn",
     },
     {
       imageCard: "assets/hero/hero-medicube-card.webp",
       imageAlt: "Medicube -- Trata. Cuida. Transforma. Limpiador en gel PDRN, sérum TXA Niacinamide 15 y sérum Deep Vita C.",
+      ctaHref: "?marca=Medicube",
+    },
+    {
+      imageCard: "assets/hero/hero-anua-txa-card.webp",
+      imageAlt: "Anua TXA: kit para una piel más luminosa y radiante -- mascarilla, sérum, tónico y almohadillas.",
+      ctaHref: "?q=anua+txa",
     },
     {
       imageCard: "assets/hero/hero-nida-skincare-card.webp",
       imageAlt: "El mejor skincare coreano: cremas, sérums y contorno de ojos NIDA.",
-    },
-    {
-      imageCard: "assets/hero/hero-regalo-labios-card.webp",
-      imageAlt: "Un regalo para ti, para consentirte: tinta Rom&nd Glasting Color, esencia de labios Torriden Solid In y tinta Amuse.",
-    },
-    {
-      imageCard: "assets/hero/hero-medicube-toner-card.webp",
-      imageAlt: "Elige tu tónico Medicube: luminosidad, calma o ilumina. ¿Cuál es para ti?",
-    },
-    {
-      imageCard: "assets/hero/hero-numbuzin-70-card.webp",
-      imageAlt: "Grandes ahorros para una piel más sana: hasta 70% de descuento en numbuzin.",
-    },
-    {
-      imageCard: "assets/hero/hero-torriden-cellmazing-card.webp",
-      imageAlt: "Torriden Cellmazing: rutina reafirmante con crema, contorno de ojos, ampolleta y mascarilla de gel.",
-    },
-    {
-      imageCard: "assets/hero/hero-pdrn-card.webp",
-      imageAlt: "PDRN: estimula la regeneración celular, repara la piel y mejora la elasticidad -- crema, sérum, mascarilla y esencia.",
+      ctaHref: "?marca=NIDA",
     },
   ],
 
@@ -634,6 +614,49 @@ function starIconHTML(filled, sizeClass = "w-3.5 h-3.5") {
    parámetro "sku" regresa el resumen de TODOS los productos con alguna
    reseña). */
 let reviewSummaries = new Map();
+let recentReviews = [];
+
+/* "Lo que dicen nuestras clientas" en la portada: reseñas recientes de 4
+   o 5 estrellas con comentario. Se oculta si todavía no hay. */
+function renderHomeReviews() {
+  const section = document.getElementById("home-reviews");
+  if (!section) return;
+  const items = recentReviews
+    .map((r) => ({ r, p: products.find((x) => x.id === r.sku) || products.find((x) => x.stockSku === r.sku) }))
+    .filter((x) => x.p);
+  section.classList.toggle("hidden", !items.length);
+  if (!items.length) return;
+  document.getElementById("home-reviews-row").innerHTML = items
+    .map(({ r, p }) => `<figure class="snap-start shrink-0 w-[80%] sm:w-[calc((100%_-_1.5rem)/3)] rounded-2xl border border-ink/10 bg-white p-4 flex flex-col gap-3">
+      <div class="flex items-center gap-0.5" aria-label="${r.rating} de 5 estrellas">${[1, 2, 3, 4, 5].map((n) => starIconHTML(n <= r.rating, "w-4 h-4")).join("")}</div>
+      <blockquote class="text-sm text-ink/85 leading-relaxed line-clamp-5">${escapeHtml(r.comment)}</blockquote>
+      <figcaption class="mt-auto flex items-center gap-3">
+        <button type="button" data-open-product="${escapeAttr(p.id)}" class="shrink-0 w-12 h-12 rounded-md bg-pill overflow-hidden"><img src="${escapeAttr(p.imagen || "")}" alt="" class="w-full h-full object-contain" loading="lazy" /></button>
+        <span class="min-w-0 text-xs"><b class="block text-ink">${escapeHtml(r.customerName)}</b>
+          <button type="button" data-open-product="${escapeAttr(p.id)}" class="block text-left text-ink/70 hover:underline truncate max-w-full">${escapeHtml(p.marca)} ${escapeHtml(splitBaseName(p).base)}</button></span>
+      </figcaption></figure>`)
+    .join("");
+}
+
+/* Dos entradas en la portada: comprar para revender (cajas, precio por
+   pieza, pedido mínimo) o para ti (Stock en México sin mínimo, quiz). */
+function renderShopPaths() {
+  const el = document.getElementById("shop-paths");
+  if (!el) return;
+  const hasStock = products.some((p) => p.enStock && p.disponible);
+  const min = CONFIG.MIN_ORDER_MXN ? formatPrice(CONFIG.MIN_ORDER_MXN) : "";
+  const card = (href, emoji, title, text, cls) => `<a href="${href}" class="group flex items-center gap-4 rounded-2xl ${cls} p-4 sm:p-5 hover:-translate-y-0.5 transition">
+      <span class="text-3xl sm:text-4xl" aria-hidden="true">${emoji}</span>
+      <span class="min-w-0 flex-1"><span class="block font-display text-lg text-ink">${title}</span><span class="block text-sm text-ink/75 mt-0.5">${text}</span></span>
+      <span class="text-ink/60 group-hover:text-ink text-xl" aria-hidden="true">›</span></a>`;
+  el.innerHTML = `<div class="grid gap-3 sm:grid-cols-2">
+      ${card("?ver=catalogo&pres=caja", "📦", "Compro para revender", `Cajas con precio por pieza para tu negocio.${min ? ` Pedido mínimo de ${min} en productos de Corea.` : ""}`, "bg-lilac/15 border border-lilac/40")}
+      ${hasStock
+        ? card("?ver=stock", "💗", "Compro para mí", "Stock en México: sin pedido mínimo y entrega inmediata.", "bg-blush/30 border border-rose/30")
+        : card("#skintype-section", "💗", "Compro para mí", "Descubre tu tipo de piel y los productos para ti.", "bg-blush/30 border border-rose/30")}
+    </div>
+    <p class="mt-3 text-xs text-ink/70">Los precios que ves son por transferencia. Con tarjeta (Mercado Pago) cuestan un poco más; los dos precios aparecen en la ficha de cada producto y en tu carrito.</p>`;
+}
 
 async function loadReviewSummaries() {
   try {
@@ -641,6 +664,7 @@ async function loadReviewSummaries() {
     if (!res.ok) return;
     const data = await res.json();
     reviewSummaries = new Map(Object.entries(data.summaries || {}));
+    recentReviews = Array.isArray(data.recent) ? data.recent : [];
     renderAll();
   } catch (err) {
     console.warn("No se pudieron cargar las reseñas:", err);
@@ -2062,8 +2086,8 @@ function closeMobileMenu() {
 function stockBadgeHTML(p) {
   if (!p.enStock) return "";
   return p.stockPiezas > 0
-    ? `<span class="inline-block w-fit text-[11px] font-medium px-1.5 py-px rounded border border-green-700/40 text-green-700">${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
-    : `<span class="inline-block w-fit text-[11px] font-medium px-1.5 py-px rounded border border-sale/40 text-sale">Agotado</span>`;
+    ? `<span class="inline-block w-fit text-xs font-medium px-1.5 py-px rounded border border-green-700/40 text-green-700">${p.stockPiezas} ${p.stockPiezas === 1 ? "pieza disponible" : "piezas disponibles"}</span>`
+    : `<span class="inline-block w-fit text-xs font-medium px-1.5 py-px rounded border border-sale/40 text-sale">Agotado</span>`;
 }
 
 /* Las cajas se distinguen a primera vista de la pieza individual:
@@ -2076,8 +2100,8 @@ function isCajaPresentacion(p) {
 function presentacionTagHTML(p) {
   if (!p.presentacion) return "";
   return isCajaPresentacion(p)
-    ? `<span class="inline-flex items-center gap-1 w-fit text-[11px] font-semibold px-2 py-0.5 rounded bg-lilac-band text-cream">📦 ${escapeHtml(p.presentacion)}</span>`
-    : `<span class="inline-block w-fit text-[11px] font-medium px-2 py-0.5 rounded bg-ink/[0.06] text-ink/70">${escapeHtml(p.presentacion)}</span>`;
+    ? `<span class="inline-flex items-center gap-1 w-fit text-xs font-semibold px-2 py-0.5 rounded bg-lilac-band text-cream">📦 ${escapeHtml(p.presentacion)}</span>`
+    : `<span class="inline-block w-fit text-xs font-medium px-2 py-0.5 rounded bg-ink/[0.06] text-ink/75">${escapeHtml(p.presentacion)}</span>`;
 }
 
 function productCardHTML(p, { rank } = {}) {
@@ -2121,7 +2145,7 @@ function productCardHTML(p, { rank } = {}) {
           <div class="leading-tight tabular-nums">
             <span data-card-price class="font-bold text-[15px] text-ink block">${formatPrice(p.precio)}</span>
             <span data-card-unit>${boxUnitPriceHTML(p)}</span>
-            <span data-card-tarjeta>${cardPriceNoteHTML(p)}</span>
+            <span data-card-tarjeta></span>
           </div>
           ${productReviewSummaryHTML(p)}
           <div class="flex flex-wrap gap-1 mt-1.5 empty:hidden">
@@ -2147,7 +2171,7 @@ function productCardHTML(p, { rank } = {}) {
 }
 
 function agotadoBadgeHTML() {
-  return `<span class="bg-ink/85 text-cream text-[11px] font-semibold px-2 py-0.5 rounded-sm">Agotado</span>`;
+  return `<span class="bg-ink/85 text-cream text-xs font-semibold px-2 py-0.5 rounded-sm">Agotado</span>`;
 }
 
 /* Agrupa variantes de tono/color o tipo/aroma del mismo producto en una
@@ -2234,7 +2258,7 @@ function wireVariantSelectors(container) {
       if (unitEl) unitEl.innerHTML = boxUnitPriceHTML(variant);
 
       const tarjetaEl = card.querySelector("[data-card-tarjeta]");
-      if (tarjetaEl) tarjetaEl.innerHTML = cardPriceNoteHTML(variant);
+      if (tarjetaEl) tarjetaEl.innerHTML = "";
 
       const badgeEl = card.querySelector("[data-card-badge]");
       if (badgeEl) badgeEl.innerHTML = variant.disponible ? "" : agotadoBadgeHTML();
@@ -2416,12 +2440,16 @@ async function loadProductInfo(p) {
   const sku = p.stockSku || p.id;
   if (productInfoCache.has(sku) || p.descripcion) return;
   productInfoCache.set(sku, null);
-  try {
-    const res = await fetch(`/.netlify/functions/product-page?sku=${encodeURIComponent(sku)}&format=json`);
-    productInfoCache.set(sku, res.ok ? await res.json() : {});
-  } catch (err) {
-    productInfoCache.set(sku, {});
+  let info = {};
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`/.netlify/functions/product-page?sku=${encodeURIComponent(sku)}&format=json`);
+      if (res.status === 404) break;
+      if (res.ok) { info = await res.json(); break; }
+    } catch (err) { /* se reintenta una vez */ }
+    await sleep(1200);
   }
+  productInfoCache.set(sku, info);
   if (sheetProductId === p.id) renderProductSheet(p);
 }
 
@@ -3237,7 +3265,7 @@ function showQuizResult(type) {
    ====================================================================== */
 function renderPromoBanner() {
   const promo = CONFIG.PROMO_BANNER;
-  if (!promo) return;
+  if (!promo || !document.getElementById("promo-title")) return;
   document.getElementById("promo-title").textContent = promo.title || "";
   document.getElementById("promo-subtitle").textContent = promo.subtitle || "";
   const cta = document.getElementById("promo-cta");
@@ -3656,6 +3684,7 @@ function listingControlsHTML(key, total) {
   // de Best Seller) en vez de 4 renglones de filtros.
   return `<div class="flex items-center gap-2 overflow-x-auto -mx-4 px-4 pb-1 sm:mx-0 sm:px-0 sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">${parts.join("")}
       ${active ? `<button type="button" data-lf-clear class="tap h-9 px-3 text-[13px] text-ink/75 underline">Quitar filtros</button>` : ""}
+      <button type="button" data-lf-download class="tap h-9 px-3 rounded-full border border-ink/15 bg-white text-[13px] text-ink hover:bg-ink/5" title="Descarga esta lista (con los filtros que elegiste) para abrirla en Excel">⬇️ Lista de precios</button>
     </div>
     <p class="mt-2 text-[13px] text-ink/70 tabular-nums" data-lcount>${total.toLocaleString("es-MX")} ${total === 1 ? "producto" : "productos"} · Precios por transferencia</p>`;
 }
@@ -3679,6 +3708,10 @@ function listingContainers(key) {
       renderListing(key);
     });
     controls.addEventListener("click", (e) => {
+      if (e.target.closest("[data-lf-download]")) {
+        downloadPriceList(key);
+        return;
+      }
       if (!e.target.closest("[data-lf-clear]")) return;
       listingState[key].filters = emptyListingFilters();
       listingState[key].shown = LISTING_PAGE;
@@ -3699,6 +3732,52 @@ function listingContainers(key) {
     });
   }
   return { grid, controls, more };
+}
+
+/* Lista de precios en CSV (abre en Excel) con lo que se ve en ese
+   listado, cada tono y presentación en su propio renglón -- para que las
+   revendedoras la compartan con sus clientas. */
+function downloadPriceList(key) {
+  const st = listingState[key];
+  if (!st || !st.items) return;
+  const cell = (v) => {
+    const t = String(v ?? "");
+    return /[",\n\r;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const rows = [["Marca", "Producto", "Presentación", "Capacidad", "Precio transferencia (MXN)", "Precio tarjeta (MXN)", "Precio por pieza (MXN)", "Disponible", "Link"]];
+  const seen = new Set();
+  st.items.forEach((item) => {
+    const entries = (item.presKey && presClusters.get(item.presKey)) || [item];
+    entries.forEach((entry) => {
+      const prods = entry.variants ? entry.variants.map((v) => v.product) : [entry];
+      prods.forEach((p) => {
+        if (seen.has(p.id)) return;
+        seen.add(p.id);
+        const n = /Caja con (\d+)/i.exec(p.presentacion || "");
+        rows.push([
+          p.marca || "",
+          p.nombre || "",
+          p.presentacion || "Pieza individual",
+          p.capacidad || "",
+          (p.precio || 0).toFixed(2),
+          (p.precioTarjeta || p.precio || 0).toFixed(2),
+          n ? (p.precio / Number(n[1])).toFixed(2) : (p.precio || 0).toFixed(2),
+          p.disponible && !(p.enStock && p.stockPiezas <= 0) ? "Sí" : "No",
+          productShareUrl(p),
+        ]);
+      });
+    });
+  });
+  const csv = "\ufeff" + rows.map((r) => r.map(cell).join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  const name = normalizeForSearch(st.id === "all" ? "catalogo" : st.id || key).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || key;
+  a.href = URL.createObjectURL(blob);
+  a.download = `alpacca-precios-${name}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  announce(`Se descargó la lista de precios con ${rows.length - 1} productos.`);
 }
 
 let listingObserver = null;
@@ -3821,7 +3900,14 @@ function openRouteView(params, restore) {
   else if (params.get("categoria")) showCategoryProducts(params.get("categoria"), { restore });
   else if (params.get("pais")) showCountryProducts(params.get("pais"), { restore });
   else if (params.get("preocupacion")) showConcernProducts(params.get("preocupacion"), { restore });
-  else if (ver === "catalogo") openFullCatalog({ restore });
+  else if (ver === "catalogo") {
+    openFullCatalog({ restore });
+    const pres = params.get("pres");
+    if (pres && listingState.catalog && listingState.catalog.filters.pres !== pres) {
+      listingState.catalog.filters.pres = pres === "caja" || pres === "pieza" ? pres : "";
+      renderListing("catalog");
+    }
+  }
   else if (ver === "stock") openStockSection({ restore });
   else if (ver === "favoritos") openWishlistSection();
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
@@ -3850,6 +3936,23 @@ function applyInitialRoute() {
   if ([...params.keys()].length) applyRoute({ restore: false });
 }
 
+/* Links internos tipo "?marca=ANUA" (banners, entradas de la portada):
+   se abren dentro de la tienda, sin recargar la página. */
+document.addEventListener("click", (e) => {
+  const a = e.target.closest('a[href^="?"]');
+  if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+  if (!products.length) return;
+  e.preventDefault();
+  const params = new URLSearchParams(a.getAttribute("href").slice(1));
+  openRouteView(params, false);
+  // La vista ya agregó su dirección; si traía filtros (ej. &pres=caja) se
+  // dejan en la dirección para que "atrás" y compartir los conserven.
+  try {
+    history.replaceState(history.state, "", `${location.pathname}?${params.toString()}`);
+    currentRouteKey = routeKeyFromParams(params);
+  } catch (err) { /* nada */ }
+});
+
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 window.addEventListener("popstate", (e) => {
   applyRoute({ restore: true, scrollY: e.state && e.state.scrollY != null ? e.state.scrollY : null });
@@ -3866,8 +3969,11 @@ function renderFaqMinOrder() {
 }
 
 function renderBenefits() {
+  // La franja de 4 íconos se juntó con "¿Por qué elegir Alpacca?".
+  const grid = document.getElementById("benefits-grid");
+  if (!grid) return;
   const items = CONFIG.BENEFITS || [];
-  document.getElementById("benefits-grid").innerHTML = items
+  grid.innerHTML = items
     .map(
       (b) => `<div class="text-center flex flex-col items-center">
         <div class="mb-2">${benefitIconHTML(b.icon)}</div>
@@ -3900,6 +4006,8 @@ function renderAll() {
   renderConcernTiles();
   renderSkinTypeSection();
   renderBrands();
+  renderShopPaths();
+  renderHomeReviews();
   renderQuickIcons();
   renderMobileMenu();
   renderCart();
@@ -5180,6 +5288,20 @@ function initWhatsAppFloat() {
     btn.target = "_blank";
     btn.rel = "noopener";
   });
+
+  // En celular se esconde mientras bajas (para no tapar "Agregar" de las
+  // tarjetas) y vuelve a salir en cuanto subes o te detienes arriba.
+  const float = document.getElementById("whatsapp-float");
+  if (float) {
+    let lastY = window.scrollY;
+    window.addEventListener("scroll", () => {
+      const y = window.scrollY;
+      const away = window.innerWidth < 640 && y > lastY + 4 && y > 300;
+      if (away) float.classList.add("wa-away");
+      else if (y < lastY - 4 || y < 300) float.classList.remove("wa-away");
+      lastY = y;
+    }, { passive: true });
+  }
 }
 
 /* ======================================================================
