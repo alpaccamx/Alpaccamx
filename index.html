@@ -30,7 +30,7 @@
      sin esperar a que corra app.js (que es quien pinta el banner).
      OJO: si cambias el PRIMER slide de CONFIG.HERO_SLIDES en app.js,
      cambia también esta ruta (la primera tarjeta con "imageCard"). -->
-<link rel="preload" as="image" href="./assets/hero/hero-anua-txa-card.webp" fetchpriority="high">
+<link rel="preload" as="image" href="./assets/hero/hero-anua-oferta-30-card.webp" fetchpriority="high">
 <link rel="preload" as="font" type="font/woff2" href="./fonts/ReadyToParty-latin.woff2" crossorigin>
 </head>
 <body class="bg-cream text-ink font-body antialiased">
@@ -256,6 +256,9 @@
   <div id="quick-icons" class="flex gap-2 sm:gap-4 overflow-x-auto px-4 sm:px-6 lg:px-8 sm:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"></div>
 </section>
 
+<!-- Dos entradas: comprar para revender o para ti -->
+<section id="shop-paths" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8"></section>
+
 <!-- Oferta por tiempo limitado -->
 <section id="time-deal-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 hidden">
   <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-4">
@@ -401,13 +404,10 @@
   </div>
 </section>
 
-<!-- Banner promocional -->
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14">
-  <div class="rounded-2xl bg-pill text-ink px-6 sm:px-12 py-10 sm:py-14 text-center">
-    <h2 id="promo-title" class="font-display text-2xl sm:text-4xl"></h2>
-    <p id="promo-subtitle" class="mt-2 text-ink/70 max-w-lg mx-auto"></p>
-    <a id="promo-cta" href="#" class="inline-block mt-6 rounded-md bg-ink text-cream font-semibold px-6 py-3 hover:bg-ink/85 transition active:scale-[0.97]"></a>
-  </div>
+<!-- Lo que dicen las clientas (se llena con las reseñas recientes; oculto si no hay) -->
+<section id="home-reviews" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
+  <h2 class="font-display text-2xl sm:text-3xl text-ink mb-5">Lo que dicen nuestras clientas</h2>
+  <div id="home-reviews-row" class="flex gap-3 overflow-x-auto snap-x -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"></div>
 </section>
 
 <!-- Por qué elegir Alpacca -->
@@ -593,12 +593,7 @@
 <!-- Status (loading / error) -->
 
 
-<!-- Beneficios -->
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
-  <div id="benefits-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-6">
-    <!-- beneficios injected by JS -->
-  </div>
-</section>
+
 </div>
 </main>
 
@@ -647,7 +642,7 @@
 
 <!-- Floating WhatsApp contact -->
 <a id="whatsapp-float" href="#" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp (se abre en una pestaña nueva)"
-  class="fixed bottom-5 right-5 z-30 inline-flex items-center justify-center rounded-full bg-[#25D366] text-white w-14 h-14 shadow-lg hover:scale-105 transition">
+  class="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-30 inline-flex items-center justify-center rounded-full bg-[#25D366] text-white w-12 h-12 sm:w-14 sm:h-14 shadow-lg hover:scale-105 transition duration-300 [&.wa-away]:translate-y-24 [&.wa-away]:opacity-0">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="currentColor" aria-hidden="true"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm0 18.2h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.55 3.7-8.24 8.26-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.55-3.71 8.23-8.25 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
 </a>
 
