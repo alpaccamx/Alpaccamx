@@ -46,8 +46,17 @@ const PRIVATE_ORDER_FIELDS = [
   "stockBlobAppliedAt", "sheetAppliedAt", "notifiedAt", "paymentId", "deliveryFollowupSentAt",
 ];
 
+const STAGE_ORDER = ["pagado", "pedido_abw", "llego", "enviado", "entregado"];
+
 function publicOrder(o) {
   const rest = { ...o };
+  // Misma regla que el admin (orderStage en admin.js): si Mae anotó el
+  // número de compra con el proveedor, el pedido ya va en "Pedido a
+  // Corea" aunque no haya tocado el botón de etapa. Se calcula aquí
+  // porque ese número no se le manda a la clienta.
+  if (o.status === "paid" && o.supplierOrderNumber && STAGE_ORDER.indexOf(o.stage) < 1) {
+    rest.stage = "pedido_abw";
+  }
   PRIVATE_ORDER_FIELDS.forEach((k) => delete rest[k]);
   return {
     ...rest,
