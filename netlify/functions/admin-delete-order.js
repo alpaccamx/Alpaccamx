@@ -1,6 +1,7 @@
-// Borra permanentemente un pedido del historial de /admin.html, para que
-// los pedidos cancelados o pagados que ya no sirven (ej. pruebas) no
-// estorben en la lista.
+// Quita un pedido del historial de /admin.html, para que los pedidos
+// cancelados o pagados que ya no sirven (ej. pruebas) no estorben en la
+// lista. No se borra de inmediato: se va a la papelera 30 días (ver
+// admin-trash.js), por si se borró por error.
 //
 // Por seguridad, solo borra pedidos que YA están en estado "cancelled" o
 // "paid" -- no se puede borrar un pedido pendiente ni fallido desde aquí
@@ -10,7 +11,7 @@
 //
 // Body esperado (JSON): { orderId }
 
-const { deleteOrder } = require("./lib/blob-store.js");
+const { trashOrder } = require("./lib/blob-store.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
@@ -39,7 +40,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const result = await deleteOrder(orderId, { onlyIfStatus: ["cancelled", "paid"] });
+    const result = await trashOrder(orderId, { onlyIfStatus: ["cancelled", "paid"] });
     if (!result.deleted) {
       if (result.reason === "not_found") return jsonResponse(404, { error: "Pedido no encontrado." });
       return jsonResponse(400, { error: "Solo se pueden borrar pedidos cancelados o pagados." });

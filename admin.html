@@ -384,6 +384,64 @@
   .abw-actions { display: flex; flex-direction: column; gap: 10px; }
   #abw-view input[type="text"] { padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 15px; }
   @media (max-width: 699px) { .toolbar { grid-template-columns: repeat(6, 1fr); } .nav-btn { font-size: 11px; } }
+
+  /* ===== Fase 3: ganancia, clientas, catálogo, ajustes, papelera, avisos ===== */
+  .profit-table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .profit-table th, .profit-table td { padding: 8px 6px; border-bottom: 1px solid #f1eaee; text-align: right; }
+  .profit-table th:first-child, .profit-table td:first-child { text-align: left; }
+  .profit-table th { font-size: 12px; color: #5f5866; font-weight: 700; }
+  .profit-table tr.now td { font-weight: 800; }
+  .profit-table td.g { color: #1f7a4d; font-weight: 800; }
+  .profit-note { font-size: 13px; color: #5f5866; margin: 10px 0 0; }
+  .profit-box { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #eef8f2; font-size: 14px; color: #1f5f3d; }
+  .profit-box b { font-size: 16px; }
+  .more-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+  .more-btn { position: relative; display: flex; align-items: center; gap: 12px; text-align: left; background: #fff; color: #2b2b2b; border: 1px solid #f0e6ec; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 700; }
+  .more-btn .ico { font-size: 26px; }
+  .more-btn small { display: block; font-weight: 500; font-size: 13px; color: #5f5866; margin-top: 2px; }
+  .more-btn .nav-badge { margin-left: auto; }
+  .more-btn.on { background: #eef8f2; border-color: #bfe5cf; }
+  #clients-search, #catalog-search { width: 100%; padding: 13px 14px; border-radius: 10px; border: 1px solid #ddd; font-size: 15px; }
+  .client-row { background: #fff; border: 1px solid #f0e6ec; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .client-row .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .client-row .nm { font-weight: 800; font-size: 16px; }
+  .client-row .sp { font-weight: 800; color: #c4466e; white-space: nowrap; }
+  .client-row .meta { font-size: 13px; color: #5f5866; }
+  .client-row .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .client-row .acts a, .client-row .acts button { font-size: 14px; padding: 8px 12px; border-radius: 999px; text-decoration: none; font-weight: 700; }
+  .client-row .acts a.wa { background: #dcf8e8; color: #17803d; }
+  .chip-vip { background: #fff1d8; color: #8a5a00; }
+  #clients-list, #catalog-list, #trash-list, #settings-list { display: flex; flex-direction: column; gap: 8px; }
+  .cat-row { display: flex; gap: 10px; align-items: center; background: #fff; border: 1px solid #f0e6ec; border-radius: 14px; padding: 8px 10px; text-align: left; width: 100%; color: #2b2b2b; font-weight: 400; }
+  .cat-row img { width: 52px; height: 52px; object-fit: contain; border-radius: 8px; background: #faf6f8; flex: none; }
+  .cat-row .info { flex: 1; min-width: 0; }
+  .cat-row .info b { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cat-row .info small { display: block; font-size: 13px; color: #5f5866; }
+  .cat-row .pr { text-align: right; font-weight: 800; white-space: nowrap; font-size: 15px; }
+  .cat-row .pr small { display: block; font-weight: 700; font-size: 12px; }
+  .cat-row .pr .si { color: #1f7a4d; } .cat-row .pr .no { color: #b3372f; }
+  .cat-editor { position: fixed; inset: 0; z-index: 1000; background: rgba(40, 20, 30, .45); display: flex; align-items: flex-end; justify-content: center; }
+  .cat-editor .sheet { background: #fff; width: 100%; max-width: 640px; max-height: 92vh; overflow: auto; border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 10px; }
+  @media (min-width: 700px) { .cat-editor { align-items: center; } .cat-editor .sheet { border-radius: 18px; } }
+  .cat-editor .sheet h2 { margin: 0; font-size: 18px; }
+  .cat-editor .head { display: flex; gap: 12px; align-items: center; }
+  .cat-editor .head img { width: 72px; height: 72px; object-fit: contain; border-radius: 10px; background: #faf6f8; flex: none; }
+  .cat-editor input[type="text"], .cat-editor input[type="number"], .cat-editor textarea, .cat-editor select,
+  #settings-list input { padding: 11px 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 15px; font-family: inherit; }
+  .cat-editor .calc { background: #faf6f8; border-radius: 10px; padding: 10px 12px; font-size: 14px; color: #4a4350; }
+  .cat-editor .switch { display: flex; gap: 6px; }
+  .cat-editor .switch button { flex: 1; padding: 12px; border-radius: 10px; background: #f3eef1; color: #4a4350; font-size: 15px; }
+  .cat-editor .switch button.on-si { background: #2fa968; color: #fff; }
+  .cat-editor .switch button.on-no { background: #b3372f; color: #fff; }
+  .set-row { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #f0e6ec; border-radius: 12px; padding: 10px 12px; }
+  .set-row span { flex: 1; font-weight: 700; font-size: 15px; }
+  .set-row input { width: 120px; text-align: right; }
+  .trash-row { background: #fff; border: 1px solid #f0e6ec; border-radius: 14px; padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .trash-row .who { flex: 1 1 200px; }
+  .trash-row .who small { display: block; color: #5f5866; font-size: 13px; }
+  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 96px; z-index: 1100; background: #2b2b2b; color: #fff; border-radius: 14px; padding: 12px 16px; font-size: 15px; box-shadow: 0 6px 20px rgba(0,0,0,.25); display: flex; gap: 12px; align-items: center; max-width: calc(100% - 32px); }
+  .toast button { background: #c4466e; color: #fff; border-radius: 999px; padding: 8px 12px; font-size: 14px; white-space: nowrap; }
+  @media (min-width: 700px) { .toast { bottom: 24px; } }
 </style>
 </head>
 <body>
@@ -403,10 +461,10 @@
   <nav class="toolbar" id="toolbar" aria-label="Secciones del admin" style="display:none;">
     <button type="button" class="nav-btn active" data-view="inicio" aria-current="page"><span class="nav-ico" aria-hidden="true">🏠</span><span class="nav-txt">Inicio</span></button>
     <button type="button" class="nav-btn" data-view="pedidos"><span class="nav-ico" aria-hidden="true">🧾</span><span class="nav-txt">Pedidos</span></button>
-    <button type="button" class="nav-btn" id="inventory-toggle" data-view="inventario"><span class="nav-ico" aria-hidden="true">📦</span><span class="nav-txt">Inventario</span></button>
-    <button type="button" class="nav-btn" id="restock-requests-toggle" data-view="restock"><span class="nav-ico" aria-hidden="true">🔔</span><span class="nav-txt">Restock</span><span class="nav-badge" id="restock-requests-badge" style="display:none;"></span></button>
-    <button type="button" class="nav-btn" id="reviews-toggle" data-view="resenas"><span class="nav-ico" aria-hidden="true">⭐</span><span class="nav-txt">Reseñas</span></button>
-    <button type="button" class="nav-btn" id="usa-orders-toggle" data-view="usa"><span class="nav-ico" aria-hidden="true">🛍️</span><span class="nav-txt">USA</span><span class="nav-badge" id="usa-orders-badge" style="display:none;"></span></button>
+    <button type="button" class="nav-btn" id="clients-toggle" data-view="clientas"><span class="nav-ico" aria-hidden="true">👩</span><span class="nav-txt">Clientas</span></button>
+    <button type="button" class="nav-btn" id="catalog-toggle" data-view="catalogo"><span class="nav-ico" aria-hidden="true">🏷️</span><span class="nav-txt">Catálogo</span></button>
+    <button type="button" class="nav-btn" id="inventory-toggle" data-view="inventario"><span class="nav-ico" aria-hidden="true">📦</span><span class="nav-txt">Stock MX</span></button>
+    <button type="button" class="nav-btn" id="more-toggle" data-view="mas"><span class="nav-ico" aria-hidden="true">☰</span><span class="nav-txt">Más</span><span class="nav-badge" id="more-badge" style="display:none;"></span></button>
   </nav>
 
   <!-- Inicio: lo que hay que hacer hoy + ventas -->
@@ -414,8 +472,61 @@
     <p id="home-hello" class="home-hello"></p>
     <div class="home-todo" id="home-todo"></div>
     <div class="home-card" id="home-sales"></div>
+    <div class="home-card" id="home-profit"></div>
     <div class="home-card" id="home-top"></div>
   </div>
+
+  <!-- Más: las secciones que se usan menos -->
+  <div id="more-view" class="more-grid" style="display:none;">
+    <button type="button" class="more-btn" data-goto="restock"><span class="ico" aria-hidden="true">🔔</span><span>Avisos de restock<small>Clientas esperando un producto</small></span><span class="nav-badge" id="restock-requests-badge" style="display:none;"></span></button>
+    <button type="button" class="more-btn" data-goto="resenas"><span class="ico" aria-hidden="true">⭐</span><span>Reseñas<small>Ver y borrar reseñas</small></span></button>
+    <button type="button" class="more-btn" data-goto="usa"><span class="ico" aria-hidden="true">🛍️</span><span>Encargos USA<small>Personal shopper</small></span><span class="nav-badge" id="usa-orders-badge" style="display:none;"></span></button>
+    <button type="button" class="more-btn" data-goto="ajustes"><span class="ico" aria-hidden="true">⚙️</span><span>Ajustes<small>Tipo de cambio, comisiones, descuento</small></span></button>
+    <button type="button" class="more-btn" data-goto="papelera"><span class="ico" aria-hidden="true">🗑️</span><span>Papelera<small>Pedidos borrados (30 días)</small></span></button>
+    <button type="button" class="more-btn" id="notify-toggle"><span class="ico" aria-hidden="true">📣</span><span id="notify-label">Avisos de pedidos nuevos<small>Sonido y notificación mientras el admin está abierto</small></span></button>
+  </div>
+
+  <!-- Clientas: todas las que te han comprado -->
+  <div id="clients-view" class="filters" style="display:none;">
+    <p class="abw-intro" id="clients-summary"></p>
+    <input id="clients-search" type="text" placeholder="🔍 Busca por nombre, teléfono, correo o ciudad" />
+    <div class="tabs" id="clients-sort">
+      <button aria-pressed="true" class="tab active" data-sort="recent">Más recientes</button>
+      <button aria-pressed="false" class="tab" data-sort="spent">Más compras</button>
+      <button aria-pressed="false" class="tab" data-sort="name">Nombre</button>
+    </div>
+    <div id="clients-list"></div>
+  </div>
+
+  <!-- Catálogo: buscar un producto y editarlo directo en el Sheet -->
+  <div id="catalog-view" class="filters" style="display:none;">
+    <details class="help"><summary>¿Cómo funciona?</summary><p>Busca cualquier producto del catálogo y cambia su precio en dólares, si está disponible, su nombre, foto o descripción. Se guarda directo en tu Google Sheet. El precio en pesos se calcula solo a partir del "Precio USD". La tienda tarda unos 5 minutos en mostrar el cambio.</p></details>
+    <input id="catalog-search" type="text" placeholder="🔍 Busca por nombre, marca o SKU" />
+    <div class="tabs" id="catalog-filter">
+      <button aria-pressed="true" class="tab active" data-cf="">Todos</button>
+      <button aria-pressed="false" class="tab" data-cf="SI">✅ Disponibles</button>
+      <button aria-pressed="false" class="tab" data-cf="NO">⛔ No disponibles</button>
+    </div>
+    <p id="catalog-count" class="abw-intro"></p>
+    <div id="catalog-list"></div>
+    <div id="catalog-editor" class="cat-editor" style="display:none;"></div>
+  </div>
+
+  <!-- Ajustes: pestaña Config del Sheet -->
+  <div id="settings-view" class="filters" style="display:none;">
+    <details class="help" open><summary>¿Cómo funciona?</summary><p>Son los mismos valores de la pestaña "Config" de tu Google Sheet. Al cambiar el tipo de cambio o las comisiones, TODOS los precios del catálogo se recalculan solos. La tienda tarda unos 5 minutos en mostrarlo.</p></details>
+    <div id="settings-list"></div>
+    <div class="guide-error" id="settings-error"></div>
+    <div class="filters-row"><button type="button" class="btn-primary" id="settings-save" style="display:none;">Guardar ajustes</button></div>
+  </div>
+
+  <!-- Papelera -->
+  <div id="trash-view" class="filters" style="display:none;">
+    <p class="abw-intro">Los pedidos que borras se quedan aquí 30 días por si te equivocaste. Después se borran solos.</p>
+    <div id="trash-list"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" style="display:none;"></div>
 
   <!-- Compras ABW: todo lo que hay que pedir, junto -->
   <div id="abw-view" class="filters" style="display:none;">

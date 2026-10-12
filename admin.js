@@ -48,6 +48,9 @@
   const CONFIG_CSV_URL_FOR_CARD_PCT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=442348645&single=true&output=csv";
   const CARD_PCT_KEY_ALIASES = ["descuentoportransferencia", "descuentotransferencia", "descuentoportransferenciaporciento"];
   let cardSurchargePct = null;
+  // Tipo de cambio, comisión y arancel de Config: para estimar el costo y
+  // la ganancia de cada pedido, y el precio al editar el catálogo.
+  const pricingConfig = { exchangeRate: 0, comisionPct: 0, arancelPct: 0 };
   // true en cuanto la usuaria escribe algo ELLA MISMA en "Precio tarjeta"
   // -- a partir de ahí se deja de autocompletar ese campo, para no pisar
   // un precio que decidió poner a mano. Se resetea al abrir/limpiar el
@@ -61,11 +64,16 @@
       const rows = parseCSVForMarca(await res.text());
       for (const r of rows) {
         const key = (r[0] || "").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
-        if (CARD_PCT_KEY_ALIASES.includes(key)) {
-          const num = parseFloat((r[1] || "").replace(/[^0-9.,-]/g, "").replace(",", "."));
-          if (!Number.isNaN(num)) cardSurchargePct = num;
-        }
+        const num = parseFloat((r[1] || "").replace(/[^0-9.,-]/g, "").replace(",", "."));
+        if (Number.isNaN(num)) continue;
+        if (CARD_PCT_KEY_ALIASES.includes(key)) cardSurchargePct = num;
+        if (["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"].includes(key)) pricingConfig.exchangeRate = num;
+        if (key.startsWith("comisionkbeauty")) pricingConfig.comisionPct = num;
+        if (key.startsWith("arancel")) pricingConfig.arancelPct = num;
       }
+      if (currentView === "inicio") renderHome();
+      // Para que las tarjetas de pedido ya muestren la ganancia.
+      if (allOrders.length && currentView !== "pedidos") applyFilters();
     } catch (err) {
       // Sin esto, el campo "Precio tarjeta" simplemente se sigue llenando
       // a mano como antes -- no rompe nada.
@@ -89,6 +97,18 @@
   // editItemRowHTML / initProductAutocomplete más abajo) -- se arma con
   // los mismos dos CSV de arriba, sin pedir nada extra por separado.
   let productSearchList = [];
+  // Renglones del catálogo principal (para la sección Catálogo).
+  let catalogRows = [];
+
+  /* "1,234.50" -> "1234.50" y "56,32" -> "56.32" (igual que app.js). */
+  function normalizeMoneyText(raw) {
+    const cleaned = String(raw || "").replace(/[^0-9.,]/g, "");
+    const lastDot = cleaned.lastIndexOf(".");
+    const lastComma = cleaned.lastIndexOf(",");
+    if (lastDot === -1 && lastComma === -1) return cleaned;
+    if (lastComma > lastDot) return cleaned.replace(/\./g, "").replace(",", ".");
+    return cleaned.replace(/,/g, "");
+  }
 
   function normalizeForSearch(s) {
     return (s || "").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -121,6 +141,12 @@
     const iPrecio = headers.findIndex((h) => ["precio", "precio mxn", "price"].includes(h));
     const iPeso = headers.findIndex((h) => ["peso", "peso (kg)", "peso kg", "peso kg (opcional)"].includes(h));
     const iNombre = headers.findIndex((h) => ["nombre", "producto", "nombre (solo si es producto nuevo)"].includes(h));
+    const iUsd = headers.indexOf("precio usd");
+    const iCostoMxn = headers.indexOf("costo mxn");
+    const iTarjeta = headers.indexOf("precio tarjeta");
+    const iDisp = headers.indexOf("disponible");
+    const iImg = headers.indexOf("imagen");
+    const iPres = headers.indexOf("presentacion");
     if (iSku < 0) return;
     rows.slice(1).forEach((r) => {
       const sku = (r[iSku] || "").trim();
@@ -131,11 +157,27 @@
       const pesoRaw = iPeso >= 0 ? (r[iPeso] || "").replace(/[^0-9.,]/g, "").replace(",", ".") : "";
       const peso = parseFloat(pesoRaw) || 0;
       const prev = skuToInfo.get(sku) || {};
+      const num = (i) => (i >= 0 ? parseFloat(normalizeMoneyText(r[i])) || 0 : 0);
       skuToInfo.set(sku, {
         marca: marca || prev.marca || "",
         precio: precio || prev.precio || 0,
         peso: peso || prev.peso || 0,
+        costoUSD: prev.costoUSD || num(iUsd),
+        costoMXN: prev.costoMXN || num(iCostoMxn),
       });
+      if (!isStock && iNombre >= 0 && (r[iNombre] || "").trim()) {
+        catalogRows.push({
+          sku,
+          nombre: (r[iNombre] || "").trim(),
+          marca,
+          precioUSD: num(iUsd),
+          precio,
+          precioTarjeta: num(iTarjeta),
+          disponible: iDisp >= 0 ? ((r[iDisp] || "").trim().toUpperCase() || "SI") : "SI",
+          imagen: iImg >= 0 ? (r[iImg] || "").trim() : "",
+          presentacion: iPres >= 0 ? (r[iPres] || "").trim() : "",
+        });
+      }
 
       const nombre = iNombre >= 0 ? (r[iNombre] || "").trim() : "";
       if (nombre) {
@@ -153,6 +195,7 @@
       fetch(STOCK_CSV_URL_FOR_MARCA, { cache: "no-store" }).then((r) => (r.ok ? r.text() : null)),
     ]);
     productSearchList = [];
+    catalogRows = [];
     if (results[0].status === "fulfilled" && results[0].value) addSkuInfoFromCSV(results[0].value, { isStock: false });
     if (results[1].status === "fulfilled" && results[1].value) addSkuInfoFromCSV(results[1].value, { isStock: true });
     // Ya con el mapa listo, se vuelve a pintar lo que esté en pantalla
@@ -161,6 +204,8 @@
     if (allOrders.length) {
       applyFilters();
     }
+    if (currentView === "inicio") renderHome();
+    if (currentView === "catalogo") renderCatalogList();
   }
 
   const STATUS_TAB_COLORS = {
@@ -219,8 +264,11 @@
       }
       setStatus("");
       allOrders = data.orders || [];
+      rememberOrders(allOrders);
       filtersEl.style.display = "flex";
       applyFilters();
+      if (currentView === "inicio") renderHome();
+      if (currentView === "clientas") renderClients();
     } catch (err) {
       setStatus("No se pudo conectar con el servidor.");
     }
@@ -389,8 +437,8 @@
   async function deleteOrder(orderId) {
     const order = allOrders.find((o) => o.id === orderId);
     const warning = order && order.status === "paid"
-      ? "⚠️ Este pedido está PAGADO. ¿Seguro que lo quieres borrar? No se puede deshacer."
-      : "¿Borrar este pedido cancelado? No se puede deshacer.";
+      ? "⚠️ Este pedido está PAGADO. ¿Seguro que lo quieres mandar a la papelera? Lo puedes recuperar durante 30 días en Más → Papelera."
+      : "¿Mandar este pedido cancelado a la papelera? Lo puedes recuperar durante 30 días en Más → Papelera.";
     if (!window.confirm(warning)) return;
     setStatus("Borrando...");
     try {
@@ -405,7 +453,9 @@
         return;
       }
       setStatus("");
+      trashLoaded = false;
       fetchOrders();
+      showToast("🗑️ Pedido enviado a la papelera.", "Deshacer", () => restoreFromTrash(orderId));
     } catch (err) {
       setStatus("No se pudo conectar con el servidor.");
     }
@@ -1489,7 +1539,7 @@ ${itemLines}
     // Borrar no se puede deshacer: va escondido en "Más opciones" (y pide
     // confirmación), no como botón rojo grande al alcance del dedo.
     const deleteBtn = (o.status === "cancelled" || o.status === "paid")
-      ? `<details class="more-opts"><summary>⋯ Más opciones</summary>${stageSelectHTML(o)}<div class="actions"><button type="button" class="btn-danger" data-delete="${o.id}">🗑️ Borrar este pedido</button></div></details>`
+      ? `<details class="more-opts"><summary>⋯ Más opciones</summary>${stageSelectHTML(o)}<div class="actions"><button type="button" class="btn-danger" data-delete="${o.id}">🗑️ Mandar a la papelera</button></div></details>`
       : "";
     // Los pendientes ya traen su propio panel de edición en pendingCardHTML
     // -- si también se pintara aquí, habría dos elementos con el mismo id
@@ -1511,6 +1561,7 @@ ${itemLines}
           <ul>${itemsListHTML(o)}</ul>
           ${totalsBreakdownHTML(o)}
           <div class="total">${formatPrice(o.grandTotal)}</div>
+          ${profitHTML(o)}
           ${customerHTML(o)}
           ${proofLinkHTML(o)}
           ${nextStepHTML(o)}
@@ -1539,6 +1590,7 @@ ${itemLines}
           <div class="total">${formatPrice(o.grandTotal)}</div>
           ${customerHTML(o)}
           ${proofLinkHTML(o)}
+          ${profitHTML(o)}
           <div class="actions primary-actions">
             <button class="btn-primary" data-confirm="${o.id}" title="Esto resta las piezas vendidas del stock automáticamente">✅ Ya me pagó</button>
             <button class="btn-danger" data-cancel="${o.id}">✕ No pagó / Cancelar</button>
@@ -2079,6 +2131,7 @@ ${itemLines}
     if (currentView === "inicio") renderHome();
     badgeEl.textContent = requests.length ? String(requests.length) : "";
     badgeEl.style.display = requests.length ? "inline-flex" : "none";
+    updateMoreBadge();
 
     if (!requests.length) {
       listEl.innerHTML = "";
@@ -2298,6 +2351,8 @@ ${itemLines}
     );
     badgeEl.textContent = pendientesTotal ? String(pendientesTotal) : "";
     badgeEl.style.display = pendientesTotal ? "inline-flex" : "none";
+    usaPendingCount = pendientesTotal;
+    updateMoreBadge();
 
     const term = usaClientSearchTerm.trim().toLowerCase();
     let visible = term
@@ -2706,6 +2761,8 @@ ${itemLines}
     return `${escapeHtml(before)}<mark class="search-hit">${escapeHtml(match)}</mark>${escapeHtml(after)}`;
   }
 
+  /* Solo para tel: -- deja dígitos y "+". Para cualquier otro atributo
+     usa escapeHtml. */
   function escapeAttr(str) {
     return String(str ?? "").replace(/[^0-9+]/g, "");
   }
@@ -2810,7 +2867,7 @@ ${itemLines}
     if (b === "entregado") msgs.push(["Gracias", `${hola} ¡Gracias por tu compra! Si te gustaron tus productos, me ayudaría mucho que dejaras tu reseña en alpacca.mx 💕`]);
     if (!msgs.length) return "";
     return `<div class="wa-row"><span class="wa-label">💬 Mensajes rápidos por WhatsApp</span>${msgs
-      .map(([label, text]) => `<a href="${escapeAttr(`${base}?text=${encodeURIComponent(text)}`)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`)
+      .map(([label, text]) => `<a href="${escapeHtml(`${base}?text=${encodeURIComponent(text)}`)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`)
       .join("")}</div>`;
   }
 
@@ -2952,6 +3009,8 @@ ${itemLines}
           <i style="height:${Math.round((x.v / max) * 100)}%"></i><small>${x.d.getDate()}</small></div>`).join("")}
       </div>`;
 
+    renderHomeProfit(paid, now);
+
     // Lo más vendido del mes (piezas)
     const tops = new Map();
     paid.filter((o) => o.createdAt && new Date(o.createdAt) >= monthStart).forEach((o) => {
@@ -3071,17 +3130,628 @@ ${itemLines}
     }
   }
 
+
+  /* ---------- Ganancia estimada ---------- */
+  // Costo de una pieza, de más a menos exacto:
+  //  1. Pedidos nuevos: el "Precio USD" guardado en el pedido ese día ×
+  //     el tipo de cambio de ese día, más el arancel.
+  //  2. Productos del catálogo en pedidos viejos: su precio de ese día
+  //     sin la comisión (la fórmula de "Precio" del Sheet es costo ×
+  //     (1 + comisión) × (1 + arancel), y la comisión es tu ganancia).
+  //  3. Stock MX: el "Precio USD" ACTUAL del mismo SKU en el catálogo.
+  // Los de Stock MX con SKU propio (STOCK-...) no tienen costo en el Sheet.
+  function itemUnitCost(it, o) {
+    const c = pricingConfig;
+    const aran = 1 + (c.arancelPct || 0) / 100;
+    const rate = (o && o.exchangeRate) || c.exchangeRate;
+    if (it.costoUSD > 0 && rate > 0) return it.costoUSD * rate * aran;
+    if (!it.enStock && it.precioBase > 0 && c.comisionPct > 0) return it.precioBase / (1 + c.comisionPct / 100);
+    const info = skuToInfo.get(it.sku) || {};
+    if (info.costoUSD > 0 && c.exchangeRate > 0) return info.costoUSD * c.exchangeRate * aran;
+    if (info.costoMXN > 0) return info.costoMXN * aran;
+    return null;
+  }
+
+  /* Ventas de productos (a precio de transferencia: la comisión de
+     tarjeta se va en Mercado Pago, y los envíos los paga la clienta)
+     menos el costo de lo que sí tiene costo. */
+  function orderProfit(o) {
+    let sales = 0, cost = 0, missing = 0, salesNoCost = 0;
+    (o.items || []).forEach((it) => {
+      const qty = it.qty || 0;
+      const venta = itemPrecioTransferencia(it) * qty;
+      sales += venta;
+      const c = itemUnitCost(it, o);
+      if (c == null) { missing += qty; salesNoCost += venta; } else cost += c * qty;
+    });
+    const known = sales - salesNoCost;
+    return { sales, known, cost, profit: known - cost, missing, salesNoCost };
+  }
+
+  function profitHTML(o) {
+    if (o.status === "cancelled" || o.status === "failed" || !pricingConfig.exchangeRate || !skuToInfo.size) return "";
+    const p = orderProfit(o);
+    if (!p.known) return "";
+    const pct = p.known ? Math.round((p.profit / p.known) * 100) : 0;
+    return `<div class="profit-box">💵 Ganancia estimada: <b>${formatPrice(p.profit)}</b> (${pct}%)<br/>
+      <small>Productos ${formatPrice(p.known)} − costo ABW ${formatPrice(p.cost)}${p.missing ? ` · ${p.missing} pieza${p.missing === 1 ? "" : "s"} de Stock MX sin costo en el Sheet (no incluida${p.missing === 1 ? "" : "s"})` : ""}</small></div>`;
+  }
+
+  function renderHomeProfit(paid, now) {
+    const el = document.getElementById("home-profit");
+    if (!el) return;
+    if (!pricingConfig.exchangeRate || !skuToInfo.size) {
+      el.innerHTML = `<h2>📈 Ganancia por mes</h2><p class="profit-note">Cargando costos del catálogo…</p>`;
+      return;
+    }
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString("es-MX", { month: "short", year: "2-digit" }), n: 0, sales: 0, known: 0, cost: 0, profit: 0, missingSales: 0 });
+    }
+    const byKey = new Map(months.map((m) => [m.key, m]));
+    paid.forEach((o) => {
+      if (!o.createdAt) return;
+      const d = new Date(o.createdAt);
+      const m = byKey.get(`${d.getFullYear()}-${d.getMonth()}`);
+      if (!m) return;
+      const p = orderProfit(o);
+      m.n++; m.sales += p.sales; m.known += p.known; m.cost += p.cost; m.profit += p.profit; m.missingSales += p.salesNoCost;
+    });
+    const rows = months.slice().reverse().filter((m, i) => i === 0 || m.n);
+    const anyMissing = months.some((m) => m.missingSales > 0);
+    el.innerHTML = `<h2>📈 Ganancia por mes (estimada)</h2>
+      <table class="profit-table"><thead><tr><th>Mes</th><th>Pedidos</th><th>Productos</th><th>Costo</th><th>Ganancia</th></tr></thead><tbody>
+      ${rows.map((m, i) => `<tr class="${i === 0 ? "now" : ""}"><td>${escapeHtml(m.label)}</td><td>${m.n}</td><td>${formatPrice(m.sales)}</td><td>${formatPrice(m.cost)}</td>
+        <td class="g">${formatPrice(m.profit)}${m.known ? ` <small>(${Math.round((m.profit / m.known) * 100)}%)</small>` : ""}</td></tr>`).join("")}
+      </tbody></table>
+      <p class="profit-note">Costo = Precio USD de ABW × tipo de cambio + arancel (${pricingConfig.arancelPct}%), con los precios del día de cada pedido. Tu ganancia es la comisión de Config (${pricingConfig.comisionPct}%). No cuenta envíos (los paga la clienta) ni la comisión de tarjeta.${anyMissing ? " Los productos de Stock MX con SKU propio (STOCK-…) no tienen costo en el Sheet, así que su venta no entra en la ganancia." : ""}</p>`;
+  }
+
+  /* ---------- Clientas ---------- */
+  let clientsSort = "recent";
+
+  function clientKey(o) {
+    const c = o.customer || {};
+    const ph = (c.phone || "").replace(/\D/g, "").slice(-10);
+    if (ph.length >= 8) return "t" + ph;
+    if (c.email) return "e" + String(c.email).trim().toLowerCase();
+    return "n" + normalizeForSearch(c.name || "?").trim();
+  }
+
+  function buildClients() {
+    const map = new Map();
+    allOrders
+      .filter((o) => o.status === "paid" || o.status === "pending")
+      .slice()
+      .sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""))
+      .forEach((o) => {
+        const c = o.customer || {};
+        const k = clientKey(o);
+        const cur = map.get(k) || { key: k, name: "", phone: "", email: "", city: "", paid: 0, pending: 0, spent: 0, profit: 0, firstAt: o.createdAt, lastAt: o.createdAt };
+        cur.name = c.name || cur.name;
+        cur.phone = c.phone || cur.phone;
+        cur.email = c.email || cur.email;
+        cur.city = [c.municipio, c.estado].filter(Boolean).join(", ") || cur.city;
+        cur.lastAt = o.createdAt || cur.lastAt;
+        if (o.status === "paid") {
+          cur.paid++;
+          cur.spent += o.grandTotal || 0;
+          cur.profit += orderProfit(o).profit;
+        } else cur.pending++;
+        map.set(k, cur);
+      });
+    return [...map.values()];
+  }
+
+  function renderClients() {
+    const listEl = document.getElementById("clients-list");
+    if (!listEl) return;
+    const all = buildClients();
+    const buyers = all.filter((c) => c.paid > 0);
+    const repeat = buyers.filter((c) => c.paid > 1).length;
+    const spent = buyers.reduce((s, c) => s + c.spent, 0);
+    const paidOrdersN = buyers.reduce((s, c) => s + c.paid, 0);
+    document.getElementById("clients-summary").textContent = all.length
+      ? `${buyers.length} clienta${buyers.length === 1 ? "" : "s"} con compra · ${repeat} volvi${repeat === 1 ? "ó" : "eron"} a comprar · ticket promedio ${formatPrice(paidOrdersN ? spent / paidOrdersN : 0)}`
+      : "Todavía no hay clientas.";
+    const q = normalizeForSearch(document.getElementById("clients-search").value).trim();
+    let list = all;
+    if (q) {
+      const qd = q.replace(/\D/g, "");
+      list = list.filter((c) =>
+        normalizeForSearch(`${c.name} ${c.email} ${c.city}`).includes(q) || (qd.length >= 3 && (c.phone || "").replace(/\D/g, "").includes(qd)));
+    }
+    if (clientsSort === "spent") list.sort((a, b) => b.spent - a.spent || b.paid - a.paid);
+    else if (clientsSort === "name") list.sort((a, b) => (a.name || "").localeCompare(b.name || "", "es"));
+    else list.sort((a, b) => (b.lastAt || "").localeCompare(a.lastAt || ""));
+    const monthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    listEl.innerHTML = list.slice(0, 300).map((c) => {
+      const chips = [];
+      if (c.paid >= 3) chips.push(`<span class="badge chip-vip">⭐ Frecuente</span>`);
+      else if (c.paid === 1 && c.firstAt && new Date(c.firstAt).getTime() > monthAgo) chips.push(`<span class="badge chip-ship">🌱 Nueva</span>`);
+      if (c.pending) chips.push(`<span class="badge status-pending">⏳ ${c.pending} por confirmar</span>`);
+      const wa = waLinkFromPhone(c.phone);
+      return `<div class="client-row">
+        <div class="top"><span class="nm">${escapeHtml(c.name || "(sin nombre)")} ${chips.join(" ")}</span><span class="sp">${formatPrice(c.spent)}</span></div>
+        <div class="meta">${c.paid} pedido${c.paid === 1 ? "" : "s"} pagado${c.paid === 1 ? "" : "s"} · último ${escapeHtml(formatFecha(c.lastAt))}${c.city ? ` · ${escapeHtml(c.city)}` : ""}${c.paid && c.profit > 0 ? ` · ganancia ≈ ${formatPrice(c.profit)}` : ""}</div>
+        <div class="acts">
+          ${wa ? `<a class="wa" href="${escapeHtml(wa)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ""}
+          ${c.phone ? `<a class="btn-secondary" href="tel:${escapeAttr(c.phone)}">📞 ${escapeHtml(c.phone)}</a>` : ""}
+          <button type="button" class="btn-secondary" data-client-orders="${escapeHtml(c.phone || c.name || "")}">🧾 Ver sus pedidos</button>
+        </div></div>`;
+    }).join("") || `<p class="abw-intro">No encontré a nadie con esa búsqueda.</p>`;
+  }
+
+  /* ---------- Catálogo (editor) ---------- */
+  let catalogFilter = "";
+  let catalogEditing = null; // { sku, fields, row }
+
+  function renderCatalogList() {
+    const listEl = document.getElementById("catalog-list");
+    const countEl = document.getElementById("catalog-count");
+    if (!catalogRows.length) {
+      countEl.textContent = "Cargando catálogo…";
+      listEl.innerHTML = "";
+      return;
+    }
+    const words = normalizeForSearch(document.getElementById("catalog-search").value).split(/\s+/).filter(Boolean);
+    let list = catalogRows;
+    if (catalogFilter) list = list.filter((r) => (r.disponible === "NO" ? "NO" : "SI") === catalogFilter);
+    if (words.length) {
+      list = list.filter((r) => {
+        const hay = normalizeForSearch(`${r.marca} ${r.nombre} ${r.sku} ${r.presentacion}`);
+        return words.every((w) => hay.includes(w));
+      });
+    }
+    const shown = list.slice(0, 60);
+    countEl.textContent = words.length || catalogFilter
+      ? `${list.length} producto${list.length === 1 ? "" : "s"}${list.length > shown.length ? ` · mostrando ${shown.length}, escribe más para afinar` : ""}`
+      : `${catalogRows.length} productos en el catálogo. Escribe para buscar.`;
+    listEl.innerHTML = (words.length || catalogFilter ? shown : []).map((r) => `
+      <button type="button" class="cat-row" data-cat-sku="${escapeHtml(r.sku)}">
+        ${r.imagen ? `<img src="${escapeHtml(catalogImgSrc(r.imagen))}" alt="" loading="lazy" />` : `<img alt="" />`}
+        <span class="info"><b>${escapeHtml(r.nombre)}</b><small>${r.marca ? `${escapeHtml(r.marca)} · ` : ""}${r.presentacion ? `${escapeHtml(r.presentacion)} · ` : ""}SKU ${escapeHtml(r.sku)}</small></span>
+        <span class="pr">${formatPrice(r.precio)}<small class="${r.disponible === "NO" ? "no" : "si"}">${r.disponible === "NO" ? "⛔ No disponible" : "✅ Disponible"}</small></span>
+      </button>`).join("");
+  }
+
+  function catalogImgSrc(src) {
+    if (!src) return "";
+    if (/^https?:\/\//.test(src)) return src;
+    return "/" + src.replace(/^\/+/, "");
+  }
+
+  function estimatePrices(usd) {
+    const c = pricingConfig;
+    if (!(usd > 0) || !c.exchangeRate) return null;
+    const precio = Math.ceil(usd * c.exchangeRate * (1 + c.comisionPct / 100) * (1 + c.arancelPct / 100));
+    const tarjeta = cardSurchargePct != null ? Math.ceil(precio * (1 + cardSurchargePct / 100)) : null;
+    return { precio, tarjeta };
+  }
+
+  const CAT_TEXT_FIELDS = [
+    ["Nombre", "Nombre"], ["Marca", "Marca"], ["Categoria", "Categoría"], ["Presentacion", "Presentación"],
+    ["Capacidad", "Capacidad"], ["Peso", "Peso (kg)"], ["Imagen", "Foto (ruta o link)"], ["Destacado", "Destacado"],
+  ];
+
+  async function openCatalogEditor(sku) {
+    const wrap = document.getElementById("catalog-editor");
+    wrap.style.display = "flex";
+    wrap.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Editar producto"><p>Cargando producto…</p></div>`;
+    try {
+      const res = await fetch(`/.netlify/functions/admin-catalog?sku=${encodeURIComponent(sku)}`, { headers: { "x-admin-key": adminKey } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo cargar el producto.");
+      catalogEditing = { sku, fields: data.fields };
+      renderCatalogEditor();
+    } catch (err) {
+      wrap.innerHTML = `<div class="sheet"><p class="guide-error" style="display:block;">${escapeHtml(err.message)}</p><button type="button" class="btn-secondary" data-cat-close>Cerrar ✕</button></div>`;
+    }
+  }
+
+  function renderCatalogEditor(msg) {
+    const wrap = document.getElementById("catalog-editor");
+    const f = catalogEditing.fields;
+    const v = (k) => (f[k] ? String(f[k].value ?? "") : "");
+    const has = (k) => Boolean(f[k]);
+    const disp = (v("Disponible") || "SI").toUpperCase() === "NO" ? "NO" : "SI";
+    const usd = v("Precio USD");
+    const priceInputs = ["Precio", "Precio Tarjeta"].filter((k) => has(k) && !f[k].formula);
+    wrap.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Editar producto">
+      <div class="head">${v("Imagen") ? `<img src="${escapeHtml(catalogImgSrc(v("Imagen")))}" alt="" />` : ""}
+        <div><h2>${escapeHtml(v("Nombre"))}</h2><small style="color:#5f5866;">${escapeHtml(v("Marca"))} · SKU ${escapeHtml(catalogEditing.sku)}</small></div></div>
+      <div><span class="filters-label" style="font-size:13px;">¿Disponible en la tienda?</span>
+        <div class="switch" id="cat-disp" data-value="${disp}">
+          <button type="button" data-disp="SI" class="${disp === "SI" ? "on-si" : ""}">✅ Sí</button>
+          <button type="button" data-disp="NO" class="${disp === "NO" ? "on-no" : ""}">⛔ No</button></div></div>
+      ${has("Precio USD") ? `<input aria-label="Precio USD (costo en ABW)" type="number" step="0.01" min="0" data-cat-field="Precio USD" value="${escapeHtml(normalizeMoneyText(usd))}" />` : ""}
+      <div class="calc" id="cat-calc">Precio en la tienda ahora: <b>${escapeHtml(v("Precio"))}</b> transferencia · <b>${escapeHtml(v("Precio Tarjeta"))}</b> tarjeta</div>
+      ${priceInputs.map((k) => `<input aria-label="${escapeHtml(k)} (MXN)" type="number" step="1" min="0" data-cat-field="${escapeHtml(k)}" value="${escapeHtml(normalizeMoneyText(v(k)))}" />`).join("")}
+      <div class="row" style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${CAT_TEXT_FIELDS.filter(([k]) => has(k)).map(([k, label]) => `<input aria-label="${escapeHtml(label)}" type="${k === "Peso" ? "number" : "text"}" ${k === "Peso" ? 'step="0.001" min="0"' : ""} data-cat-field="${escapeHtml(k)}" value="${escapeHtml(k === "Peso" ? normalizeMoneyText(v(k)) : v(k))}" style="flex:1 1 ${k === "Nombre" || k === "Imagen" ? "100%" : "140px"};" />`).join("")}
+      </div>
+      ${has("Descripcion") ? `<textarea aria-label="Descripción" rows="3" data-cat-field="Descripcion">${escapeHtml(v("Descripcion"))}</textarea>` : ""}
+      <div class="guide-error" id="cat-error"></div>
+      ${msg ? `<p style="color:#17803d;font-weight:700;margin:0;">${escapeHtml(msg)}</p>` : ""}
+      <div class="filters-row">
+        <button type="button" class="btn-primary" id="cat-save">Guardar cambios</button>
+        <button type="button" class="btn-secondary" data-cat-close>Cerrar ✕</button>
+      </div></div>`;
+    addVisibleLabels(wrap);
+    updateCatalogEstimate();
+  }
+
+  function updateCatalogEstimate() {
+    const el = document.getElementById("cat-calc");
+    const inp = document.querySelector('#catalog-editor [data-cat-field="Precio USD"]');
+    if (!el || !inp || !catalogEditing) return;
+    const orig = parseFloat(normalizeMoneyText(catalogEditing.fields["Precio USD"].value)) || 0;
+    const now = parseFloat(inp.value) || 0;
+    if (Math.abs(now - orig) < 0.001 || !catalogEditing.fields.Precio || !catalogEditing.fields.Precio.formula) {
+      el.innerHTML = `Precio en la tienda ahora: <b>${escapeHtml(catalogEditing.fields.Precio ? catalogEditing.fields.Precio.value : "")}</b> transferencia · <b>${escapeHtml(catalogEditing.fields["Precio Tarjeta"] ? catalogEditing.fields["Precio Tarjeta"].value : "")}</b> tarjeta`;
+      return;
+    }
+    const est = estimatePrices(now);
+    el.innerHTML = est
+      ? `Con ese costo quedaría en ≈ <b>${formatPrice(est.precio)}</b> transferencia${est.tarjeta ? ` · <b>${formatPrice(est.tarjeta)}</b> tarjeta` : ""} <small>(se calcula en el Sheet al guardar)</small>`
+      : "El precio en pesos se recalcula en el Sheet al guardar.";
+  }
+
+  async function saveCatalogEditor() {
+    const wrap = document.getElementById("catalog-editor");
+    const errEl = document.getElementById("cat-error");
+    const f = catalogEditing.fields;
+    const changes = {};
+    wrap.querySelectorAll("[data-cat-field]").forEach((el) => {
+      const k = el.dataset.catField;
+      const before = f[k] ? String(f[k].value ?? "") : "";
+      const after = el.value.trim();
+      if (el.type === "number") {
+        const a = after === "" ? null : Number(after);
+        const b = before.trim() === "" ? null : Number(normalizeMoneyText(before));
+        if (a !== b && !(a != null && b != null && Math.abs(a - b) < 0.0005)) changes[k] = after === "" ? "" : a;
+      } else if (after !== before.trim()) changes[k] = after;
+    });
+    const disp = document.getElementById("cat-disp").dataset.value;
+    if (disp !== ((f.Disponible && String(f.Disponible.value).toUpperCase() === "NO") ? "NO" : "SI")) changes.Disponible = disp;
+    if (!Object.keys(changes).length) {
+      errEl.textContent = "No cambiaste nada.";
+      errEl.style.display = "block";
+      return;
+    }
+    const btn = document.getElementById("cat-save");
+    btn.disabled = true;
+    btn.textContent = "Guardando…";
+    try {
+      const res = await fetch("/.netlify/functions/admin-catalog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ sku: catalogEditing.sku, fields: changes }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
+      catalogEditing.fields = data.fields;
+      const row = catalogRows.find((r) => r.sku === catalogEditing.sku);
+      if (row) {
+        const nv = (k) => (data.fields[k] ? String(data.fields[k].value ?? "") : "");
+        row.nombre = nv("Nombre") || row.nombre;
+        row.marca = nv("Marca");
+        row.precio = parseFloat(normalizeMoneyText(nv("Precio"))) || row.precio;
+        row.precioUSD = parseFloat(normalizeMoneyText(nv("Precio USD"))) || row.precioUSD;
+        row.disponible = (nv("Disponible") || "SI").toUpperCase();
+        row.imagen = nv("Imagen");
+        row.presentacion = nv("Presentacion");
+        const info = skuToInfo.get(row.sku);
+        if (info) { info.costoUSD = row.precioUSD; info.precio = row.precio; }
+      }
+      renderCatalogList();
+      renderCatalogEditor("✅ Guardado en tu Sheet. La tienda lo mostrará en unos 5 minutos.");
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "Guardar cambios";
+    }
+  }
+
+  function closeCatalogEditor() {
+    const wrap = document.getElementById("catalog-editor");
+    wrap.style.display = "none";
+    wrap.innerHTML = "";
+    catalogEditing = null;
+  }
+
+  /* ---------- Ajustes (pestaña Config) ---------- */
+  let settingsData = [];
+
+  async function loadSettings() {
+    const listEl = document.getElementById("settings-list");
+    const errEl = document.getElementById("settings-error");
+    errEl.style.display = "none";
+    listEl.innerHTML = `<p class="abw-intro">Cargando…</p>`;
+    try {
+      const res = await fetch("/.netlify/functions/admin-catalog?config=1", { headers: { "x-admin-key": adminKey } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudieron cargar los ajustes.");
+      settingsData = data.config || [];
+      renderSettings();
+    } catch (err) {
+      listEl.innerHTML = "";
+      errEl.textContent = err.message;
+      errEl.style.display = "block";
+    }
+  }
+
+  function renderSettings(msg) {
+    const listEl = document.getElementById("settings-list");
+    listEl.innerHTML = settingsData.map((c, i) => `
+      <label class="set-row"><span>${escapeHtml(c.key)}${c.formula ? ' <small style="color:#5f5866;font-weight:500;">(fórmula, cámbiala en el Sheet)</small>' : ""}</span>
+        <input type="number" step="0.01" min="0" data-set-idx="${i}" value="${escapeHtml(normalizeMoneyText(c.value))}" ${c.formula ? "disabled" : ""} /></label>`).join("")
+      + (msg ? `<p style="color:#17803d;font-weight:700;margin:0;">${escapeHtml(msg)}</p>` : "");
+    document.getElementById("settings-save").style.display = settingsData.length ? "inline-flex" : "none";
+  }
+
+  async function saveSettings() {
+    const errEl = document.getElementById("settings-error");
+    errEl.style.display = "none";
+    const changes = [];
+    document.querySelectorAll("#settings-list [data-set-idx]").forEach((el) => {
+      const c = settingsData[Number(el.dataset.setIdx)];
+      if (!c || c.formula) return;
+      const before = parseFloat(normalizeMoneyText(c.value));
+      const after = parseFloat(el.value);
+      if (el.value.trim() !== "" && !(Math.abs(after - before) < 0.00001)) changes.push({ key: c.key, value: after });
+    });
+    if (!changes.length) { errEl.textContent = "No cambiaste nada."; errEl.style.display = "block"; return; }
+    const resumen = changes.map((c) => `• ${c.key}: ${c.value}`).join("\n");
+    if (!window.confirm(`¿Guardar estos ajustes? Los precios de la tienda se recalculan solos.\n\n${resumen}`)) return;
+    const btn = document.getElementById("settings-save");
+    btn.disabled = true;
+    try {
+      const res = await fetch("/.netlify/functions/admin-catalog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ config: changes }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudieron guardar los ajustes.");
+      settingsData = data.config || settingsData;
+      renderSettings("✅ Guardado. La tienda mostrará los precios nuevos en unos 5 minutos.");
+      loadCardSurchargePct();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = "block";
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* ---------- Papelera ---------- */
+  let trashLoaded = false;
+  let trashOrders = [];
+
+  async function loadTrash() {
+    const listEl = document.getElementById("trash-list");
+    listEl.innerHTML = `<p class="abw-intro">Cargando…</p>`;
+    try {
+      const res = await fetch("/.netlify/functions/admin-trash", { headers: { "x-admin-key": adminKey } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo cargar la papelera.");
+      trashOrders = data.orders || [];
+      trashLoaded = true;
+      renderTrash();
+    } catch (err) {
+      listEl.innerHTML = `<p class="guide-error" style="display:block;">${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  function renderTrash() {
+    const listEl = document.getElementById("trash-list");
+    if (!trashOrders.length) {
+      listEl.innerHTML = `<p class="abw-intro">🎉 La papelera está vacía.</p>`;
+      return;
+    }
+    listEl.innerHTML = trashOrders.map((o) => {
+      const until = o.deletedAt ? new Date(new Date(o.deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000) : null;
+      return `<div class="trash-row"><div class="who"><b>${escapeHtml((o.customer && o.customer.name) || "(sin nombre)")}</b> · ${formatPrice(o.grandTotal)}
+        <small>#${orderNumber(o)} · ${escapeHtml(STATUS_LABELS[o.status] || o.status)} · pedido ${escapeHtml(formatFecha(o.createdAt))}</small>
+        <small>Borrado ${escapeHtml(formatFecha(o.deletedAt))}${until ? ` · se elimina solo el ${until.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}` : ""}</small></div>
+        <button type="button" class="btn-primary" data-trash-restore="${escapeHtml(o.id)}">↩️ Restaurar</button>
+        <button type="button" class="btn-danger" data-trash-purge="${escapeHtml(o.id)}">Borrar para siempre</button></div>`;
+    }).join("");
+  }
+
+  async function restoreFromTrash(orderId) {
+    try {
+      const res = await fetch("/.netlify/functions/admin-trash", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ action: "restore", orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo restaurar.");
+      trashOrders = trashOrders.filter((o) => o.id !== orderId);
+      if (currentView === "papelera") renderTrash();
+      showToast("↩️ Pedido restaurado.");
+      fetchOrders();
+    } catch (err) {
+      showToast(`⚠️ ${err.message}`);
+    }
+  }
+
+  async function purgeFromTrash(orderId) {
+    if (!window.confirm("¿Borrar este pedido para siempre? Esto ya no se puede deshacer.")) return;
+    try {
+      const res = await fetch("/.netlify/functions/admin-trash", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ action: "purge", orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo borrar.");
+      trashOrders = trashOrders.filter((o) => o.id !== orderId);
+      renderTrash();
+    } catch (err) {
+      showToast(`⚠️ ${err.message}`);
+    }
+  }
+
+  /* ---------- Avisos de pedidos nuevos ---------- */
+  // Mientras el admin está abierto, cada 90 s revisa si entró un pedido
+  // nuevo o se confirmó un pago (Mercado Pago) y avisa con un mensaje en
+  // pantalla; si los activas en Más, también con sonido y notificación.
+  const NOTIFY_KEY = "alpacca_admin_notify";
+  const POLL_MS = 90 * 1000;
+  let knownOrders = new Map(); // id -> status
+  let pollTimer = null;
+  let unseenCount = 0;
+  let audioCtx = null;
+  const baseTitle = document.title;
+  let usaPendingCount = 0;
+
+  function notifyEnabled() {
+    try { return localStorage.getItem(NOTIFY_KEY) === "1"; } catch (e) { return false; }
+  }
+
+  function rememberOrders(list) {
+    knownOrders = new Map(list.map((o) => [o.id, o.status]));
+  }
+
+  function updateMoreBadge() {
+    const n = (restockCount || 0) + (usaPendingCount || 0);
+    const el = document.getElementById("more-badge");
+    if (!el) return;
+    el.textContent = n ? String(n) : "";
+    el.style.display = n ? "inline-flex" : "none";
+  }
+
+  let toastTimer = null;
+  function showToast(text, actionLabel, onAction) {
+    const el = document.getElementById("toast");
+    el.innerHTML = `<span>${escapeHtml(text)}</span>${actionLabel ? `<button type="button">${escapeHtml(actionLabel)}</button>` : ""}`;
+    el.style.display = "flex";
+    if (actionLabel) {
+      el.querySelector("button").addEventListener("click", () => {
+        el.style.display = "none";
+        onAction();
+      });
+    }
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.style.display = "none"; }, actionLabel ? 12000 : 4000);
+  }
+
+  function beep() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      [0, 0.18].forEach((t, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = i ? 1175 : 880;
+        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + t + 0.16);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + t);
+        osc.stop(audioCtx.currentTime + t + 0.18);
+      });
+    } catch (e) { /* sin sonido */ }
+  }
+
+  async function pollOrders() {
+    if (!adminKey || !knownOrders.size) return;
+    let list;
+    try {
+      const res = await fetch("/.netlify/functions/admin-orders", { headers: { "x-admin-key": adminKey } });
+      if (!res.ok) return;
+      list = (await res.json()).orders || [];
+    } catch (e) {
+      return;
+    }
+    const nuevos = list.filter((o) => !knownOrders.has(o.id));
+    const pagados = list.filter((o) => o.status === "paid" && knownOrders.get(o.id) === "pending");
+    const changed = list.length !== knownOrders.size || list.some((o) => knownOrders.get(o.id) !== o.status);
+    rememberOrders(list);
+    if (!changed) return;
+    allOrders = list;
+    // Solo se repinta solo lo que no tiene campos a medio escribir.
+    if (currentView === "inicio") renderHome();
+    if (currentView === "compras") renderAbw();
+    if (currentView === "clientas") renderClients();
+    if (!nuevos.length && !pagados.length) return;
+    const msgs = [
+      ...nuevos.map((o) => `🆕 Pedido nuevo de ${firstName(o) || "una clienta"} por ${formatPrice(o.grandTotal)}`),
+      ...pagados.map((o) => `💰 ${firstName(o) || "Una clienta"} pagó ${formatPrice(o.grandTotal)}`),
+    ];
+    const text = msgs.length === 1 ? msgs[0] : `${msgs[0]} (+${msgs.length - 1} más)`;
+    showToast(text, "Ver", () => {
+      goToOrders(nuevos.some((o) => o.status === "pending") ? "pending" : "");
+    });
+    // En la pantalla de Pedidos no se repinta sola (podrías estar
+    // escribiendo una guía): se repinta al tocar "Ver".
+    if (document.hidden) {
+      unseenCount += msgs.length;
+      document.title = `(${unseenCount}) ${baseTitle}`;
+    }
+    if (notifyEnabled()) {
+      beep();
+      if ("Notification" in window && Notification.permission === "granted") {
+        try { new Notification("Alpacca", { body: text, icon: "/favicon.ico", tag: "alpacca-admin" }); } catch (e) { /* sin notificación */ }
+      }
+    }
+  }
+
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(pollOrders, POLL_MS);
+  }
+
+  function stopPolling() {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  function renderNotifyToggle() {
+    const btn = document.getElementById("notify-toggle");
+    const on = notifyEnabled();
+    btn.classList.toggle("on", on);
+    document.getElementById("notify-label").innerHTML = on
+      ? "Avisos de pedidos nuevos: activados ✅<small>Toca para apagarlos en este dispositivo</small>"
+      : "Avisos de pedidos nuevos<small>Sonido y notificación mientras el admin está abierto</small>";
+  }
+
+  async function toggleNotify() {
+    if (notifyEnabled()) {
+      try { localStorage.removeItem(NOTIFY_KEY); } catch (e) { /* nada */ }
+      renderNotifyToggle();
+      return;
+    }
+    if ("Notification" in window && Notification.permission === "default") {
+      try { await Notification.requestPermission(); } catch (e) { /* nada */ }
+    }
+    try { localStorage.setItem(NOTIFY_KEY, "1"); } catch (e) { /* nada */ }
+    beep();
+    renderNotifyToggle();
+    showToast("Avisos activados. Deja el admin abierto para recibirlos.");
+  }
+
   /* Una sección a la vez: Pedidos, Inventario, Restock, Reseñas o
      Encargos USA. Antes cada panel se abría debajo de los pedidos (fuera
      de la pantalla en el celular) y parecía que el botón no hacía nada. */
   const VIEWS = {
     inicio: { el: "home-view", title: "🌸 Inicio", nav: "inicio" },
     compras: { el: "abw-view", title: "🛍️ Compras ABW", nav: "inicio" },
-    pedidos: { el: "orders-view", title: "🧾 Pedidos" },
-    inventario: { el: "inventory-panel", title: "📦 Inventario" },
-    restock: { el: "restock-requests-panel", title: "🔔 Avisos de restock" },
-    resenas: { el: "reviews-panel", title: "⭐ Reseñas" },
-    usa: { el: "usa-orders-panel", title: "🛍️ Encargos USA" },
+    pedidos: { el: "orders-view", title: "🧾 Pedidos", display: "block" },
+    clientas: { el: "clients-view", title: "👩 Clientas" },
+    catalogo: { el: "catalog-view", title: "🏷️ Catálogo" },
+    inventario: { el: "inventory-panel", title: "📦 Stock en México" },
+    mas: { el: "more-view", title: "☰ Más", display: "grid" },
+    restock: { el: "restock-requests-panel", title: "🔔 Avisos de restock", nav: "mas" },
+    resenas: { el: "reviews-panel", title: "⭐ Reseñas", nav: "mas" },
+    usa: { el: "usa-orders-panel", title: "🛍️ Encargos USA", nav: "mas" },
+    ajustes: { el: "settings-view", title: "⚙️ Ajustes", nav: "mas" },
+    papelera: { el: "trash-view", title: "🗑️ Papelera", nav: "mas" },
   };
   let currentView = "inicio";
 
@@ -3094,7 +3764,7 @@ ${itemLines}
     currentView = view;
     Object.entries(VIEWS).forEach(([key, v]) => {
       const el = document.getElementById(v.el);
-      el.style.display = key === view ? (key === "pedidos" ? "block" : "flex") : "none";
+      el.style.display = key === view ? (v.display || "flex") : "none";
     });
     document.getElementById("view-title").textContent = VIEWS[view].title;
     const navKey = VIEWS[view].nav || view;
@@ -3105,6 +3775,12 @@ ${itemLines}
     });
     if (view === "inicio") renderHome();
     if (view === "compras") renderAbw();
+    if (view === "clientas") renderClients();
+    if (view === "catalogo") renderCatalogList();
+    if (view === "ajustes") loadSettings();
+    if (view === "papelera") loadTrash();
+    if (view === "mas") renderNotifyToggle();
+    if (view !== "catalogo" && catalogEditing) closeCatalogEditor();
     if (view === "inventario" && !inventoryLoaded) loadInventory();
     if (view === "restock" && !restockRequestsLoaded) loadRestockRequests();
     if (view === "resenas" && !reviewsLoaded) loadReviews();
@@ -3116,8 +3792,9 @@ ${itemLines}
     loginBox.style.display = on ? "none" : "block";
     toolbar.style.display = on ? "flex" : "none";
     document.getElementById("logout-btn").style.display = on ? "inline-flex" : "none";
-    if (on) showView("inicio");
-    else Object.values(VIEWS).forEach((v) => { document.getElementById(v.el).style.display = "none"; });
+    if (on) { showView("inicio"); startPolling(); }
+    else stopPolling();
+    if (!on) Object.values(VIEWS).forEach((v) => { document.getElementById(v.el).style.display = "none"; });
   }
 
   /* Etiqueta visible arriba de cada campo (antes solo tenían el texto de
@@ -3221,7 +3898,11 @@ ${itemLines}
     historyTitleEl.style.display = "none";
     filtersEl.style.display = "none";
     allOrders = [];
+    knownOrders = new Map();
     filteredOrders = [];
+    closeCatalogEditor();
+    trashLoaded = false;
+    trashOrders = [];
     filterSearchEl.value = "";
     filterCountEl.textContent = "";
     document.getElementById("add-stock-form").style.display = "none";
@@ -3357,6 +4038,73 @@ ${itemLines}
       document.getElementById("abw-order-number").value = "";
       renderAbw();
     }
+  });
+
+  document.getElementById("more-view").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-goto]");
+    if (b) showView(b.dataset.goto);
+  });
+  document.getElementById("notify-toggle").addEventListener("click", toggleNotify);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && unseenCount) {
+      unseenCount = 0;
+      document.title = baseTitle;
+    }
+    if (!document.hidden && adminKey) pollOrders();
+  });
+  document.getElementById("clients-search").addEventListener("input", renderClients);
+  document.getElementById("clients-sort").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-sort]");
+    if (!b) return;
+    clientsSort = b.dataset.sort;
+    e.currentTarget.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === b));
+    syncTabPressed(e.currentTarget);
+    renderClients();
+  });
+  document.getElementById("clients-list").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-client-orders]");
+    if (!b) return;
+    goToOrders("");
+    filterSearchEl.value = b.dataset.clientOrders;
+    applyFilters();
+  });
+  document.getElementById("catalog-search").addEventListener("input", renderCatalogList);
+  document.getElementById("catalog-filter").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-cf]");
+    if (!b) return;
+    catalogFilter = b.dataset.cf;
+    e.currentTarget.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === b));
+    syncTabPressed(e.currentTarget);
+    renderCatalogList();
+  });
+  document.getElementById("catalog-list").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-cat-sku]");
+    if (b) openCatalogEditor(b.dataset.catSku);
+  });
+  const catalogEditorEl = document.getElementById("catalog-editor");
+  catalogEditorEl.addEventListener("click", (e) => {
+    if (e.target === catalogEditorEl || e.target.closest("[data-cat-close]")) { closeCatalogEditor(); return; }
+    const d = e.target.closest("[data-disp]");
+    if (d) {
+      const sw = document.getElementById("cat-disp");
+      sw.dataset.value = d.dataset.disp;
+      sw.querySelectorAll("button").forEach((x) => { x.className = x === d ? (d.dataset.disp === "SI" ? "on-si" : "on-no") : ""; });
+      return;
+    }
+    if (e.target.closest("#cat-save")) saveCatalogEditor();
+  });
+  catalogEditorEl.addEventListener("input", (e) => {
+    if (e.target.matches('[data-cat-field="Precio USD"]')) updateCatalogEstimate();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && catalogEditing) closeCatalogEditor();
+  });
+  document.getElementById("settings-save").addEventListener("click", saveSettings);
+  document.getElementById("trash-list").addEventListener("click", (e) => {
+    const r = e.target.closest("[data-trash-restore]");
+    if (r) { restoreFromTrash(r.dataset.trashRestore); return; }
+    const p = e.target.closest("[data-trash-purge]");
+    if (p) purgeFromTrash(p.dataset.trashPurge);
   });
 
   statusTabsEl.querySelectorAll(".tab").forEach((btn) => {

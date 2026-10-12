@@ -56,6 +56,12 @@ function getPaymentProofsStore() {
   return getStore({ name: "payment-proofs", consistency: "strong", ...blobsClientOptions() });
 }
 
+// Pedidos que Mae borró desde /admin.html: se guardan aquí 30 días por si
+// se borraron por error (ver trashOrder / restoreOrder).
+function getOrdersTrashStore() {
+  return getStore({ name: "orders-trash", consistency: "strong", ...blobsClientOptions() });
+}
+
 function getRestockRequestsStore() {
   return getStore({ name: "restock-requests", consistency: "strong", ...blobsClientOptions() });
 }
@@ -253,6 +259,63 @@ async function deleteOrder(orderId, { onlyIfStatus } = {}) {
   return { deleted: true, order };
 }
 
+/* Como deleteOrder, pero el pedido se guarda primero en la papelera
+   ("orders-trash") con la fecha en que se borró, para poder restaurarlo. */
+async function trashOrder(orderId, { onlyIfStatus } = {}) {
+  const store = getOrdersStore();
+  const order = await store.get(orderId, { type: "json" });
+  if (!order) return { deleted: false, reason: "not_found" };
+  const allowedStatuses = Array.isArray(onlyIfStatus) ? onlyIfStatus : onlyIfStatus ? [onlyIfStatus] : null;
+  if (allowedStatuses && !allowedStatuses.includes(order.status)) {
+    return { deleted: false, reason: "wrong_status", order };
+  }
+  await getOrdersTrashStore().setJSON(orderId, { ...order, deletedAt: new Date().toISOString() });
+  await store.delete(orderId);
+  return { deleted: true, order };
+}
+
+const TRASH_DAYS = 30;
+
+/* Pedidos en la papelera, el más recién borrado primero. Los que llevan
+   más de TRASH_DAYS días ahí se borran para siempre al listar. */
+async function listTrashedOrders() {
+  const trash = getOrdersTrashStore();
+  const { blobs } = await trash.list();
+  const cutoff = Date.now() - TRASH_DAYS * 24 * 60 * 60 * 1000;
+  const orders = [];
+  for (const b of blobs) {
+    const order = await trash.get(b.key, { type: "json" });
+    if (!order) continue;
+    if (order.deletedAt && new Date(order.deletedAt).getTime() < cutoff) {
+      await trash.delete(b.key);
+      continue;
+    }
+    orders.push(order);
+  }
+  orders.sort((a, b) => (b.deletedAt || "").localeCompare(a.deletedAt || ""));
+  return orders;
+}
+
+/* Regresa un pedido de la papelera a la lista normal, tal como estaba. */
+async function restoreOrder(orderId) {
+  const trash = getOrdersTrashStore();
+  const order = await trash.get(orderId, { type: "json" });
+  if (!order) return { restored: false, reason: "not_found" };
+  const { deletedAt, ...rest } = order;
+  const result = await getOrdersStore().setJSON(orderId, rest, { onlyIfNew: true });
+  if (!result.modified) return { restored: false, reason: "exists" };
+  await trash.delete(orderId);
+  return { restored: true, order: rest };
+}
+
+async function purgeTrashedOrder(orderId) {
+  const trash = getOrdersTrashStore();
+  const order = await trash.get(orderId, { type: "json" });
+  if (!order) return { purged: false, reason: "not_found" };
+  await trash.delete(orderId);
+  return { purged: true };
+}
+
 /* Igual que transitionOrder pero sin tocar el estado -- para anexarle
    datos sueltos a un pedido (ej. el comprobante de pago) sin interferir
    con el flujo de confirmación manual/automática. */
@@ -320,6 +383,10 @@ module.exports = {
   transitionOrderFrom,
   listOrders,
   deleteOrder,
+  trashOrder,
+  listTrashedOrders,
+  restoreOrder,
+  purgeTrashedOrder,
   updateOrderFields,
   savePaymentProof,
   getPaymentProof,

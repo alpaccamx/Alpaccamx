@@ -30,12 +30,22 @@ exports.handler = async (event) => {
     const orders = phone
       ? allOrders.filter((o) => String(o.customer?.phone || "").replace(/[^0-9]/g, "") === phone)
       : [];
-    return jsonResponse(200, { orders, name: customer.name, phone: customer.phone, email: customer.email });
+    return jsonResponse(200, { orders: orders.map(publicOrder), name: customer.name, phone: customer.phone, email: customer.email });
   } catch (err) {
     console.error("Error listando los pedidos de la clienta:", err);
     return jsonResponse(500, { error: "No se pudieron cargar tus pedidos." });
   }
 };
+
+/* Quita del pedido lo que es solo para Mae (su costo en ABW y el tipo de
+   cambio de ese día) antes de mandárselo a la clienta. */
+function publicOrder(o) {
+  const { exchangeRate, ...rest } = o;
+  return {
+    ...rest,
+    items: (o.items || []).map(({ costoUSD, ...it }) => it),
+  };
+}
 
 function jsonResponse(statusCode, obj) {
   return {
