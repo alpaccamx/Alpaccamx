@@ -70,11 +70,14 @@
     <form id="search-form" role="search" class="order-3 w-full sm:order-none sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-md sm:mx-4">
       <div class="relative">
         <input id="search-input" type="search" enterkeyhint="search" placeholder="Buscar productos..." aria-label="Buscar productos"
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-suggest" autocomplete="off"
           class="w-full rounded-lg border-[1.5px] border-rose/70 bg-white pl-4 pr-10 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:border-rose focus:ring-2 focus:ring-rose/20" />
         <button type="submit" aria-label="Buscar"
           class="tap absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
+        <div id="search-suggest" role="listbox" aria-label="Sugerencias"
+          class="hidden absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-xl shadow-xl border border-ink/10 max-h-[70vh] overflow-y-auto overscroll-contain py-1"></div>
       </div>
     </form>
 
@@ -1110,6 +1113,18 @@
       <button id="shipping-times-close" type="button" aria-label="Cerrar" class="-mr-2 w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
     </div>
     <img src="./assets/shipping-korea-process.webp" alt="Proceso de envío de tu pedido desde nuestra bodega en Corea: 1) Orden (1-2 días hábiles), 2) Envío a USA (2-3 días hábiles), 3) Cruce a México (1-2 días hábiles), 4) Envío (1 día hábil), 5) Entrega (2-5 días hábiles por envío terrestre, 1-2 días hábiles por envío express). Los tiempos son estimados y pueden variar." class="w-full h-auto rounded-xl" />
+  </div>
+</div>
+
+<!-- Ficha de producto (se abre al tocar la foto o el nombre; dirección ?p=SKU) -->
+<div id="product-overlay" role="dialog" aria-modal="true" aria-labelledby="product-title" tabindex="-1" inert
+  class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none scrim flex items-end sm:items-center justify-center sm:p-4">
+  <div class="modal-card bg-cream w-full sm:max-w-4xl max-h-[92vh] overflow-y-auto overscroll-contain rounded-t-2xl sm:rounded-2xl shadow-2xl">
+    <div class="sticky top-0 z-10 bg-cream/95 backdrop-blur flex items-center justify-between gap-2 pl-4 pr-2 py-1.5 border-b border-ink/10">
+      <span id="product-crumb" class="text-xs text-ink/70 truncate"></span>
+      <button id="product-close" type="button" aria-label="Cerrar ficha del producto" class="w-11 h-11 flex items-center justify-center rounded-full text-ink/75 hover:text-ink hover:bg-ink/5 text-2xl leading-none transition-colors">&times;</button>
+    </div>
+    <div id="product-body" class="p-4 sm:p-6"></div>
   </div>
 </div>
 

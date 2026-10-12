@@ -11,8 +11,8 @@ const TTL_MS = 5 * 60 * 1000;
 
 let cache = null; // { at, text, headers, rows }
 
-async function loadCatalog() {
-  if (cache && Date.now() - cache.at < TTL_MS) return cache;
+async function loadCatalog({ maxAgeMs = TTL_MS } = {}) {
+  if (cache && Date.now() - cache.at < maxAgeMs) return cache;
   const res = await fetch(CATALOG_CSV_URL, { redirect: "follow" });
   if (!res.ok) {
     if (cache) return cache; // mejor una copia de hace rato que nada

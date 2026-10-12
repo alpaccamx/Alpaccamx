@@ -13,6 +13,8 @@ const CONFIG = {
   // Google Sheets: Archivo > Compartir > Publicar en la Web > elige la
   // hoja > formato "Valores separados por comas (.csv)" > Publicar.
   // Pega aquí el link que te da Google.
+  // Versión ligera del mismo catálogo (ver netlify/functions/catalog-light.js).
+  CATALOG_LIGHT_URL: "/catalogo.csv",
   GOOGLE_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKHS0v5DGhx8RjW3XOcBxJL4RzNtVof_psSTBs6fZrScYofhRU5nTcEYYBS3u0V-EzMJXR2L5SZcyE/pub?gid=114583060&single=true&output=csv",
 
   // Opcional: URL CSV publicada de una pestaña "Config" con dos columnas
@@ -1537,7 +1539,7 @@ async function loadStockData() {
    se descarga la versión fresca en segundo plano, y se vuelve a pintar
    en cuanto llega. Solo la primerísima visita (sin nada en caché
    todavía) se queda esperando al fetch, como antes. */
-const PRODUCTS_CSV_CACHE_KEY = "alpacca_products_csv_cache_v1";
+const PRODUCTS_CSV_CACHE_KEY = "alpacca_products_csv_cache_v2";
 
 function loadCachedProductsCsv() {
   try {
@@ -1549,6 +1551,8 @@ function loadCachedProductsCsv() {
 
 function saveCachedProductsCsv(text) {
   try {
+    // La copia vieja (catálogo completo, mucho más pesada) ya no se usa.
+    localStorage.removeItem("alpacca_products_csv_cache_v1");
     localStorage.setItem(PRODUCTS_CSV_CACHE_KEY, text);
   } catch {
     // localStorage lleno o bloqueado (modo incógnito estricto, etc.) --
@@ -1588,7 +1592,15 @@ async function loadProducts() {
   }
 
   try {
-    const text = await fetchTextWithRetry(CONFIG.GOOGLE_SHEET_CSV_URL);
+    // Primero la versión ligera servida desde alpacca.mx (sin descripción
+    // ni costos, en la CDN); si fallara, directo del Google Sheet.
+    let text;
+    try {
+      text = await fetchTextWithRetry(CONFIG.CATALOG_LIGHT_URL, { retries: 1 });
+      if (!csvToProducts(text).length) throw new Error("catálogo ligero vacío");
+    } catch (lightErr) {
+      text = await fetchTextWithRetry(CONFIG.GOOGLE_SHEET_CSV_URL);
+    }
     const parsed = csvToProducts(text);
     if (!parsed.length) throw new Error("CSV vacío o encabezados no reconocidos");
     products = parsed;
@@ -2079,9 +2091,10 @@ function productCardHTML(p, { rank } = {}) {
   // en negrita, nombre en 2 líneas, precio fuerte y etiquetas chicas con
   // borde. Los data-* son los que usan el carrito, los tonos
   // (wireVariantSelectors busca ".group") y "Avísame" -- no quitarlos.
+  const presKeyAttr = p.presKey && (presClusters.get(p.presKey) || []).length > 1 ? ` data-pres-card="${escapeAttr(p.presKey)}"` : "";
   return `
-    <div class="group flex flex-col h-full">
-      <div class="aspect-square ${isCajaPresentacion(p) ? "bg-lilac/15 border-2 border-lilac/70" : "bg-pill"} overflow-hidden relative rounded-md">
+    <div class="group flex flex-col h-full"${presKeyAttr}${rank ? ` data-rank="${rank}"` : ""}>
+      <div data-open-product="${escapeAttr(hasVariants ? p.variants[0].product.id : p.id)}" class="cursor-pointer aspect-square ${isCajaPresentacion(p) ? "bg-lilac/15 border-2 border-lilac/70" : "bg-pill"} overflow-hidden relative rounded-md">
         ${rank ? `<span class="absolute top-0 left-0 z-10 min-w-[1.5rem] h-6 px-1.5 bg-ink text-cream text-xs font-semibold flex items-center justify-center rounded-br-md tabular-nums">${rank}</span>` : ""}
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
           class="w-full h-full object-contain group-hover:scale-[1.03] transition duration-300" />
@@ -2090,7 +2103,7 @@ function productCardHTML(p, { rank } = {}) {
       </div>
       <div class="pt-2.5 flex flex-col flex-1">
         <span class="text-[13px] font-bold text-ink leading-tight truncate">${escapeHtml(p.marca || p.categoria)}</span>
-        <h3 class="text-[13px] text-ink/80 leading-snug mt-0.5 line-clamp-2 min-h-[2.4em]" title="${escapeAttr(p.nombre)}">${escapeHtml(p.nombre)}</h3>
+        <h3 class="text-[13px] text-ink/80 leading-snug mt-0.5 line-clamp-2 min-h-[2.4em]" title="${escapeAttr(p.nombre)}"><button type="button" data-open-product="${escapeAttr(hasVariants ? p.variants[0].product.id : p.id)}" class="text-left hover:underline underline-offset-2">${escapeHtml(p.nombre)}</button></h3>
         ${p.capacidad ? `<span class="text-xs text-ink/60">${escapeHtml(p.capacidad)}</span>` : ""}
         ${
           hasVariants
@@ -2103,6 +2116,7 @@ function productCardHTML(p, { rank } = {}) {
               </select>`
             : ""
         }
+        ${presChipsHTML(p)}
         <div class="mt-auto pt-1.5">
           <div class="leading-tight tabular-nums">
             <span data-card-price class="font-bold text-[15px] text-ink block">${formatPrice(p.precio)}</span>
@@ -2254,6 +2268,494 @@ function boxUnitPriceHTML(p) {
 function wireAddButtons(container) {
   container.querySelectorAll("[data-add]").forEach((btn) => {
     btn.addEventListener("click", () => addToCart(btn.dataset.add));
+  });
+}
+
+/* ======================================================================
+   Pieza y caja en una sola tarjeta. Antes la pieza individual y cada
+   caja del mismo producto salían como tarjetas separadas, una junto a
+   otra (la fila parecía repetida). Ahora es una tarjeta con botones
+   "Pieza / Caja 40" que cambian precio, foto y botón de agregar.
+   ====================================================================== */
+const presClusters = new Map(); // clave -> [tarjetas de cada presentación]
+let presIndex = null;
+let presIndexFor = null;
+let presIndexLen = 0;
+
+function presOrder(p) {
+  if (!isCajaPresentacion(p)) return 0;
+  const m = /(\d+)/.exec(p.presentacion || "");
+  return m ? Number(m[1]) : 99999;
+}
+
+function presClusterKey(p) {
+  return `${p.enStock ? "s" : "k"}||${p.marca || ""}||${normalizeForSearch(p.nombre).trim()}`;
+}
+
+function presLabels(list) {
+  const base = list.map((p) => {
+    if (!isCajaPresentacion(p)) return "Pieza";
+    const m = /(\d+)/.exec(p.presentacion || "");
+    return m ? `Caja ${m[1]}` : p.presentacion;
+  });
+  // Si dos se llaman igual (ej. dos tamaños de pieza), se agrega el tamaño.
+  return base.map((l, i) => (base.indexOf(l) !== base.lastIndexOf(l) && list[i].capacidad ? `${l} ${list[i].capacidad}` : l));
+}
+
+/* Todas las presentaciones de cada producto del catálogo, para que una
+   fila (ej. Best Seller) muestre "Pieza / Caja" aunque solo la pieza esté
+   marcada como Best Seller. Se arma una vez por cada carga del catálogo. */
+function presentationIndex() {
+  if (presIndex && presIndexFor === products && presIndexLen === products.length) return presIndex;
+  presIndex = new Map();
+  presIndexFor = products;
+  presIndexLen = products.length;
+  [...groupVariants(products.filter((p) => p.enStock)), ...groupVariants(products.filter((p) => !p.enStock))].forEach((e) => {
+    const k = presClusterKey(e);
+    if (!presIndex.has(k)) presIndex.set(k, []);
+    presIndex.get(k).push(e);
+  });
+  presIndex.forEach((list) => list.sort((a, b) => presOrder(a) - presOrder(b)));
+  return presIndex;
+}
+
+/* expand=false: solo junta lo que ya viene en la lista (para respetar
+   filtros como "Solo cajas"). expand=true: busca las demás presentaciones
+   en todo el catálogo. */
+function clusterPresentations(items, { expand = false } = {}) {
+  const order = [];
+  const groups = new Map();
+  for (const it of items) {
+    const k = presClusterKey(it);
+    if (!groups.has(k)) {
+      groups.set(k, []);
+      order.push(k);
+    }
+    groups.get(k).push(it);
+  }
+  const index = expand ? presentationIndex() : null;
+  return order.map((k) => {
+    const own = groups.get(k);
+    let list = own;
+    if (index && index.has(k)) {
+      list = index.get(k).slice();
+      own.forEach((it) => { if (!list.some((x) => x.id === it.id)) list.push(it); });
+      list.sort((a, b) => presOrder(a) - presOrder(b));
+    } else {
+      list = own.slice().sort((a, b) => presOrder(a) - presOrder(b));
+    }
+    if (list.length < 2) return own[0];
+    const tagged = list.map((x) => ({ ...x, presKey: k }));
+    presClusters.set(k, tagged);
+    // Se muestra la presentación que venía primero en la lista original.
+    return tagged.find((x) => x.id === own[0].id) || tagged[0];
+  });
+}
+
+function presChipsHTML(p) {
+  const list = p.presKey ? presClusters.get(p.presKey) : null;
+  if (!list || list.length < 2) return "";
+  const labels = presLabels(list);
+  return `<div class="flex flex-wrap gap-1 mt-1.5" role="group" aria-label="Presentación">${list
+    .map((e, i) => {
+      const on = e.id === p.id;
+      return `<button type="button" data-pres-swap="${i}" aria-pressed="${on}"
+        class="tap h-7 px-2.5 rounded-full text-xs font-semibold border transition ${on ? "border-ink bg-ink text-cream" : "border-ink/20 text-ink/80 hover:border-ink"}">${escapeHtml(labels[i])}</button>`;
+    })
+    .join("")}</div>`;
+}
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-pres-swap]");
+  if (!b) return;
+  const card = b.closest("[data-pres-card]");
+  const list = card && presClusters.get(card.dataset.presCard);
+  const entry = list && list[Number(b.dataset.presSwap)];
+  if (!entry) return;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = productCardHTML(entry, card.dataset.rank ? { rank: Number(card.dataset.rank) } : {}).trim();
+  const fresh = tmp.firstElementChild;
+  wireAddButtons(fresh);
+  wireVariantSelectors(fresh);
+  card.replaceWith(fresh);
+  const again = fresh.querySelector(`[data-pres-swap="${b.dataset.presSwap}"]`);
+  if (again) again.focus({ preventScroll: true });
+});
+
+/* ======================================================================
+   Ficha de producto: se abre al tocar la foto o el nombre de cualquier
+   tarjeta. Foto grande, descripción, tipo de piel, pieza vs caja, tonos,
+   reseñas, agregar y compartir. Su dirección es alpacca.mx/?p=SKU (la
+   misma que se comparte por WhatsApp; ver netlify/functions/product-page.js).
+   ====================================================================== */
+const productInfoCache = new Map();
+let sheetProductId = null;
+
+function splitBaseName(p) {
+  const m = SHADE_VARIANT_RE.exec(p.nombre || "") || TYPE_VARIANT_RE.exec(p.nombre || "");
+  return { base: m ? m[1] : p.nombre || "", shade: m ? m[2] : null };
+}
+
+function productFamily(p) {
+  const { base, shade } = splitBaseName(p);
+  const same = products.filter((x) => x.marca === p.marca && Boolean(x.enStock) === Boolean(p.enStock) && splitBaseName(x).base === base);
+  const variants = same.filter((x) => (x.presentacion || "") === (p.presentacion || ""));
+  const byPres = new Map();
+  same.forEach((x) => {
+    const k = x.presentacion || "";
+    if (!byPres.has(k)) byPres.set(k, []);
+    byPres.get(k).push(x);
+  });
+  const presentations = [...byPres.values()]
+    .map((list) => list.find((x) => splitBaseName(x).shade === shade) || list.find((x) => x.disponible) || list[0])
+    .sort((a, b) => presOrder(a) - presOrder(b));
+  return { base, shade, variants: variants.length > 1 ? variants : [], presentations: presentations.length > 1 ? presentations : [] };
+}
+
+async function loadProductInfo(p) {
+  const sku = p.stockSku || p.id;
+  if (productInfoCache.has(sku) || p.descripcion) return;
+  productInfoCache.set(sku, null);
+  try {
+    const res = await fetch(`/.netlify/functions/product-page?sku=${encodeURIComponent(sku)}&format=json`);
+    productInfoCache.set(sku, res.ok ? await res.json() : {});
+  } catch (err) {
+    productInfoCache.set(sku, {});
+  }
+  if (sheetProductId === p.id) renderProductSheet(p);
+}
+
+function productShareUrl(p) {
+  return `https://alpacca.mx/?p=${encodeURIComponent(p.stockSku || p.id)}`;
+}
+
+function renderProductSheet(p) {
+  const fam = productFamily(p);
+  const sku = p.stockSku || p.id;
+  const info = productInfoCache.get(sku);
+  const desc = p.descripcion || (info && info.descripcion) || "";
+  const tipo = p.tipoPiel && p.tipoPiel.length
+    ? p.tipoPiel
+    : info && info.tipoPiel ? info.tipoPiel.split(",").map((t) => t.trim()).filter(Boolean) : [];
+  const out = !p.disponible || (p.enStock && p.stockPiezas <= 0);
+  const summary = reviewSummaries.get(sku);
+  const url = productShareUrl(p);
+  const shareText = `${p.marca ? `${p.marca} ` : ""}${fam.base} en Alpacca: ${url}`;
+  const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
+  const presLabelsList = fam.presentations.length ? presLabels(fam.presentations) : [];
+  document.getElementById("product-crumb").textContent = [p.categoria, p.marca].filter(Boolean).join(" · ");
+  document.getElementById("product-body").innerHTML = `
+    <div class="grid gap-5 sm:grid-cols-2 sm:gap-8">
+      <div class="relative aspect-square w-full max-w-[min(100%,34vh)] mx-auto sm:max-w-full rounded-xl overflow-hidden ${isCajaPresentacion(p) ? "bg-lilac/15 border-2 border-lilac/70" : "bg-pill"}">
+        <img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" class="w-full h-full object-contain" />
+        <div class="absolute top-2 left-2">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
+        ${wishlistButtonHTML(p.id)}
+      </div>
+      <div class="flex flex-col gap-4 min-w-0">
+        <div>
+          ${p.marca ? `<button type="button" data-sheet-brand="${escapeAttr(p.marca)}" class="text-sm font-bold text-ink hover:underline underline-offset-2">${escapeHtml(p.marca)}</button>` : ""}
+          <h2 id="product-title" class="font-display text-xl sm:text-2xl text-ink leading-snug mt-0.5 [text-wrap:balance]">${escapeHtml(p.nombre)}</h2>
+          ${p.capacidad ? `<p class="text-sm text-ink/70 mt-1">${escapeHtml(p.capacidad)}</p>` : ""}
+          ${summary && summary.count ? `<button type="button" data-view-reviews="${escapeAttr(sku)}" data-view-reviews-name="${escapeAttr(p.nombre)}" class="mt-1.5 inline-flex items-center gap-1 text-sm text-ink/80 hover:text-ink">${starIconHTML(true, "w-4 h-4")}<b>${summary.avg}</b> · ${summary.count} reseña${summary.count === 1 ? "" : "s"}</button>` : ""}
+        </div>
+        ${fam.presentations.length ? `<div>
+          <p class="text-xs font-semibold text-ink/75 mb-1.5">Presentación</p>
+          <div class="grid grid-cols-2 gap-2">${fam.presentations.map((x, i) => {
+            const on = x.id === p.id;
+            const unit = /Caja con (\d+)/i.exec(x.presentacion || "");
+            return `<button type="button" data-sheet-goto="${escapeAttr(x.id)}" aria-pressed="${on}"
+              class="text-left rounded-xl border-2 px-3 py-2 transition ${on ? "border-rose-deep bg-blush/30" : "border-ink/15 hover:border-ink/40"}">
+              <span class="block text-sm font-semibold text-ink">${escapeHtml(presLabelsList[i])}</span>
+              <span class="block text-sm tabular-nums text-ink">${formatPrice(x.precio)}</span>
+              ${unit ? `<span class="block text-xs text-ink/70 tabular-nums">${formatPrice(x.precio / Number(unit[1]))} c/u</span>` : ""}
+            </button>`;
+          }).join("")}</div></div>` : p.presentacion ? `<div>${presentacionTagHTML(p)}</div>` : ""}
+        ${fam.variants.length ? `<div>
+          <label for="sheet-variant" class="block text-xs font-semibold text-ink/75 mb-1.5">Tono o versión</label>
+          <select id="sheet-variant" data-sheet-variant class="w-full rounded-lg border border-ink/20 bg-white px-3 py-2.5 text-base sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-rose/30">
+            ${fam.variants.map((v) => `<option value="${escapeAttr(v.id)}"${v.id === p.id ? " selected" : ""}${v.disponible ? "" : " disabled"}>${escapeHtml(splitBaseName(v).shade || v.nombre)}${v.disponible ? "" : " (agotado)"}</option>`).join("")}
+          </select></div>` : ""}
+        <div class="tabular-nums leading-tight">
+          <p class="text-2xl font-bold text-ink">${formatPrice(p.precio)} <span class="text-sm font-medium text-ink/70">por transferencia</span></p>
+          ${p.precioTarjeta && p.precioTarjeta > p.precio + 0.5 ? `<p class="text-sm text-ink/70 mt-1">Con tarjeta: ${formatPrice(p.precioTarjeta)}</p>` : ""}
+          ${boxUnitPriceHTML(p).replace("text-xs", "text-sm")}
+        </div>
+        <p class="text-sm text-ink/80">${p.enStock
+          ? `✅ <b>Stock en México</b>: entrega inmediata y sin pedido mínimo. ${stockBadgeHTML(p)}`
+          : `🇰🇷 Se pide a Corea. Cuenta para el pedido mínimo de ${formatPrice(CONFIG.MIN_ORDER_MXN || 0)}.`}</p>
+        <div class="flex flex-col gap-2 sticky bottom-0 z-10 -mx-4 px-4 pt-2 pb-3 bg-cream/95 backdrop-blur border-t border-ink/10 sm:static sm:mx-0 sm:px-0 sm:pt-0 sm:pb-0 sm:bg-transparent sm:border-0">
+          ${out
+            ? `<button type="button" data-restock="${escapeAttr(p.id)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
+                class="h-12 rounded-full border border-rose/60 text-rose-ink font-semibold hover:bg-rose/10 transition">🔔 Avísame cuando vuelva</button>`
+            : `<button type="button" data-sheet-add="${escapeAttr(p.id)}" class="h-12 rounded-full bg-ink text-cream font-semibold hover:bg-ink/85 transition">Agregar al carrito</button>`}
+          <div class="flex gap-2">
+            <a href="https://wa.me/?text=${encodeURIComponent(shareText)}" target="_blank" rel="noopener"
+              class="flex-1 h-11 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#dcf8e8] text-[#17803d] text-sm font-semibold hover:brightness-95">Compartir por WhatsApp</a>
+            <button type="button" data-sheet-copy="${escapeAttr(url)}" class="h-11 px-4 rounded-full border border-ink/20 text-sm font-semibold text-ink hover:bg-ink/5">Copiar link</button>
+          </div>
+        </div>
+        <div class="border-t border-ink/10 pt-4 flex flex-col gap-3 text-sm">
+          ${desc
+            ? `<p class="text-ink/85 leading-relaxed max-w-prose">${escapeHtml(desc)}</p>`
+            : info === undefined || info === null
+              ? `<p class="text-ink/60">Cargando descripción…</p>`
+              : ""}
+          ${tipo.length ? `<div><p class="text-xs font-semibold text-ink/75 mb-1.5">Ideal para piel</p><div class="flex flex-wrap gap-1.5">${tipo.map((t) => `<span class="rounded-full bg-lilac/15 text-lilac-ink text-xs font-semibold px-2.5 py-1">${escapeHtml(t)}</span>`).join("")}</div></div>` : ""}
+          <p class="text-xs text-ink/60">${escapeHtml(brandCountry(p.marca))} · SKU ${escapeHtml(sku)}</p>
+          ${p.marca ? `<button type="button" data-sheet-brand="${escapeAttr(p.marca)}" class="self-start text-sm font-semibold text-rose-ink underline underline-offset-2">Ver todo de ${escapeHtml(p.marca)} →</button>` : ""}
+        </div>
+      </div>
+    </div>`;
+  loadProductInfo(p);
+}
+
+function openProductSheet(id, { fromRoute = false } = {}) {
+  const p = products.find((x) => x.id === id) || products.find((x) => x.stockSku === id && x.enStock) || products.find((x) => x.id === `${id}${STOCK_CLONE_ID_SUFFIX}`);
+  if (!p) return false;
+  const wasOpen = sheetProductId != null;
+  sheetProductId = p.id;
+  renderProductSheet(p);
+  document.getElementById("product-body").parentElement.scrollTop = 0;
+  const overlay = document.getElementById("product-overlay");
+  overlay.classList.remove("opacity-0", "pointer-events-none");
+  document.title = `${p.marca ? `${p.marca} ` : ""}${p.nombre} — Alpacca`;
+  if (!fromRoute) {
+    try {
+      const search = `?p=${encodeURIComponent(p.stockSku || p.id)}`;
+      if (wasOpen) history.replaceState({ ...(history.state || {}), sheet: true }, "", search);
+      else {
+        history.replaceState({ ...(history.state || {}), scrollY: window.scrollY }, "");
+        history.pushState({ sheet: true }, "", search);
+      }
+    } catch (err) { /* sin historial, la ficha igual funciona */ }
+  }
+  return true;
+}
+
+function hideProductSheet() {
+  sheetProductId = null;
+  document.getElementById("product-overlay").classList.add("opacity-0", "pointer-events-none");
+  const params = new URLSearchParams(currentRouteKey);
+  setRouteMeta(Object.fromEntries(params.entries()));
+}
+
+/* Cerrar con la ×, Escape o tocando afuera: si la ficha se abrió desde la
+   tienda, se regresa en el historial (así "atrás" y la × hacen lo mismo);
+   si se entró directo con el link, se deja la dirección de la vista. */
+function closeProductSheet() {
+  if (sheetProductId == null) return;
+  if (history.state && history.state.sheet) {
+    history.back();
+    return;
+  }
+  hideProductSheet();
+  try {
+    history.replaceState({}, "", `${location.pathname}${currentRouteKey ? `?${currentRouteKey}` : ""}`);
+  } catch (err) { /* nada */ }
+}
+
+function applyProductRoute(params) {
+  const id = params.get("p");
+  if (id && products.length) {
+    if (!openProductSheet(id, { fromRoute: true })) hideProductSheet();
+  } else if (sheetProductId != null) {
+    hideProductSheet();
+  }
+}
+
+function initProductSheet() {
+  document.addEventListener("click", (e) => {
+    const opener = e.target.closest("[data-open-product]");
+    if (!opener || opener.closest("#product-overlay")) return;
+    // Si la tarjeta tiene tonos y ya eligieron uno, se abre ese.
+    const card = opener.closest(".group");
+    const chosen = card && card.querySelector("[data-add]") && card.querySelector("[data-add]").dataset.add;
+    e.preventDefault();
+    openProductSheet(chosen || opener.dataset.openProduct);
+  });
+  const overlay = document.getElementById("product-overlay");
+  document.getElementById("product-close").addEventListener("click", closeProductSheet);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) { closeProductSheet(); return; }
+    const go = e.target.closest("[data-sheet-goto]");
+    if (go) { openProductSheet(go.dataset.sheetGoto); return; }
+    const add = e.target.closest("[data-sheet-add]");
+    if (add) {
+      const id = add.dataset.sheetAdd;
+      closeProductSheet();
+      addToCart(id);
+      return;
+    }
+    const brand = e.target.closest("[data-sheet-brand]");
+    if (brand) {
+      const marca = brand.dataset.sheetBrand;
+      hideProductSheet();
+      showBrandProducts(marca);
+      return;
+    }
+    const copy = e.target.closest("[data-sheet-copy]");
+    if (copy) {
+      const done = () => { copy.textContent = "¡Copiado!"; setTimeout(() => { copy.textContent = "Copiar link"; }, 1600); };
+      if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+        navigator.share({ url: copy.dataset.sheetCopy, title: document.title }).catch(() => {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(copy.dataset.sheetCopy).then(done).catch(() => {});
+      }
+    }
+  });
+  overlay.addEventListener("change", (e) => {
+    if (e.target.matches("[data-sheet-variant]")) openProductSheet(e.target.value);
+  });
+}
+
+/* ======================================================================
+   Sugerencias mientras escribes en el buscador: marcas y productos, con
+   foto y precio. Enter sigue mostrando todos los resultados.
+   ====================================================================== */
+let suggestTimer = null;
+let suggestActive = -1;
+
+function searchMatches(q) {
+  const words = normalizeForSearch(q).trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const exact = products.filter((p) => {
+    const hay = normalizeForSearch(`${p.marca} ${p.nombre} ${p.categoria}`);
+    return words.every((w) => hay.includes(w));
+  });
+  return exact;
+}
+
+/* Si no hubo nada, se intenta con faltas de ortografía comunes (una letra
+   de más, de menos o cambiada): "anau" encuentra "anua". */
+function editDistanceWithin(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return false;
+  const d = [];
+  for (let i = 0; i <= a.length; i++) d[i] = [i];
+  for (let j = 0; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    let rowMin = Infinity;
+    for (let j = 1; j <= b.length; j++) {
+      let v = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      // Dos letras volteadas ("anau" -> "anua") cuentan como un solo error.
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, d[i - 2][j - 2] + 1);
+      d[i][j] = v;
+      rowMin = Math.min(rowMin, v);
+    }
+    if (rowMin > max) return false;
+  }
+  return d[a.length][b.length] <= max;
+}
+
+function fuzzyMatches(q) {
+  const words = normalizeForSearch(q).trim().split(/\s+/).filter((w) => w.length >= 3);
+  if (!words.length) return [];
+  const tokenCache = new Map();
+  return products.filter((p) => {
+    let toks = tokenCache.get(p.id);
+    if (!toks) {
+      toks = normalizeForSearch(`${p.marca} ${p.nombre} ${p.categoria}`).split(/[^a-z0-9]+/).filter(Boolean);
+      tokenCache.set(p.id, toks);
+    }
+    return words.every((w) => {
+      const max = w.length >= 7 ? 2 : w.length >= 4 ? 1 : 0;
+      return toks.some((t) => t.includes(w) || (max && editDistanceWithin(w, t.slice(0, w.length + max), max)));
+    });
+  });
+}
+
+function renderSuggestions() {
+  const input = document.getElementById("search-input");
+  const box = document.getElementById("search-suggest");
+  const q = input.value.trim();
+  if (q.length < 2 || !products.length) { hideSuggestions(); return; }
+  const nq = normalizeForSearch(q);
+  let matches = searchMatches(q);
+  let fuzzy = false;
+  if (!matches.length) { matches = fuzzyMatches(q); fuzzy = matches.length > 0; }
+  const brandCounts = new Map();
+  products.forEach((p) => { if (p.marca && normalizeForSearch(p.marca).includes(nq.split(/\s+/)[0])) brandCounts.set(p.marca, (brandCounts.get(p.marca) || 0) + 1); });
+  const brands = [...brandCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const seen = new Set();
+  const items = [];
+  for (const p of matches) {
+    const k = presClusterKey({ ...p, nombre: splitBaseName(p).base });
+    if (seen.has(k)) continue;
+    seen.add(k);
+    items.push(p);
+    if (items.length >= 6) break;
+  }
+  const rows = [];
+  brands.forEach(([marca, n]) => rows.push({ type: "brand", marca, html: `<span class="w-10 h-10 shrink-0 rounded-full bg-blush/40 flex items-center justify-center text-xs font-bold text-rose-ink">${escapeHtml(marca.slice(0, 2).toUpperCase())}</span><span class="min-w-0"><span class="block text-sm font-semibold text-ink">${escapeHtml(marca)}</span><span class="block text-xs text-ink/70">Marca · ${n} productos</span></span>` }));
+  items.forEach((p) => rows.push({ type: "product", id: p.id, html: `<img src="${escapeAttr(p.imagen || "")}" alt="" class="w-10 h-10 shrink-0 rounded-md object-contain bg-pill" loading="lazy" /><span class="min-w-0 flex-1"><span class="block text-xs font-bold text-ink truncate">${escapeHtml(p.marca)}</span><span class="block text-sm text-ink/85 truncate">${escapeHtml(splitBaseName(p).base)}</span></span><span class="text-sm font-semibold tabular-nums text-ink shrink-0">${formatPrice(p.precio)}</span>` }));
+  if (!rows.length) {
+    box.innerHTML = `<p class="px-4 py-3 text-sm text-ink/70">Sin resultados para "${escapeHtml(q)}".</p>`;
+  } else {
+    box.innerHTML = (fuzzy ? `<p class="px-4 pt-2 pb-1 text-xs text-ink/60">Quizá quisiste decir…</p>` : "") +
+      rows.map((r, i) => `<button type="button" role="option" id="sg-${i}" aria-selected="false" data-sg="${i}" data-sg-type="${r.type}" data-sg-val="${escapeAttr(r.type === "brand" ? r.marca : r.id)}"
+        class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-ink/5 aria-selected:bg-ink/5">${r.html}</button>`).join("") +
+      `<button type="button" role="option" id="sg-${rows.length}" aria-selected="false" data-sg="${rows.length}" data-sg-type="all"
+        class="w-full px-4 py-2.5 text-left text-sm font-semibold text-rose-ink hover:bg-ink/5 aria-selected:bg-ink/5 border-t border-ink/10">Ver todos los resultados (${matches.length.toLocaleString("es-MX")})</button>`;
+  }
+  suggestActive = -1;
+  box.classList.remove("hidden");
+  input.setAttribute("aria-expanded", "true");
+}
+
+function hideSuggestions() {
+  const box = document.getElementById("search-suggest");
+  box.classList.add("hidden");
+  box.innerHTML = "";
+  suggestActive = -1;
+  const input = document.getElementById("search-input");
+  input.setAttribute("aria-expanded", "false");
+  input.removeAttribute("aria-activedescendant");
+}
+
+function chooseSuggestion(btn) {
+  const input = document.getElementById("search-input");
+  const type = btn.dataset.sgType;
+  hideSuggestions();
+  if (type === "brand") { input.value = ""; showBrandProducts(btn.dataset.sgVal); }
+  else if (type === "product") openProductSheet(btn.dataset.sgVal);
+  else {
+    renderSearchResults(input.value);
+    document.getElementById("search-results-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+  }
+  input.blur();
+}
+
+function initSearchSuggest() {
+  const input = document.getElementById("search-input");
+  const box = document.getElementById("search-suggest");
+  input.addEventListener("input", () => {
+    clearTimeout(suggestTimer);
+    suggestTimer = setTimeout(renderSuggestions, 120);
+  });
+  input.addEventListener("focus", () => { if (input.value.trim().length >= 2) renderSuggestions(); });
+  input.addEventListener("keydown", (e) => {
+    const opts = [...box.querySelectorAll("[data-sg]")];
+    if (box.classList.contains("hidden") || !opts.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      suggestActive = (suggestActive + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length;
+      opts.forEach((o, i) => o.setAttribute("aria-selected", String(i === suggestActive)));
+      input.setAttribute("aria-activedescendant", opts[suggestActive].id);
+      opts[suggestActive].scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter" && suggestActive >= 0) {
+      e.preventDefault();
+      chooseSuggestion(opts[suggestActive]);
+    } else if (e.key === "Escape") {
+      hideSuggestions();
+    }
+  });
+  // mousedown para que el clic gane antes de que el input pierda el foco.
+  box.addEventListener("mousedown", (e) => e.preventDefault());
+  box.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-sg]");
+    if (btn) chooseSuggestion(btn);
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#search-form")) hideSuggestions();
   });
 }
 
@@ -2437,6 +2939,7 @@ function renderTimeDeal() {
 const ROW_CARD_CLASS = "snap-start shrink-0 w-[44%] sm:w-[30%] lg:w-[calc((100%_-_5rem)/6)]";
 
 function mountProductRow(container, items, { ranked = false } = {}) {
+  items = clusterPresentations(items, { expand: true });
   container.innerHTML = items
     .map((p, i) => `<div class="${ROW_CARD_CLASS}">${productCardHTML(p, ranked ? { rank: i + 1 } : {})}</div>`)
     .join("");
@@ -2959,12 +3462,16 @@ function renderSearchResults(query, { restore = false } = {}) {
   // la marca y el nombre estén en columnas distintas.
   // Los de Stock en México (entrega inmediata) salen primero; se agrupan
   // aparte de los de Corea para no mezclar sus tonos en un mismo selector.
-  const words = q.split(/\s+/).filter(Boolean);
-  const matches = products.filter((p) => {
-    const haystack = normalizeForSearch(`${p.marca} ${p.nombre} ${p.categoria}`);
-    return words.every((w) => haystack.includes(w));
-  });
-  document.getElementById("search-results-title").textContent = `Resultados para "${query.trim()}"`;
+  let matches = searchMatches(q);
+  let fuzzy = false;
+  if (!matches.length) {
+    matches = fuzzyMatches(q);
+    fuzzy = matches.length > 0;
+  }
+  document.getElementById("search-results-title").textContent = fuzzy
+    ? `No encontramos "${query.trim()}"; estos se parecen`
+    : `Resultados para "${query.trim()}"`;
+  hideSuggestions();
   const count = mountListing("search", matches, { restore, id: q });
   showHomeView("search", { q: query.trim() });
 
@@ -3103,6 +3610,7 @@ function listingItems(key, { ignoreFilters = false } = {}) {
   // mezclar sus tonos con los de Corea en un mismo selector.
   let items = [...groupVariants(raw.filter((p) => p.enStock)), ...groupVariants(raw.filter((p) => !p.enStock))];
   if (f.disp) items = items.filter(entryAvailable);
+  items = clusterPresentations(items);
   const byName = (a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
   if (st.sort === "precio-asc") items.sort((a, b) => a.precio - b.precio);
   else if (st.sort === "precio-desc") items.sort((a, b) => b.precio - a.precio);
@@ -4024,6 +4532,7 @@ const DIALOGS = [
   { panel: "americano-cart-drawer", overlay: "americano-cart-overlay", close: "americano-cart-close", closedClass: "translate-x-full" },
   { panel: "account-drawer", overlay: "account-overlay", close: "account-close", closedClass: "translate-x-full" },
   { panel: "mobile-menu", overlay: "menu-overlay", close: "menu-close", closedClass: "-translate-x-full" },
+  { panel: "product-overlay", close: "product-close", closedClass: "opacity-0" },
   { panel: "restock-overlay", close: "restock-close", closedClass: "opacity-0" },
   { panel: "review-overlay", close: "review-close", closedClass: "opacity-0" },
   { panel: "reviews-list-overlay", close: "reviews-list-close", closedClass: "opacity-0" },
@@ -5483,6 +5992,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initWishlist();
   initRestock();
   initReviews();
+  initProductSheet();
+  initSearchSuggest();
   wireShippingTimesModal();
 
   // Por si alguien traía carritos de ambas colecciones guardados de antes
