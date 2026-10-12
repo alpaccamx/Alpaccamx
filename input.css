@@ -169,9 +169,12 @@ html {
     --hero-card-w: 40vw;
   }
 }
+/* En computadora, como StyleKorean: cada tarjeta mide ~30% del ancho de
+   la pantalla (se ven 3 completas y un pedazo de las de los lados). Antes
+   era fijo de 24rem y en pantallas anchas se veían 5 tarjetas chiquitas. */
 @media (min-width: 1024px) {
   .hero-row {
-    --hero-card-w: 24rem;
+    --hero-card-w: min(30vw, 38rem);
   }
 }
 .hero-card {
