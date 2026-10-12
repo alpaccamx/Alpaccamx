@@ -114,6 +114,9 @@ function csvToProducts(text) {
   const iSku = findCol(headers, ["sku", "codigo", "código"]);
   const iPeso = findCol(headers, ["peso", "peso (kg)", "peso kg", "weight", "pesokg"]);
   const iPresentacion = findCol(headers, ["presentacion", "presentación", "empaque", "variante", "unidad"]);
+  // Solo del servidor (no está en app.js): el costo en ABW, que se guarda
+  // en cada pedido para calcular la ganancia en /admin.html.
+  const iPrecioUsd = findCol(headers, ["precio usd"]);
 
   return rows
     .slice(1)
@@ -138,6 +141,7 @@ function csvToProducts(text) {
         peso: parseFloat(pesoRaw) || 0,
         presentacion: get(iPresentacion),
         disponible,
+        costoUSD: parseFloat(normalizeMoneyCell(get(iPrecioUsd))) || 0,
       };
     })
     .filter((p) => p.nombre && p.nombre !== "Producto sin nombre");
@@ -444,6 +448,7 @@ async function priceOrder({ source, items, customer, soldMap }) {
         precio: useTarjeta ? tarjeta : base,
         peso,
         presentacion: (main && main.presentacion) || "",
+        costoUSD: (main && main.costoUSD) || 0,
       });
       continue;
     }
@@ -463,6 +468,7 @@ async function priceOrder({ source, items, customer, soldMap }) {
       precio: useTarjeta ? tarjeta : base,
       peso: main.peso || 0,
       presentacion: main.presentacion || "",
+      costoUSD: main.costoUSD || 0,
     });
   }
 
@@ -503,6 +509,7 @@ async function priceOrder({ source, items, customer, soldMap }) {
     shippingMXN: round2(shippingMXN),
     shippingMXNBase: round2(shippingMXNBase),
     grandTotal: round2(subtotal + shippingMXN),
+    exchangeRate: state.settings.exchangeRate || 0,
     shippingKoreaMXN: shipping ? shipping.coreaMXN : 0,
     shippingNacionalMXN: shipping ? shipping.nacionalMXN : 0,
     // Mismo desglose pero a precio de tarjeta -- lo usa el correo de

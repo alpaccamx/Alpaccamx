@@ -210,6 +210,9 @@ exports.handler = async (event) => {
       precio: line.precio,
       precioBase: line.precioBase,
       enStock: line.enStock,
+      // Costo en ABW (Precio USD del catálogo) ese día, para la ganancia
+      // estimada en /admin.html. 0 = sin costo en el Sheet.
+      costoUSD: line.costoUSD || 0,
     })),
     subtotal: priced.subtotal,
     shippingMXN: priced.shippingMXN,
@@ -222,6 +225,7 @@ exports.handler = async (event) => {
     shippingKoreaMXNTarjeta: priced.shippingKoreaMXNTarjeta,
     shippingNacionalMXNTarjeta: priced.shippingNacionalMXNTarjeta,
     weightKg: priced.weightKg,
+    exchangeRate: priced.exchangeRate,
   };
 
   try {
