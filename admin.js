@@ -14,6 +14,7 @@
   const filterCountEl = document.getElementById("filter-count");
   const statusTabsEl = document.getElementById("status-tabs");
   const timeTabsEl = document.getElementById("time-tabs");
+  const bucketTabsEl = document.getElementById("bucket-tabs");
 
   let allOrders = [];
   let filteredOrders = [];
@@ -253,6 +254,7 @@
 
     filteredOrders = allOrders.filter((o) => {
       if (currentStatus && o.status !== currentStatus) return false;
+      if (currentBucket && orderBucket(o) !== currentBucket) return false;
       if (bounds) {
         const fecha = o.createdAt ? o.createdAt.slice(0, 10) : "";
         if (!fecha || fecha < bounds.from || fecha > bounds.to) return false;
@@ -267,7 +269,7 @@
     // (aparece un pedido que no tiene nada que ver con lo que se buscó).
     const pendingOrders = allOrders.filter((o) => o.status === "pending");
     renderPending(
-      search ? pendingOrders.filter((o) => matchesSearch(o, search)) : pendingOrders,
+      currentBucket ? [] : (search ? pendingOrders.filter((o) => matchesSearch(o, search)) : pendingOrders),
       Boolean(search) && pendingOrders.length > 0
     );
 
@@ -281,6 +283,8 @@
     filterCountEl.textContent = filteredOrders.length === total
       ? `${total} pedido${total === 1 ? "" : "s"}`
       : `${filteredOrders.length} de ${total} pedidos`;
+    if (currentView === "inicio") renderHome();
+    if (currentView === "compras") renderAbw();
   }
 
   function matchesSearch(o, query) {
@@ -1464,9 +1468,7 @@ ${itemLines}
   function cardSummaryHTML(o, chipsHTML, expanded) {
     const c = o.customer || {};
     const { pieces } = orderPiecesAndWeight(o);
-    const extra = [];
-    if (o.status === "paid" && o.trackingNumber) extra.push('<span class="badge chip-ship">🚚 Enviado</span>');
-    else if (o.status === "paid" && o.supplierOrderNumber) extra.push('<span class="badge chip-abw">🛍️ Pedido a ABW</span>');
+    const extra = [bucketChipHTML(o)];
     return `
       <button type="button" class="card-summary" data-card-toggle="${o.id}" aria-expanded="${expanded ? "true" : "false"}" aria-controls="card-body-${o.id}">
         <span>
@@ -1487,7 +1489,7 @@ ${itemLines}
     // Borrar no se puede deshacer: va escondido en "Más opciones" (y pide
     // confirmación), no como botón rojo grande al alcance del dedo.
     const deleteBtn = (o.status === "cancelled" || o.status === "paid")
-      ? `<details class="more-opts"><summary>⋯ Más opciones</summary><div class="actions"><button type="button" class="btn-danger" data-delete="${o.id}">🗑️ Borrar este pedido</button></div></details>`
+      ? `<details class="more-opts"><summary>⋯ Más opciones</summary>${stageSelectHTML(o)}<div class="actions"><button type="button" class="btn-danger" data-delete="${o.id}">🗑️ Borrar este pedido</button></div></details>`
       : "";
     // Los pendientes ya traen su propio panel de edición en pendingCardHTML
     // -- si también se pintara aquí, habría dos elementos con el mismo id
@@ -1511,6 +1513,7 @@ ${itemLines}
           <div class="total">${formatPrice(o.grandTotal)}</div>
           ${customerHTML(o)}
           ${proofLinkHTML(o)}
+          ${nextStepHTML(o)}
           ${trackingBlockHTML(o)}
           ${guideBlockHTML(o)}
           ${editBlock}
@@ -2072,6 +2075,8 @@ ${itemLines}
     const emptyEl = document.getElementById("restock-requests-empty");
     const badgeEl = document.getElementById("restock-requests-badge");
 
+    restockCount = requests.length;
+    if (currentView === "inicio") renderHome();
     badgeEl.textContent = requests.length ? String(requests.length) : "";
     badgeEl.style.display = requests.length ? "inline-flex" : "none";
 
@@ -2736,17 +2741,349 @@ ${itemLines}
   // primero se verifica la clave con una llamada real, y el panel solo
   // se muestra si esa llamada regresa 200.
 
+
+  /* ======================================================================
+     Fase 2: etapas de surtido, Inicio y Compras ABW
+     ====================================================================== */
+  // pagado -> pedido_abw -> llego -> enviado -> entregado. Si un pedido no
+  // tiene etapa guardada se deduce: con número de ABW ya se pidió, con
+  // guía ya se envió.
+  const STAGE_ORDER = ["pagado", "pedido_abw", "llego", "enviado", "entregado"];
+  const STAGE_SELECT_LABELS = {
+    pagado: "Pagado (falta surtir)",
+    pedido_abw: "Pedido a ABW",
+    llego: "Llegó a México",
+    enviado: "Enviado",
+    entregado: "Entregado",
+  };
+  const BUCKETS = {
+    por_abw: "🛍️ Por pedir a ABW",
+    esperando_abw: "⏳ Esperando ABW",
+    por_enviar: "📦 Por enviar",
+    enviado: "🚚 Enviado",
+    entregado: "🎁 Entregado",
+  };
+  let currentBucket = "";
+  let restockCount = null;
+  const abwExcluded = new Set();
+
+  function orderStage(o) {
+    let rank = STAGE_ORDER.indexOf(o.stage);
+    if (rank < 0) rank = 0;
+    if (o.supplierOrderNumber) rank = Math.max(rank, 1);
+    if (o.trackingNumber) rank = Math.max(rank, 3);
+    return STAGE_ORDER[rank];
+  }
+
+  // En qué "pendiente" está un pedido pagado (null si no está pagado).
+  function orderBucket(o) {
+    if (o.status !== "paid") return null;
+    const st = orderStage(o);
+    if (st === "pagado") return supplierSourceableItems(o).length ? "por_abw" : "por_enviar";
+    if (st === "pedido_abw") return "esperando_abw";
+    if (st === "llego") return "por_enviar";
+    return st;
+  }
+
+  function bucketChipHTML(o) {
+    const b = orderBucket(o);
+    return b ? `<span class="badge st-${b}">${BUCKETS[b]}</span>` : "";
+  }
+
+  function firstName(o) {
+    return ((o.customer && o.customer.name) || "").trim().split(/\s+/)[0] || "";
+  }
+
+  // Mensajes de WhatsApp listos según la etapa (se abren con un toque).
+  function waTemplatesHTML(o) {
+    const phone = o.customer && o.customer.phone;
+    const base = waLinkFromPhone(phone);
+    if (!base) return "";
+    const hola = firstName(o) ? `Hola ${firstName(o)} 💕` : "Hola 💕";
+    const num = `#${orderNumber(o)}`;
+    const b = orderBucket(o);
+    const msgs = [];
+    if (o.status === "paid") msgs.push(["Recibí tu pago", `${hola} ¡Recibí tu pago del pedido ${num}! Muchas gracias por tu compra en Alpacca. Te voy avisando cómo va 🌸`]);
+    if (b === "esperando_abw") msgs.push(["Ya lo pedimos", `${hola} Tu pedido ${num} ya está pedido a Corea 🇰🇷. En cuanto llegue a México te aviso para enviártelo.`]);
+    if (b === "por_enviar" && orderStage(o) === "llego") msgs.push(["Llegó a México", `${hola} ¡Tu pedido ${num} ya llegó a México! 🇲🇽 Lo preparo y te mando la guía en cuanto salga.`]);
+    if (b === "enviado") msgs.push(["¿Ya te llegó?", `${hola} ¿Ya te llegó tu pedido ${num}? Cualquier cosa aquí estoy 🌸`]);
+    if (b === "entregado") msgs.push(["Gracias", `${hola} ¡Gracias por tu compra! Si te gustaron tus productos, me ayudaría mucho que dejaras tu reseña en alpacca.mx 💕`]);
+    if (!msgs.length) return "";
+    return `<div class="wa-row"><span class="wa-label">💬 Mensajes rápidos por WhatsApp</span>${msgs
+      .map(([label, text]) => `<a href="${escapeAttr(`${base}?text=${encodeURIComponent(text)}`)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`)
+      .join("")}</div>`;
+  }
+
+  // El botón grande del siguiente paso, según la etapa.
+  function nextStepHTML(o) {
+    const b = orderBucket(o);
+    if (!b) return "";
+    const btn = (to, label) => `<button type="button" class="btn-primary" data-stage="${o.id}" data-stage-to="${to}">${label}</button>`;
+    let action = "";
+    if (b === "por_abw") action = btn("pedido_abw", "🛍️ Ya lo pedí a ABW");
+    else if (b === "esperando_abw") action = btn("llego", "📦 Ya llegó a México");
+    else if (b === "por_enviar") action = `${btn("enviado", "🚚 Ya lo envié")}<span class="edit-hint">Para generar la guía con paquetería usa "📦 Generar guía real" más abajo; al guardar la guía se marca como enviado solo.</span>`;
+    else if (b === "enviado") action = btn("entregado", "🎁 Ya lo recibió");
+    return `<div class="next-step"><span class="ns-label">Siguiente paso · <b>${BUCKETS[b]}</b></span>${action}${waTemplatesHTML(o)}</div>`;
+  }
+
+  function stageSelectHTML(o) {
+    if (o.status !== "paid") return "";
+    const cur = orderStage(o);
+    return `<label class="fld" style="max-width:320px;"><span>Cambiar etapa a mano</span>
+      <select class="stage-select" data-stage-select="${o.id}">${STAGE_ORDER.map(
+        (st) => `<option value="${st}"${st === cur ? " selected" : ""}>${STAGE_SELECT_LABELS[st]}</option>`
+      ).join("")}</select></label>`;
+  }
+
+  async function updateStage(orderIds, stage, supplierOrderNumber) {
+    setStatus("Guardando...");
+    try {
+      const res = await fetch("/.netlify/functions/admin-update-order-stage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ orderIds, stage, supplierOrderNumber }),
+      });
+      const data = await res.json().catch(() => ({}));
+      (data.orders || []).forEach((u) => {
+        const i = allOrders.findIndex((x) => x.id === u.id);
+        if (i >= 0) allOrders[i] = u;
+      });
+      if (!res.ok) {
+        setStatus(data.error || "No se pudo guardar la etapa.");
+        return false;
+      }
+      setStatus("");
+      applyFilters();
+      return true;
+    } catch (err) {
+      setStatus("No se pudo conectar con el servidor.");
+      return false;
+    }
+  }
+
+  function wireStageControls(container) {
+    container.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-stage]");
+      if (!btn || !container.contains(btn)) return;
+      const id = btn.dataset.stage;
+      const to = btn.dataset.stageTo;
+      let num;
+      if (to === "pedido_abw") {
+        const o = allOrders.find((x) => x.id === id);
+        num = window.prompt("Número de pedido en ABW (opcional):", (o && o.supplierOrderNumber) || "");
+        if (num === null) return;
+      }
+      btn.disabled = true;
+      openCards.add(id);
+      await updateStage([id], to, num || undefined);
+      btn.disabled = false;
+    });
+    container.addEventListener("change", (e) => {
+      const sel = e.target.closest("[data-stage-select]");
+      if (!sel) return;
+      openCards.add(sel.dataset.stageSelect);
+      updateStage([sel.dataset.stageSelect], sel.value);
+    });
+  }
+
+  /* ---------- Inicio ---------- */
+  function paidOrders() {
+    return allOrders.filter((o) => o.status === "paid");
+  }
+
+  function dayKey(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function renderHome() {
+    const todoEl = document.getElementById("home-todo");
+    if (!todoEl) return;
+    const now = new Date();
+    document.getElementById("home-hello").textContent =
+      `Hola Mae · ${now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}`;
+    const count = (b) => allOrders.filter((o) => orderBucket(o) === b).length;
+    const pending = allOrders.filter((o) => o.status === "pending").length;
+    const cards = [
+      { n: pending, label: "Por confirmar pago", hint: "Revisa comprobantes", go: "pending", cls: "hot" },
+      { n: count("por_abw"), label: "Por pedir a ABW", hint: "Ver lista de compra", go: "abw", cls: "pink" },
+      { n: count("esperando_abw"), label: "Esperando ABW", hint: "Ya pedidos, en camino", go: "esperando_abw" },
+      { n: count("por_enviar"), label: "Por enviar", hint: "Generar guía", go: "por_enviar", cls: "hot" },
+      { n: restockCount == null ? "…" : restockCount, label: "Avisos de restock", hint: "Clientas esperando", go: "restock" },
+    ];
+    todoEl.innerHTML = cards
+      .map((c) => `<button type="button" class="todo-card ${c.n ? c.cls || "" : "zero"}" data-home-go="${c.go}">
+        <span class="n">${c.n}</span><span>${c.label}</span><span class="hint">${c.hint} ›</span></button>`)
+      .join("");
+
+    // Ventas (pedidos pagados, por fecha del pedido)
+    const paid = paidOrders();
+    const todayKey = dayKey(now);
+    const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 6); weekAgo.setHours(0, 0, 0, 0);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    let today = 0, week = 0, month = 0, nToday = 0, nWeek = 0, nMonth = 0;
+    const byDay = new Map();
+    paid.forEach((o) => {
+      if (!o.createdAt) return;
+      const d = new Date(o.createdAt);
+      const t = o.grandTotal || 0;
+      const k = dayKey(d);
+      byDay.set(k, (byDay.get(k) || 0) + t);
+      if (k === todayKey) { today += t; nToday++; }
+      if (d >= weekAgo) { week += t; nWeek++; }
+      if (d >= monthStart) { month += t; nMonth++; }
+    });
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now); d.setDate(now.getDate() - i);
+      days.push({ d, v: byDay.get(dayKey(d)) || 0 });
+    }
+    const max = Math.max(1, ...days.map((x) => x.v));
+    const plural = (n) => `${n} pedido${n === 1 ? "" : "s"}`;
+    document.getElementById("home-sales").innerHTML = `
+      <h2>💰 Ventas (pedidos pagados)</h2>
+      <div class="sales-row">
+        <div><span>Hoy</span><b>${formatPrice(today)}</b><span>${plural(nToday)}</span></div>
+        <div><span>Últimos 7 días</span><b>${formatPrice(week)}</b><span>${plural(nWeek)}</span></div>
+        <div><span>Este mes</span><b>${formatPrice(month)}</b><span>${plural(nMonth)}</span></div>
+      </div>
+      <div class="bars" role="img" aria-label="Ventas por día de los últimos 14 días">
+        ${days.map((x, i) => `<div class="bar${i === days.length - 1 ? " today" : ""}" title="${x.d.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}: ${formatPrice(x.v)}">
+          <i style="height:${Math.round((x.v / max) * 100)}%"></i><small>${x.d.getDate()}</small></div>`).join("")}
+      </div>`;
+
+    // Lo más vendido del mes (piezas)
+    const tops = new Map();
+    paid.filter((o) => o.createdAt && new Date(o.createdAt) >= monthStart).forEach((o) => {
+      (o.items || []).forEach((it) => {
+        const key = `${itemMarca(it)}||${it.nombre}`;
+        tops.set(key, (tops.get(key) || 0) + (it.qty || 0));
+      });
+    });
+    const top = [...tops.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    document.getElementById("home-top").innerHTML = `<h2>⭐ Lo más vendido este mes</h2>${
+      top.length
+        ? `<ul class="top-list">${top.map(([k, q]) => {
+            const [marca, nombre] = k.split("||");
+            return `<li><span>${marca ? `<strong>${escapeHtml(marca)}</strong> — ` : ""}${escapeHtml(nombre)}</span><b>${q} pzs</b></li>`;
+          }).join("")}</ul>`
+        : `<p style="margin:0;color:#5f5866;">Todavía no hay ventas este mes.</p>`
+    }`;
+  }
+
+  function goToOrders(filter) {
+    showView("pedidos");
+    resetTabs();
+    currentBucket = "";
+    if (filter === "pending") {
+      currentStatus = "pending";
+    } else if (BUCKETS[filter]) {
+      currentBucket = filter;
+    }
+    syncFilterTabs();
+    applyFilters();
+  }
+
+  function syncFilterTabs() {
+    statusTabsEl.querySelectorAll(".tab").forEach((b) => {
+      const on = b.dataset.status === currentStatus;
+      b.classList.toggle("active", on);
+      b.style.background = on ? (STATUS_TAB_COLORS[b.dataset.status] || "#e07a8f") : "";
+      b.style.color = on ? "#fff" : "";
+    });
+    bucketTabsEl.querySelectorAll(".tab").forEach((b) => {
+      const on = b.dataset.bucket === currentBucket;
+      b.classList.toggle("active", on);
+      b.style.background = on ? "#e07a8f" : "";
+      b.style.color = on ? "#fff" : "";
+    });
+    syncTabPressed(statusTabsEl);
+    syncTabPressed(bucketTabsEl);
+  }
+
+  /* ---------- Compras ABW (lista consolidada) ---------- */
+  function abwOrders() {
+    return allOrders.filter((o) => orderBucket(o) === "por_abw");
+  }
+
+  function abwSelectedItems() {
+    const map = new Map();
+    abwOrders().filter((o) => !abwExcluded.has(o.id)).forEach((o) => {
+      supplierSourceableItems(o).forEach((it) => {
+        const marca = itemMarca(it);
+        const key = it.sku || `${marca}||${it.nombre}`;
+        const cur = map.get(key) || { marca, nombre: it.nombre, sku: it.sku || "", qty: 0, who: [] };
+        cur.qty += it.qty || 0;
+        cur.who.push(`${firstName(o) || "?"} ×${it.qty}`);
+        map.set(key, cur);
+      });
+    });
+    return [...map.values()].sort((a, b) => (a.marca || "").localeCompare(b.marca || "", "es") || a.nombre.localeCompare(b.nombre, "es"));
+  }
+
+  function renderAbw() {
+    const orders = abwOrders();
+    const has = orders.length > 0;
+    document.getElementById("abw-empty").style.display = has ? "none" : "block";
+    document.getElementById("abw-actions").style.display = has ? "flex" : "none";
+    document.getElementById("abw-orders").innerHTML = orders
+      .map((o) => {
+        const n = supplierSourceableItems(o).reduce((s, it) => s + (it.qty || 0), 0);
+        return `<label class="abw-order"><input type="checkbox" data-abw-order="${o.id}" ${abwExcluded.has(o.id) ? "" : "checked"} />
+          <span class="who"><b>${escapeHtml((o.customer && o.customer.name) || "(sin nombre)")}</b>
+          <small>#${orderNumber(o)} · ${formatFecha(o.createdAt)} · ${n} pieza${n === 1 ? "" : "s"} por pedir</small></span></label>`;
+      })
+      .join("");
+    const items = abwSelectedItems();
+    const total = items.reduce((s, x) => s + x.qty, 0);
+    document.getElementById("abw-items").innerHTML = items.length
+      ? `<h2 class="section-title" style="margin:6px 0 8px;">🧺 ${total} pieza${total === 1 ? "" : "s"} · ${items.length} producto${items.length === 1 ? "" : "s"}</h2>
+         <table class="abw-items"><tbody>${items
+           .map((x) => `<tr><td>${x.marca ? `<strong>${escapeHtml(x.marca)}</strong> — ` : ""}${escapeHtml(x.nombre)}
+             <small>${escapeHtml(x.who.join(", "))}${x.sku ? ` · SKU ${escapeHtml(x.sku)}` : ""}</small></td><td class="q">×${x.qty}</td></tr>`)
+           .join("")}</tbody></table>`
+      : (has ? `<p class="abw-intro">Selecciona al menos un pedido.</p>` : "");
+    const btn = document.getElementById("abw-mark-done");
+    const sel = orders.filter((o) => !abwExcluded.has(o.id)).length;
+    btn.textContent = `✅ Ya los pedí a ABW (${sel} pedido${sel === 1 ? "" : "s"})`;
+    btn.disabled = !sel;
+  }
+
+  function abwListText() {
+    return abwSelectedItems().map((x) => `${x.marca ? x.marca + " - " : ""}${x.nombre} x${x.qty}`).join("\n");
+  }
+
+  function abwPromptText() {
+    const fake = { items: abwSelectedItems().map((x) => ({ nombre: x.nombre, marca: x.marca, qty: x.qty, sku: x.sku })) };
+    return buildSupplierPrompt(fake);
+  }
+
+  function copyText(text, btn) {
+    const done = () => {
+      const original = btn.textContent;
+      btn.textContent = "✅ ¡Copiado!";
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => setStatus("No se pudo copiar."));
+    } else {
+      setStatus("No se pudo copiar.");
+    }
+  }
+
   /* Una sección a la vez: Pedidos, Inventario, Restock, Reseñas o
      Encargos USA. Antes cada panel se abría debajo de los pedidos (fuera
      de la pantalla en el celular) y parecía que el botón no hacía nada. */
   const VIEWS = {
-    pedidos: { el: "orders-view", title: "🌸 Pedidos" },
+    inicio: { el: "home-view", title: "🌸 Inicio", nav: "inicio" },
+    compras: { el: "abw-view", title: "🛍️ Compras ABW", nav: "inicio" },
+    pedidos: { el: "orders-view", title: "🧾 Pedidos" },
     inventario: { el: "inventory-panel", title: "📦 Inventario" },
     restock: { el: "restock-requests-panel", title: "🔔 Avisos de restock" },
     resenas: { el: "reviews-panel", title: "⭐ Reseñas" },
     usa: { el: "usa-orders-panel", title: "🛍️ Encargos USA" },
   };
-  let currentView = "pedidos";
+  let currentView = "inicio";
 
   function showView(view) {
     if (!VIEWS[view]) view = "pedidos";
@@ -2760,11 +3097,14 @@ ${itemLines}
       el.style.display = key === view ? (key === "pedidos" ? "block" : "flex") : "none";
     });
     document.getElementById("view-title").textContent = VIEWS[view].title;
+    const navKey = VIEWS[view].nav || view;
     toolbar.querySelectorAll("[data-view]").forEach((b) => {
-      const on = b.dataset.view === view;
+      const on = b.dataset.view === navKey;
       b.classList.toggle("active", on);
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
+    if (view === "inicio") renderHome();
+    if (view === "compras") renderAbw();
     if (view === "inventario" && !inventoryLoaded) loadInventory();
     if (view === "restock" && !restockRequestsLoaded) loadRestockRequests();
     if (view === "resenas" && !reviewsLoaded) loadReviews();
@@ -2776,7 +3116,7 @@ ${itemLines}
     loginBox.style.display = on ? "none" : "block";
     toolbar.style.display = on ? "flex" : "none";
     document.getElementById("logout-btn").style.display = on ? "inline-flex" : "none";
-    if (on) showView("pedidos");
+    if (on) showView("inicio");
     else Object.values(VIEWS).forEach((v) => { document.getElementById(v.el).style.display = "none"; });
   }
 
@@ -2844,6 +3184,14 @@ ${itemLines}
   function resetTabs() {
     currentStatus = "";
     currentRange = "all";
+    currentBucket = "";
+    bucketTabsEl.querySelectorAll(".tab").forEach((b) => {
+      const isDefault = b.dataset.bucket === "";
+      b.classList.toggle("active", isDefault);
+      b.style.background = isDefault ? "#e07a8f" : "";
+      b.style.color = isDefault ? "#fff" : "";
+    });
+    syncTabPressed(bucketTabsEl);
     statusTabsEl.querySelectorAll(".tab").forEach((b) => {
       const isDefault = b.dataset.status === "";
       b.classList.toggle("active", isDefault);
@@ -2864,7 +3212,8 @@ ${itemLines}
     adminKey = "";
     sessionStorage.removeItem(KEY_STORAGE);
     setLoggedInUI(false);
-    currentView = "pedidos";
+    currentView = "inicio";
+    currentBucket = "";
     ordersEl.innerHTML = "";
     emptyEl.style.display = "none";
     historyEl.innerHTML = "";
@@ -2970,6 +3319,45 @@ ${itemLines}
     });
   });
   filterSearchEl.addEventListener("input", applyFilters);
+  bucketTabsEl.querySelectorAll(".tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      currentBucket = btn.dataset.bucket;
+      syncFilterTabs();
+      applyFilters();
+    });
+  });
+  wireStageControls(ordersEl);
+  wireStageControls(historyEl);
+  document.getElementById("home-todo").addEventListener("click", (e) => {
+    const c = e.target.closest("[data-home-go]");
+    if (!c) return;
+    const go = c.dataset.homeGo;
+    if (go === "abw") showView("compras");
+    else if (go === "restock") showView("restock");
+    else goToOrders(go);
+  });
+  document.getElementById("abw-orders").addEventListener("change", (e) => {
+    const cb = e.target.closest("[data-abw-order]");
+    if (!cb) return;
+    if (cb.checked) abwExcluded.delete(cb.dataset.abwOrder); else abwExcluded.add(cb.dataset.abwOrder);
+    renderAbw();
+  });
+  document.getElementById("abw-copy-list").addEventListener("click", (e) => copyText(abwListText(), e.currentTarget));
+  document.getElementById("abw-copy-prompt").addEventListener("click", (e) => copyText(abwPromptText(), e.currentTarget));
+  document.getElementById("abw-mark-done").addEventListener("click", async (e) => {
+    const ids = abwOrders().filter((o) => !abwExcluded.has(o.id)).map((o) => o.id);
+    if (!ids.length) return;
+    if (!window.confirm(`¿Marcar ${ids.length} pedido${ids.length === 1 ? "" : "s"} como pedidos a ABW?`)) return;
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    const num = document.getElementById("abw-order-number").value.trim();
+    const ok = await updateStage(ids, "pedido_abw", num || undefined);
+    btn.disabled = false;
+    if (ok) {
+      document.getElementById("abw-order-number").value = "";
+      renderAbw();
+    }
+  });
 
   statusTabsEl.querySelectorAll(".tab").forEach((btn) => {
     btn.addEventListener("click", () => {
