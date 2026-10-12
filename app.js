@@ -132,12 +132,13 @@ const CONFIG = {
       imageAlt: "PDRN: estimula la regeneración celular, repara la piel y mejora la elasticidad -- crema, sérum, mascarilla y esencia.",
       ctaHref: "?q=pdrn",
     },
-    // numbuzin y Torriden todavía no están en el catálogo: sin link hasta
-    // que se agreguen (entonces ctaHref: "?marca=..." como los demás).
     {
       imageCard: "assets/hero/hero-numbuzin-70-card.webp",
       imageAlt: "Grandes ahorros para una piel más sana: hasta 70% de descuento en numbuzin.",
+      ctaHref: "?marca=numbuzin",
     },
+    // Torriden todavía no está en el catálogo: sin link hasta que se
+    // agregue (entonces ctaHref: "?marca=Torriden" como los demás).
     {
       imageCard: "assets/hero/hero-torriden-cellmazing-card.webp",
       imageAlt: "Torriden Cellmazing: rutina reafirmante con crema, contorno de ojos, ampolleta y mascarilla de gel.",
