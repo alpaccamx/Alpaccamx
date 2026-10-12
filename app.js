@@ -528,7 +528,7 @@ function openWishlistSection() {
   }
 
   showHomeView("wishlist");
-  document.getElementById("wishlist-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+  if (!routeRestoring) document.getElementById("wishlist-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* ======================================================================
@@ -1580,6 +1580,7 @@ async function loadProducts() {
         catalogLoaded = true;
         renderAll();
         refreshCurrentView();
+        applyInitialRoute();
       }
     } catch (err) {
       // Copia guardada corrupta -- se ignora, sigue con el fetch normal.
@@ -1594,13 +1595,17 @@ async function loadProducts() {
     saveCachedProductsCsv(text);
     hideStatus();
   } catch (err) {
-    console.warn("No se pudo cargar el Google Sheet, usando catálogo de ejemplo:", err);
-    // Si ya había una copia en caché, se deja lo que ya se pintó -- es
-    // mejor un catálogo real un poco desactualizado que reemplazarlo por
-    // el catálogo de ejemplo.
-    if (!cachedCsv) {
-      products = DEMO_PRODUCTS;
-      setStatus("No pudimos cargar el catálogo actualizado. Lo que ves es un catálogo de ejemplo: recarga la página en un momento.");
+    console.warn("No se pudo cargar el catálogo:", err);
+    // Si ya había una copia guardada, se deja lo que ya se pintó (es el
+    // catálogo real, aunque sea de hace rato). Si no, NUNCA se muestran
+    // productos de ejemplo: se avisa y se vuelve a intentar solo.
+    if (!cachedCsv && !products.length) {
+      products = [];
+      setStatus("No pudimos cargar el catálogo. Revisa tu conexión; lo volvemos a intentar en unos segundos.");
+      if (productsRetries < 4) {
+        productsRetries++;
+        setTimeout(loadProducts, 6000 * productsRetries);
+      }
     }
   }
   applyStockData();
@@ -1608,7 +1613,9 @@ async function loadProducts() {
   catalogLoaded = true;
   renderAll();
   refreshCurrentView();
+  if (products.length) applyInitialRoute();
 }
+let productsRetries = 0;
 
 /* ======================================================================
    Carga de productos — Cosmético Americano (Sheet aparte, opcional). Si no se
@@ -2795,25 +2802,11 @@ function renderBrands(showAll = false) {
   more.onclick = () => showBrandProducts(brandTab);
 }
 
-function showBrandProducts(marca) {
-  const items = groupVariants(products.filter((p) => !p.enStock && p.marca === marca));
-  const grid = document.getElementById("brand-products-grid");
-  const empty = document.getElementById("brand-products-empty");
-
+function showBrandProducts(marca, { restore = false } = {}) {
   document.getElementById("brand-products-title").textContent = `Productos de ${marca}`;
-
-  if (!items.length) {
-    grid.innerHTML = "";
-    empty.classList.remove("hidden");
-  } else {
-    empty.classList.add("hidden");
-    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
-    wireAddButtons(grid);
-    wireVariantSelectors(grid);
-  }
-
-  showHomeView("brands");
-  document.getElementById("brand-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+  mountListing("brands", products.filter((p) => !p.enStock && p.marca === marca), { restore, id: marca });
+  showHomeView("brands", { marca });
+  if (!restore) document.getElementById("brand-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* ======================================================================
@@ -2837,46 +2830,18 @@ function getCountryOptions() {
   return [...ordered, ...rest];
 }
 
-function showCountryProducts(pais) {
-  const items = groupVariants(products.filter((p) => !p.enStock && brandCountry(p.marca) === pais));
-  const grid = document.getElementById("country-products-grid");
-  const empty = document.getElementById("country-products-empty");
-
+function showCountryProducts(pais, { restore = false } = {}) {
   document.getElementById("country-products-title").textContent = `Marcas de ${pais}`;
-
-  if (!items.length) {
-    grid.innerHTML = "";
-    empty.classList.remove("hidden");
-  } else {
-    empty.classList.add("hidden");
-    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
-    wireAddButtons(grid);
-    wireVariantSelectors(grid);
-  }
-
-  showHomeView("country");
-  document.getElementById("country-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+  mountListing("country", products.filter((p) => !p.enStock && brandCountry(p.marca) === pais), { restore, id: pais });
+  showHomeView("country", { pais });
+  if (!restore) document.getElementById("country-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
-function showCategoryProducts(categoria) {
-  const items = groupVariants(products.filter((p) => !p.enStock && p.categoria === categoria));
-  const grid = document.getElementById("category-products-grid");
-  const empty = document.getElementById("category-products-empty");
-
+function showCategoryProducts(categoria, { restore = false } = {}) {
   document.getElementById("category-products-title").textContent = `Categoría: ${categoria}`;
-
-  if (!items.length) {
-    grid.innerHTML = "";
-    empty.classList.remove("hidden");
-  } else {
-    empty.classList.add("hidden");
-    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
-    wireAddButtons(grid);
-    wireVariantSelectors(grid);
-  }
-
-  showHomeView("categories");
-  document.getElementById("category-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+  mountListing("categories", products.filter((p) => !p.enStock && p.categoria === categoria), { restore, id: categoria });
+  showHomeView("categories", { categoria });
+  if (!restore) document.getElementById("category-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* ======================================================================
@@ -2924,28 +2889,13 @@ function renderConcernTiles() {
   more.onclick = () => showConcernProducts(concernTab);
 }
 
-function showConcernProducts(key) {
+function showConcernProducts(key, { restore = false } = {}) {
   const concern = (CONFIG.SKIN_CONCERNS || []).find((c) => c.key === key);
   if (!concern) return;
-
-  const items = groupVariants(products.filter((p) => !p.enStock && productMatchesConcern(p, concern)));
-  const grid = document.getElementById("concern-products-grid");
-  const empty = document.getElementById("concern-products-empty");
-
   document.getElementById("concern-products-title").textContent = `${concern.emoji} ${concern.label}`;
-
-  if (!items.length) {
-    grid.innerHTML = "";
-    empty.classList.remove("hidden");
-  } else {
-    empty.classList.add("hidden");
-    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
-    wireAddButtons(grid);
-    wireVariantSelectors(grid);
-  }
-
-  showHomeView("concerns");
-  document.getElementById("concern-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+  mountListing("concerns", products.filter((p) => !p.enStock && productMatchesConcern(p, concern)), { restore, id: key });
+  showHomeView("concerns", { preocupacion: key });
+  if (!restore) document.getElementById("concern-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* ======================================================================
@@ -2969,8 +2919,21 @@ function normalizeForSearch(s) {
    refreshCurrentView() más abajo. */
 let currentHomeView = "home";
 
-function showHomeView(view) {
+const DEFAULT_VIEW_ROUTES = {
+  home: {},
+  catalog: { ver: "catalogo" },
+  stock: { ver: "stock" },
+  wishlist: { ver: "favoritos" },
+  americano: { ver: "americano" },
+};
+
+function showHomeView(view, route) {
   currentHomeView = view;
+  const r = route || DEFAULT_VIEW_ROUTES[view];
+  if (r) {
+    pushRoute(r);
+    setRouteMeta(r);
+  }
   document.getElementById("homepage-sections").classList.toggle("hidden", view !== "home");
   document.getElementById("search-results-section").classList.toggle("hidden", view !== "search");
   document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
@@ -2983,7 +2946,7 @@ function showHomeView(view) {
   document.getElementById("americano-section").classList.toggle("hidden", view !== "americano");
 }
 
-function renderSearchResults(query) {
+function renderSearchResults(query, { restore = false } = {}) {
   const q = normalizeForSearch(query).trim();
 
   if (!q) {
@@ -3001,55 +2964,29 @@ function renderSearchResults(query) {
     const haystack = normalizeForSearch(`${p.marca} ${p.nombre} ${p.categoria}`);
     return words.every((w) => haystack.includes(w));
   });
-  const items = [
-    ...groupVariants(matches.filter((p) => p.enStock)).sort(compareByMarcaThenNombre),
-    ...groupVariants(matches.filter((p) => !p.enStock)),
-  ];
-
   document.getElementById("search-results-title").textContent = `Resultados para "${query.trim()}"`;
-  showHomeView("search");
+  const count = mountListing("search", matches, { restore, id: q });
+  showHomeView("search", { q: query.trim() });
 
-  const grid = document.getElementById("search-results-grid");
-  const empty = document.getElementById("search-results-empty");
   announce(
-    items.length
-      ? `${items.length} ${items.length === 1 ? "producto" : "productos"} para "${query.trim()}"`
+    count
+      ? `${count} ${count === 1 ? "producto" : "productos"} para "${query.trim()}"`
       : `Sin resultados para "${query.trim()}"`
   );
-  if (!items.length) {
-    grid.innerHTML = "";
-    empty.classList.remove("hidden");
-  } else {
-    empty.classList.add("hidden");
-    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
-    wireAddButtons(grid);
-    wireVariantSelectors(grid);
-  }
 }
 
 /* ======================================================================
    Catálogo completo -- todos los productos del Sheet, sin filtrar.
    ====================================================================== */
-function renderCatalogGrid() {
-  const items = groupVariants(products.filter((p) => !p.enStock));
-  const grid = document.getElementById("catalog-grid");
-  const empty = document.getElementById("catalog-empty");
-  if (!items.length) {
-    grid.innerHTML = "";
-    empty.classList.remove("hidden");
-  } else {
-    empty.classList.add("hidden");
-    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
-    wireAddButtons(grid);
-    wireVariantSelectors(grid);
-  }
+function renderCatalogGrid(restore = true) {
+  mountListing("catalog", products.filter((p) => !p.enStock), { restore, id: "all" });
 }
 
-function openFullCatalog() {
+function openFullCatalog({ restore = false } = {}) {
   document.getElementById("search-input").value = "";
-  renderCatalogGrid();
+  renderCatalogGrid(restore);
   showHomeView("catalog");
-  document.getElementById("catalog-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+  if (!restore) document.getElementById("catalog-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* ======================================================================
@@ -3073,26 +3010,15 @@ function compareByMarcaThenNombre(a, b) {
   return (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
 }
 
-function renderStockGrid() {
-  const items = groupVariants(products.filter((p) => p.enStock)).sort(compareByMarcaThenNombre);
-  const grid = document.getElementById("stock-grid");
-  const empty = document.getElementById("stock-empty");
-  if (!items.length) {
-    grid.innerHTML = "";
-    empty.classList.remove("hidden");
-  } else {
-    empty.classList.add("hidden");
-    grid.innerHTML = items.map((p) => productCardHTML(p)).join("");
-    wireAddButtons(grid);
-    wireVariantSelectors(grid);
-  }
+function renderStockGrid(restore = true) {
+  mountListing("stock", products.filter((p) => p.enStock), { restore, id: "stock" });
 }
 
-function openStockSection() {
+function openStockSection({ restore = false } = {}) {
   document.getElementById("search-input").value = "";
-  renderStockGrid();
+  renderStockGrid(restore);
   showHomeView("stock");
-  document.getElementById("stock-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+  if (!restore) document.getElementById("stock-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
 /* Se llama cada vez que llegan datos nuevos (catálogo, stock) para
@@ -3104,6 +3030,322 @@ function refreshCurrentView() {
   if (currentHomeView === "stock") renderStockGrid();
   else if (currentHomeView === "catalog") renderCatalogGrid();
 }
+
+/* ======================================================================
+   Listados con filtros, orden y "Ver más" (catálogo, búsqueda, marca,
+   categoría, país, preocupación y Stock en México). Antes se pintaban
+   TODOS los productos de golpe -- el catálogo completo eran ~7,000
+   tarjetas y en celular tardaba o se trababa. Ahora se pintan de 24 en
+   24 y se cargan más al bajar.
+   ====================================================================== */
+const LISTING_PAGE = 24;
+const LISTINGS = {
+  search: { grid: "search-results-grid", empty: "search-results-empty", filters: ["categoria", "marca", "pres", "precio", "disp"] },
+  catalog: { grid: "catalog-grid", empty: "catalog-empty", filters: ["categoria", "marca", "pres", "precio", "disp"] },
+  stock: { grid: "stock-grid", empty: "stock-empty", filters: ["categoria", "marca", "precio"], defaultSort: "marca" },
+  brands: { grid: "brand-products-grid", empty: "brand-products-empty", filters: ["categoria", "pres", "precio", "disp"] },
+  categories: { grid: "category-products-grid", empty: "category-products-empty", filters: ["marca", "pres", "precio", "disp"] },
+  country: { grid: "country-products-grid", empty: "country-products-empty", filters: ["categoria", "marca", "pres", "precio", "disp"] },
+  concerns: { grid: "concern-products-grid", empty: "concern-products-empty", filters: ["categoria", "marca", "pres", "precio", "disp"] },
+};
+const PRICE_RANGES = [
+  { key: "0-300", label: "Hasta $300", min: 0, max: 300 },
+  { key: "300-600", label: "$300 a $600", min: 300, max: 600 },
+  { key: "600-1500", label: "$600 a $1,500", min: 600, max: 1500 },
+  { key: "1500-", label: "Más de $1,500", min: 1500, max: Infinity },
+];
+const SORTS = [
+  { key: "", label: "Recomendados" },
+  { key: "precio-asc", label: "Precio: menor a mayor" },
+  { key: "precio-desc", label: "Precio: mayor a menor" },
+  { key: "nombre", label: "Nombre (A-Z)" },
+  { key: "marca", label: "Marca (A-Z)" },
+];
+const listingState = {};
+
+function emptyListingFilters() {
+  return { categoria: "", marca: "", pres: "", precio: "", disp: false };
+}
+
+function entryAvailable(p) {
+  return p.variants ? p.variants.some((v) => v.product.disponible) : p.disponible;
+}
+
+/* Prepara (o reutiliza, si se regresa con "atrás") el listado y lo pinta.
+   Regresa cuántos productos hay sin filtros, para el aviso de búsqueda. */
+function mountListing(key, raw, { restore = false, id = "" } = {}) {
+  const prev = listingState[key];
+  const keep = restore && prev && prev.id === id;
+  listingState[key] = {
+    id,
+    raw,
+    filters: keep ? prev.filters : emptyListingFilters(),
+    sort: keep ? prev.sort : LISTINGS[key].defaultSort || "",
+    shown: keep ? prev.shown : LISTING_PAGE,
+  };
+  renderListing(key);
+  return listingItems(key, { ignoreFilters: true }).length;
+}
+
+function listingItems(key, { ignoreFilters = false } = {}) {
+  const st = listingState[key];
+  const f = ignoreFilters ? emptyListingFilters() : st.filters;
+  const range = PRICE_RANGES.find((r) => r.key === f.precio);
+  const raw = st.raw.filter((p) => {
+    if (f.categoria && p.categoria !== f.categoria) return false;
+    if (f.marca && p.marca !== f.marca) return false;
+    if (f.pres === "pieza" && isCajaPresentacion(p)) return false;
+    if (f.pres === "caja" && !isCajaPresentacion(p)) return false;
+    if (range && !(p.precio >= range.min && p.precio < range.max)) return false;
+    return true;
+  });
+  // Los de Stock en México salen primero y se agrupan aparte, para no
+  // mezclar sus tonos con los de Corea en un mismo selector.
+  let items = [...groupVariants(raw.filter((p) => p.enStock)), ...groupVariants(raw.filter((p) => !p.enStock))];
+  if (f.disp) items = items.filter(entryAvailable);
+  const byName = (a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
+  if (st.sort === "precio-asc") items.sort((a, b) => a.precio - b.precio);
+  else if (st.sort === "precio-desc") items.sort((a, b) => b.precio - a.precio);
+  else if (st.sort === "nombre") items.sort(byName);
+  else if (st.sort === "marca") items.sort(compareByMarcaThenNombre);
+  return items;
+}
+
+function listingSelectHTML(name, label, options, value) {
+  return `<select data-lf="${name}" aria-label="${escapeHtml(label)}"
+      class="h-9 max-w-[11rem] truncate rounded-full !text-[13px] border ${value ? "border-ink bg-ink text-cream" : "border-ink/15 bg-white text-ink"} pl-3 pr-7 text-[13px] focus:outline-none focus:ring-2 focus:ring-rose/30">
+      ${options.map((o) => `<option value="${escapeHtml(o.value)}"${o.value === value ? " selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
+    </select>`;
+}
+
+function listingControlsHTML(key, total) {
+  const st = listingState[key];
+  const cfg = LISTINGS[key];
+  const f = st.filters;
+  const uniq = (fn) => [...new Set(st.raw.map(fn).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  const parts = [];
+  if (cfg.filters.includes("categoria")) {
+    const cats = uniq((p) => p.categoria);
+    if (cats.length > 1) parts.push(listingSelectHTML("categoria", "Categoría", [{ value: "", label: "Categoría" }, ...cats.map((c) => ({ value: c, label: c }))], f.categoria));
+  }
+  if (cfg.filters.includes("marca")) {
+    const marcas = uniq((p) => p.marca);
+    if (marcas.length > 1) parts.push(listingSelectHTML("marca", "Marca", [{ value: "", label: "Marca" }, ...marcas.map((m) => ({ value: m, label: m }))], f.marca));
+  }
+  if (cfg.filters.includes("pres") && st.raw.some(isCajaPresentacion) && st.raw.some((p) => !isCajaPresentacion(p))) {
+    parts.push(listingSelectHTML("pres", "Presentación", [{ value: "", label: "Pieza o caja" }, { value: "pieza", label: "Solo piezas" }, { value: "caja", label: "Solo cajas" }], f.pres));
+  }
+  if (cfg.filters.includes("precio")) {
+    parts.push(listingSelectHTML("precio", "Precio", [{ value: "", label: "Precio" }, ...PRICE_RANGES.map((r) => ({ value: r.key, label: r.label }))], f.precio));
+  }
+  parts.push(listingSelectHTML("sort", "Ordenar por", SORTS.map((o) => ({ value: o.key, label: o.key ? o.label : "Ordenar: recomendados" })), st.sort));
+  if (cfg.filters.includes("disp")) {
+    parts.push(`<label class="tap inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-ink/15 bg-white text-[13px] text-ink cursor-pointer">
+      <input type="checkbox" data-lf="disp" class="accent-rose-deep w-4 h-4"${f.disp ? " checked" : ""} /> Solo disponibles</label>`);
+  }
+  const active = f.categoria || f.marca || f.pres || f.precio || f.disp;
+  // En celular, una sola fila que se desliza de lado (como las pestañas
+  // de Best Seller) en vez de 4 renglones de filtros.
+  return `<div class="flex items-center gap-2 overflow-x-auto -mx-4 px-4 pb-1 sm:mx-0 sm:px-0 sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">${parts.join("")}
+      ${active ? `<button type="button" data-lf-clear class="tap h-9 px-3 text-[13px] text-ink/75 underline">Quitar filtros</button>` : ""}
+    </div>
+    <p class="mt-2 text-[13px] text-ink/70 tabular-nums" data-lcount>${total.toLocaleString("es-MX")} ${total === 1 ? "producto" : "productos"} · Precios por transferencia</p>`;
+}
+
+function listingContainers(key) {
+  const grid = document.getElementById(LISTINGS[key].grid);
+  let controls = document.getElementById(`${key}-listing-controls`);
+  if (!controls) {
+    controls = document.createElement("div");
+    controls.id = `${key}-listing-controls`;
+    controls.className = "mb-5";
+    grid.before(controls);
+    controls.addEventListener("change", (e) => {
+      const el = e.target.closest("[data-lf]");
+      if (!el) return;
+      const st = listingState[key];
+      if (el.dataset.lf === "sort") st.sort = el.value;
+      else if (el.dataset.lf === "disp") st.filters.disp = el.checked;
+      else st.filters[el.dataset.lf] = el.value;
+      st.shown = LISTING_PAGE;
+      renderListing(key);
+    });
+    controls.addEventListener("click", (e) => {
+      if (!e.target.closest("[data-lf-clear]")) return;
+      listingState[key].filters = emptyListingFilters();
+      listingState[key].shown = LISTING_PAGE;
+      renderListing(key);
+    });
+  }
+  let more = document.getElementById(`${key}-listing-more`);
+  if (!more) {
+    more = document.createElement("div");
+    more.id = `${key}-listing-more`;
+    more.className = "mt-8 flex flex-col items-center gap-2";
+    // Sin esto, al llegar al final el navegador "sigue" al pie de página
+    // mientras se agregan tarjetas arriba y carga página tras página solo.
+    more.style.overflowAnchor = "none";
+    grid.after(more);
+    more.addEventListener("click", (e) => {
+      if (e.target.closest("[data-lmore]")) appendListingPage(key);
+    });
+  }
+  return { grid, controls, more };
+}
+
+let listingObserver = null;
+
+function renderListing(key) {
+  const { grid, controls, more } = listingContainers(key);
+  const empty = document.getElementById(LISTINGS[key].empty);
+  const items = listingItems(key);
+  const st = listingState[key];
+  st.items = items;
+  controls.innerHTML = st.raw.length ? listingControlsHTML(key, items.length) : "";
+  grid.innerHTML = items.slice(0, st.shown).map((p) => productCardHTML(p)).join("");
+  wireAddButtons(grid);
+  wireVariantSelectors(grid);
+  if (empty) {
+    empty.classList.toggle("hidden", items.length > 0);
+    if (!items.length && st.raw.length) empty.textContent = "No hay productos con esos filtros.";
+  }
+  renderListingMore(key);
+}
+
+function renderListingMore(key) {
+  const { more } = listingContainers(key);
+  const st = listingState[key];
+  const left = st.items.length - Math.min(st.shown, st.items.length);
+  more.innerHTML = left > 0
+    ? `<p class="text-[13px] text-ink/70 tabular-nums">Viendo ${Math.min(st.shown, st.items.length).toLocaleString("es-MX")} de ${st.items.length.toLocaleString("es-MX")}</p>
+       <button type="button" data-lmore class="tap h-11 px-6 rounded-full border border-ink text-ink text-sm font-semibold hover:bg-ink hover:text-cream transition">Ver más productos</button>`
+    : "";
+  // Carga sola la siguiente página al acercarse al final (el botón queda
+  // por si el navegador no soporta IntersectionObserver).
+  const btn = more.querySelector("[data-lmore]");
+  if (!btn || !("IntersectionObserver" in window)) return;
+  if (!listingObserver) {
+    listingObserver = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (en.isIntersecting && en.target.isConnected && en.target.offsetParent !== null) {
+          listingObserver.unobserve(en.target);
+          appendListingPage(en.target.dataset.lkey);
+        }
+      });
+    }, { rootMargin: "800px 0px" });
+  }
+  btn.dataset.lkey = key;
+  listingObserver.observe(btn);
+}
+
+function appendListingPage(key) {
+  const st = listingState[key];
+  if (!st || !st.items) return;
+  const { grid } = listingContainers(key);
+  const from = st.shown;
+  st.shown += LISTING_PAGE;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = st.items.slice(from, st.shown).map((p) => productCardHTML(p)).join("");
+  wireAddButtons(tmp);
+  wireVariantSelectors(tmp);
+  grid.append(...tmp.children);
+  renderListingMore(key);
+}
+
+/* ======================================================================
+   Historial: cada vista (búsqueda, catálogo, marca, categoría...) queda
+   en la dirección (ej. alpacca.mx/?ver=catalogo, ?q=anua, ?marca=ANUA),
+   así el botón "atrás" del celular regresa a la vista anterior DENTRO
+   de la tienda en vez de sacar a la clienta del sitio, y esas
+   direcciones se pueden compartir.
+   ====================================================================== */
+let routeRestoring = false;
+let currentRouteKey = "";
+
+function routeKeyFromParams(params) {
+  const c = new URLSearchParams(params);
+  c.delete("p");
+  c.sort();
+  return c.toString();
+}
+
+function pushRoute(params) {
+  const key = routeKeyFromParams(params);
+  if (routeRestoring) {
+    currentRouteKey = key;
+    return;
+  }
+  const here = new URLSearchParams(location.search);
+  if (key === currentRouteKey && !here.get("p")) return;
+  try {
+    history.replaceState({ ...(history.state || {}), scrollY: window.scrollY }, "");
+    const search = new URLSearchParams(params).toString();
+    history.pushState({ scrollY: 0 }, "", `${location.pathname}${search ? `?${search}` : ""}`);
+  } catch (err) {
+    // Algunos navegadores limitan pushState muy seguido; no es grave.
+  }
+  currentRouteKey = key;
+}
+
+/* Título de la pestaña y dirección "oficial" (canonical) de cada vista,
+   para Google y para cuando comparten el link. */
+const BASE_TITLE = document.title;
+function setRouteMeta(r) {
+  let title = BASE_TITLE;
+  let canonical = "https://alpacca.mx/";
+  if (r.marca) { title = `${r.marca} en México — Alpacca`; canonical += `?marca=${encodeURIComponent(r.marca)}`; }
+  else if (r.categoria) { title = `${r.categoria} coreano — Alpacca`; canonical += `?categoria=${encodeURIComponent(r.categoria)}`; }
+  else if (r.ver === "catalogo") { title = "Catálogo completo — Alpacca"; canonical += "?ver=catalogo"; }
+  else if (r.ver === "stock") { title = "Stock en México, entrega inmediata — Alpacca"; canonical += "?ver=stock"; }
+  else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
+  document.title = title;
+  const link = document.querySelector('link[rel="canonical"]');
+  if (link) link.href = canonical;
+}
+
+function openRouteView(params, restore) {
+  const q = params.get("q");
+  const ver = params.get("ver");
+  if (q) {
+    document.getElementById("search-input").value = q;
+    renderSearchResults(q, { restore });
+  } else if (params.get("marca")) showBrandProducts(params.get("marca"), { restore });
+  else if (params.get("categoria")) showCategoryProducts(params.get("categoria"), { restore });
+  else if (params.get("pais")) showCountryProducts(params.get("pais"), { restore });
+  else if (params.get("preocupacion")) showConcernProducts(params.get("preocupacion"), { restore });
+  else if (ver === "catalogo") openFullCatalog({ restore });
+  else if (ver === "stock") openStockSection({ restore });
+  else if (ver === "favoritos") openWishlistSection();
+  else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
+  else showHomeView("home");
+}
+
+function applyRoute({ restore, scrollY } = {}) {
+  const params = new URLSearchParams(location.search);
+  const key = routeKeyFromParams(params);
+  routeRestoring = true;
+  try {
+    if (key !== currentRouteKey) openRouteView(params, restore);
+    currentRouteKey = key;
+    if (typeof applyProductRoute === "function") applyProductRoute(params);
+  } finally {
+    routeRestoring = false;
+  }
+  if (scrollY != null) requestAnimationFrame(() => window.scrollTo(0, scrollY));
+}
+
+let initialRouteApplied = false;
+function applyInitialRoute() {
+  if (initialRouteApplied) return;
+  initialRouteApplied = true;
+  const params = new URLSearchParams(location.search);
+  if ([...params.keys()].length) applyRoute({ restore: false });
+}
+
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+window.addEventListener("popstate", (e) => {
+  applyRoute({ restore: true, scrollY: e.state && e.state.scrollY != null ? e.state.scrollY : null });
+});
 
 /* ======================================================================
    Beneficios

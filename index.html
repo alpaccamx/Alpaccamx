@@ -10,12 +10,16 @@
 <meta property="og:site_name" content="Alpacca">
 <meta property="og:title" content="Alpacca — Skincare Coreano y Asiático al Mayoreo">
 <meta property="og:description" content="Catálogo de skincare coreano y asiático al mayoreo. Compra en línea con tarjeta o por transferencia, con atención personalizada.">
-<meta property="og:image" content="./assets/logo-full.png">
+<meta property="og:image" content="https://alpacca.mx/assets/og-alpacca.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://alpacca.mx/">
+<link rel="canonical" href="https://alpacca.mx/">
 <meta property="og:locale" content="es_MX">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Alpacca — Skincare Coreano y Asiático al Mayoreo">
 <meta name="twitter:description" content="Catálogo de skincare coreano y asiático al mayoreo. Compra en línea con tarjeta o por transferencia, con atención personalizada.">
-<meta name="twitter:image" content="./assets/logo-full.png">
+<meta name="twitter:image" content="https://alpacca.mx/assets/og-alpacca.jpg">
 <link rel="icon" href="./assets/favicon-32.png" type="image/png">
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -212,6 +216,10 @@
     <!-- items injected by JS -->
   </nav>
 </aside>
+
+<div id="status-banner" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 hidden">
+  <div class="rounded-xl border border-rose/40 bg-blush/30 px-4 py-3 text-sm text-ink/75" id="status-text" role="status"></div>
+</div>
 
 <div id="homepage-sections">
 <!-- Hero: tarjetas redondeadas que se deslizan, como StyleKorean -->
@@ -574,15 +582,13 @@
         <span class="font-semibold text-ink">¿Necesito crear una cuenta para comprar?</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-ink/75 shrink-0 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-4">No es obligatorio, puedes comprar directo. Pero si te registras en "Mi cuenta" puedes ver el historial y el estatus de todos tus pedidos en un solo lugar.</p>
+      <p class="max-w-prose text-sm leading-relaxed text-ink/75 px-4 pb-4">Sí. Para pagar necesitas una cuenta gratis (nombre, correo, teléfono y contraseña; tarda un minuto). Así cada pedido queda ligado a tu cuenta y en "Mi cuenta" puedes ver el historial y el estatus de todos tus pedidos en un solo lugar.</p>
     </details>
   </div>
 </section>
 
 <!-- Status (loading / error) -->
-<div id="status-banner" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
-  <div class="rounded-xl border border-ink/15 bg-white/60 px-4 py-3 text-sm text-ink/75" id="status-text" role="status"></div>
-</div>
+
 
 <!-- Beneficios -->
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
@@ -594,7 +600,7 @@
 </main>
 
 <!-- Footer -->
-<footer class="border-t border-ink/10 mt-14 pt-10 pb-8">
+<footer class="border-t border-ink/10 mt-14 pt-10 pb-8 [overflow-anchor:none]">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 sm:grid-cols-5 gap-8 text-sm">
     <div class="flex flex-col items-center text-center sm:items-start sm:text-left">
       <img src="./assets/logo-full.webp" width="188" height="288" loading="lazy" decoding="async" alt="Alpacca" class="h-24 w-auto mb-3" />

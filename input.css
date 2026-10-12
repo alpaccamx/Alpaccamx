@@ -283,3 +283,14 @@ input[type="search"]::-webkit-search-cancel-button {
 [role="dialog"]:focus {
   outline: none;
 }
+
+/* Al saltar a una sección (catálogo, marca, Best Seller...) el título
+   quedaba escondido debajo del encabezado fijo. */
+#main section[id] {
+  scroll-margin-top: 8rem;
+}
+@media (min-width: 640px) {
+  #main section[id] {
+    scroll-margin-top: 5rem;
+  }
+}
