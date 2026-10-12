@@ -23,6 +23,10 @@
   // amarillo el producto que coincide dentro de cada pedido -- si no, con
   // pedidos de muchos artículos es difícil ver cuál fue el que hizo match.
   let currentSearchTerm = "";
+  // Tarjetas que la usuaria abrió (historial) o cerró (por confirmar), para
+  // que no se reacomoden solas cada vez que se vuelve a pintar la lista.
+  const openCards = new Set();
+  const closedPendingCards = new Set();
 
   // SKU -> { marca, precio (de transferencia) }, para pedidos guardados
   // ANTES de que el sitio empezara a guardar esos datos en cada artículo
@@ -162,7 +166,7 @@
     "": "#e07a8f",
     paid: "#2fa968",
     pending: "#f0ad4e",
-    cancelled: "#999999",
+    cancelled: "#6b6370999",
     failed: "#d9534f",
   };
 
@@ -172,7 +176,7 @@
     cancelled: "#bbbbbb",
     failed: "#d9534f",
     review: "#c0392b",
-    refunded: "#777777",
+    refunded: "#5f5866777",
   };
 
   function formatPrice(n) {
@@ -822,7 +826,7 @@
         <label class="rate-option" data-rate-option="${orderId}" data-rate-index="${i}">
           <input type="radio" name="rate-${orderId}" value="${i}" />
           ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""}
-          <span style="font-size:11px;color:#999;">(${providerBadge[r.provider] || r.provider})</span>
+          <span style="font-size: 13px;color:#6b6370;">(${providerBadge[r.provider] || r.provider})</span>
           <span class="price">${formatPrice(r.total)}</span>
         </label>`).join("");
       ratesEl.querySelectorAll(`[data-rate-option="${orderId}"]`).forEach((label) => {
@@ -1088,13 +1092,13 @@
           : (c.cp ? `📍 CP ${escapeHtml(c.cp)}<br/>` : "")
         }
         ${c.referencias ? `📝 Ref: ${escapeHtml(c.referencias)}<br/>` : ""}
-        ${hasAddress ? `<button type="button" class="btn-secondary" data-copy-address="${o.id}" style="margin-top:8px;padding:6px 14px;font-size:12px;">📋 Copiar dirección</button>` : ""}
+        ${hasAddress ? `<button type="button" class="btn-secondary" data-copy-address="${o.id}" style="margin-top:8px;padding:6px 14px;font-size: 14px;">📋 Copiar dirección</button>` : ""}
       </div>`;
   }
 
   function proofLinkHTML(o) {
     if (!o.hasPaymentProof) return "";
-    return `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeHtml(o.id)}" style="font-size:12px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>`;
+    return `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeHtml(o.id)}" style="font-size: 14px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>`;
   }
 
   const SUPPLIER_URL = "https://www.asianbeautywholesale.com/en/home.html";
@@ -1142,7 +1146,7 @@ ${itemLines}
         <button type="button" class="btn-secondary edit-toggle" data-supplier-prompt-toggle="${o.id}">🛍️ Pedir a Asian Beauty Wholesale</button>
         <div class="guide-form" id="supplier-prompt-form-${o.id}">
           <p class="edit-hint">Copia este prompt y pégalo en Claude en Chrome (con Asian Beauty Wholesale abierto) -- él arma el carrito con estos productos, tú nada más revisas y le das pagar.</p>
-          <textarea readonly id="supplier-prompt-text-${o.id}" rows="12" style="width:100%;font-family:monospace;font-size:12px;padding:8px;box-sizing:border-box;"></textarea>
+          <textarea readonly id="supplier-prompt-text-${o.id}" rows="12" style="width:100%;font-family:monospace;font-size: 14px;padding:8px;box-sizing:border-box;"></textarea>
           <div class="row">
             <button type="button" class="btn-secondary" data-supplier-prompt-copy="${o.id}">📋 Copiar prompt</button>
             <a href="${SUPPLIER_URL}" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;">🔗 Abrir Asian Beauty Wholesale</a>
@@ -1372,7 +1376,7 @@ ${itemLines}
         <div class="guide-form" id="guide-form-${o.id}">
           <label class="field-label">Peso del paquete (kg) · caja 2x2x2 cm</label>
           <div class="row">
-            <input aria-label="Ej. 1.5" type="number" step="0.1" min="0.1" placeholder="Ej. 1.5" list="weight-presets" data-guide-weight="${o.id}" />
+            <input aria-label="Peso en kg" type="number" step="0.1" min="0.1" placeholder="Ej. 1.5" list="weight-presets" data-guide-weight="${o.id}" />
             <button type="button" class="btn-secondary" data-guide-quote="${o.id}">💲 Cotizar y comparar</button>
           </div>
           <label class="field-label">Datos del destinatario (revísalos antes de generar)</label>
@@ -1411,7 +1415,7 @@ ${itemLines}
         <input aria-label="Cant." type="number" class="edit-item-qty" min="1" step="1" value="${it ? it.qty : 1}" placeholder="Cant." />
         <input aria-label="Precio (transf.) c/u" type="number" class="edit-item-precio" min="0" step="1" value="${precio}" placeholder="Precio (transf.) c/u" />
         <label class="edit-stock-label"><input type="checkbox" class="edit-item-enstock" ${it && it.enStock ? "checked" : ""} /> en stock</label>
-        <button type="button" class="btn-danger edit-item-remove">✕</button>
+        <button type="button" class="btn-danger edit-item-remove">Quitar</button>
       </div>`;
   }
 
@@ -1454,11 +1458,36 @@ ${itemLines}
       </div>`;
   }
 
+  /* Resumen de una línea de cada pedido (clienta, total, etapa, fecha).
+     El detalle completo (productos, dirección, guía, etc.) se abre al
+     tocarlo, para que la lista no mida decenas de pantallas. */
+  function cardSummaryHTML(o, chipsHTML, expanded) {
+    const c = o.customer || {};
+    const { pieces } = orderPiecesAndWeight(o);
+    const extra = [];
+    if (o.status === "paid" && o.trackingNumber) extra.push('<span class="badge chip-ship">🚚 Enviado</span>');
+    else if (o.status === "paid" && o.supplierOrderNumber) extra.push('<span class="badge chip-abw">🛍️ Pedido a ABW</span>');
+    return `
+      <button type="button" class="card-summary" data-card-toggle="${o.id}" aria-expanded="${expanded ? "true" : "false"}" aria-controls="card-body-${o.id}">
+        <span>
+          <span class="cs-name">${highlightMatch(c.name || "(sin nombre)", currentSearchTerm)}</span>
+          <span class="cs-meta">#${orderNumber(o)} · ${formatFecha(o.createdAt)} · ${pieces} pieza${pieces === 1 ? "" : "s"}</span>
+        </span>
+        <span class="cs-right">
+          <span class="cs-total">${formatPrice(o.grandTotal)}</span>
+          <span class="cs-chev" aria-hidden="true">▾</span>
+        </span>
+        <span class="cs-chips">${chipsHTML}${extra.join("")}</span>
+      </button>`;
+  }
+
   function historyCardHTML(o) {
     const statusLabel = STATUS_LABELS[o.status] || o.status;
     const borderColor = STATUS_BORDER_COLORS[o.status] || "#ddd";
+    // Borrar no se puede deshacer: va escondido en "Más opciones" (y pide
+    // confirmación), no como botón rojo grande al alcance del dedo.
     const deleteBtn = (o.status === "cancelled" || o.status === "paid")
-      ? `<div class="actions"><button type="button" class="btn-danger" data-delete="${o.id}">🗑️ Borrar este pedido</button></div>`
+      ? `<details class="more-opts"><summary>⋯ Más opciones</summary><div class="actions"><button type="button" class="btn-danger" data-delete="${o.id}">🗑️ Borrar este pedido</button></div></details>`
       : "";
     // Los pendientes ya traen su propio panel de edición en pendingCardHTML
     // -- si también se pintara aquí, habría dos elementos con el mismo id
@@ -1470,48 +1499,50 @@ ${itemLines}
     // repetir el mismo id en la página.
     const supplierBlock = o.status === "pending" ? "" : supplierPromptBlockHTML(o);
     const supplierNote = o.status === "pending" ? "" : supplierNoteBlockHTML(o);
+    const chips = `<span class="badge status-${o.status}">${statusLabel}</span><span class="badge ${o.source}">${sourceLabel(o)}</span>`;
+    // Con búsqueda activa se abren solos, para ver qué producto coincidió.
+    const expanded = Boolean(currentSearchTerm) || openCards.has(o.id);
     return `
-      <div class="order-card" style="border-left-color:${borderColor};">
-        <div class="top">
-          <span>
-            <span class="badge ${o.source}">${sourceLabel(o)}</span>
-            <span class="badge status-${o.status}">${statusLabel}</span>
-          </span>
-          <span class="fecha">#${orderNumber(o)} · ${formatFecha(o.createdAt)}</span>
+      <div class="order-card compact" style="border-left-color:${borderColor};">
+        ${cardSummaryHTML(o, chips, expanded)}
+        <div class="card-body" id="card-body-${o.id}" ${expanded ? "" : "hidden"}>
+          <ul>${itemsListHTML(o)}</ul>
+          ${totalsBreakdownHTML(o)}
+          <div class="total">${formatPrice(o.grandTotal)}</div>
+          ${customerHTML(o)}
+          ${proofLinkHTML(o)}
+          ${trackingBlockHTML(o)}
+          ${guideBlockHTML(o)}
+          ${editBlock}
+          ${supplierBlock}
+          ${supplierNote}
+          ${deleteBtn}
         </div>
-        <ul>${itemsListHTML(o)}</ul>
-        ${totalsBreakdownHTML(o)}
-        <div class="total">${formatPrice(o.grandTotal)}</div>
-        ${customerHTML(o)}
-        ${proofLinkHTML(o)}
-        ${trackingBlockHTML(o)}
-        ${guideBlockHTML(o)}
-        ${editBlock}
-        ${supplierBlock}
-        ${supplierNote}
-        ${deleteBtn}
       </div>`;
   }
 
   function pendingCardHTML(o) {
     const borderColor = STATUS_BORDER_COLORS[o.status] || "#f0ad4e";
+    const chips = `<span class="badge status-pending">⏳ Por confirmar</span><span class="badge ${o.source}">${sourceLabel(o)}</span>`;
+    // Los "por confirmar" se muestran abiertos: son los que hay que atender.
+    // Los botones de pago van arriba, justo después de los datos de la
+    // clienta y el comprobante, no hasta el final de la tarjeta.
     return `
-      <div class="order-card" style="border-left-color:${borderColor};">
-        <div class="top">
-          <span class="badge ${o.source}">${sourceLabel(o)} · esperando</span>
-          <span class="fecha">#${orderNumber(o)} · ${formatFecha(o.createdAt)}</span>
-        </div>
-        <ul>${itemsListHTML(o)}</ul>
-        ${totalsBreakdownHTML(o)}
-        <div class="total">${formatPrice(o.grandTotal)}</div>
-        ${customerHTML(o)}
-        ${proofLinkHTML(o)}
-        ${editBlockHTML(o)}
-        ${supplierPromptBlockHTML(o)}
-        ${supplierNoteBlockHTML(o)}
-        <div class="actions">
-          <button class="btn-primary" data-confirm="${o.id}" title="Esto resta las piezas vendidas del stock automáticamente">✅ Ya me pagó</button>
-          <button class="btn-danger" data-cancel="${o.id}">✕ No pagó / Cancelar</button>
+      <div class="order-card compact" style="border-left-color:${borderColor};">
+        ${cardSummaryHTML(o, chips, !closedPendingCards.has(o.id))}
+        <div class="card-body" id="card-body-${o.id}" ${closedPendingCards.has(o.id) ? "hidden" : ""}>
+          <ul>${itemsListHTML(o)}</ul>
+          ${totalsBreakdownHTML(o)}
+          <div class="total">${formatPrice(o.grandTotal)}</div>
+          ${customerHTML(o)}
+          ${proofLinkHTML(o)}
+          <div class="actions primary-actions">
+            <button class="btn-primary" data-confirm="${o.id}" title="Esto resta las piezas vendidas del stock automáticamente">✅ Ya me pagó</button>
+            <button class="btn-danger" data-cancel="${o.id}">✕ No pagó / Cancelar</button>
+          </div>
+          ${editBlockHTML(o)}
+          ${supplierPromptBlockHTML(o)}
+          ${supplierNoteBlockHTML(o)}
         </div>
       </div>`;
   }
@@ -1592,7 +1623,7 @@ ${itemLines}
         <input type="text" class="tono-label" placeholder="Tono/color (ej. #21 Light Beige) *" />
         <input type="number" class="tono-piezas" placeholder="Piezas *" min="1" step="1" />
         <input type="text" class="tono-sku" placeholder="SKU (opcional)" />
-        <button type="button" class="btn-danger tono-remove">✕</button>
+        <button type="button" class="btn-danger tono-remove">Quitar</button>
       </div>`;
   }
 
@@ -1779,13 +1810,6 @@ ${itemLines}
   let inventoryProducts = [];
   let inventorySearchTerm = "";
 
-  function toggleInventoryPanel() {
-    const panel = document.getElementById("inventory-panel");
-    const opening = panel.style.display === "none";
-    panel.style.display = opening ? "flex" : "none";
-    if (opening && !inventoryLoaded) loadInventory();
-  }
-
   async function loadInventory() {
     const listEl = document.getElementById("inventory-list");
     const emptyEl = document.getElementById("inventory-empty");
@@ -1829,21 +1853,22 @@ ${itemLines}
       <div class="inventory-row" data-inv-row="${escapeHtml(p.sku)}">
         <div class="inv-top">
           <img class="inv-thumb" src="${imgSrc}" alt="" onerror="this.src='${INV_IMG_PLACEHOLDER}'" />
-          <input type="text" class="inv-nombre" value="${escapeHtml(p.nombre)}" placeholder="Nombre" />
-          <input type="text" class="inv-marca" value="${escapeHtml(p.marca)}" placeholder="Marca" style="flex:1 1 110px;min-width:90px;" />
+          <input type="text" class="inv-nombre" aria-label="Nombre" value="${escapeHtml(p.nombre)}" placeholder="Nombre" style="flex:2 1 160px;" />
+          <input type="text" class="inv-marca" aria-label="Marca" value="${escapeHtml(p.marca)}" placeholder="Marca" style="flex:1 1 110px;" />
           <span class="inv-sku">SKU: ${escapeHtml(p.sku)}</span>
         </div>
-        <input type="text" class="inv-imagen" value="${escapeHtml(p.imagen)}" placeholder="Link de la foto" />
+        <input type="text" class="inv-imagen" aria-label="Link de la foto" value="${escapeHtml(p.imagen)}" placeholder="https://…" style="flex:1 1 100%;" />
         <div class="inv-fields">
-          <div class="inventory-qty">
-            <button type="button" class="inv-qty-dec" title="Restar 1">−</button>
+          <div class="inventory-qty" role="group" aria-label="Piezas disponibles">
+            <span class="inv-qty-label">Piezas</span>
+            <button type="button" class="inv-qty-dec" title="Restar 1" aria-label="Restar 1 pieza">−</button>
             <input type="number" class="inv-piezas" value="${p.piezas}" min="0" step="1" title="Piezas disponibles" />
-            <button type="button" class="inv-qty-inc" title="Sumar 1">+</button>
+            <button type="button" class="inv-qty-inc" title="Sumar 1" aria-label="Sumar 1 pieza">+</button>
           </div>
-          <input type="number" class="inv-precio" value="${p.precio || ""}" min="0" step="1" placeholder="Precio MXN" title="Precio transferencia (MXN)" />
-          <input type="number" class="inv-precio-tarjeta" value="${p.precioTarjeta || ""}" min="0" step="1" placeholder="Precio tarjeta" title="Precio tarjeta (MXN)" />
-          <input type="text" class="inv-categoria" value="${escapeHtml(p.categoria)}" placeholder="Categoría" />
-          <input type="number" class="inv-peso" value="${p.peso || ""}" min="0" step="0.01" placeholder="Peso (kg)" title="Peso en kg" />
+          <input type="number" class="inv-precio" aria-label="Precio transferencia (MXN)" value="${p.precio || ""}" min="0" step="1" placeholder="Ej. 399" />
+          <input type="number" class="inv-precio-tarjeta" aria-label="Precio tarjeta (MXN)" value="${p.precioTarjeta || ""}" min="0" step="1" placeholder="Ej. 423" />
+          <input type="text" class="inv-categoria" aria-label="Categoría" value="${escapeHtml(p.categoria)}" placeholder="Ej. Skincare" />
+          <input type="number" class="inv-peso" aria-label="Peso (kg)" value="${p.peso || ""}" min="0" step="0.01" placeholder="Ej. 0.2" />
         </div>
         <div class="inv-actions">
           <button type="button" class="btn-primary inv-save">💾 Guardar</button>
@@ -2017,13 +2042,6 @@ ${itemLines}
      ====================================================================== */
   let restockRequestsLoaded = false;
 
-  function toggleRestockPanel() {
-    const panel = document.getElementById("restock-requests-panel");
-    const opening = panel.style.display === "none";
-    panel.style.display = opening ? "flex" : "none";
-    if (opening && !restockRequestsLoaded) loadRestockRequests();
-  }
-
   async function loadRestockRequests() {
     const listEl = document.getElementById("restock-requests-list");
     const emptyEl = document.getElementById("restock-requests-empty");
@@ -2054,8 +2072,8 @@ ${itemLines}
     const emptyEl = document.getElementById("restock-requests-empty");
     const badgeEl = document.getElementById("restock-requests-badge");
 
-    badgeEl.textContent = requests.length ? ` (${requests.length})` : "";
-    badgeEl.style.display = requests.length ? "inline" : "none";
+    badgeEl.textContent = requests.length ? String(requests.length) : "";
+    badgeEl.style.display = requests.length ? "inline-flex" : "none";
 
     if (!requests.length) {
       listEl.innerHTML = "";
@@ -2080,7 +2098,7 @@ ${itemLines}
             ${escapeHtml(r.name || "(sin nombre)")} · ${escapeHtml(r.phone || "")}
           </p>
           <div class="actions">
-            ${waLink ? `<a class="btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;" href="${escapeHtml(waLink)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ""}
+            ${waLink ? `<a class="btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:11px 18px;font-weight:700;" href="${escapeHtml(waLink)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ""}
             <button class="btn-secondary" data-restock-done="${escapeHtml(r.id)}">✓ Ya avisé</button>
           </div>
         </div>`;
@@ -2115,13 +2133,6 @@ ${itemLines}
      inapropiadas o falsas; no hay cola de aprobación previa.
      ====================================================================== */
   let reviewsLoaded = false;
-
-  function toggleReviewsPanel() {
-    const panel = document.getElementById("reviews-panel");
-    const opening = panel.style.display === "none";
-    panel.style.display = opening ? "flex" : "none";
-    if (opening && !reviewsLoaded) loadReviews();
-  }
 
   async function loadReviews() {
     const listEl = document.getElementById("reviews-list");
@@ -2234,17 +2245,6 @@ ${itemLines}
     return waNumber ? `https://wa.me/${waNumber}` : "";
   }
 
-  function toggleUsaOrdersPanel() {
-    const panel = document.getElementById("usa-orders-panel");
-    const opening = panel.style.display === "none";
-    panel.style.display = opening ? "flex" : "none";
-    if (!opening) {
-      closeUsaClientForm();
-      closeUsaClientDetailView();
-    }
-    if (opening && !usaClientsLoaded) loadUsaClients();
-  }
-
   async function loadUsaClients() {
     const listEl = document.getElementById("usa-clients-list");
     const emptyEl = document.getElementById("usa-clients-empty");
@@ -2291,8 +2291,8 @@ ${itemLines}
     const pendientesTotal = usaClients.reduce(
       (sum, c) => sum + (c.pedidos || []).filter((p) => p.estatus !== "entregado").length, 0
     );
-    badgeEl.textContent = pendientesTotal ? ` (${pendientesTotal})` : "";
-    badgeEl.style.display = pendientesTotal ? "inline" : "none";
+    badgeEl.textContent = pendientesTotal ? String(pendientesTotal) : "";
+    badgeEl.style.display = pendientesTotal ? "inline-flex" : "none";
 
     const term = usaClientSearchTerm.trim().toLowerCase();
     let visible = term
@@ -2315,7 +2315,7 @@ ${itemLines}
             <span><strong>${escapeHtml(c.nombre || "")}</strong>${c.telefono ? ` · ${escapeHtml(c.telefono)}` : ""}</span>
             ${pendientes ? `<span class="badge status-pending">${pendientes} pendiente${pendientes === 1 ? "" : "s"}</span>` : ""}
           </div>
-          <p style="font-size:13px;color:#888;margin:8px 0 0;">${escapeHtml(usaClientPedidoSummary(c))}</p>
+          <p style="font-size:13px;color:#6b6370;margin:8px 0 0;">${escapeHtml(usaClientPedidoSummary(c))}</p>
         </div>`;
     }).join("");
 
@@ -2413,7 +2413,7 @@ ${itemLines}
         <span><strong style="font-size:18px;">${escapeHtml(c.nombre || "")}</strong></span>
       </div>
       <p style="font-size:14px;color:#444;margin:6px 0 0;">${c.telefono ? escapeHtml(c.telefono) : "Sin teléfono"}</p>
-      ${c.notas ? `<p style="font-size:13px;color:#777;margin:6px 0 0;">📝 ${escapeHtml(c.notas)}</p>` : ""}
+      ${c.notas ? `<p style="font-size:13px;color:#5f5866;margin:6px 0 0;">📝 ${escapeHtml(c.notas)}</p>` : ""}
       <div class="actions">
         ${waLink ? `<a class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;" href="${escapeHtml(waLink)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ""}
         <button class="btn-secondary" id="usa-client-meta-edit-btn">✏️ Editar clienta</button>
@@ -2530,9 +2530,9 @@ ${itemLines}
             <span style="white-space:pre-wrap;">${escapeHtml(p.producto || "")}</span>
             <span class="fecha">${fecha}</span>
           </div>
-          ${detalles.length ? `<p style="font-size:13px;color:#888;margin:4px 0 0;">${detalles.join(" · ")}</p>` : ""}
+          ${detalles.length ? `<p style="font-size:13px;color:#6b6370;margin:4px 0 0;">${detalles.join(" · ")}</p>` : ""}
           ${p.link ? `<p style="font-size:13px;margin:4px 0 0;"><a href="${escapeHtml(p.link)}" target="_blank" rel="noopener" style="color:#0b6bc2;">🔗 Ver producto</a></p>` : ""}
-          ${p.notas ? `<p style="font-size:13px;color:#777;margin:6px 0 0;">📝 ${escapeHtml(p.notas)}</p>` : ""}
+          ${p.notas ? `<p style="font-size:13px;color:#5f5866;margin:6px 0 0;">📝 ${escapeHtml(p.notas)}</p>` : ""}
           <div class="actions">
             <select class="usa-status-select" data-usa-pedido-status="${escapeHtml(p.id)}">${statusOptions}</select>
             <button class="btn-secondary" data-usa-pedido-edit="${escapeHtml(p.id)}">✏️ Editar</button>
@@ -2706,6 +2706,11 @@ ${itemLines}
   }
 
   async function confirmOrCancel(orderId, action) {
+    if (action === "cancel") {
+      const o = allOrders.find((x) => x.id === orderId);
+      const who = o && o.customer && o.customer.name ? ` de ${o.customer.name}` : "";
+      if (!window.confirm(`¿Cancelar el pedido${who}? Se marcará como NO pagado.`)) return;
+    }
     setStatus(action === "confirm" ? "Confirmando..." : "Cancelando...");
     try {
       const res = await fetch("/.netlify/functions/admin-confirm-order", {
@@ -2730,6 +2735,73 @@ ${itemLines}
   // panel se veía "abierto" con una clave todavía sin confirmar.  Ahora
   // primero se verifica la clave con una llamada real, y el panel solo
   // se muestra si esa llamada regresa 200.
+
+  /* Una sección a la vez: Pedidos, Inventario, Restock, Reseñas o
+     Encargos USA. Antes cada panel se abría debajo de los pedidos (fuera
+     de la pantalla en el celular) y parecía que el botón no hacía nada. */
+  const VIEWS = {
+    pedidos: { el: "orders-view", title: "🌸 Pedidos" },
+    inventario: { el: "inventory-panel", title: "📦 Inventario" },
+    restock: { el: "restock-requests-panel", title: "🔔 Avisos de restock" },
+    resenas: { el: "reviews-panel", title: "⭐ Reseñas" },
+    usa: { el: "usa-orders-panel", title: "🛍️ Encargos USA" },
+  };
+  let currentView = "pedidos";
+
+  function showView(view) {
+    if (!VIEWS[view]) view = "pedidos";
+    if (currentView === "usa" && view !== "usa") {
+      closeUsaClientForm();
+      closeUsaClientDetailView();
+    }
+    currentView = view;
+    Object.entries(VIEWS).forEach(([key, v]) => {
+      const el = document.getElementById(v.el);
+      el.style.display = key === view ? (key === "pedidos" ? "block" : "flex") : "none";
+    });
+    document.getElementById("view-title").textContent = VIEWS[view].title;
+    toolbar.querySelectorAll("[data-view]").forEach((b) => {
+      const on = b.dataset.view === view;
+      b.classList.toggle("active", on);
+      if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+    if (view === "inventario" && !inventoryLoaded) loadInventory();
+    if (view === "restock" && !restockRequestsLoaded) loadRestockRequests();
+    if (view === "resenas" && !reviewsLoaded) loadReviews();
+    if (view === "usa" && !usaClientsLoaded) loadUsaClients();
+    window.scrollTo({ top: 0 });
+  }
+
+  function setLoggedInUI(on) {
+    loginBox.style.display = on ? "none" : "block";
+    toolbar.style.display = on ? "flex" : "none";
+    document.getElementById("logout-btn").style.display = on ? "inline-flex" : "none";
+    if (on) showView("pedidos");
+    else Object.values(VIEWS).forEach((v) => { document.getElementById(v.el).style.display = "none"; });
+  }
+
+  /* Etiqueta visible arriba de cada campo (antes solo tenían el texto de
+     ejemplo, que desaparece en cuanto escribes). Se toma del aria-label;
+     los buscadores y casillas se quedan como están. */
+  function addVisibleLabels(root) {
+    root.querySelectorAll("input[aria-label], textarea[aria-label], select[aria-label]").forEach((el) => {
+      if (el.dataset.labeled || el.type === "checkbox" || el.type === "radio" || el.type === "password") return;
+      if (/search/.test(el.id || "") || (el.getAttribute("aria-label") || "").startsWith("🔍")) return;
+      if (el.closest(".inventory-qty") || el.closest("label")) return;
+      el.dataset.labeled = "1";
+      const text = el.getAttribute("aria-label").replace(/\s*\*\s*$/, " *");
+      const label = document.createElement("label");
+      label.className = "fld";
+      if (el.style.flex) { label.style.flex = el.style.flex; el.style.flex = ""; }
+      if (el.style.width === "100%") label.style.flexBasis = "100%";
+      const span = document.createElement("span");
+      span.textContent = text;
+      el.parentNode.insertBefore(label, el);
+      label.appendChild(span);
+      label.appendChild(el);
+    });
+  }
+
   async function login() {
     const value = document.getElementById("admin-key-input").value.trim();
     if (!value) return;
@@ -2762,11 +2834,11 @@ ${itemLines}
 
     adminKey = value;
     sessionStorage.setItem(KEY_STORAGE, value);
-    loginBox.style.display = "none";
-    toolbar.style.display = "flex";
+    setLoggedInUI(true);
     fetchOrders();
     loadSkuMarcaMap();
     loadCardSurchargePct();
+    loadRestockRequests();
   }
 
   function resetTabs() {
@@ -2791,8 +2863,8 @@ ${itemLines}
   function logout() {
     adminKey = "";
     sessionStorage.removeItem(KEY_STORAGE);
-    loginBox.style.display = "block";
-    toolbar.style.display = "none";
+    setLoggedInUI(false);
+    currentView = "pedidos";
     ordersEl.innerHTML = "";
     emptyEl.style.display = "none";
     historyEl.innerHTML = "";
@@ -2839,6 +2911,29 @@ ${itemLines}
   });
   initProductAutocomplete();
   document.getElementById("refresh-btn").addEventListener("click", fetchOrders);
+  toolbar.querySelectorAll("[data-view]").forEach((btn) => {
+    btn.addEventListener("click", () => showView(btn.dataset.view));
+  });
+  // Abrir/cerrar el detalle de un pedido al tocar su resumen.
+  [ordersEl, historyEl].forEach((container) => {
+    container.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-card-toggle]");
+      if (!btn || !container.contains(btn)) return;
+      const id = btn.dataset.cardToggle;
+      const body = document.getElementById(`card-body-${id}`);
+      if (!body) return;
+      const open = body.hasAttribute("hidden");
+      body.toggleAttribute("hidden", !open);
+      btn.setAttribute("aria-expanded", String(open));
+      if (container === ordersEl) { if (open) closedPendingCards.delete(id); else closedPendingCards.add(id); }
+      else { if (open) openCards.add(id); else openCards.delete(id); }
+    });
+  });
+  // Etiquetas visibles: en lo que ya está en la página y en lo que se pinte después.
+  addVisibleLabels(document);
+  new MutationObserver((muts) => {
+    muts.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) addVisibleLabels(n); }));
+  }).observe(document.querySelector(".wrap"), { childList: true, subtree: true });
   document.getElementById("logout-btn").addEventListener("click", logout);
   document.getElementById("export-btn").addEventListener("click", exportCSV);
   document.getElementById("add-stock-toggle").addEventListener("click", toggleAddStockForm);
@@ -2847,14 +2942,10 @@ ${itemLines}
   document.getElementById("stock-precio").addEventListener("input", autoFillPrecioTarjeta);
   document.getElementById("stock-precio-tarjeta").addEventListener("input", () => { tarjetaManuallyEdited = true; });
   document.getElementById("stock-tono-add-row").addEventListener("click", addTonoRow);
-  document.getElementById("inventory-toggle").addEventListener("click", toggleInventoryPanel);
   document.getElementById("inventory-search").addEventListener("input", (e) => {
     inventorySearchTerm = e.target.value;
     renderInventoryList();
   });
-  document.getElementById("restock-requests-toggle").addEventListener("click", toggleRestockPanel);
-  document.getElementById("reviews-toggle").addEventListener("click", toggleReviewsPanel);
-  document.getElementById("usa-orders-toggle").addEventListener("click", toggleUsaOrdersPanel);
   document.getElementById("usa-client-new-toggle").addEventListener("click", openUsaClientForm);
   document.getElementById("usa-client-cancel").addEventListener("click", closeUsaClientForm);
   document.getElementById("usa-client-submit").addEventListener("click", submitUsaClientForm);
@@ -2915,9 +3006,9 @@ ${itemLines}
   const savedKey = sessionStorage.getItem(KEY_STORAGE);
   if (savedKey) {
     adminKey = savedKey;
-    loginBox.style.display = "none";
-    toolbar.style.display = "flex";
+    setLoggedInUI(true);
     fetchOrders();
     loadSkuMarcaMap();
     loadCardSurchargePct();
+    loadRestockRequests();
   }
