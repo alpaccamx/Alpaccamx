@@ -5370,6 +5370,18 @@ function showAccountView(view) {
   ACCOUNT_VIEWS.forEach((v) => {
     document.getElementById(`account-view-${v}`).classList.toggle("hidden", v !== view);
   });
+  const welcome = document.getElementById("account-welcome");
+  if (welcome) {
+    welcome.classList.toggle("hidden", view !== "login" && view !== "signup");
+    welcome.querySelectorAll("[data-acct-tab]").forEach((t) => {
+      const on = t.dataset.acctTab === view;
+      t.setAttribute("aria-selected", String(on));
+      t.classList.toggle("bg-white", on);
+      t.classList.toggle("shadow-sm", on);
+      t.classList.toggle("text-ink", on);
+      t.classList.toggle("text-ink/60", !on);
+    });
+  }
   const heading = document.querySelector(`#account-view-${view} h2, #account-view-${view} h3`);
   // Solo si el encabezado está visible (el panel está abierto): si no, el
   // foco se movería a algo oculto.
@@ -5535,33 +5547,6 @@ function orderNumber(o) {
   return (o.id || "").slice(0, 8).toUpperCase();
 }
 
-/* Línea de tiempo del pedido. Cancelado/fallido se muestran aparte (no
-   tiene sentido un avance "recibido -> pagado -> enviado" para esos). */
-function orderTimelineHTML(o) {
-  if (o.status === "cancelled") {
-    return `<p class="text-xs font-semibold text-ink/75 bg-ink/5 rounded-lg px-3 py-2">✕ Este pedido fue cancelado.</p>`;
-  }
-  if (o.status === "failed") {
-    return `<p class="text-xs font-semibold text-rose-ink bg-rose/10 rounded-lg px-3 py-2">⚠️ No se pudo procesar el pago de este pedido. Si crees que es un error, contáctanos.</p>`;
-  }
-  const steps = [
-    { label: "Recibido", done: true },
-    { label: "Pagado", done: o.status === "paid" },
-    { label: "Enviado", done: !!o.trackingNumber },
-  ];
-  const stepsHTML = steps
-    .map(
-      (s, i) => `
-      ${i > 0 ? `<div class="flex-1 h-0.5 ${s.done ? "bg-rose" : "bg-ink/15"}"></div>` : ""}
-      <div class="flex flex-col items-center gap-1 shrink-0">
-        <div class="w-2.5 h-2.5 rounded-full ${s.done ? "bg-rose" : "bg-ink/15"}"></div>
-        <span class="text-xs ${s.done ? "text-ink font-semibold" : "text-ink/75"} whitespace-nowrap">${s.label}</span>
-      </div>`
-    )
-    .join("");
-  return `<div class="flex items-center px-1">${stepsHTML}</div>`;
-}
-
 function orderItemsDetailHTML(o) {
   // Solo se puede calificar lo que ya se pagó de verdad -- lo revalida
   // también el servidor en customer-submit-review.js.
@@ -5569,8 +5554,9 @@ function orderItemsDetailHTML(o) {
   return (o.items || [])
     .map(
       (it) => `
-      <li class="flex justify-between gap-3 text-sm">
-        <span class="text-ink/80">
+      <li class="flex items-center gap-3 text-sm">
+        ${myItemThumbHTML(it, "w-10 h-10")}
+        <span class="text-ink/80 flex-1 min-w-0">
           ${escapeHtml(it.nombre)} <span class="text-ink/75">x${it.qty}</span>
           ${
             canReview && it.sku
@@ -5625,9 +5611,307 @@ function orderWhatsAppButtonHTML(o) {
     </a>`;
 }
 
+/* ======================================================================
+   Mi cuenta: panel de la clienta. Saludo con sus números, el pedido que
+   va en camino con su avance, accesos rápidos, lo que más compra (para
+   volver a pedirlo), sus favoritos y sus pedidos con fotos.
+   ====================================================================== */
+/* Etapa del pedido para la clienta. "stage" lo marca Mae en el admin
+   (pagado -> pedido_abw -> llego -> enviado -> entregado); la guía y la
+   entrega confirmada también la adelantan. */
+const MY_STAGE_ORDER = ["pagado", "pedido_abw", "llego", "enviado", "entregado"];
+
+function myOrderStage(o) {
+  if (o.status !== "paid") return null;
+  let i = Math.max(0, MY_STAGE_ORDER.indexOf(o.stage || "pagado"));
+  if (o.trackingNumber) i = Math.max(i, 3);
+  if (o.deliveredAt) i = 4;
+  return MY_STAGE_ORDER[i];
+}
+
+function isStockOnlyOrder(o) {
+  return (o.items || []).length > 0 && (o.items || []).every((it) => it.enStock);
+}
+
+function myOrderSteps(o) {
+  const steps = [
+    { key: "pagado", label: "Pagado" },
+    { key: "pedido_abw", label: "Pedido a Corea" },
+    { key: "llego", label: "Llegó a México" },
+    { key: "enviado", label: "En camino" },
+    { key: "entregado", label: "Entregado" },
+  ];
+  return isStockOnlyOrder(o) ? steps.filter((s) => s.key !== "pedido_abw" && s.key !== "llego") : steps;
+}
+
+const MY_STAGE_TEXT = {
+  pagado: { title: "¡Pago confirmado!", text: "Ya estamos preparando tu pedido.", emoji: "💗" },
+  pedido_abw: { title: "Tu pedido ya se pidió a Corea", text: "En cuanto llegue a México lo preparamos para enviártelo.", emoji: "🇰🇷" },
+  llego: { title: "¡Tu pedido ya llegó a México!", text: "Lo estamos empacando para mandártelo.", emoji: "🇲🇽" },
+  enviado: { title: "Tu pedido va en camino", text: "Ya tiene guía; puedes rastrearlo.", emoji: "🚚" },
+  entregado: { title: "¡Tu pedido llegó!", text: "Esperamos que lo disfrutes.", emoji: "🎁" },
+};
+
+function myOrderChip(o) {
+  if (o.status === "pending") return { label: "Esperando pago", cls: "bg-[#fff1d8] text-[#8a5a00]" };
+  if (o.status === "cancelled") return { label: "Cancelado", cls: "bg-ink/10 text-ink/70" };
+  if (o.status === "failed") return { label: "No se procesó", cls: "bg-red-100 text-red-700" };
+  const st = myOrderStage(o);
+  const map = {
+    pagado: { label: "Pagado", cls: "bg-green-100 text-green-800" },
+    pedido_abw: { label: "Pedido a Corea", cls: "bg-lilac/20 text-lilac-ink" },
+    llego: { label: "En México", cls: "bg-lilac/20 text-lilac-ink" },
+    enviado: { label: "En camino", cls: "bg-[#e2f0fb] text-[#0b6bc2]" },
+    entregado: { label: "Entregado", cls: "bg-green-100 text-green-800" },
+  };
+  return map[st] || { label: "Pagado", cls: "bg-green-100 text-green-800" };
+}
+
+function myItemProduct(it) {
+  return it.enStock
+    ? products.find((p) => p.stockSku === it.sku && p.enStock) || products.find((p) => p.id === it.sku)
+    : products.find((p) => p.id === it.sku);
+}
+
+function myItemThumbHTML(it, size = "w-11 h-11") {
+  const p = myItemProduct(it);
+  const img = (p && p.imagen) || "";
+  return img
+    ? `<img src="${escapeAttr(img)}" alt="" loading="lazy" class="${size} shrink-0 rounded-lg bg-pill object-contain ring-2 ring-white" />`
+    : `<span class="${size} shrink-0 rounded-lg bg-blush/40 ring-2 ring-white flex items-center justify-center text-base" aria-hidden="true">🧴</span>`;
+}
+
+function myThumbStackHTML(o, max = 3) {
+  const items = o.items || [];
+  const extra = items.length - max;
+  return `<div class="flex -space-x-3 shrink-0">${items.slice(0, max).map((it) => myItemThumbHTML(it)).join("")}${extra > 0 ? `<span class="w-11 h-11 rounded-lg bg-ink text-cream text-xs font-bold flex items-center justify-center ring-2 ring-white">+${extra}</span>` : ""}</div>`;
+}
+
+function myStepperHTML(o) {
+  const steps = myOrderSteps(o);
+  const cur = myOrderStage(o);
+  const curIdx = steps.findIndex((s) => s.key === cur);
+  return `<ol class="flex items-start" aria-label="Avance del pedido">${steps
+    .map((s, i) => {
+      const done = i <= curIdx;
+      const now = i === curIdx;
+      return `<li class="flex-1 flex flex-col items-center text-center relative" ${now ? 'aria-current="step"' : ""}>
+        ${i > 0 ? `<span class="absolute top-[11px] right-1/2 w-full h-1 -z-0 rounded ${i <= curIdx ? "bg-rose" : "bg-ink/10"}"></span>` : ""}
+        <span class="relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${done ? "bg-rose text-cream" : "bg-white border-2 border-ink/15 text-ink/40"} ${now ? "ring-4 ring-rose/25" : ""}">${done ? "✓" : i + 1}</span>
+        <span class="mt-1 text-[11px] leading-tight ${now ? "font-bold text-ink" : done ? "text-ink/80" : "text-ink/50"}">${s.label}</span>
+      </li>`;
+    })
+    .join("")}</ol>`;
+}
+
+/* Línea de tiempo dentro de cada pedido (reemplaza la de 3 pasos). */
+function orderTimelineHTML(o) {
+  if (o.status === "cancelled") {
+    return `<p class="text-xs font-semibold text-ink/75 bg-ink/5 rounded-lg px-3 py-2">✕ Este pedido fue cancelado.</p>`;
+  }
+  if (o.status === "failed") {
+    return `<p class="text-xs font-semibold text-rose-ink bg-rose/10 rounded-lg px-3 py-2">⚠️ No se pudo procesar el pago de este pedido. Si crees que es un error, contáctanos.</p>`;
+  }
+  if (o.status === "pending") {
+    return `<p class="text-xs font-semibold text-[#8a5a00] bg-[#fff1d8] rounded-lg px-3 py-2">⏳ Recibimos tu pedido. En cuanto confirmemos tu pago empieza a avanzar.</p>`;
+  }
+  return myStepperHTML(o);
+}
+
+function initialsOf(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  return ((parts[0] || "?")[0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+}
+
+function renderAccountDashboard(orders) {
+  const paid = orders.filter((o) => o.status === "paid");
+  const name = myAccountCache.name || "";
+  document.getElementById("account-name").textContent = name.split(/\s+/)[0] || name;
+  document.getElementById("account-avatar").textContent = initialsOf(name);
+  const first = orders.map((o) => o.createdAt).filter(Boolean).sort()[0];
+  const since = first ? new Date(first).toLocaleDateString("es-MX", { month: "long", year: "numeric" }) : "";
+  document.getElementById("account-member").innerHTML = [
+    since ? `Clienta Alpacca desde ${escapeHtml(since)}` : "Bienvenida a Alpacca",
+    paid.length >= 3 ? `<span class="inline-block ml-1 align-middle rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold text-rose-deep">⭐ Clienta frecuente</span>` : "",
+  ].join(" ");
+
+  const pieces = paid.reduce((s, o) => s + (o.items || []).reduce((t, it) => t + (it.qty || 0), 0), 0);
+  const spent = paid.reduce((s, o) => s + (o.grandTotal || 0), 0);
+  const kpi = (n, label) => `<div class="rounded-2xl bg-white/85 px-2 py-2.5 text-center shadow-sm"><b class="block text-base font-bold text-ink tabular-nums">${n}</b><span class="text-[11px] text-ink/70">${label}</span></div>`;
+  document.getElementById("account-kpis").innerHTML =
+    kpi(paid.length, paid.length === 1 ? "pedido" : "pedidos") + kpi(pieces.toLocaleString("es-MX"), "piezas") + kpi(formatPrice(spent).replace(/\.00$/, ""), "en compras");
+
+  renderAccountCurrent(orders);
+  renderAccountQuick(orders);
+  renderAccountTop(paid);
+  renderAccountFavs();
+  renderAccountProfile();
+}
+
+/* El pedido más reciente que sigue en proceso, grande y con su avance. */
+function renderAccountCurrent(orders) {
+  const el = document.getElementById("account-current");
+  const active = orders
+    .filter((o) => o.status === "pending" || (o.status === "paid" && myOrderStage(o) !== "entregado"))
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  if (!active.length) { el.innerHTML = ""; return; }
+  const o = active[0];
+  const st = myOrderStage(o);
+  const info = o.status === "pending"
+    ? { title: "Esperando tu pago", text: o.hasPaymentProof ? "Ya recibimos tu comprobante; lo estamos revisando." : "Si pagaste por transferencia, sube tu comprobante en el pedido de abajo.", emoji: "⏳" }
+    : MY_STAGE_TEXT[st] || MY_STAGE_TEXT.pagado;
+  const url = orderTrackingUrl(o);
+  const pcs = (o.items || []).reduce((t, it) => t + (it.qty || 0), 0);
+  el.innerHTML = `<div class="rounded-3xl border border-rose/25 bg-white p-4 shadow-[0_6px_20px_-12px_rgba(196,70,110,.45)]">
+      <div class="flex items-start gap-3">
+        <span class="text-3xl leading-none" aria-hidden="true">${info.emoji}</span>
+        <div class="min-w-0 flex-1">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-rose-deep">Tu pedido #${orderNumber(o)}</p>
+          <p class="font-display text-lg text-ink leading-snug">${info.title}</p>
+          <p class="text-xs text-ink/70 mt-0.5">${info.text}</p>
+        </div>
+      </div>
+      <div class="mt-3 flex items-center gap-3">${myThumbStackHTML(o, 4)}<span class="text-xs text-ink/70">${pcs} pieza${pcs === 1 ? "" : "s"} · ${formatPrice(o.grandTotal)}</span></div>
+      ${o.status === "paid" ? `<div class="mt-4">${myStepperHTML(o)}</div>` : ""}
+      <div class="mt-4 flex gap-2">
+        ${url ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="flex-1 text-center rounded-full bg-ink text-cream text-xs font-semibold py-2.5">🚚 Rastrear</a>` : ""}
+        <button type="button" data-acct-open-order="${escapeAttr(o.id)}" class="flex-1 rounded-full border border-ink/15 text-ink text-xs font-semibold py-2.5 hover:bg-ink/5">Ver detalle</button>
+      </div>
+      ${active.length > 1 ? `<p class="mt-3 text-xs text-ink/60 text-center">y ${active.length - 1} pedido${active.length - 1 === 1 ? "" : "s"} más en proceso</p>` : ""}
+    </div>`;
+}
+
+function renderAccountQuick(orders) {
+  const el = document.getElementById("account-quick");
+  const lastPaid = orders.filter((o) => o.status === "paid" && (o.items || []).length).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))[0];
+  let skin = "";
+  try { skin = localStorage.getItem(SKIN_QUIZ_KEY) || ""; } catch (err) { skin = ""; }
+  const tile = (attrs, emoji, title, sub, cls) => `<button type="button" ${attrs} class="text-left rounded-2xl ${cls} p-3 flex flex-col gap-1 hover:-translate-y-0.5 transition">
+      <span class="text-xl" aria-hidden="true">${emoji}</span><span class="text-sm font-semibold text-ink leading-tight">${title}</span><span class="text-[11px] text-ink/65 leading-tight">${sub}</span></button>`;
+  const tiles = [];
+  if (lastPaid) tiles.push(tile(`data-reorder="${escapeAttr(lastPaid.id)}"`, "🔁", "Repetir mi último pedido", `#${orderNumber(lastPaid)} · ${(lastPaid.items || []).length} productos`, "bg-blush/30"));
+  tiles.push(tile('data-acct-action="favs"', "💗", "Mis favoritos", wishlist.size ? `${wishlist.size} guardado${wishlist.size === 1 ? "" : "s"}` : "Toca el ♡ en un producto", "bg-lilac/15"));
+  tiles.push(tile('data-acct-action="skin"', "🧴", skin ? `Mi piel: ${escapeHtml(skin)}` : "¿Cuál es mi tipo de piel?", skin ? "Ver productos para mí" : "Haz el quiz en 1 minuto", "bg-[#eef8f2]"));
+  tiles.push(tile('data-acct-action="whatsapp"', "💬", "Hablar con Mae", "Dudas de tus pedidos por WhatsApp", "bg-[#fff6e5]"));
+  el.innerHTML = tiles.slice(0, 4).join("");
+}
+
+/* "Lo que más compras": lo que más piezas ha pedido (pagado), con su
+   precio de hoy y botón para agregar otra vez. Útil para revendedoras. */
+function renderAccountTop(paid) {
+  const el = document.getElementById("account-top");
+  const agg = new Map();
+  paid.forEach((o) => (o.items || []).forEach((it) => {
+    const k = `${it.enStock ? "s" : "k"}|${it.sku}`;
+    const cur = agg.get(k) || { it, qty: 0, orders: 0 };
+    cur.qty += it.qty || 0;
+    cur.orders++;
+    agg.set(k, cur);
+  }));
+  const list = [...agg.values()]
+    .map((x) => ({ ...x, p: myItemProduct(x.it) }))
+    .filter((x) => x.p)
+    .sort((a, b) => b.orders - a.orders || b.qty - a.qty)
+    .slice(0, 10);
+  if (!list.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="flex items-baseline justify-between mb-2"><h4 class="font-display text-lg text-ink">Lo que más compras</h4><span class="text-[11px] text-ink/60">precio de hoy</span></div>
+    <div class="flex gap-3 overflow-x-auto snap-x scroll-px-5 -mx-5 px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">${list.map(({ p, qty, it }) => {
+      const out = !p.disponible || (p.enStock && p.stockPiezas <= 0);
+      return `<div class="snap-start shrink-0 w-[8.5rem] flex flex-col gap-1.5">
+        <button type="button" data-open-product="${escapeAttr(p.id)}" class="aspect-square rounded-2xl bg-pill overflow-hidden"><img src="${escapeAttr(p.imagen || "")}" alt="" loading="lazy" class="w-full h-full object-contain" /></button>
+        <p class="text-[11px] font-bold text-ink truncate">${escapeHtml(p.marca || "")}</p>
+        <p class="text-xs text-ink/80 leading-snug line-clamp-2 min-h-[2.4em]">${escapeHtml(p.nombre)}</p>
+        <p class="text-[11px] text-ink/60">Has pedido ${qty} pz${qty === 1 ? "" : "s"}</p>
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm font-bold text-ink tabular-nums flex-1">${formatPrice(p.precio)}</span>
+          ${out ? `<span class="text-[11px] font-semibold text-ink/50">Agotado</span>` : `<button type="button" data-acct-add="${escapeAttr(p.id)}" aria-label="Agregar ${escapeAttr(p.nombre)} al carrito" class="w-8 h-8 rounded-full bg-ink text-cream text-lg leading-none flex items-center justify-center hover:bg-rose-deep">+</button>`}
+        </div>
+        <button type="button" data-review="${escapeAttr(it.sku)}" data-review-name="${escapeAttr(p.nombre)}" class="self-start text-[11px] font-semibold text-rose-ink hover:underline">⭐ Calificar</button>
+      </div>`;
+    }).join("")}</div>`;
+}
+
+function renderAccountFavs() {
+  const el = document.getElementById("account-favs");
+  const favs = products.filter((p) => wishlist.has(p.id)).slice(0, 10);
+  if (!favs.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="flex items-baseline justify-between mb-2"><h4 class="font-display text-lg text-ink">Mis favoritos</h4>
+      <button type="button" data-acct-action="favs" class="text-xs font-semibold text-rose-ink underline">Ver todos</button></div>
+    <div class="flex gap-2.5 overflow-x-auto snap-x scroll-px-5 -mx-5 px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">${favs.map((p) => `
+      <button type="button" data-open-product="${escapeAttr(p.id)}" class="snap-start shrink-0 w-24 text-left">
+        <span class="block aspect-square rounded-2xl bg-pill overflow-hidden"><img src="${escapeAttr(p.imagen || "")}" alt="" loading="lazy" class="w-full h-full object-contain" /></span>
+        <span class="block mt-1 text-[11px] text-ink/80 leading-tight line-clamp-2">${escapeHtml(p.nombre)}</span>
+        <span class="block text-xs font-bold text-ink tabular-nums">${formatPrice(p.precio)}</span>
+      </button>`).join("")}</div>`;
+}
+
+function renderAccountProfile() {
+  const el = document.getElementById("account-profile");
+  const row = (label, value) => value ? `<div class="flex justify-between gap-3 py-2 border-b border-ink/5 last:border-0"><span class="text-ink/60">${label}</span><span class="text-ink font-medium text-right truncate">${escapeHtml(value)}</span></div>` : "";
+  el.innerHTML = `<div class="rounded-2xl bg-ink/[0.03] p-4">
+      <div class="flex items-center justify-between mb-1"><h4 class="font-display text-base text-ink">Mis datos</h4>
+        <button type="button" data-acct-action="settings" class="text-xs font-semibold text-rose-ink underline">Editar</button></div>
+      <div class="text-sm">${row("Nombre", myAccountCache.name)}${row("Teléfono", myAccountCache.phone)}${row("Correo", myAccountCache.email)}</div>
+    </div>`;
+}
+
+function initAccountDashboard() {
+  const view = document.getElementById("account-view-orders");
+  view.addEventListener("click", (e) => {
+    const add = e.target.closest("[data-acct-add]");
+    if (add) {
+      closeAccountPanel();
+      addToCart(add.dataset.acctAdd);
+      return;
+    }
+    const open = e.target.closest("[data-acct-open-order]");
+    if (open) {
+      const det = view.querySelector(`details[data-order-id="${CSS.escape(open.dataset.acctOpenOrder)}"]`);
+      if (det) { det.open = true; det.scrollIntoView({ behavior: scrollBehavior(), block: "start" }); }
+      return;
+    }
+    const prod = e.target.closest("[data-open-product]");
+    if (prod) { closeAccountPanel(); return; } // la ficha la abre el listener general
+    const reorder = e.target.closest("#account-quick [data-reorder]");
+    if (reorder) { reorderFromOrder(reorder.dataset.reorder); return; }
+    const act = e.target.closest("[data-acct-action]");
+    if (!act) return;
+    const a = act.dataset.acctAction;
+    if (a === "settings") { openAccountSettings(); return; }
+    if (a === "whatsapp") {
+      const href = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una duda sobre mis pedidos.`);
+      if (href) window.open(href, "_blank", "noopener");
+      return;
+    }
+    closeAccountPanel();
+    if (a === "favs") openWishlistSection();
+    if (a === "skin") {
+      showHomeView("home");
+      const sec = document.getElementById("skintype-section");
+      if (sec) sec.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+    }
+  });
+  // Foto que no carga (producto que ya no está en el catálogo): se cambia
+  // por un recuadro rosa en vez del ícono de imagen rota.
+  document.getElementById("account-drawer").addEventListener("error", (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || img.dataset.fallback) return;
+    img.dataset.fallback = "1";
+    const span = document.createElement("span");
+    span.className = `${img.className} flex items-center justify-center text-base bg-blush/40`;
+    span.setAttribute("aria-hidden", "true");
+    span.textContent = "🧴";
+    img.replaceWith(span);
+  }, true);
+  // Links dentro del panel (ej. "Ver el catálogo") cierran el panel.
+  document.getElementById("account-drawer").addEventListener("click", (e) => {
+    if (e.target.closest("[data-acct-close]")) closeAccountPanel();
+    const tab = e.target.closest("[data-acct-tab]");
+    if (tab) showAccountView(tab.dataset.acctTab);
+  });
+}
+
 function myOrderCardHTML(o) {
-  const statusLabel = ORDER_STATUS_LABELS[o.status] || o.status;
-  const badgeClass = ORDER_STATUS_BADGE_CLASSES[o.status] || "bg-ink/10 text-ink/75";
   const fecha = o.createdAt
     ? new Date(o.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })
     : "";
@@ -5649,21 +5933,25 @@ function myOrderCardHTML(o) {
         <p data-my-proof-status="${escapeAttr(o.id)}" class="text-xs"></p>
       </div>`
     : "";
+  const chip = myOrderChip(o);
+  const pcs = (o.items || []).reduce((t, it) => t + (it.qty || 0), 0);
   return `
-    <details class="rounded-xl border border-ink/10 overflow-hidden bg-white/40">
-      <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-3 p-3 hover:bg-ink/5 transition">
+    <details data-order-id="${escapeAttr(o.id)}" class="group/order rounded-2xl border border-ink/10 overflow-hidden bg-white shadow-sm">
+      <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-3 p-3 hover:bg-ink/[0.03] transition">
+        ${myThumbStackHTML(o)}
         <div class="min-w-0 flex-1">
-          <p class="text-xs text-ink/75">#${orderNumber(o)} · ${fecha}</p>
-          <p class="text-sm font-semibold text-ink truncate">${escapeHtml(itemsSummary)}</p>
+          <span class="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full ${chip.cls}">${chip.label}</span>
+          <p class="text-xs text-ink/70 mt-1">#${orderNumber(o)} · ${fecha}</p>
+          <p class="text-xs text-ink/60 truncate" title="${escapeAttr(itemsSummary)}">${pcs} pieza${pcs === 1 ? "" : "s"} · ${(o.items || []).length} producto${(o.items || []).length === 1 ? "" : "s"}</p>
         </div>
         <div class="flex flex-col items-end gap-1 shrink-0">
-          <span class="text-xs font-bold px-2 py-0.5 rounded-full ${badgeClass}">${statusLabel}</span>
-          <span class="text-sm font-bold text-rose-ink">${formatPrice(o.grandTotal)}</span>
+          <span class="text-sm font-bold text-ink tabular-nums">${formatPrice(o.grandTotal)}</span>
+          <span class="text-ink/40 text-xs transition group-open/order:rotate-180" aria-hidden="true">▾</span>
         </div>
       </summary>
       <div class="border-t border-ink/10 p-3 space-y-3">
         ${orderTimelineHTML(o)}
-        <ul class="space-y-1">${orderItemsDetailHTML(o)}</ul>
+        <ul class="space-y-2">${orderItemsDetailHTML(o)}</ul>
         <div class="text-xs text-ink/75 space-y-0.5 pt-2 border-t border-ink/10">
           <div class="flex justify-between"><span>Subtotal</span><span>${formatPrice(subtotal)}</span></div>
           ${shippingMXN > 0 ? `<div class="flex justify-between"><span>Envío</span><span>${formatPrice(shippingMXN)}</span></div>` : ""}
@@ -5704,7 +5992,7 @@ let accountOrdersRangeFilter = "all";
 function orderBucket(o) {
   if (o.status === "pending") return "pending";
   if (o.status === "cancelled" || o.status === "failed") return "cancelled";
-  if (o.status === "paid" && o.trackingNumber) return "shipped";
+  if (o.status === "paid" && (o.trackingNumber || ["enviado", "entregado"].includes(myOrderStage(o)))) return "shipped";
   if (o.status === "paid") return "paid";
   return "other";
 }
@@ -5741,9 +6029,8 @@ function renderAccountOrdersStats(orders) {
     const active = accountOrdersStatusFilter === s.key;
     return `
       <button type="button" data-stat-filter="${s.key}" aria-pressed="${active}"
-        class="flex flex-col items-center gap-0.5 rounded-lg py-2 transition ${active ? "bg-rose text-cream" : "bg-ink/5 text-ink hover:bg-ink/10"}">
-        <span class="text-base font-bold">${counts[s.key]}</span>
-        <span class="text-xs font-semibold ${active ? "text-cream/90" : "text-ink/75"}">${s.icon} ${s.label}</span>
+        class="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${active ? "bg-rose-deep text-cream" : "bg-ink/5 text-ink hover:bg-ink/10"}">
+        ${s.icon} ${s.label} <span class="tabular-nums ${active ? "text-cream/90" : "text-ink/60"}">${counts[s.key]}</span>
       </button>`;
   }).join("");
   el.classList.remove("hidden");
@@ -5928,16 +6215,12 @@ async function loadMyOrders() {
     const orders = data.orders || [];
     myOrdersCache = orders;
     if (!orders.length) {
+      renderAccountDashboard(orders);
       emptyEl.classList.remove("hidden");
       return;
     }
 
-    const paidOrders = orders.filter((o) => o.status === "paid");
-    if (paidOrders.length) {
-      const totalSpent = paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
-      summaryEl.textContent = `🎉 Has hecho ${paidOrders.length} pedido${paidOrders.length === 1 ? "" : "s"} con nosotros por un total de ${formatPrice(totalSpent)}.`;
-      summaryEl.classList.remove("hidden");
-    }
+    renderAccountDashboard(orders);
 
     renderAccountOrdersStats(orders);
     renderAccountOrdersRangeChips();
@@ -6003,6 +6286,7 @@ async function handleSettingsSubmit(e) {
 }
 
 function initAccountPanel() {
+  initAccountDashboard();
   document.getElementById("account-toggle").addEventListener("click", openAccountPanelDefault);
   document.getElementById("account-close").addEventListener("click", closeAccountPanel);
   document.getElementById("account-overlay").addEventListener("click", closeAccountPanel);
