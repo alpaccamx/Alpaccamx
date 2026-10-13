@@ -137,11 +137,10 @@ const CONFIG = {
       imageAlt: "Grandes ahorros para una piel más sana: hasta 70% de descuento en numbuzin.",
       ctaHref: "?marca=numbuzin",
     },
-    // Torriden todavía no está en el catálogo: sin link hasta que se
-    // agregue (entonces ctaHref: "?marca=Torriden" como los demás).
     {
       imageCard: "assets/hero/hero-torriden-cellmazing-card.webp",
       imageAlt: "Torriden Cellmazing: rutina reafirmante con crema, contorno de ojos, ampolleta y mascarilla de gel.",
+      ctaHref: "?q=torriden+cellmazing",
     },
   ],
 
