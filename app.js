@@ -1013,6 +1013,7 @@ function csvToProducts(text) {
   const iPeso = findCol(headers, ["peso", "peso (kg)", "peso kg", "weight", "pesokg"]);
   const iPresentacion = findCol(headers, ["presentacion", "presentación", "empaque", "variante", "unidad"]);
   const iCapacidad = findCol(headers, ["capacidad", "contenido", "tamaño", "tamano", "capacity"]);
+  const iPais = findCol(headers, ["país", "pais", "country"]);
 
   return rows
     .slice(1)
@@ -1044,6 +1045,7 @@ function csvToProducts(text) {
         disponible,
         destacado: splitTags(get(iDestacado)),
         tipoPiel: splitTags(get(iTipoPiel)),
+        pais: get(iPais),
       };
     })
     .filter((p) => p.nombre && p.nombre !== "Producto sin nombre");
@@ -1445,6 +1447,7 @@ function csvToStockData(text) {
   const iDescripcion = findCol(headers, ["descripcion", "descripción", "description"]);
   const iCategoria = findCol(headers, ["categoria", "categoría", "category"]);
   const iPeso = findCol(headers, ["peso", "peso (kg)", "peso kg", "weight", "pesokg"]);
+  const iPais = findCol(headers, ["país", "pais", "país (opcional)", "pais (opcional)", "country"]);
   if (iSku < 0) return map;
 
   rows.slice(1).forEach((r) => {
@@ -1465,6 +1468,7 @@ function csvToStockData(text) {
         imagen: get(iImagen),
         descripcion: get(iDescripcion),
         categoria: normalizeCategoria(get(iCategoria)),
+        pais: get(iPais),
         pesoKg,
       });
     }
@@ -1530,6 +1534,7 @@ function applyStockData() {
       if (entry.imagen) existingStockOnly.imagen = entry.imagen;
       if (entry.descripcion) existingStockOnly.descripcion = entry.descripcion;
       if (entry.pesoKg) existingStockOnly.peso = entry.pesoKg;
+      if (entry.pais) existingStockOnly.pais = entry.pais;
       return;
     }
 
@@ -1548,6 +1553,7 @@ function applyStockData() {
       disponible: true,
       destacado: [],
       tipoPiel: [],
+      pais: entry.pais,
       enStock: true,
       stockPiezas,
     });
@@ -2564,7 +2570,7 @@ function renderProductSheet(p) {
               ? `<p class="text-ink/60">Cargando descripción…</p>`
               : ""}
           ${tipo.length ? `<div><p class="text-xs font-semibold text-ink/75 mb-1.5">Ideal para piel</p><div class="flex flex-wrap gap-1.5">${tipo.map((t) => `<span class="rounded-full bg-lilac/15 text-lilac-ink text-xs font-semibold px-2.5 py-1">${escapeHtml(t)}</span>`).join("")}</div></div>` : ""}
-          <p class="text-xs text-ink/60">${escapeHtml(brandCountry(p.marca))} · SKU ${escapeHtml(sku)}</p>
+          <p class="text-xs text-ink/60">${escapeHtml(productCountry(p))} · SKU ${escapeHtml(sku)}</p>
           ${p.marca ? `<button type="button" data-sheet-brand="${escapeAttr(p.marca)}" class="self-start text-sm font-semibold text-rose-ink underline underline-offset-2">Ver todo de ${escapeHtml(p.marca)} →</button>` : ""}
         </div>
       </div>
@@ -3386,10 +3392,14 @@ function showBrandProducts(marca, { restore = false } = {}) {
 }
 
 /* ======================================================================
-   País -- las marcas se agrupan por país de origen. Solo Shiseido es
-   japonesa; el resto del catálogo es surcoreano.
+   País de origen -- se toma de la columna "País" de cada producto. Si
+   viene vacía (por ejemplo, un producto que solo está en la hoja de
+   Stock), se usa el país de la marca: estas son las que no son coreanas.
    ====================================================================== */
-const COUNTRY_BRAND_OVERRIDES = { Japón: ["Shiseido", "SK-II"] };
+const COUNTRY_BRAND_OVERRIDES = {
+  Japón: ["Shiseido", "SK-II"],
+  "Estados Unidos": ["Bath & Body Works"],
+};
 const COUNTRY_ORDER = ["Corea del Sur", "Japón"];
 
 function brandCountry(marca) {
@@ -3399,8 +3409,12 @@ function brandCountry(marca) {
   return "Corea del Sur";
 }
 
+function productCountry(p) {
+  return (p && p.pais) || brandCountry(p && p.marca);
+}
+
 function getCountryOptions() {
-  const present = new Set(products.map((p) => brandCountry(p.marca)).filter(Boolean));
+  const present = new Set(products.filter((p) => !p.enStock).map((p) => productCountry(p)).filter(Boolean));
   const ordered = COUNTRY_ORDER.filter((c) => present.has(c));
   const rest = [...present].filter((c) => !COUNTRY_ORDER.includes(c)).sort();
   return [...ordered, ...rest];
@@ -3408,7 +3422,7 @@ function getCountryOptions() {
 
 function showCountryProducts(pais, { restore = false } = {}) {
   document.getElementById("country-products-title").textContent = `Marcas de ${pais}`;
-  mountListing("country", products.filter((p) => !p.enStock && brandCountry(p.marca) === pais), { restore, id: pais });
+  mountListing("country", products.filter((p) => !p.enStock && productCountry(p) === pais), { restore, id: pais });
   showHomeView("country", { pais });
   if (!restore) document.getElementById("country-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
