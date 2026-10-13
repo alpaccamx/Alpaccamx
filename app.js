@@ -2413,8 +2413,10 @@ function clusterPresentations(items, { expand = false } = {}) {
     const tagged = list.map((x) => ({ ...x, presKey: k }));
     presClusters.set(k, tagged);
     // Se abre con la pieza individual (el precio más bajo, para que no se
-    // vea caro); si no hay pieza, con la que venía primero en la lista.
+    // vea caro). Si la pieza no está disponible, con la primera caja que sí
+    // lo esté; si nada está disponible, con la pieza.
     return tagged.find((x) => !isCajaPresentacion(x) && entryAvailable(x))
+      || tagged.find((x) => entryAvailable(x))
       || tagged.find((x) => !isCajaPresentacion(x))
       || tagged.find((x) => x.id === own[0].id) || tagged[0];
   });
