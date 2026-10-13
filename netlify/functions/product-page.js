@@ -6,7 +6,7 @@
 // Con ?format=json regresa solo { descripcion, tipoPiel, pais } -- lo que
 // la ficha pide al abrirse (el catálogo ligero no trae la descripción).
 
-const { loadCatalog, isAvailable } = require("./lib/catalog-source.js");
+const { loadCatalog, loadStock, isAvailable } = require("./lib/catalog-source.js");
 
 const SITE = "https://alpacca.mx";
 const STOCK_SUFFIX = "__stock";
@@ -54,7 +54,7 @@ function productHtml(html, row, sku) {
   const marca = row.Marca || "";
   const pres = row.Presentacion || "";
   const precio = price(row.Precio);
-  const title = `${marca ? `${marca} ` : ""}${nombre}${pres && /^caja/i.test(pres) ? ` (${pres})` : ""} — Alpacca`;
+  const title = `${marca && !nombre.toLowerCase().includes(marca.toLowerCase()) ? `${marca} ` : ""}${nombre}${pres && /^caja/i.test(pres) ? ` (${pres})` : ""} — Alpacca`;
   const desc = (row.Descripcion || `${marca} ${nombre}`).slice(0, 155) +
     (precio ? ` Desde $${precio.toLocaleString("es-MX")} MXN. Envíos a todo México.` : "");
   const url = `${SITE}/?p=${encodeURIComponent(sku)}`;
@@ -106,6 +106,15 @@ exports.handler = async (event) => {
     row = rows.find((r) => r.SKU === sku && r.Nombre) || null;
   } catch (err) {
     console.error("product-page: no se pudo leer el catálogo", err);
+  }
+  if (!row) {
+    // Producto que solo está en "Stock en México" (SKU STOCK-...).
+    try {
+      const { rows } = await loadStock();
+      row = rows.find((r) => r.SKU === sku && r.Nombre) || null;
+    } catch (err) {
+      console.error("product-page: no se pudo leer el stock", err);
+    }
   }
 
   if (q.format === "json") {
