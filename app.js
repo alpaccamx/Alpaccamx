@@ -2412,8 +2412,11 @@ function clusterPresentations(items, { expand = false } = {}) {
     if (list.length < 2) return own[0];
     const tagged = list.map((x) => ({ ...x, presKey: k }));
     presClusters.set(k, tagged);
-    // Se muestra la presentación que venía primero en la lista original.
-    return tagged.find((x) => x.id === own[0].id) || tagged[0];
+    // Se abre con la pieza individual (el precio más bajo, para que no se
+    // vea caro); si no hay pieza, con la que venía primero en la lista.
+    return tagged.find((x) => !isCajaPresentacion(x) && entryAvailable(x))
+      || tagged.find((x) => !isCajaPresentacion(x))
+      || tagged.find((x) => x.id === own[0].id) || tagged[0];
   });
 }
 
