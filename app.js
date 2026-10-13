@@ -1579,6 +1579,7 @@ async function loadStockData() {
     syncCartWithProducts();
     renderAll();
     refreshCurrentView();
+    retryProductLink();
   } catch (err) {
     console.warn("No se pudo cargar la tabla de stock:", err);
   }
@@ -2623,6 +2624,16 @@ function applyProductRoute(params) {
   } else if (sheetProductId != null) {
     hideProductSheet();
   }
+}
+
+/* Los productos de "Stock en México" que no están en el catálogo (SKU
+   STOCK-...) llegan con la tabla de stock, que carga DESPUÉS del
+   catálogo. Si alguien entró con el link de uno de ellos (?p=STOCK-...),
+   la primera vez no se encontró; en cuanto llega el stock se vuelve a
+   intentar abrir su ficha. */
+function retryProductLink() {
+  const id = new URLSearchParams(location.search).get("p");
+  if (id && sheetProductId == null && products.length) openProductSheet(id, { fromRoute: true });
 }
 
 function initProductSheet() {
