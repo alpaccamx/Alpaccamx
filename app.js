@@ -71,9 +71,9 @@ const CONFIG = {
 
   // Íconos de redes sociales en la barra superior. Pon "" en href para ocultar uno.
   SOCIAL_LINKS: [
-    { name: "Facebook", href: "", icon: "facebook" },
-    { name: "Instagram", href: "", icon: "instagram" },
-    { name: "TikTok", href: "", icon: "tiktok" },
+    { name: "Instagram", href: "https://www.instagram.com/alpaccamx", icon: "instagram" },
+    { name: "TikTok", href: "https://www.tiktok.com/@alpaccamx", icon: "tiktok" },
+    { name: "Facebook", href: "https://www.facebook.com/alpacca.alpacca.2025", icon: "facebook" },
   ],
 
   // Slides del banner principal (tarjetas verticales, como StyleKorean).
