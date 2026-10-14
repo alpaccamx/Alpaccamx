@@ -3651,13 +3651,13 @@ function refreshCurrentView() {
    ====================================================================== */
 const LISTING_PAGE = 24;
 const LISTINGS = {
-  search: { grid: "search-results-grid", empty: "search-results-empty", filters: ["categoria", "marca", "pres", "precio", "disp"] },
-  catalog: { grid: "catalog-grid", empty: "catalog-empty", filters: ["categoria", "marca", "pres", "precio", "disp"] },
-  stock: { grid: "stock-grid", empty: "stock-empty", filters: ["categoria", "marca", "precio"], defaultSort: "marca" },
-  brands: { grid: "brand-products-grid", empty: "brand-products-empty", filters: ["categoria", "pres", "precio", "disp"] },
-  categories: { grid: "category-products-grid", empty: "category-products-empty", filters: ["marca", "pres", "precio", "disp"] },
-  country: { grid: "country-products-grid", empty: "country-products-empty", filters: ["categoria", "marca", "pres", "precio", "disp"] },
-  concerns: { grid: "concern-products-grid", empty: "concern-products-empty", filters: ["categoria", "marca", "pres", "precio", "disp"] },
+  search: { grid: "search-results-grid", empty: "search-results-empty", filters: ["categoria", "tipo", "marca", "pres", "precio", "disp"] },
+  catalog: { grid: "catalog-grid", empty: "catalog-empty", filters: ["categoria", "tipo", "marca", "pres", "precio", "disp"] },
+  stock: { grid: "stock-grid", empty: "stock-empty", filters: ["categoria", "tipo", "marca", "precio"], defaultSort: "marca" },
+  brands: { grid: "brand-products-grid", empty: "brand-products-empty", filters: ["categoria", "tipo", "pres", "precio", "disp"] },
+  categories: { grid: "category-products-grid", empty: "category-products-empty", filters: ["tipo", "marca", "pres", "precio", "disp"] },
+  country: { grid: "country-products-grid", empty: "country-products-empty", filters: ["categoria", "tipo", "marca", "pres", "precio", "disp"] },
+  concerns: { grid: "concern-products-grid", empty: "concern-products-empty", filters: ["categoria", "tipo", "marca", "pres", "precio", "disp"] },
 };
 const PRICE_RANGES = [
   { key: "0-300", label: "Hasta $300", min: 0, max: 300 },
@@ -3665,6 +3665,60 @@ const PRICE_RANGES = [
   { key: "600-1500", label: "$600 a $1,500", min: 600, max: 1500 },
   { key: "1500-", label: "Más de $1,500", min: 1500, max: Infinity },
 ];
+/* Tipo de producto (sérum, protector solar, labial...) para el filtro de
+   los listados. El Sheet no tiene esa columna, así que se saca del nombre
+   (casi todos vienen en inglés de ABW). El orden importa: va de lo más
+   específico a lo más general, y gana la primera regla que coincide --
+   "Eye Cream" es contorno de ojos y no crema, "Cushion Set" es base y no
+   kit. El tono entre paréntesis no cuenta. */
+const PRODUCT_TYPES = [
+  ["Protector solar", /\bsun|\bspf\b|\buv\b|sunscreen|bloqueador|protector solar|solar\b/i],
+  ["Parches", /\bpatch|parche/i],
+  ["Shampoo", /shampoo|champú/i],
+  ["Aceite y sérum capilar", /hair (oil|serum|essence|ampoule|mist|tonic|perfume|milk|water|fragrance)|cabello/i],
+  ["Tinte para cabello", /hair (colou?r|dye)|retouch|hair (cushion|cover|puff)|\btinte\b|bleach|decolor/i],
+  ["Acondicionador y tratamiento", /conditioner|rinse|hair (mask|pack|treatment|clinic)|acondicionador|treatment.*hair|scalp|hair/i],
+  ["Contorno de ojos", /\beye (film|roller|solution|tightener|cream|serum|essence|gel|balm|stick|mask|patch)|eye ?zone|contorno de ojos/i],
+  ["Bálsamo y cuidado de labios", /\blip (balm|mask|care|scrub|oil|treatment|sleeping|essence|serum|plumper)|bálsamo labial|lip ?balm/i],
+  ["Cejas", /brow|ceja/i],
+  ["Máscara de pestañas", /mascara|colorcara|rímel|pestañas|lash/i],
+  ["Delineador", /liner|delineador/i],
+  ["Sombras", /shadow|\beyes\b|eye (blend|stick|glitter|pigment|topper)|palette|paleta|single (matte|shimmer|glitter)|sombra|eye palette|glitter|eye ?(color|colour)|\beyes?\b.*palette/i],
+  ["Labiales y tintas", /ink (airy )?velvet|velvet tint|color stick|\blip|tint\b|tinta|labial|gloss|rouge|lipstick|lacquer/i],
+  ["Rubor", /blush|cheek|rubor/i],
+  ["Iluminador y contorno", /highlight|iluminador|contour|shading|bronz|sculpt/i],
+  ["Corrector", /conceal|corrector/i],
+  ["Base y cushion", /foundation|cushion|\bbb\b|\bcc (cream|cushion)|base de maquillaje|skin tint|\bbase\b/i],
+  ["Primer y fijador", /primer|fixer|setting spray|fixing|makeup fix|prebase|fijador/i],
+  ["Polvos", /powder|pact|polvo/i],
+  ["Uñas", /nail|uñas|esmalte/i],
+  ["Brochas y accesorios", /brush|puff|sponge|brocha|esponja|cotton|pad holder|tweezer|curler|mirror|pouch|headband|diadema|cuticle|razor|rastrillo/i],
+  ["Peinado", /wax|styling|hair (spray|gel|foam|mousse|cream|lotion)|curl/i],
+  ["Cuidado de manos y pies", /\bhand|\bfoot|\bfeet|manos|pies|heel/i],
+  ["Jabón y gel de baño", /body (wash|cleanser|scrub|soap)|shower|bath|soap|jabón|gel de baño/i],
+  ["Crema y loción corporal", /antiperspirant|\bdeo\b|body|corporal|deodor|desodorante/i],
+  ["Cuidado dental", /tooth|dental|mouth|oral/i],
+  ["Desmaquillante", /cleaning balm|cleansing (oil|balm|water|milk|tissue|sheet)|remover|makeup clean|desmaquillante|micellar|clean(sing)? balm/i],
+  ["Limpiador facial", /cleans|foam|face wash|facial wash|limpiador|wash\b|whip/i],
+  ["Exfoliante", /peel|exfoli|scrub|gommage|aha|bha/i],
+  ["Pads", /\bpads?\b|toner pad/i],
+  ["Mascarillas", /mask|masque|mascarilla|sleeping pack|\bpack\b/i],
+  ["Tónico y bruma", /toner|tónico|tonico|\bskin\b(?! ?care)|mist|bruma|lotion water|softener|refresher/i],
+  ["Esencia", /essence|esencia|first ?treatment|booster/i],
+  ["Sérum y ampolleta", /shot\b|needle|serum|sérum|ampoule|ampolleta|ampule|concentrate|drop|oil\b/i],
+  ["Crema facial", /cream|crema|moisturi|gel|emulsion|lotion|balm|bálsamo|hidratante|sleeping|milk/i],
+  ["Kits y sets", /\b(kit|set|trial|duo|trio|collection|gift|routine)\b|\bjuego\b/i],
+];
+function productType(p) {
+  if (p.tipo) return p.tipo;
+  if (p.categoria === "Suplementos") return (p.tipo = "Suplementos");
+  const n = (p.nombre || "").replace(/\(.*?\)/g, " ");
+  const hit = PRODUCT_TYPES.find(([, re]) => re.test(n));
+  p.tipo = hit ? hit[0] : "Otros";
+  return p.tipo;
+}
+const TYPE_ORDER = [...PRODUCT_TYPES.map(([t]) => t), "Suplementos", "Otros"];
+
 const SORTS = [
   { key: "", label: "Recomendados" },
   { key: "precio-asc", label: "Precio: menor a mayor" },
@@ -3675,7 +3729,13 @@ const SORTS = [
 const listingState = {};
 
 function emptyListingFilters() {
-  return { categoria: "", marca: "", pres: "", precio: "", disp: false };
+  return { categoria: "", tipo: "", marca: "", pres: "", precio: "", disp: false };
+}
+
+/* Al abrir un listado los agotados vienen ocultos ("Solo disponibles"
+   marcado); se pueden ver desmarcándolo. */
+function defaultListingFilters(key) {
+  return { ...emptyListingFilters(), disp: LISTINGS[key].filters.includes("disp") };
 }
 
 function entryAvailable(p) {
@@ -3690,7 +3750,7 @@ function mountListing(key, raw, { restore = false, id = "" } = {}) {
   listingState[key] = {
     id,
     raw,
-    filters: keep ? prev.filters : emptyListingFilters(),
+    filters: keep ? prev.filters : defaultListingFilters(key),
     sort: keep ? prev.sort : LISTINGS[key].defaultSort || "",
     shown: keep ? prev.shown : LISTING_PAGE,
   };
@@ -3698,12 +3758,13 @@ function mountListing(key, raw, { restore = false, id = "" } = {}) {
   return listingItems(key, { ignoreFilters: true }).length;
 }
 
-function listingItems(key, { ignoreFilters = false } = {}) {
+function listingItems(key, { ignoreFilters = false, keepFiltersExceptDisp = false } = {}) {
   const st = listingState[key];
-  const f = ignoreFilters ? emptyListingFilters() : st.filters;
+  const f = ignoreFilters ? emptyListingFilters() : keepFiltersExceptDisp ? { ...st.filters, disp: false } : st.filters;
   const range = PRICE_RANGES.find((r) => r.key === f.precio);
   const raw = st.raw.filter((p) => {
     if (f.categoria && p.categoria !== f.categoria) return false;
+    if (f.tipo && productType(p) !== f.tipo) return false;
     if (f.marca && p.marca !== f.marca) return false;
     if (f.pres === "pieza" && isCajaPresentacion(p)) return false;
     if (f.pres === "caja" && !isCajaPresentacion(p)) return false;
@@ -3740,6 +3801,12 @@ function listingControlsHTML(key, total) {
     const cats = uniq((p) => p.categoria);
     if (cats.length > 1) parts.push(listingSelectHTML("categoria", "Categoría", [{ value: "", label: "Categoría" }, ...cats.map((c) => ({ value: c, label: c }))], f.categoria));
   }
+  if (cfg.filters.includes("tipo")) {
+    // Solo los tipos que hay en este listado (y en la categoría elegida).
+    const present = new Set(st.raw.filter((p) => !f.categoria || p.categoria === f.categoria).map(productType));
+    const tipos = TYPE_ORDER.filter((t) => present.has(t));
+    if (tipos.length > 1) parts.push(listingSelectHTML("tipo", "Tipo de producto", [{ value: "", label: "Tipo de producto" }, ...tipos.map((t) => ({ value: t, label: t }))], f.tipo));
+  }
   if (cfg.filters.includes("marca")) {
     const marcas = uniq((p) => p.marca);
     if (marcas.length > 1) parts.push(listingSelectHTML("marca", "Marca", [{ value: "", label: "Marca" }, ...marcas.map((m) => ({ value: m, label: m }))], f.marca));
@@ -3755,7 +3822,7 @@ function listingControlsHTML(key, total) {
     parts.push(`<label class="tap inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-ink/15 bg-white text-[13px] text-ink cursor-pointer">
       <input type="checkbox" data-lf="disp" class="accent-rose-deep w-4 h-4"${f.disp ? " checked" : ""} /> Solo disponibles</label>`);
   }
-  const active = f.categoria || f.marca || f.pres || f.precio || f.disp;
+  const active = f.categoria || f.tipo || f.marca || f.pres || f.precio || f.disp !== defaultListingFilters(key).disp;
   // En celular, una sola fila que se desliza de lado (como las pestañas
   // de Best Seller) en vez de 4 renglones de filtros.
   return `<div class="flex items-center gap-2 overflow-x-auto -mx-4 px-4 pb-1 sm:mx-0 sm:px-0 sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">${parts.join("")}
@@ -3780,6 +3847,8 @@ function listingContainers(key) {
       if (el.dataset.lf === "sort") st.sort = el.value;
       else if (el.dataset.lf === "disp") st.filters.disp = el.checked;
       else st.filters[el.dataset.lf] = el.value;
+      // El tipo elegido puede no existir en la nueva categoría.
+      if (el.dataset.lf === "categoria") st.filters.tipo = "";
       st.shown = LISTING_PAGE;
       renderListing(key);
     });
@@ -3789,7 +3858,7 @@ function listingContainers(key) {
         return;
       }
       if (!e.target.closest("[data-lf-clear]")) return;
-      listingState[key].filters = emptyListingFilters();
+      listingState[key].filters = defaultListingFilters(key);
       listingState[key].shown = LISTING_PAGE;
       renderListing(key);
     });
@@ -3870,7 +3939,11 @@ function renderListing(key) {
   wireVariantSelectors(grid);
   if (empty) {
     empty.classList.toggle("hidden", items.length > 0);
-    if (!items.length && st.raw.length) empty.textContent = "No hay productos con esos filtros.";
+    if (!items.length && st.raw.length) {
+      empty.textContent = st.filters.disp && listingItems(key, { keepFiltersExceptDisp: true }).length
+        ? "No hay productos disponibles con esos filtros. Desmarca \u201cSolo disponibles\u201d para ver los agotados."
+        : "No hay productos con esos filtros.";
+    }
   }
   renderListingMore(key);
 }
