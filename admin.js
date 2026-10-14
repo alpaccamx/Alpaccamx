@@ -3746,7 +3746,7 @@ ${itemLines}
      página (ver netlify/functions/admin-swm.js). La tarifa por peso es la
      misma que lib/swm-pricing.js y swm.js.
      ==================================================================== */
-  const SWM_TARIFA = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 760, 7: 760, 8: 1000, 9: 1000, 10: 1000, 11: 1000, 12: 1200, 13: 1200, 14: 1400, 15: 2000 };
+  const SWM_TARIFA = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 900, 7: 900, 8: 1000, 9: 1000, 10: 1000, 11: 1000, 12: 1200, 13: 1200, 14: 1400, 15: 2000 };
   const SWM_STAGES = [
     ["solicitud", "🆕 Solicitud nueva"], ["cotizado", "💬 Cotizado"], ["esperando_paquete", "⏳ Esperando paquete"],
     ["recibido", "📥 Recibido en EE.UU."], ["en_camino_mx", "✈️ En camino a México"], ["enviado", "🚚 Enviado"],

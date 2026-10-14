@@ -8,7 +8,7 @@
 
 /* Misma tarifa que netlify/functions/lib/swm-pricing.js -- si cambias
    una, cambia la otra. */
-const SWM_TARIFA = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 760, 7: 760, 8: 1000, 9: 1000, 10: 1000, 11: 1000, 12: 1200, 13: 1200, 14: 1400, 15: 2000 };
+const SWM_TARIFA = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 900, 7: 900, 8: 1000, 9: 1000, 10: 1000, 11: 1000, 12: 1200, 13: 1200, 14: 1400, 15: 2000 };
 const SWM_KILO_EXTRA = 120;
 const SWM_COMISION_PCT = 15;
 

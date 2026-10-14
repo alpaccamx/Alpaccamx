@@ -7,7 +7,7 @@
 // Arriba de 15 kg se suman $120 por cada kilo extra.
 // Por comisión: 15% del valor de los productos (ya con tax).
 
-const TARIFA_KG = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 760, 7: 760, 8: 1000, 9: 1000, 10: 1000, 11: 1000, 12: 1200, 13: 1200, 14: 1400, 15: 2000 };
+const TARIFA_KG = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 900, 7: 900, 8: 1000, 9: 1000, 10: 1000, 11: 1000, 12: 1200, 13: 1200, 14: 1400, 15: 2000 };
 const KILO_EXTRA = 120;
 const COMISION_PCT = 15;
 // Juntar varias cajas en un solo envío nacional: $100 por grupo mientras
