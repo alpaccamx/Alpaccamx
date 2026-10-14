@@ -8,12 +8,12 @@
 //   solicitud. Cada paquete trae su peso y medidas y cruza por separado:
 //   con cobro por peso, el cruce es la suma de los de cada paquete (si
 //   Mae no escribe otro). Si la clienta pidió consolidar, se cobran $100
-//   por grupo mientras pese hasta 12 kg. Al cambiar de etapa se le avisa
+//   por cada grupo de hasta 12 kg. Al cambiar de etapa se le avisa
 //   a la clienta por correo.
 
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { STAGES, listSwmRequests, mutateSwmRequest } = require("./lib/swm-store.js");
-const { pesoCobrable, crucePorPeso, crucePorComision, CONSOLIDACION } = require("./lib/swm-pricing.js");
+const { pesoCobrable, crucePorPeso, crucePorComision, consolidacionPorPeso } = require("./lib/swm-pricing.js");
 const { sendEmail, baseEmailHTML, formatPriceMXN } = require("./lib/email.js");
 
 const STAGE_LABEL = {
@@ -87,13 +87,11 @@ exports.handler = async (event) => {
           if (body.pagos[k] != null) r.pagos[k] = !!body.pagos[k];
         });
       }
-      // Consolidación: $100 por grupo hasta 12 kg (si Mae no puso otro monto).
+      // Consolidación: $100 por cada grupo de hasta 12 kg (si Mae no puso otro monto).
       r.montos.consolidacion = r.montos.consolidacion || 0;
       if (!r.consolidar) r.montos.consolidacion = 0;
       else if (!(body.montos && body.montos.consolidacion != null) && (r.paquetes || []).length > 1) {
-        // Arriba de 12 kg hay un cargo adicional: se pone la base y Mae le
-        // suma el extra a mano en el admin.
-        r.montos.consolidacion = CONSOLIDACION;
+        r.montos.consolidacion = consolidacionPorPeso((r.peso && r.peso.cobrable) || 0);
       }
       if (body.notaClienta != null) r.notaClienta = clip(body.notaClienta, 1000);
       if (body.notaPrivada != null) r.notaPrivada = clip(body.notaPrivada, 2000);

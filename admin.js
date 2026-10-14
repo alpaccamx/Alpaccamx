@@ -3817,7 +3817,7 @@ ${itemLines}
       <div style="margin-top:10px;font-size:13px;font-weight:600;">📦 Cajas (cada una cruza por separado)</div>
       <div data-swm-pkgs>${pkgs}</div>
       <button type="button" class="btn-secondary" data-swm-add-pkg style="margin-top:6px;padding:6px 12px;font-size:13px;">+ Agregar caja</button>
-      <div class="pay"><label><input type="checkbox" data-f-consolidar ${r.consolidar ? "checked" : ""}> Consolidar en un solo envío nacional ($100 por grupo hasta 12 kg)</label></div>
+      <div class="pay"><label><input type="checkbox" data-f-consolidar ${r.consolidar ? "checked" : ""}> Consolidar en un solo envío nacional ($100 por cada 12 kg)</label></div>
       ${r.links ? `<div style="margin-top:8px;font-size:13px;white-space:pre-wrap;word-break:break-all;background:#faf7fb;border-radius:8px;padding:8px;">${escapeHtml(r.links)}</div>` : ""}
       ${r.notas ? `<div class="meta">📝 ${escapeHtml(r.notas)}</div>` : ""}
       <div class="grid">
@@ -3926,7 +3926,7 @@ ${itemLines}
       total += kg; cruce += swmCrucePeso(kg); parts.push(`caja ${i + 1}: ${kg} kg = ${formatPrice(swmCrucePeso(kg))}`);
     });
     const cons = card.querySelector("[data-f-consolidar]").checked && parts.length > 1
-      ? (total <= 12 ? " · Consolidación: $100" : " · ⚠️ Pasa de 12 kg: súmale el cargo adicional a la consolidación ($100 + extra)")
+      ? ` · Consolidación: ${formatPrice(Math.max(1, Math.ceil(total / 12 - 1e-9)) * 100)} (${Math.max(1, Math.ceil(total / 12 - 1e-9))} grupo${total > 12 ? "s" : ""} de hasta 12 kg)`
       : "";
     out.textContent = parts.length ? `${parts.join(" · ")} → cruce total ${formatPrice(cruce)}${cons} (se ponen solos al guardar, salvo que escribas otro monto)` : "";
   });

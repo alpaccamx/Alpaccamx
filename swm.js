@@ -138,7 +138,7 @@ function renderSwmForm() {
       <div id="swm-paquetes" class="space-y-3">${swmPaqueteRowHTML()}</div>
       <button type="button" id="swm-add-paquete" class="text-sm font-semibold text-rose-ink underline">+ Agregar otro paquete</button>
       <p class="text-xs text-ink/65">Si son de varias tiendas, regístralos todos aquí. Cada caja cruza por separado (se cobra según su peso).</p>
-      <label class="flex gap-2 text-sm mt-2"><input id="swm-consolidar" type="checkbox" class="mt-0.5 accent-[#c4466e]" /> <span><b>Consolidar mis cajas en un solo envío nacional</b> (+$100 MXN por grupo de cajas, siempre que juntas no pasen de 12 kg; si pasan, hay un cargo adicional).</span></label>
+      <label class="flex gap-2 text-sm mt-2"><input id="swm-consolidar" type="checkbox" class="mt-0.5 accent-[#c4466e]" /> <span><b>Consolidar mis cajas en un solo envío nacional</b> (+$100 MXN por cada grupo de hasta 12 kg).</span></label>
     </div>
     <label data-swm-when="compra_mae" class="hidden flex-col gap-1 text-sm font-semibold">Links de los productos (uno por línea, con tono o talla y cantidad)
       <textarea id="swm-links" rows="5" maxlength="4000" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" placeholder="https://www.sephora.com/...  · Tono 2N · 1 pieza"></textarea>

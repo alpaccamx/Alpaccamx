@@ -10,8 +10,8 @@
 const TARIFA_KG = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 900, 7: 900, 8: 1000, 9: 1000, 10: 1000, 11: 1000, 12: 1200, 13: 1200, 14: 1400, 15: 2000 };
 const KILO_EXTRA = 120;
 const COMISION_PCT = 15;
-// Juntar varias cajas en un solo envío nacional: $100 por grupo mientras
-// el grupo pese hasta 12 kg; arriba de eso Mae pone el cargo a mano.
+// Juntar varias cajas en un solo envío nacional: $100 por cada grupo de
+// hasta 12 kg (13-24 kg = $200, 25-36 kg = $300...).
 const CONSOLIDACION = 100;
 const CONSOLIDACION_MAX_KG = 12;
 
@@ -35,4 +35,8 @@ function crucePorComision(valorMXN) {
   return Math.ceil((Number(valorMXN) || 0) * COMISION_PCT / 100);
 }
 
-module.exports = { TARIFA_KG, KILO_EXTRA, COMISION_PCT, CONSOLIDACION, CONSOLIDACION_MAX_KG, pesoVolumetrico, pesoCobrable, crucePorPeso, crucePorComision };
+function consolidacionPorPeso(totalKg) {
+  return Math.max(1, Math.ceil((Number(totalKg) || 0) / CONSOLIDACION_MAX_KG - 1e-9)) * CONSOLIDACION;
+}
+
+module.exports = { consolidacionPorPeso, TARIFA_KG, KILO_EXTRA, COMISION_PCT, CONSOLIDACION, CONSOLIDACION_MAX_KG, pesoVolumetrico, pesoCobrable, crucePorPeso, crucePorComision };
