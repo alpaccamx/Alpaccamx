@@ -3750,6 +3750,7 @@ ${itemLines}
   let swmData = { paquetes: [], compras: [], envios: [], almacenajeDias: 30 };
   let swmTab = "acciones";
   let swmSearch = "";
+  let swmSinRegistroOpen = false;
 
   function swmCobrable(kg, alto, ancho, largo) {
     const vol = alto > 0 && ancho > 0 && largo > 0 ? (alto * ancho * largo) / 5000 : 0;
@@ -3769,6 +3770,7 @@ ${itemLines}
       cotizarCompra: swmData.compras.filter((c) => c.status === "solicitud"),
       comprar: swmData.compras.filter((c) => c.status === "pagado"),
       cotizarEnvio: swmData.envios.filter((e) => e.status === "solicitado"),
+      sinDuena: swmData.paquetes.filter((p) => p.status === "sin_dueña"),
       enviar: swmData.envios.filter((e) => e.status === "pagado"),
       pagos: swmPorRevisar(),
     };
@@ -3783,7 +3785,7 @@ ${itemLines}
       if (!res.ok) { if (!quiet) setStatus(data.error || "No se pudo cargar Shop with Mae."); return; }
       swmData = data;
       const pend = swmPendientes();
-      swmNewCount = pend.cotizarCompra.length + pend.comprar.length + pend.cotizarEnvio.length + pend.enviar.length + pend.pagos.length;
+      swmNewCount = pend.cotizarCompra.length + pend.comprar.length + pend.cotizarEnvio.length + pend.enviar.length + pend.pagos.length + pend.sinDuena.length;
       const badge = document.getElementById("swm-badge");
       badge.textContent = swmNewCount ? String(swmNewCount) : "";
       badge.style.display = swmNewCount ? "inline-flex" : "none";
@@ -3829,12 +3831,15 @@ ${itemLines}
       ["acciones", `⚡ Por hacer (${swmNewCount})`],
       ["llegar", `⏳ Por llegar (${P.filter((p) => p.status === "registrado").length})`],
       ["almacen", `📥 En almacén (${P.filter((p) => p.status === "recibido").length})`],
+      ["sindueña", `❓ Sin dueña (${P.filter((p) => p.status === "sin_dueña").length})`],
       ["compras", `🛍️ Compras (${swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status)).length})`],
       ["envios", `🚚 Envíos (${swmData.envios.filter((e) => !["entregado", "cancelado"].includes(e.status)).length})`],
       ["historial", "🗂️ Historial"],
     ];
     document.getElementById("swm-filters").innerHTML = `${tabs.map(([k, l]) => `<button type="button" class="btn-secondary ${swmTab === k ? "on" : ""}" data-swm-tab="${k}">${l}</button>`).join("")}
-      <input type="search" id="swm-search" placeholder="🔍 Buscar por folio, nombre, tienda o rastreo" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">`;
+      <input type="search" id="swm-search" placeholder="🔍 Buscar por folio, nombre, tienda o rastreo" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
+      <button type="button" class="btn-primary" data-swm-sinreg-toggle>📦 Llegó un paquete sin registrar</button>
+      <div id="swm-sinreg-box" style="width:100%;">${swmSinRegistroOpen ? swmSinRegistroForm() : ""}</div>`;
     let html = "";
     const sec = (title, items, fn) => (items.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">${title} (${items.length})</h4>${items.map(fn).join("")}` : "");
     if (swmSearch.trim()) {
@@ -3845,10 +3850,13 @@ ${itemLines}
         + sec("🛍️ Compras por cotizar", pend.cotizarCompra.filter(swmMatches), swmCompraCard)
         + sec("🛒 Compras pagadas: hay que comprar", pend.comprar.filter(swmMatches), swmCompraCard)
         + sec("🚚 Envíos por cotizar", pend.cotizarEnvio.filter(swmMatches), swmEnvioCard)
-        + sec("📦 Envíos pagados: hay que mandar", pend.enviar.filter(swmMatches), swmEnvioCard);
+        + sec("📦 Envíos pagados: hay que mandar", pend.enviar.filter(swmMatches), swmEnvioCard)
+        + sec("❓ Paquetes sin dueña", pend.sinDuena.filter(swmMatches), swmPaqueteCard);
       if (!html) html = `<p style="color:#5f5866;font-size:14px;">No hay nada pendiente 🎉</p>`;
     } else if (swmTab === "llegar") {
       html = P.filter((p) => p.status === "registrado" && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes por llegar.</p>`;
+    } else if (swmTab === "sindueña") {
+      html = P.filter((p) => p.status === "sin_dueña").map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes sin dueña.</p>`;
     } else if (swmTab === "almacen") {
       html = P.filter((p) => p.status === "recibido" && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes en el almacén.</p>`;
     } else if (swmTab === "compras") {
@@ -3873,16 +3881,24 @@ ${itemLines}
   const swmCancelBtn = (kind, r) => (["cancelado", "entregado", "comprado", "enviado"].includes(r.status) ? "" : `<button type="button" class="btn-secondary" data-swm-cancel="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">Cancelar</button>`);
 
   function swmPaqueteCard(p) {
-    const st = { registrado: "⏳ Por llegar", recibido: "📥 En almacén", en_envio: "📦 En un envío", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
+    const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : "📥 En almacén", en_envio: "📦 En un envío", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
     const hasta = p.receivedAt ? new Date(new Date(p.receivedAt).getTime() + swmData.almacenajeDias * 864e5) : null;
     const vence = hasta ? Math.ceil((hasta - Date.now()) / 864e5) : null;
     const fotos = (p.fotos || []).map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:4px 10px;font-size:12px;">📷 Foto</button>`).join(" ");
     const editable = ["registrado", "recibido"].includes(p.status);
+    const sinDuena = p.status === "sin_dueña";
+    const diasAqui = p.receivedAt ? Math.floor((Date.now() - new Date(p.receivedAt)) / 864e5) : 0;
+    const limite = swmData.diasSinDuena || 7;
     return `<div class="swm-card" data-swm-id="${escapeHtml(p.id)}" data-kind="paquete">
-      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}</span>${swmPillA(st, p.status === "registrado" ? "new" : "")}</h4>
-      <div class="meta">${swmWho(p)}<br>${p.origen === "compra" ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "comision" ? `15% de US$${Number(p.valorUSD || 0).toFixed(2)}` : "por peso"}${p.contenido ? ` · ${escapeHtml(p.contenido)}` : ""}
+      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}</span>${swmPillA(st, ["registrado", "sin_dueña"].includes(p.status) || p.datosPendientes ? "new" : "")}</h4>
+      ${sinDuena ? `<div class="meta">Etiqueta: <b>${escapeHtml(p.etiqueta || "—")}</b> · ${p.cobrable || "?"} kg · llegó ${swmFecha(p.receivedAt)} · <b style="color:${diasAqui >= limite ? "#b33660" : "inherit"}">${diasAqui} día${diasAqui === 1 ? "" : "s"}${diasAqui >= limite ? ` (ya pasaron ${limite}: puedes disponer de él)` : ` de ${limite}`}</b></div>
+      <div class="grid" style="grid-template-columns:1fr auto;align-items:end;"><label>Buscar a la dueña (nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Ej. Ana López"></label></div>
+      <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">${fotosHtml(p)}<button type="button" class="btn-secondary" data-swm-cancel="paquete:${escapeHtml(p.id)}" style="padding:6px 12px;font-size:13px;">Ya dispuse de él</button></div>
+    </div>` : ""}${sinDuena ? "" : `
+      <div class="meta">${swmWho(p)}<br>${p.origen === "sin_registro" ? `⚠️ Llegó sin registrar (cargo ${formatPrice(p.cargoSinRegistro || 0)})${p.datosPendientes ? " · <b>ella todavía no dice qué trae</b>" : ""} · ` : ""}${p.origen === "compra" ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "comision" ? `15% de US$${Number(p.valorUSD || 0).toFixed(2)}` : "por peso"}${p.contenido ? ` · ${escapeHtml(p.contenido)}` : ""}
         ${p.receivedAt ? `<br>Llegó ${swmFecha(p.receivedAt)} · almacenaje gratis ${vence > 0 ? `${vence} días más` : "<b style='color:#b33660'>vencido</b>"}` : ""}</div>
-      ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}
+      ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}`}
       ${editable ? `<div class="grid">
         <label>Peso (kg)<input data-f="kg" type="number" step="0.01" min="0" value="${p.kg || ""}"></label>
         <label>Alto (cm)<input data-f="alto" type="number" min="0" value="${p.alto || ""}"></label>
@@ -3898,6 +3914,33 @@ ${itemLines}
         ${p.status === "registrado" ? `<button type="button" class="btn-primary" data-swm-recibir>📥 Marcar como recibido (y avisarle)</button>` : `<button type="button" class="btn-primary" data-swm-recibir>Guardar peso / fotos</button>`}
         ${swmCancelBtn("paquete", p)}
       </div>` : ""}
+    ${sinDuena ? "" : "</div>"}`;
+  }
+
+  function fotosHtml(p) {
+    return (p.fotos || []).map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:6px 12px;font-size:13px;">📷 Foto</button>`).join("");
+  }
+
+  function swmSinRegistroForm() {
+    return `<div class="swm-card" data-swm-sinreg>
+      <h4><span>📦 Llegó un paquete sin registrar</span></h4>
+      <div class="meta">Busca primero en "Por llegar" por el rastreo: si ya lo registró, márcalo ahí como recibido. Si no aparece, regístralo aquí; se le cobra ${formatPrice(swmData.cargoSinRegistro || 80)} y le llega un correo para que diga qué trae. Si no sabes de quién es, déjalo sin dueña (tienes ${swmData.diasSinDuena || 7} días antes de disponer de él).</div>
+      <div class="grid">
+        <label>Nombre en la etiqueta (Last name)<input data-g="etiqueta" type="text"></label>
+        <label>Tienda<input data-g="tienda" type="text"></label>
+        <label>Rastreo<input data-g="rastreo" type="text"></label>
+      </div>
+      <div class="grid"><label>Buscar a la dueña (nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Opcional"></label></div>
+      <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+      <div class="meta" data-swm-elegida>Sin dueña (se queda en "Sin dueña")</div>
+      <div class="grid">
+        <label>Peso (kg)<input data-g="kg" type="number" step="0.01" min="0"></label>
+        <label>Alto (cm)<input data-g="alto" type="number" min="0"></label>
+        <label>Ancho (cm)<input data-g="ancho" type="number" min="0"></label>
+        <label>Largo (cm)<input data-g="largo" type="number" min="0"></label>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;"><label>Fotos<input data-g="fotos" type="file" accept="image/*" multiple></label><label>Nota para la clienta<input data-g="notaClienta" type="text"></label></div>
+      <div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-primary" data-swm-sinreg-save>Guardar paquete</button><button type="button" class="btn-secondary" data-swm-sinreg-toggle>Cancelar</button></div>
     </div>`;
   }
 
@@ -3949,6 +3992,7 @@ ${itemLines}
           <label>Envío nacional (MXN)<input data-f="envio" type="number" step="0.01" min="0" value="${q ? q.envio : ""}"></label>
           <label>Cruce (vacío = ${formatPrice(sug.cruce || 0)})<input data-f="cruce" type="number" step="0.01" min="0" placeholder="${sug.cruce || 0}"></label>
           <label>Consolidación (vacío = ${formatPrice(sug.consolidacion || 0)})<input data-f="consolidacion" type="number" step="0.01" min="0" placeholder="${sug.consolidacion || 0}"></label>
+          ${sug.sinRegistro ? `<label>Cargo sin registrar (vacío = ${formatPrice(sug.sinRegistro)})<input data-f="sinRegistro" type="number" step="0.01" min="0" placeholder="${sug.sinRegistro}"></label>` : ""}
           <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(e.notaClienta || "")}"></label>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("envio", e)}</div>`;
@@ -3963,8 +4007,8 @@ ${itemLines}
       <div class="meta">${swmWho(e)} · ${swmFecha(e.createdAt)}${e.consolidar ? " · <b>consolidar</b>" : ""}</div>
       <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${pk.map((p) => `<li>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "")} · ${p.cobrable || "?"} kg · cruce ${p.crucePagado ? "ya pagado" : p.cobro === "comision" ? "15%" : "por peso"}</li>`).join("")}</ul>
       <div class="meta">📍 ${escapeHtml([d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}</div>
-      <div class="meta">Sugerido: cruce ${formatPrice(sug.cruce || 0)}${sug.consolidacion ? ` + consolidación ${formatPrice(sug.consolidacion)}` : ""} · ${sug.kg || 0} kg en total</div>
-      ${q ? `<div class="meta">Cotización: cruce ${formatPrice(q.cruce)}${q.consolidacion ? ` + consolidación ${formatPrice(q.consolidacion)}` : ""} + envío ${formatPrice(q.envio)} = <b>${formatPrice(q.total)}</b></div>` : ""}
+      <div class="meta">Sugerido: cruce ${formatPrice(sug.cruce || 0)}${sug.consolidacion ? ` + consolidación ${formatPrice(sug.consolidacion)}` : ""}${sug.sinRegistro ? ` + sin registrar ${formatPrice(sug.sinRegistro)}` : ""} · ${sug.kg || 0} kg en total</div>
+      ${q ? `<div class="meta">Cotización: cruce ${formatPrice(q.cruce)}${q.consolidacion ? ` + consolidación ${formatPrice(q.consolidacion)}` : ""}${q.sinRegistro ? ` + sin registrar ${formatPrice(q.sinRegistro)}` : ""} + envío ${formatPrice(q.envio)} = <b>${formatPrice(q.total)}</b></div>` : ""}
       ${e.guia ? `<div class="meta">🚚 ${escapeHtml(e.paqueteria)} · ${escapeHtml(e.guia)}</div>` : ""}
       ${swmPagoBox("envio", e)}${action}
     </div>`;
@@ -4004,6 +4048,34 @@ ${itemLines}
     const t = e.target;
     const tab = t.closest("[data-swm-tab]");
     if (tab) { swmTab = tab.dataset.swmTab; renderSwmAdmin(); return; }
+    if (t.closest("[data-swm-sinreg-toggle]")) {
+      swmSinRegistroOpen = !swmSinRegistroOpen;
+      document.getElementById("swm-sinreg-box").innerHTML = swmSinRegistroOpen ? swmSinRegistroForm() : "";
+      return;
+    }
+    const pick = t.closest("[data-swm-pick-email]");
+    if (pick) {
+      const box = pick.closest("[data-swm-sinreg]");
+      if (box) {
+        box.dataset.email = pick.dataset.swmPickEmail;
+        box.querySelector("[data-swm-elegida]").innerHTML = `Dueña: <b>${escapeHtml(pick.textContent)}</b>`;
+        return;
+      }
+      const card = pick.closest("[data-swm-id]");
+      if (card && confirm(`¿Asignar este paquete a ${pick.textContent}? Le llega un correo y se le cobra el cargo por no registrarlo.`)) {
+        swmAct({ accion: "asignar_paquete", id: card.dataset.swmId, email: pick.dataset.swmPickEmail }, pick);
+      }
+      return;
+    }
+    const sinregSave = t.closest("[data-swm-sinreg-save]");
+    if (sinregSave) {
+      const box = sinregSave.closest("[data-swm-sinreg]");
+      const g = (k) => box.querySelector(`[data-g="${k}"]`).value;
+      const fotos = (await Promise.all([...(box.querySelector('[data-g="fotos"]').files || [])].slice(0, 6).map(swmResize))).filter(Boolean);
+      const ok = await swmAct({ accion: "sin_registrar", email: box.dataset.email || "", etiqueta: g("etiqueta"), tienda: g("tienda"), rastreo: g("rastreo"), kg: g("kg"), alto: g("alto"), ancho: g("ancho"), largo: g("largo"), notaClienta: g("notaClienta"), fotos }, sinregSave);
+      if (ok) { swmSinRegistroOpen = false; swmTab = box.dataset.email ? "almacen" : "sindueña"; renderSwmAdmin(); }
+      return;
+    }
     const file = t.closest("[data-swm-file]");
     if (file) { swmOpenFile(file.dataset.swmFile); return; }
     const ap = t.closest("[data-swm-aprobar]");
@@ -4037,7 +4109,7 @@ ${itemLines}
       swmAct({ accion: "compra_comprada", id, paquetes }, btn);
     } else if (t.closest("[data-swm-cotizar-envio]")) {
       if (v("envio") === "") { alert("Pon el costo del envío nacional."); return; }
-      swmAct({ accion: "cotizar_envio", id, envio: v("envio"), cruce: v("cruce"), consolidacion: v("consolidacion"), notaClienta: v("notaClienta") }, btn);
+      swmAct({ accion: "cotizar_envio", id, envio: v("envio"), cruce: v("cruce"), consolidacion: v("consolidacion"), sinRegistro: v("sinRegistro"), notaClienta: v("notaClienta") }, btn);
     } else if (t.closest("[data-swm-enviado]")) {
       if (!v("guia")) { alert("Pon el número de guía."); return; }
       swmAct({ accion: "marcar_enviado", id, paqueteria: v("paqueteria"), guia: v("guia") }, btn);
@@ -4046,7 +4118,24 @@ ${itemLines}
     }
   });
 
+  let swmBuscarTimer = null;
   document.getElementById("swm-panel").addEventListener("input", (e) => {
+    const buscar = e.target.closest("[data-swm-buscar]");
+    if (buscar) {
+      clearTimeout(swmBuscarTimer);
+      const out = buscar.closest(".swm-card").querySelector("[data-swm-resultados]");
+      swmBuscarTimer = setTimeout(async () => {
+        const q = buscar.value.trim();
+        if (q.length < 2) { out.innerHTML = ""; return; }
+        out.textContent = "Buscando...";
+        try {
+          const res = await fetch(`/.netlify/functions/admin-swm?buscarClienta=${encodeURIComponent(q)}`, { headers: { "x-admin-key": adminKey } });
+          const data = await res.json();
+          out.innerHTML = (data.clientas || []).map((c) => `<button type="button" class="btn-secondary" data-swm-pick-email="${escapeHtml(c.email)}" style="padding:6px 10px;font-size:13px;">${escapeHtml(c.name || c.email)} · ${escapeHtml(c.email)}</button>`).join("") || "No encontré ninguna cuenta.";
+        } catch (err) { out.textContent = "No se pudo buscar."; }
+      }, 350);
+      return;
+    }
     if (e.target.id === "swm-search") {
       swmSearch = e.target.value;
       const pos = e.target.selectionStart;
