@@ -195,6 +195,8 @@ function orderCancelledEmailHTML(order) {
 
 module.exports = {
   sendEmail,
+  baseEmailHTML,
+  formatPriceMXN,
   resetPasswordEmailHTML,
   orderPendingEmailHTML,
   orderConfirmedEmailHTML,

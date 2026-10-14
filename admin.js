@@ -3609,6 +3609,7 @@ ${itemLines}
   let audioCtx = null;
   const baseTitle = document.title;
   let usaPendingCount = 0;
+  let swmNewCount = 0;
 
   function notifyEnabled() {
     try { return localStorage.getItem(NOTIFY_KEY) === "1"; } catch (e) { return false; }
@@ -3619,7 +3620,7 @@ ${itemLines}
   }
 
   function updateMoreBadge() {
-    const n = (restockCount || 0) + (usaPendingCount || 0);
+    const n = (restockCount || 0) + (usaPendingCount || 0) + (swmNewCount || 0);
     const el = document.getElementById("more-badge");
     if (!el) return;
     el.textContent = n ? String(n) : "";
@@ -3739,6 +3740,162 @@ ${itemLines}
   /* Una sección a la vez: Pedidos, Inventario, Restock, Reseñas o
      Encargos USA. Antes cada panel se abría debajo de los pedidos (fuera
      de la pantalla en el celular) y parecía que el botón no hacía nada. */
+
+  /* ====================================================================
+     Shop with Mae: solicitudes de cruce que mandan las clientas desde la
+     página (ver netlify/functions/admin-swm.js). La tarifa por peso es la
+     misma que lib/swm-pricing.js y swm.js.
+     ==================================================================== */
+  const SWM_TARIFA = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 760, 7: 760, 8: 1000, 9: 1000, 10: 1000, 11: 1000, 12: 1200, 13: 1200, 14: 1400, 15: 2000 };
+  const SWM_STAGES = [
+    ["solicitud", "🆕 Solicitud nueva"], ["cotizado", "💬 Cotizado"], ["esperando_paquete", "⏳ Esperando paquete"],
+    ["recibido", "📥 Recibido en EE.UU."], ["en_camino_mx", "✈️ En camino a México"], ["enviado", "🚚 Enviado"],
+    ["entregado", "🎁 Entregado"], ["cancelado", "❌ Cancelado"],
+  ];
+  let swmRequests = [];
+  let swmFilter = "activas";
+
+  function swmCobrable(kg, alto, ancho, largo) {
+    const vol = alto > 0 && ancho > 0 && largo > 0 ? (alto * ancho * largo) / 5000 : 0;
+    const p = Math.max(kg || 0, vol);
+    return p > 0 ? Math.ceil(p - 1e-9) : 0;
+  }
+  function swmCrucePeso(kg) {
+    if (!kg) return 0;
+    return kg <= 15 ? SWM_TARIFA[kg] : SWM_TARIFA[15] + (kg - 15) * 120;
+  }
+
+  async function loadSwm({ quiet = false } = {}) {
+    const loading = document.getElementById("swm-loading");
+    if (!quiet) loading.style.display = "block";
+    try {
+      const res = await fetch("/.netlify/functions/admin-swm", { headers: { "x-admin-key": adminKey } });
+      const data = await res.json();
+      if (!res.ok) { if (!quiet) setStatus(data.error || "No se pudieron cargar las solicitudes."); return; }
+      swmRequests = data.requests || [];
+      swmNewCount = swmRequests.filter((r) => r.stage === "solicitud").length;
+      const badge = document.getElementById("swm-badge");
+      badge.textContent = swmNewCount ? String(swmNewCount) : "";
+      badge.style.display = swmNewCount ? "inline-flex" : "none";
+      updateMoreBadge();
+      renderSwmList();
+    } catch (err) {
+      if (!quiet) setStatus("No se pudo conectar con el servidor.");
+    } finally {
+      loading.style.display = "none";
+    }
+  }
+
+  function renderSwmList() {
+    const filters = [["activas", "Activas"], ["solicitud", "Nuevas"], ["todas", "Todas"]];
+    document.getElementById("swm-filters").innerHTML = filters
+      .map(([k, l]) => `<button type="button" class="btn-secondary ${swmFilter === k ? "on" : ""}" data-swm-filter="${k}">${l}</button>`).join("");
+    const list = swmRequests.filter((r) => swmFilter === "todas" || (swmFilter === "solicitud" ? r.stage === "solicitud" : !["entregado", "cancelado"].includes(r.stage)));
+    document.getElementById("swm-empty").style.display = list.length ? "none" : "block";
+    document.getElementById("swm-list").innerHTML = list.map(swmCardHTML).join("");
+  }
+
+  function swmCardHTML(r) {
+    const m = r.montos || {}; const p = r.pagos || {}; const w = r.peso || {};
+    const stageLabel = (SWM_STAGES.find(([k]) => k === r.stage) || [, r.stage])[1];
+    const paquetes = (r.paquetes || []).map((x) => `<li>${escapeHtml([x.tienda, x.rastreo && `rastreo ${x.rastreo}`, x.contenido].filter(Boolean).join(" · "))}</li>`).join("");
+    const wa = waLinkFromPhone(r.phone);
+    const due = ["productos", "cruce", "envio"].reduce((s, k) => s + (m[k] > 0 && !p[k] ? m[k] : 0), 0);
+    return `<div class="swm-card" data-swm-id="${escapeHtml(r.id)}">
+      <h4><span>${escapeHtml(r.folio)} · ${escapeHtml(r.name || r.email)}</span><span class="swm-pill ${r.stage === "solicitud" ? "new" : ""}">${escapeHtml(stageLabel)}</span></h4>
+      <div class="meta">${r.tipo === "compra_mae" ? "🛍️ Quiere que TÚ compres" : "📦 Ella compra"} · Cruce ${r.cobro === "comision" ? "15% del valor" : "por peso"} · ${new Date(r.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
+        ${r.valorUSD ? ` · Valor aprox. US$${Number(r.valorUSD).toFixed(2)}` : ""}<br>${escapeHtml(r.email)}${r.phone ? ` · ${escapeHtml(r.phone)}` : ""}${wa ? ` · <a href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div>
+      ${paquetes ? `<ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${paquetes}</ul>` : ""}
+      ${r.links ? `<div style="margin-top:8px;font-size:13px;white-space:pre-wrap;word-break:break-all;background:#faf7fb;border-radius:8px;padding:8px;">${escapeHtml(r.links)}</div>` : ""}
+      ${r.notas ? `<div class="meta">📝 ${escapeHtml(r.notas)}</div>` : ""}
+      <div class="grid">
+        <label>Etapa<select data-f="stage">${SWM_STAGES.map(([k, l]) => `<option value="${k}" ${k === r.stage ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label>Peso real (kg)<input data-f="kg" type="number" step="0.01" min="0" value="${w.kg || ""}"></label>
+        <label>Alto (cm)<input data-f="alto" type="number" min="0" value="${w.alto || ""}"></label>
+        <label>Ancho (cm)<input data-f="ancho" type="number" min="0" value="${w.ancho || ""}"></label>
+        <label>Largo (cm)<input data-f="largo" type="number" min="0" value="${w.largo || ""}"></label>
+      </div>
+      <div class="meta" data-swm-calc>${w.cobrable ? `Peso cobrado: ${w.cobrable} kg` : ""}</div>
+      <div class="grid">
+        <label>Productos (MXN)<input data-f="productos" type="number" step="0.01" min="0" value="${m.productos || ""}"></label>
+        <label>Cruce (MXN)<input data-f="cruce" type="number" step="0.01" min="0" value="${m.cruce || ""}"></label>
+        <label>Envío nacional (MXN)<input data-f="envio" type="number" step="0.01" min="0" value="${m.envio || ""}"></label>
+        <label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(r.paqueteria || "")}" placeholder="Estafeta"></label>
+        <label>Guía<input data-f="guia" type="text" value="${escapeHtml(r.guia || "")}"></label>
+      </div>
+      <div class="pay"><b>Pagado:</b>
+        <label><input type="checkbox" data-p="productos" ${p.productos ? "checked" : ""}> Productos</label>
+        <label><input type="checkbox" data-p="cruce" ${p.cruce ? "checked" : ""}> Cruce</label>
+        <label><input type="checkbox" data-p="envio" ${p.envio ? "checked" : ""}> Envío</label>
+        ${due ? `<span style="margin-left:auto;font-weight:600;color:#b33660;">Por cobrar: ${formatPrice(due)}</span>` : ""}
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;">
+        <label>Nota para la clienta (la ve en la página y en el correo)<textarea data-f="notaClienta" rows="2">${escapeHtml(r.notaClienta || "")}</textarea></label>
+        <label>Nota privada (solo tú)<textarea data-f="notaPrivada" rows="2">${escapeHtml(r.notaPrivada || "")}</textarea></label>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+        <button type="button" class="btn-primary" data-swm-save>Guardar</button>
+        <span class="meta" data-swm-msg></span>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById("swm-panel").addEventListener("click", async (e) => {
+    const f = e.target.closest("[data-swm-filter]");
+    if (f) { swmFilter = f.dataset.swmFilter; renderSwmList(); return; }
+    const save = e.target.closest("[data-swm-save]");
+    if (!save) return;
+    const card = save.closest("[data-swm-id]");
+    const v = (k) => card.querySelector(`[data-f="${k}"]`).value;
+    const r = swmRequests.find((x) => x.id === card.dataset.swmId) || {};
+    const body = {
+      id: card.dataset.swmId,
+      stage: v("stage"),
+      peso: { kg: v("kg"), alto: v("alto"), ancho: v("ancho"), largo: v("largo") },
+      montos: { productos: v("productos"), cruce: v("cruce"), envio: v("envio") },
+      pagos: Object.fromEntries([...card.querySelectorAll("[data-p]")].map((c) => [c.dataset.p, c.checked])),
+      paqueteria: v("paqueteria"), guia: v("guia"), notaClienta: v("notaClienta"), notaPrivada: v("notaPrivada"),
+    };
+    // Cruce vacío: el servidor lo calcula (peso o 15% de productos).
+    if (body.montos.cruce === "") delete body.montos.cruce;
+    const msg = card.querySelector("[data-swm-msg]");
+    save.disabled = true; msg.textContent = "Guardando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-swm", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
+      swmRequests = swmRequests.map((x) => (x.id === data.request.id ? data.request : x));
+      swmNewCount = swmRequests.filter((x) => x.stage === "solicitud").length;
+      const badge = document.getElementById("swm-badge");
+      badge.textContent = swmNewCount ? String(swmNewCount) : "";
+      badge.style.display = swmNewCount ? "inline-flex" : "none";
+      updateMoreBadge();
+      renderSwmList();
+      showToast(body.stage !== r.stage ? `${data.request.folio} guardada · se le avisó por correo` : `${data.request.folio} guardada`);
+    } catch (err) {
+      msg.textContent = err.message; save.disabled = false;
+    }
+  });
+
+  document.getElementById("swm-panel").addEventListener("input", (e) => {
+    const card = e.target.closest("[data-swm-id]");
+    if (!card || !["kg", "alto", "ancho", "largo", "productos"].includes(e.target.dataset.f)) return;
+    const r = swmRequests.find((x) => x.id === card.dataset.swmId) || {};
+    const n = (k) => parseFloat(card.querySelector(`[data-f="${k}"]`).value) || 0;
+    const out = card.querySelector("[data-swm-calc]");
+    if (r.cobro === "comision") {
+      const c = Math.ceil(n("productos") * 0.15);
+      out.textContent = c ? `15% de productos: ${formatPrice(c)} (se pone solo si dejas el cruce vacío)` : "";
+    } else {
+      const kg = swmCobrable(n("kg"), n("alto"), n("ancho"), n("largo"));
+      out.textContent = kg ? `Se cobran ${kg} kg → cruce ${formatPrice(swmCrucePeso(kg))} (se pone solo si dejas el cruce vacío)` : "";
+    }
+  });
+
   const VIEWS = {
     inicio: { el: "home-view", title: "🌸 Inicio", nav: "inicio" },
     compras: { el: "abw-view", title: "🛍️ Compras ABW", nav: "inicio" },
@@ -3750,6 +3907,7 @@ ${itemLines}
     restock: { el: "restock-requests-panel", title: "🔔 Avisos de restock", nav: "mas" },
     resenas: { el: "reviews-panel", title: "⭐ Reseñas", nav: "mas" },
     usa: { el: "usa-orders-panel", title: "🛍️ Encargos USA", nav: "mas" },
+    swm: { el: "swm-panel", title: "🇺🇸 Shop with Mae", nav: "mas" },
     ajustes: { el: "settings-view", title: "⚙️ Ajustes", nav: "mas" },
     papelera: { el: "trash-view", title: "🗑️ Papelera", nav: "mas" },
   };
@@ -3785,6 +3943,7 @@ ${itemLines}
     if (view === "restock" && !restockRequestsLoaded) loadRestockRequests();
     if (view === "resenas" && !reviewsLoaded) loadReviews();
     if (view === "usa" && !usaClientsLoaded) loadUsaClients();
+    if (view === "swm") loadSwm();
     window.scrollTo({ top: 0 });
   }
 
@@ -3792,7 +3951,7 @@ ${itemLines}
     loginBox.style.display = on ? "none" : "block";
     toolbar.style.display = on ? "flex" : "none";
     document.getElementById("logout-btn").style.display = on ? "inline-flex" : "none";
-    if (on) { showView("inicio"); startPolling(); }
+    if (on) { showView("inicio"); startPolling(); loadSwm({ quiet: true }); }
     else stopPolling();
     if (!on) Object.values(VIEWS).forEach((v) => { document.getElementById(v.el).style.display = "none"; });
   }

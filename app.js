@@ -1974,6 +1974,8 @@ function getMenuItems() {
     items.push({ type: "link", label: "✅ Stock en México 🇲🇽", href: "#stock-section" });
   }
 
+  items.push({ type: "link", label: "🇺🇸 Shop with Mae · Compras en EE.UU.", href: "#swm-section" });
+
   const brandsSection = document.getElementById("brands-section");
   if (brandsSection && !brandsSection.classList.contains("hidden")) {
     const brands = [...new Set(products.map((p) => p.marca).filter(Boolean))].sort();
@@ -3520,6 +3522,7 @@ const DEFAULT_VIEW_ROUTES = {
   stock: { ver: "stock" },
   wishlist: { ver: "favoritos" },
   americano: { ver: "americano" },
+  swm: { ver: "shopwithmae" },
 };
 
 function showHomeView(view, route) {
@@ -3539,6 +3542,7 @@ function showHomeView(view, route) {
   document.getElementById("country-products-section").classList.toggle("hidden", view !== "country");
   document.getElementById("concern-products-section").classList.toggle("hidden", view !== "concerns");
   document.getElementById("americano-section").classList.toggle("hidden", view !== "americano");
+  document.getElementById("swm-section").classList.toggle("hidden", view !== "swm");
 }
 
 function renderSearchResults(query, { restore = false } = {}) {
@@ -3948,6 +3952,7 @@ function setRouteMeta(r) {
   else if (r.categoria) { title = `${r.categoria} coreano — Alpacca`; canonical += `?categoria=${encodeURIComponent(r.categoria)}`; }
   else if (r.ver === "catalogo") { title = "Catálogo completo — Alpacca"; canonical += "?ver=catalogo"; }
   else if (r.ver === "stock") { title = "Stock en México, entrega inmediata — Alpacca"; canonical += "?ver=stock"; }
+  else if (r.ver === "shopwithmae") { title = "Shop with Mae: compras en EE.UU. con envío a México — Alpacca"; canonical += "?ver=shopwithmae"; }
   else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
   document.title = title;
   const link = document.querySelector('link[rel="canonical"]');
@@ -3974,6 +3979,7 @@ function openRouteView(params, restore) {
   }
   else if (ver === "stock") openStockSection({ restore });
   else if (ver === "favoritos") openWishlistSection();
+  else if (ver === "shopwithmae" && typeof openSwmSection === "function") openSwmSection({ restore });
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
   else showHomeView("home");
 }
@@ -5378,9 +5384,11 @@ function getCustomerToken() {
 }
 function setCustomerToken(token) {
   localStorage.setItem(CUSTOMER_TOKEN_KEY, token);
+  if (typeof swmOnAuthChange === "function") swmOnAuthChange();
 }
 function clearCustomerToken() {
   localStorage.removeItem(CUSTOMER_TOKEN_KEY);
+  if (typeof swmOnAuthChange === "function") swmOnAuthChange();
 }
 
 function openAccountPanel() {
@@ -5823,7 +5831,8 @@ function renderAccountQuick(orders) {
   tiles.push(tile('data-acct-action="favs"', "💗", "Mis favoritos", wishlist.size ? `${wishlist.size} guardado${wishlist.size === 1 ? "" : "s"}` : "Toca el ♡ en un producto", "bg-lilac/15"));
   tiles.push(tile('data-acct-action="skin"', "🧴", skin ? `Mi piel: ${escapeHtml(skin)}` : "¿Cuál es mi tipo de piel?", skin ? "Ver productos para mí" : "Haz el quiz en 1 minuto", "bg-[#eef8f2]"));
   tiles.push(tile('data-acct-action="whatsapp"', "💬", "Hablar con Mae", "Dudas de tus pedidos por WhatsApp", "bg-[#fff6e5]"));
-  el.innerHTML = tiles.slice(0, 4).join("");
+  tiles.push(tile('data-acct-action="swm"', "🇺🇸", "Shop with Mae", "Tu dirección en EE.UU. y tus paquetes", "bg-[#eef3ff] col-span-2"));
+  el.innerHTML = tiles.slice(0, 5).join("");
 }
 
 /* "Lo que más compras": lo que más piezas ha pedido (pagado), con su
@@ -5908,6 +5917,7 @@ function initAccountDashboard() {
     if (!act) return;
     const a = act.dataset.acctAction;
     if (a === "settings") { openAccountSettings(); return; }
+    if (a === "swm" && typeof openSwmSection === "function") { closeAccountPanel(); openSwmSection(); return; }
     if (a === "whatsapp") {
       const href = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una duda sobre mis pedidos.`);
       if (href) window.open(href, "_blank", "noopener");
@@ -6429,6 +6439,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (href === "stock-section") {
       openStockSection();
+      return;
+    }
+    if (href === "swm-section" && typeof openSwmSection === "function") {
+      e.preventDefault();
+      openSwmSection();
       return;
     }
     const target = document.getElementById(href);
