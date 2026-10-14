@@ -10,6 +10,7 @@
 //   pagar             { kind: "compra"|"envio", id, metodo: "mercadopago"|"transferencia" }
 //                     → con Mercado Pago regresa { redirectUrl }
 //   comprobante       { kind, id, filename, contentType, dataBase64 }
+//   completar_paquete { id, contenido, valorUSD, cobro }  (paquete que llegó sin registrar)
 //   cancelar          { kind, id }
 
 const { randomUUID } = require("crypto");
@@ -58,7 +59,7 @@ exports.handler = async (event) => {
       case "registrar_paquete": {
         if (!b.aceptaRestricciones) return json(400, { error: "Confirma que tu paquete no trae nada ilegal ni artículos de cristal, muebles ni pallets." });
         const tienda = clip(b.tienda, 80); const rastreo = clip(b.rastreo, 80);
-        if (!tienda && !rastreo) return json(400, { error: "Pon al menos la tienda o el número de rastreo." });
+        if (!rastreo) return json(400, { error: "Pon el número de rastreo (guía) de tu paquete: sin él no podemos identificarlo cuando llegue." });
         const rec = {
           id: randomUUID(), folio: await nextFolio("paquete"), ...base, origen: "propio",
           tienda, rastreo, contenido: clip(b.contenido, 300), valorUSD: Math.max(0, Math.min(100000, parseFloat(b.valorUSD) || 0)),
@@ -68,6 +69,23 @@ exports.handler = async (event) => {
         };
         await saveRecord("paquete", rec);
         return json(200, { paquete: publico(rec) });
+      }
+
+      case "completar_paquete": {
+        const rec = await getRecord("paquete", String(b.id || ""));
+        if (!rec || rec.email !== me) return json(404, { error: "No encontramos ese paquete." });
+        if (!rec.datosPendientes) return json(409, { error: "Ese paquete ya tiene sus datos." });
+        const contenido = clip(b.contenido, 300);
+        const valorUSD = Math.max(0, Math.min(100000, parseFloat(b.valorUSD) || 0));
+        if (!contenido || !valorUSD) return json(400, { error: "Dime qué trae tu paquete y cuánto costó (USD)." });
+        const updated = await mutateRecord("paquete", rec.id, (p) => {
+          p.contenido = contenido; p.valorUSD = valorUSD;
+          if (COBROS.includes(b.cobro)) p.cobro = b.cobro;
+          p.datosPendientes = false;
+          p.history = [...(p.history || []), { at: now(), status: "datos_completados" }];
+          return p;
+        });
+        return json(200, { paquete: publico(updated) });
       }
 
       case "solicitar_compra": {
@@ -99,11 +117,13 @@ exports.handler = async (event) => {
         if (paquetes.some((p) => !p || p.email !== me || p.status !== "recibido")) {
           return json(409, { error: "Solo puedes enviar paquetes tuyos que ya llegaron al almacén." });
         }
+        const pendiente = paquetes.find((p) => p.datosPendientes);
+        if (pendiente) return json(409, { error: `Antes de enviar, completa los datos de ${pendiente.folio} (qué trae y cuánto costó).` });
         const consolidar = !!b.consolidar && paquetes.length > 1;
         const sug = await cotizacionSugerida(paquetes, consolidar);
         const rec = {
           id: randomUUID(), folio: await nextFolio("envio"), ...base, paqueteIds: ids, consolidar, direccion,
-          status: "solicitado", sugerido: { cruce: sug.cruce, consolidacion: sug.consolidacion, kg: sug.kg },
+          status: "solicitado", sugerido: { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro, kg: sug.kg },
           cotizacion: null, pago: null, paqueteria: "", guia: "", notaClienta: "", notaPrivada: "",
           history: [{ at: now(), status: "solicitado" }], createdAt: now(), updatedAt: now(),
         };

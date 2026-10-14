@@ -13,6 +13,10 @@ const COMISION_PCT = 15;
 // Juntar varias cajas en un solo envío nacional: $100 por cada grupo de
 // hasta 12 kg (13-24 kg = $200, 25-36 kg = $300...).
 const CONSOLIDACION = 100;
+// Paquete que llega a la bodega sin que la clienta haya registrado su guía.
+const CARGO_SIN_REGISTRO = 80;
+// Días que se guarda un paquete sin dueña antes de que Mae disponga de él.
+const DIAS_SIN_DUENA = 7;
 const CONSOLIDACION_MAX_KG = 12;
 
 function pesoVolumetrico(alto, ancho, largo) {
@@ -39,4 +43,4 @@ function consolidacionPorPeso(totalKg) {
   return Math.max(1, Math.ceil((Number(totalKg) || 0) / CONSOLIDACION_MAX_KG - 1e-9)) * CONSOLIDACION;
 }
 
-module.exports = { consolidacionPorPeso, TARIFA_KG, KILO_EXTRA, COMISION_PCT, CONSOLIDACION, CONSOLIDACION_MAX_KG, pesoVolumetrico, pesoCobrable, crucePorPeso, crucePorComision };
+module.exports = { CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, consolidacionPorPeso, TARIFA_KG, KILO_EXTRA, COMISION_PCT, CONSOLIDACION, CONSOLIDACION_MAX_KG, pesoVolumetrico, pesoCobrable, crucePorPeso, crucePorComision };

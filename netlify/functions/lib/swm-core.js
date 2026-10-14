@@ -39,7 +39,9 @@ async function cotizacionSugerida(paquetes, consolidar) {
   const cruce = paquetes.reduce((t, p) => t + crucePaquete(p, rate), 0);
   const kg = paquetes.reduce((t, p) => t + (p.cobrable || 0), 0);
   const consolidacion = consolidar && paquetes.length > 1 ? consolidacionPorPeso(kg) : 0;
-  return { cruce: Math.ceil(cruce), consolidacion, kg, rate };
+  // Paquetes que llegaron sin que la clienta registrara su guía.
+  const sinRegistro = paquetes.reduce((t, p) => t + (Number(p.cargoSinRegistro) || 0), 0);
+  return { cruce: Math.ceil(cruce), consolidacion, sinRegistro, kg, rate };
 }
 
 function siteUrlFrom(event) {

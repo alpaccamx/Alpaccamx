@@ -87,4 +87,24 @@ async function updateCustomerFields(email, patch) {
   throw new Error("No se pudo actualizar la cuenta (conflicto de concurrencia).");
 }
 
-module.exports = { normalizeEmail, createCustomer, getCustomerByEmail, getCustomerByPhone, updateCustomerFields };
+/* Busca cuentas por nombre, correo o teléfono (para que Mae asigne en el
+   admin un paquete que llegó sin registrar). Recorre todas las cuentas,
+   igual que getCustomerByPhone. */
+async function searchCustomers(text, limit = 10) {
+  const q = String(text || "").trim().toLowerCase();
+  if (q.length < 2) return [];
+  const store = getCustomersStore();
+  const { blobs } = await store.list();
+  const out = [];
+  for (const b of blobs) {
+    const c = await store.get(b.key, { type: "json" });
+    if (!c) continue;
+    if ([c.name, c.email, c.phone].some((v) => String(v || "").toLowerCase().includes(q))) {
+      out.push({ email: c.email, name: c.name || "", phone: c.phone || "" });
+      if (out.length >= limit) break;
+    }
+  }
+  return out;
+}
+
+module.exports = { normalizeEmail, createCustomer, getCustomerByEmail, getCustomerByPhone, updateCustomerFields, searchCustomers };

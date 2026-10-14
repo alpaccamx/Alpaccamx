@@ -3,8 +3,12 @@
 //
 // GET                 → { paquetes, compras, envios, almacenajeDias }
 // GET ?archivo=<key>  → el archivo (foto de paquete o comprobante)
+// GET ?buscarClienta=<texto> → { clientas: [{ email, name, phone }] }
 // POST { accion, ... }:
 //   recibir_paquete   { id, kg, alto, ancho, largo, fotos?: [{ dataBase64, contentType }], notaClienta? }
+//   sin_registrar     { email?, etiqueta, tienda?, rastreo?, kg, alto, ancho, largo, fotos?, notaClienta? }
+//                     (llegó un paquete que nadie registró; sin email queda "sin dueña")
+//   asignar_paquete   { id, email }   (un paquete sin dueña ya tiene dueña)
 //   editar_paquete    { id, tienda?, rastreo?, contenido?, valorUSD?, cobro?, kg?, alto?, ancho?, largo?, notaClienta?, notaPrivada? }
 //   cotizar_compra    { id, productos, cruce?, notaClienta? }   (MXN)
 //   compra_comprada   { id, paquetes: [{ tienda, rastreo, contenido }] }
@@ -20,7 +24,8 @@ const { randomUUID } = require("crypto");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { detectFileType } = require("./lib/file-signature.js");
 const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, getFile } = require("./lib/swm-store.js");
-const { pesoCobrable, crucePorComision } = require("./lib/swm-pricing.js");
+const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA } = require("./lib/swm-pricing.js");
+const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
 const { ALMACENAJE_DIAS, round2, cotizacionSugerida, aplicarPago, avisar, formatPriceMXN } = require("./lib/swm-core.js");
 
 const num = (v) => Math.max(0, parseFloat(v) || 0);
@@ -36,7 +41,11 @@ exports.handler = async (event) => {
   if (!auth.valid) return json(401, { error: "Clave de administrador incorrecta." });
 
   if (event.httpMethod === "GET") {
-    const key = (event.queryStringParameters || {}).archivo;
+    const qs = event.queryStringParameters || {};
+    if (qs.buscarClienta != null) {
+      try { return json(200, { clientas: await searchCustomers(qs.buscarClienta) }); } catch (err) { console.error(err); return json(500, { error: "No se pudo buscar." }); }
+    }
+    const key = qs.archivo;
     if (key) {
       if (!/^(foto\/[0-9a-f-]{36}|comprobante\/(compra|envio)\/[0-9a-f-]{36})$/.test(key)) return json(400, { error: "Archivo inválido." });
       const f = await getFile(key);
@@ -45,7 +54,7 @@ exports.handler = async (event) => {
     }
     try {
       const [paquetes, compras, envios] = await Promise.all([listRecords("paquete"), listRecords("compra"), listRecords("envio")]);
-      return json(200, { paquetes, compras, envios, almacenajeDias: ALMACENAJE_DIAS });
+      return json(200, { paquetes, compras, envios, almacenajeDias: ALMACENAJE_DIAS, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
     } catch (err) {
       console.error("admin-swm GET:", err);
       return json(500, { error: "No se pudo cargar Shop with Mae." });
@@ -60,16 +69,7 @@ exports.handler = async (event) => {
   try {
     switch (b.accion) {
       case "recibir_paquete": {
-        const fotos = [];
-        for (const f of (Array.isArray(b.fotos) ? b.fotos : []).slice(0, 6)) {
-          const buf = Buffer.from(String(f.dataBase64 || ""), "base64");
-          if (!buf.length || buf.length > 5 * 1024 * 1024) continue;
-          const t = detectFileType(buf);
-          if (!t || t === "pdf") continue;
-          const fid = randomUUID();
-          await saveFile(`foto/${fid}`, buf, /^image\/[a-z0-9.+-]+$/i.test(f.contentType || "") ? f.contentType : "image/jpeg");
-          fotos.push(fid);
-        }
+        const fotos = await guardarFotos(b.fotos);
         const rec = await mutateRecord("paquete", id, (p) => {
           p.kg = num(b.kg); p.alto = num(b.alto); p.ancho = num(b.ancho); p.largo = num(b.largo);
           p.cobrable = pesoCobrable(p.kg, p.alto, p.ancho, p.largo);
@@ -85,6 +85,42 @@ exports.handler = async (event) => {
           <p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · "))}${rec.cobrable ? ` · ${rec.cobrable} kg` : ""}${fotos.length ? " · con fotos en tu casillero" : ""}.</p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
           <p style="font-size:14px;">Lo guardamos gratis hasta el <b>${hasta}</b>. Cuando quieras, entra a tu casillero y pide tu envío a México (puedes juntarlo con otros paquetes).</p>`);
+        return json(200, { paquete: rec });
+      }
+
+      case "sin_registrar": {
+        let dueña = null;
+        if (b.email) {
+          dueña = await getCustomerByEmail(b.email);
+          if (!dueña) return json(404, { error: "No hay ninguna cuenta con ese correo." });
+        }
+        const fotos = await guardarFotos(b.fotos);
+        const kg = num(b.kg), alto = num(b.alto), ancho = num(b.ancho), largo = num(b.largo);
+        const p = {
+          id: randomUUID(), folio: await nextFolio("paquete"),
+          email: dueña ? dueña.email : "", name: dueña ? dueña.name || "" : "", phone: dueña ? dueña.phone || "" : "",
+          origen: "sin_registro", etiqueta: clip(b.etiqueta, 120), tienda: clip(b.tienda, 80), rastreo: clip(b.rastreo, 80),
+          contenido: "", valorUSD: 0, cobro: "peso", status: dueña ? "recibido" : "sin_dueña",
+          kg, alto, ancho, largo, cobrable: pesoCobrable(kg, alto, ancho, largo), fotos,
+          datosPendientes: true, cargoSinRegistro: CARGO_SIN_REGISTRO,
+          notaClienta: clip(b.notaClienta, 1000), notaPrivada: "",
+          receivedAt: now(), history: [{ at: now(), status: dueña ? "recibido_sin_registro" : "sin_dueña" }], createdAt: now(), updatedAt: now(),
+        };
+        await saveRecord("paquete", p);
+        if (dueña) await avisarSinRegistro(p);
+        return json(200, { paquete: p });
+      }
+
+      case "asignar_paquete": {
+        const dueña = await getCustomerByEmail(b.email || "");
+        if (!dueña) return json(404, { error: "No hay ninguna cuenta con ese correo." });
+        const rec = await mutateRecord("paquete", id, (p) => {
+          if (p.status !== "sin_dueña") return null;
+          p.email = dueña.email; p.name = dueña.name || ""; p.phone = dueña.phone || "";
+          p.status = "recibido"; push(p, "asignado"); return p;
+        });
+        if (!rec || rec.status !== "recibido") return json(409, { error: "Ese paquete ya tiene dueña." });
+        await avisarSinRegistro(rec);
         return json(200, { paquete: rec });
       }
 
@@ -157,9 +193,10 @@ exports.handler = async (event) => {
         const envioMX = round2(num(b.envio));
         const cruce = val(b.cruce, sug.cruce);
         const consolidacion = val(b.consolidacion, sug.consolidacion);
+        const sinRegistro = val(b.sinRegistro, sug.sinRegistro || 0);
         const rec = await mutateRecord("envio", id, (e) => {
-          e.sugerido = { cruce: sug.cruce, consolidacion: sug.consolidacion, kg: sug.kg };
-          e.cotizacion = { cruce, consolidacion, envio: envioMX, total: round2(cruce + consolidacion + envioMX), at: now() };
+          e.sugerido = { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro || 0, kg: sug.kg };
+          e.cotizacion = { cruce, consolidacion, sinRegistro, envio: envioMX, total: round2(cruce + consolidacion + sinRegistro + envioMX), at: now() };
           e.pago = { status: "pendiente", monto: e.cotizacion.total };
           if (b.notaClienta != null) e.notaClienta = clip(b.notaClienta, 1000);
           e.status = "cotizado"; push(e, "cotizado");
@@ -168,7 +205,7 @@ exports.handler = async (event) => {
         const c = rec.cotizacion;
         await avisar(rec.email, `tu envío ${rec.folio} está cotizado`, `
           <h2 style="margin:0 0 8px;font-size:20px;">Tu envío a México está cotizado</h2>
-          <p style="font-size:14px;">${c.cruce ? `Cruce a México: <b>${formatPriceMXN(c.cruce)}</b><br>` : ""}${c.consolidacion ? `Consolidación: <b>${formatPriceMXN(c.consolidacion)}</b><br>` : ""}Envío nacional: <b>${formatPriceMXN(c.envio)}</b><br>Total a pagar: <b>${formatPriceMXN(c.total)}</b></p>
+          <p style="font-size:14px;">${c.cruce ? `Cruce a México: <b>${formatPriceMXN(c.cruce)}</b><br>` : ""}${c.consolidacion ? `Consolidación: <b>${formatPriceMXN(c.consolidacion)}</b><br>` : ""}${c.sinRegistro ? `Paquete(s) sin registrar: <b>${formatPriceMXN(c.sinRegistro)}</b><br>` : ""}Envío nacional: <b>${formatPriceMXN(c.envio)}</b><br>Total a pagar: <b>${formatPriceMXN(c.total)}</b></p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
           <p style="font-size:14px;">Págalo con tarjeta o transferencia desde tu casillero y lo preparo.</p>`);
         return json(200, { envio: rec });
@@ -244,6 +281,28 @@ exports.handler = async (event) => {
     return json(500, { error: "No se pudo guardar." });
   }
 };
+
+async function guardarFotos(lista) {
+  const fotos = [];
+  for (const f of (Array.isArray(lista) ? lista : []).slice(0, 6)) {
+    const buf = Buffer.from(String(f.dataBase64 || ""), "base64");
+    if (!buf.length || buf.length > 5 * 1024 * 1024) continue;
+    const t = detectFileType(buf);
+    if (!t || t === "pdf") continue;
+    const fid = randomUUID();
+    await saveFile(`foto/${fid}`, buf, /^image\/[a-z0-9.+-]+$/i.test(f.contentType || "") ? f.contentType : "image/jpeg");
+    fotos.push(fid);
+  }
+  return fotos;
+}
+
+async function avisarSinRegistro(p) {
+  await avisar(p.email, `llegó un paquete tuyo sin registrar (${p.folio})`, `
+    <h2 style="margin:0 0 8px;font-size:20px;">Llegó un paquete a tu nombre que no registraste</h2>
+    <p style="font-size:14px;">${esc([p.tienda, p.rastreo && `rastreo ${p.rastreo}`].filter(Boolean).join(" · ") || "Paquete")}${p.cobrable ? ` · ${p.cobrable} kg` : ""}.</p>
+    <p style="font-size:14px;">Entra a tu casillero y dime <b>qué trae y cuánto costó</b> para poder enviártelo. Por no haber registrado la guía antes de que llegara se cobra un cargo de <b>${formatPriceMXN(p.cargoSinRegistro)}</b>, que se suma a tu envío.</p>
+    <p style="font-size:13px;color:#666;">Tip: registra siempre tu número de rastreo en cuanto hagas tu compra para evitar este cargo.</p>`);
+}
 
 function json(statusCode, obj) {
   return { statusCode, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(obj) };
