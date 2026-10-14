@@ -1,152 +1,250 @@
-// Solicitudes de "Shop with Mae" para /admin.html (Encargos USA).
+// Shop with Mae para /admin.html (Más → Shop with Mae). Requiere el header
+// "x-admin-key".
 //
-// Requiere el header "x-admin-key" con el valor de ADMIN_KEY.
-//
-// GET: regresa { requests } -- todas, la más nueva primero.
-// PATCH: body { id, stage?, montos?, pagos?, paquetes?, consolidar?,
-//   notaClienta?, notaPrivada?, guia?, paqueteria? } -- edita la
-//   solicitud. Cada paquete trae su peso y medidas y cruza por separado:
-//   con cobro por peso, el cruce es la suma de los de cada paquete (si
-//   Mae no escribe otro). Si la clienta pidió consolidar, se cobran $100
-//   por cada grupo de hasta 12 kg. Al cambiar de etapa se le avisa
-//   a la clienta por correo.
+// GET                 → { paquetes, compras, envios, almacenajeDias }
+// GET ?archivo=<key>  → el archivo (foto de paquete o comprobante)
+// POST { accion, ... }:
+//   recibir_paquete   { id, kg, alto, ancho, largo, fotos?: [{ dataBase64, contentType }], notaClienta? }
+//   editar_paquete    { id, tienda?, rastreo?, contenido?, valorUSD?, cobro?, kg?, alto?, ancho?, largo?, notaClienta?, notaPrivada? }
+//   cotizar_compra    { id, productos, cruce?, notaClienta? }   (MXN)
+//   compra_comprada   { id, paquetes: [{ tienda, rastreo, contenido }] }
+//   cotizar_envio     { id, envio, cruce?, consolidacion?, notaClienta? }
+//   aprobar_pago      { kind, id }
+//   rechazar_pago     { kind, id, motivo }
+//   marcar_enviado    { id, paqueteria, guia }
+//   marcar_entregado  { id }
+//   cancelar          { kind, id, motivo? }
+//   notas             { kind, id, notaClienta?, notaPrivada? }
 
+const { randomUUID } = require("crypto");
 const { checkAdminKey } = require("./lib/admin-auth.js");
-const { STAGES, listSwmRequests, mutateSwmRequest } = require("./lib/swm-store.js");
-const { pesoCobrable, crucePorPeso, crucePorComision, consolidacionPorPeso } = require("./lib/swm-pricing.js");
-const { sendEmail, baseEmailHTML, formatPriceMXN } = require("./lib/email.js");
+const { detectFileType } = require("./lib/file-signature.js");
+const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, getFile } = require("./lib/swm-store.js");
+const { pesoCobrable, crucePorComision } = require("./lib/swm-pricing.js");
+const { ALMACENAJE_DIAS, round2, cotizacionSugerida, aplicarPago, avisar, formatPriceMXN } = require("./lib/swm-core.js");
 
-const STAGE_LABEL = {
-  solicitud: "Solicitud recibida",
-  cotizado: "Cotización lista",
-  esperando_paquete: "Esperando tu paquete en EE.UU.",
-  recibido: "Paquete recibido en EE.UU.",
-  en_camino_mx: "En camino a México",
-  enviado: "Enviado por paquetería",
-  entregado: "Entregado",
-  cancelado: "Cancelada",
-};
-
-const money = (v) => Math.max(0, Math.round((parseFloat(v) || 0) * 100) / 100);
 const num = (v) => Math.max(0, parseFloat(v) || 0);
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
+const now = () => new Date().toISOString();
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const KINDS = ["paquete", "compra", "envio"];
+const push = (r, status, extra) => { r.history = [...(r.history || []), { at: now(), status, ...(extra || {}) }]; };
 
 exports.handler = async (event) => {
   const auth = checkAdminKey(event);
-  if (!auth.configured) return jsonResponse(500, { error: "Falta configurar ADMIN_KEY en Netlify." });
-  if (!auth.valid) return jsonResponse(401, { error: "Clave de administrador incorrecta." });
+  if (!auth.configured) return json(500, { error: "Falta configurar ADMIN_KEY en Netlify." });
+  if (!auth.valid) return json(401, { error: "Clave de administrador incorrecta." });
 
   if (event.httpMethod === "GET") {
+    const key = (event.queryStringParameters || {}).archivo;
+    if (key) {
+      if (!/^(foto\/[0-9a-f-]{36}|comprobante\/(compra|envio)\/[0-9a-f-]{36})$/.test(key)) return json(400, { error: "Archivo inválido." });
+      const f = await getFile(key);
+      if (!f) return json(404, { error: "No existe." });
+      return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
+    }
     try {
-      return jsonResponse(200, { requests: await listSwmRequests() });
+      const [paquetes, compras, envios] = await Promise.all([listRecords("paquete"), listRecords("compra"), listRecords("envio")]);
+      return json(200, { paquetes, compras, envios, almacenajeDias: ALMACENAJE_DIAS });
     } catch (err) {
       console.error("admin-swm GET:", err);
-      return jsonResponse(500, { error: "No se pudieron cargar las solicitudes." });
+      return json(500, { error: "No se pudo cargar Shop with Mae." });
     }
   }
-  if (event.httpMethod !== "PATCH") return { statusCode: 405, body: "Method Not Allowed" };
+  if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
 
-  let body;
-  try {
-    body = JSON.parse(event.body || "{}");
-  } catch {
-    return jsonResponse(400, { error: "JSON inválido." });
-  }
-  const id = String(body.id || "").trim();
-  if (!id) return jsonResponse(400, { error: "Falta la solicitud." });
-  if (body.stage && !STAGES.includes(body.stage)) return jsonResponse(400, { error: "Etapa inválida." });
+  let b;
+  try { b = JSON.parse(event.body || "{}"); } catch { return json(400, { error: "JSON inválido." }); }
+  const id = String(b.id || "");
 
-  let prevStage = null;
   try {
-    const updated = await mutateSwmRequest(id, (r) => {
-      prevStage = r.stage;
-      if (Array.isArray(body.paquetes)) {
-        r.paquetes = body.paquetes.slice(0, 30).map((x) => {
-          const q = { tienda: clip(x.tienda, 80), rastreo: clip(x.rastreo, 80), contenido: clip(x.contenido, 300),
-            kg: num(x.kg), alto: num(x.alto), ancho: num(x.ancho), largo: num(x.largo) };
-          q.cobrable = pesoCobrable(q.kg, q.alto, q.ancho, q.largo);
-          q.cruce = crucePorPeso(q.cobrable);
-          return q;
-        }).filter((q) => q.tienda || q.rastreo || q.contenido || q.cobrable);
-        const total = r.paquetes.reduce((t, q) => t + q.cobrable, 0);
-        r.peso = { cobrable: total };
-        if (r.cobro === "peso" && !(body.montos && body.montos.cruce != null)) r.montos.cruce = r.paquetes.reduce((t, q) => t + q.cruce, 0);
-      }
-      if (body.consolidar != null) r.consolidar = !!body.consolidar;
-      if (body.montos) {
-        ["productos", "cruce", "consolidacion", "envio"].forEach((k) => {
-          if (body.montos[k] != null) r.montos[k] = money(body.montos[k]);
-        });
-        // Por comisión, el cruce es el 15% de los productos si Mae no puso otro.
-        if (r.cobro === "comision" && body.montos.productos != null && body.montos.cruce == null) {
-          r.montos.cruce = crucePorComision(r.montos.productos);
+    switch (b.accion) {
+      case "recibir_paquete": {
+        const fotos = [];
+        for (const f of (Array.isArray(b.fotos) ? b.fotos : []).slice(0, 6)) {
+          const buf = Buffer.from(String(f.dataBase64 || ""), "base64");
+          if (!buf.length || buf.length > 5 * 1024 * 1024) continue;
+          const t = detectFileType(buf);
+          if (!t || t === "pdf") continue;
+          const fid = randomUUID();
+          await saveFile(`foto/${fid}`, buf, /^image\/[a-z0-9.+-]+$/i.test(f.contentType || "") ? f.contentType : "image/jpeg");
+          fotos.push(fid);
         }
-      }
-      if (body.pagos) {
-        ["productos", "cruce", "consolidacion", "envio"].forEach((k) => {
-          if (body.pagos[k] != null) r.pagos[k] = !!body.pagos[k];
+        const rec = await mutateRecord("paquete", id, (p) => {
+          p.kg = num(b.kg); p.alto = num(b.alto); p.ancho = num(b.ancho); p.largo = num(b.largo);
+          p.cobrable = pesoCobrable(p.kg, p.alto, p.ancho, p.largo);
+          p.fotos = [...(p.fotos || []), ...fotos];
+          if (b.notaClienta != null) p.notaClienta = clip(b.notaClienta, 1000);
+          if (p.status === "registrado") { p.status = "recibido"; p.receivedAt = now(); push(p, "recibido"); }
+          return p;
         });
+        if (!rec) return json(404, { error: "No existe ese paquete." });
+        const hasta = new Date(new Date(rec.receivedAt || Date.now()).getTime() + ALMACENAJE_DIAS * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+        await avisar(rec.email, `llegó tu paquete ${rec.folio} 📦`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">¡Tu paquete llegó a nuestro almacén!</h2>
+          <p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · "))}${rec.cobrable ? ` · ${rec.cobrable} kg` : ""}${fotos.length ? " · con fotos en tu casillero" : ""}.</p>
+          ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
+          <p style="font-size:14px;">Lo guardamos gratis hasta el <b>${hasta}</b>. Cuando quieras, entra a tu casillero y pide tu envío a México (puedes juntarlo con otros paquetes).</p>`);
+        return json(200, { paquete: rec });
       }
-      // Consolidación: $100 por cada grupo de hasta 12 kg (si Mae no puso otro monto).
-      r.montos.consolidacion = r.montos.consolidacion || 0;
-      if (!r.consolidar) r.montos.consolidacion = 0;
-      else if (!(body.montos && body.montos.consolidacion != null) && (r.paquetes || []).length > 1) {
-        r.montos.consolidacion = consolidacionPorPeso((r.peso && r.peso.cobrable) || 0);
+
+      case "editar_paquete": {
+        const rec = await mutateRecord("paquete", id, (p) => {
+          ["tienda", "rastreo"].forEach((k) => { if (b[k] != null) p[k] = clip(b[k], 80); });
+          if (b.contenido != null) p.contenido = clip(b.contenido, 300);
+          if (b.valorUSD != null) p.valorUSD = num(b.valorUSD);
+          if (b.cobro === "peso" || b.cobro === "comision") p.cobro = b.cobro;
+          if (["kg", "alto", "ancho", "largo"].some((k) => b[k] != null)) {
+            ["kg", "alto", "ancho", "largo"].forEach((k) => { if (b[k] != null) p[k] = num(b[k]); });
+            p.cobrable = pesoCobrable(p.kg, p.alto, p.ancho, p.largo);
+          }
+          if (b.notaClienta != null) p.notaClienta = clip(b.notaClienta, 1000);
+          if (b.notaPrivada != null) p.notaPrivada = clip(b.notaPrivada, 2000);
+          return p;
+        });
+        return rec ? json(200, { paquete: rec }) : json(404, { error: "No existe ese paquete." });
       }
-      if (body.notaClienta != null) r.notaClienta = clip(body.notaClienta, 1000);
-      if (body.notaPrivada != null) r.notaPrivada = clip(body.notaPrivada, 2000);
-      if (body.guia != null) r.guia = clip(body.guia, 80);
-      if (body.paqueteria != null) r.paqueteria = clip(body.paqueteria, 40);
-      if (body.stage && body.stage !== r.stage) {
-        r.stage = body.stage;
-        r.history = [...(r.history || []), { at: new Date().toISOString(), stage: body.stage }];
+
+      case "cotizar_compra": {
+        const productos = round2(num(b.productos));
+        if (!productos) return json(400, { error: "Pon el costo de los productos." });
+        const rec = await mutateRecord("compra", id, (c) => {
+          const cruce = c.cobro === "comision" ? (b.cruce !== "" && b.cruce != null ? round2(num(b.cruce)) : crucePorComision(productos)) : 0;
+          c.cotizacion = { productos, cruce, total: round2(productos + cruce), at: now() };
+          c.pago = { status: "pendiente", monto: c.cotizacion.total };
+          if (b.notaClienta != null) c.notaClienta = clip(b.notaClienta, 1000);
+          c.status = "cotizado"; push(c, "cotizado");
+          return c;
+        });
+        if (!rec) return json(404, { error: "No existe esa compra." });
+        await avisar(rec.email, `tu cotización ${rec.folio} está lista`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">Tu cotización está lista</h2>
+          <p style="font-size:14px;">Productos: <b>${formatPriceMXN(rec.cotizacion.productos)}</b>${rec.cotizacion.cruce ? `<br>Cruce a México (15%): <b>${formatPriceMXN(rec.cotizacion.cruce)}</b>` : ""}<br>Total a pagar: <b>${formatPriceMXN(rec.cotizacion.total)}</b></p>
+          ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
+          <p style="font-size:14px;">Págala con tarjeta o transferencia desde tu casillero y hago tu compra.</p>`);
+        return json(200, { compra: rec });
       }
-      return r;
-    });
-    if (!updated) return jsonResponse(404, { error: "No existe esa solicitud." });
-    if (body.stage && body.stage !== prevStage) await notifyStage(updated);
-    return jsonResponse(200, { request: updated });
+
+      case "compra_comprada": {
+        const compra = await getRecord("compra", id);
+        if (!compra) return json(404, { error: "No existe esa compra." });
+        const lista = (Array.isArray(b.paquetes) ? b.paquetes : []).map((x) => ({ tienda: clip(x.tienda, 80), rastreo: clip(x.rastreo, 80), contenido: clip(x.contenido, 300) })).filter((x) => x.tienda || x.rastreo);
+        if (!lista.length) return json(400, { error: "Pon al menos un paquete (tienda o rastreo)." });
+        const ids = [];
+        for (const x of lista) {
+          const p = {
+            id: randomUUID(), folio: await nextFolio("paquete"), email: compra.email, name: compra.name, phone: compra.phone,
+            origen: "compra", compraId: compra.id, ...x, valorUSD: 0, cobro: compra.cobro,
+            crucePagado: compra.cobro === "comision", status: "registrado", kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0, fotos: [],
+            notaClienta: "", notaPrivada: "", history: [{ at: now(), status: "registrado" }], createdAt: now(), updatedAt: now(),
+          };
+          await saveRecord("paquete", p);
+          ids.push(p.id);
+        }
+        const rec = await mutateRecord("compra", id, (c) => { c.paqueteIds = [...(c.paqueteIds || []), ...ids]; c.status = "comprado"; push(c, "comprado"); return c; });
+        await avisar(rec.email, `ya hice tu compra ${rec.folio} 🛍️`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">¡Compra hecha!</h2>
+          <p style="font-size:14px;">Ya compré tus productos. Va${lista.length > 1 ? "n" : ""} en camino a nuestro almacén ${lista.length} paquete${lista.length > 1 ? "s" : ""}; te aviso cuando llegue${lista.length > 1 ? "n" : ""}.</p>`);
+        return json(200, { compra: rec });
+      }
+
+      case "cotizar_envio": {
+        const envio0 = await getRecord("envio", id);
+        if (!envio0) return json(404, { error: "No existe ese envío." });
+        const paquetes = (await Promise.all((envio0.paqueteIds || []).map((x) => getRecord("paquete", x)))).filter(Boolean);
+        const sug = await cotizacionSugerida(paquetes, envio0.consolidar);
+        const val = (v, d) => (v === "" || v == null ? d : round2(num(v)));
+        const envioMX = round2(num(b.envio));
+        const cruce = val(b.cruce, sug.cruce);
+        const consolidacion = val(b.consolidacion, sug.consolidacion);
+        const rec = await mutateRecord("envio", id, (e) => {
+          e.sugerido = { cruce: sug.cruce, consolidacion: sug.consolidacion, kg: sug.kg };
+          e.cotizacion = { cruce, consolidacion, envio: envioMX, total: round2(cruce + consolidacion + envioMX), at: now() };
+          e.pago = { status: "pendiente", monto: e.cotizacion.total };
+          if (b.notaClienta != null) e.notaClienta = clip(b.notaClienta, 1000);
+          e.status = "cotizado"; push(e, "cotizado");
+          return e;
+        });
+        const c = rec.cotizacion;
+        await avisar(rec.email, `tu envío ${rec.folio} está cotizado`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">Tu envío a México está cotizado</h2>
+          <p style="font-size:14px;">${c.cruce ? `Cruce a México: <b>${formatPriceMXN(c.cruce)}</b><br>` : ""}${c.consolidacion ? `Consolidación: <b>${formatPriceMXN(c.consolidacion)}</b><br>` : ""}Envío nacional: <b>${formatPriceMXN(c.envio)}</b><br>Total a pagar: <b>${formatPriceMXN(c.total)}</b></p>
+          ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
+          <p style="font-size:14px;">Págalo con tarjeta o transferencia desde tu casillero y lo preparo.</p>`);
+        return json(200, { envio: rec });
+      }
+
+      case "aprobar_pago": {
+        const kind = b.kind === "compra" ? "compra" : "envio";
+        const rec = await aplicarPago(kind, id, { metodo: "transferencia" });
+        return rec ? json(200, { [kind]: rec }) : json(404, { error: "No existe." });
+      }
+
+      case "rechazar_pago": {
+        const kind = b.kind === "compra" ? "compra" : "envio";
+        const motivo = clip(b.motivo, 500) || "No pudimos validar tu comprobante.";
+        const rec = await mutateRecord(kind, id, (r) => {
+          if (!r.pago || r.pago.status === "pagado") return null;
+          r.pago = { ...r.pago, status: "pendiente", rechazo: motivo }; r.notaClienta = motivo; push(r, "pago_rechazado"); return r;
+        });
+        if (rec) await avisar(rec.email, `revisa tu pago de ${rec.folio}`, `<h2 style="margin:0 0 8px;font-size:20px;">No pudimos validar tu pago</h2><p style="font-size:14px;">${esc(motivo)}</p><p style="font-size:14px;">Puedes volver a subir tu comprobante o pagar con tarjeta desde tu casillero.</p>`);
+        return rec ? json(200, { [kind]: rec }) : json(404, { error: "No existe." });
+      }
+
+      case "marcar_enviado": {
+        const rec = await mutateRecord("envio", id, (e) => {
+          e.paqueteria = clip(b.paqueteria, 40) || "Estafeta"; e.guia = clip(b.guia, 80);
+          e.status = "enviado"; e.enviadoAt = now(); push(e, "enviado"); return e;
+        });
+        if (!rec) return json(404, { error: "No existe ese envío." });
+        await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => { p.status = "enviado"; push(p, "enviado"); return p; })));
+        await avisar(rec.email, `tu envío ${rec.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${esc(rec.paqueteria)}</b>${rec.guia ? `<br>Guía: <b>${esc(rec.guia)}</b>` : ""}</p>`);
+        return json(200, { envio: rec });
+      }
+
+      case "marcar_entregado": {
+        const rec = await mutateRecord("envio", id, (e) => { e.status = "entregado"; e.entregadoAt = now(); push(e, "entregado"); return e; });
+        if (!rec) return json(404, { error: "No existe ese envío." });
+        await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => { p.status = "entregado"; push(p, "entregado"); return p; })));
+        return json(200, { envio: rec });
+      }
+
+      case "cancelar": {
+        const kind = KINDS.includes(b.kind) ? b.kind : null;
+        if (!kind) return json(400, { error: "Inválido." });
+        const motivo = clip(b.motivo, 500);
+        const rec = await mutateRecord(kind, id, (r) => { r.status = "cancelado"; if (motivo) r.notaClienta = motivo; push(r, "cancelado", { por: "mae" }); return r; });
+        if (!rec) return json(404, { error: "No existe." });
+        if (kind === "envio") {
+          await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => {
+            if (p.envioId !== rec.id || p.status !== "en_envio") return null;
+            p.status = "recibido"; p.envioId = null; return p;
+          })));
+        }
+        if (motivo) await avisar(rec.email, `${rec.folio} fue cancelado`, `<p style="font-size:14px;">${esc(motivo)}</p>`);
+        return json(200, { [kind]: rec });
+      }
+
+      case "notas": {
+        const kind = KINDS.includes(b.kind) ? b.kind : null;
+        if (!kind) return json(400, { error: "Inválido." });
+        const rec = await mutateRecord(kind, id, (r) => {
+          if (b.notaClienta != null) r.notaClienta = clip(b.notaClienta, 1000);
+          if (b.notaPrivada != null) r.notaPrivada = clip(b.notaPrivada, 2000);
+          return r;
+        });
+        return rec ? json(200, { [kind]: rec }) : json(404, { error: "No existe." });
+      }
+
+      default:
+        return json(400, { error: "Acción inválida." });
+    }
   } catch (err) {
-    console.error("admin-swm PATCH:", err);
-    return jsonResponse(500, { error: "No se pudo guardar." });
+    console.error("admin-swm POST:", b && b.accion, err);
+    return json(500, { error: "No se pudo guardar." });
   }
 };
 
-async function notifyStage(r) {
-  const m = r.montos || {};
-  const p = r.pagos || {};
-  const pendientes = [
-    ["Productos", m.productos, p.productos],
-    ["Cruce a México", m.cruce, p.cruce],
-    ["Consolidación de cajas", m.consolidacion, p.consolidacion],
-    ["Envío nacional", m.envio, p.envio],
-  ].filter(([, v, pagado]) => v > 0 && !pagado);
-  const porPagar = pendientes.length
-    ? `<p style="margin:14px 0 6px;font-weight:600;">Por pagar:</p>${pendientes
-        .map(([k, v]) => `<div style="display:flex;justify-content:space-between;font-size:14px;"><span>${k}</span><span>${formatPriceMXN(v)}</span></div>`)
-        .join("")}`
-    : "";
-  const guia = r.stage === "enviado" && r.guia ? `<p style="font-size:14px;">Guía${r.paqueteria ? ` ${esc(r.paqueteria)}` : ""}: <b>${esc(r.guia)}</b></p>` : "";
-  const nota = r.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(r.notaClienta)}</p>` : "";
-  await sendEmail({
-    to: r.email,
-    subject: `Shop with Mae ${r.folio}: ${STAGE_LABEL[r.stage] || r.stage}`,
-    html: baseEmailHTML(`
-      <h2 style="margin:0 0 6px;font-size:20px;">${STAGE_LABEL[r.stage] || r.stage}</h2>
-      <p style="margin:0 0 10px;color:#666;font-size:14px;">Tu solicitud ${r.folio} de Shop with Mae se actualizó.</p>
-      ${nota}${guia}${porPagar}
-      <p style="margin-top:18px;"><a href="https://alpacca.mx/?ver=shopwithmae" style="background:#e8467c;color:#fff;padding:10px 16px;border-radius:999px;text-decoration:none;font-weight:600;">Ver mi solicitud</a></p>`),
-  }).catch((err) => console.error("Correo SWM:", err));
-}
-
-function esc(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
-function jsonResponse(statusCode, obj) {
-  return {
-    statusCode,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-    body: JSON.stringify(obj),
-  };
+function json(statusCode, obj) {
+  return { statusCode, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(obj) };
 }

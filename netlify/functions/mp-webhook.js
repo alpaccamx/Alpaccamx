@@ -17,6 +17,8 @@ const { TOLERANCE_MXN } = require("./lib/pricing.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { sendEmail, orderConfirmedEmailHTML } = require("./lib/email.js");
 
+const { aplicarPago: aplicarPagoSwm } = require("./lib/swm-core.js");
+
 const MP_API = "https://api.mercadopago.com";
 
 // Cada efecto (descuento de stock en el blob, descuento en el Sheet, avisos)
@@ -45,6 +47,16 @@ exports.handler = async (event) => {
       return { statusCode: 502, body: "mp payment lookup failed" };
     }
     const payment = await res.json();
+
+    // Pagos de Shop with Mae (compra o envío): external_reference
+    // "swm|<kind>|<id>". No son pedidos de la tienda.
+    if (String(payment.external_reference || "").startsWith("swm|")) {
+      const [, kind, swmId] = String(payment.external_reference).split("|");
+      if (payment.status === "approved" && (kind === "compra" || kind === "envio") && swmId) {
+        await aplicarPagoSwm(kind, swmId, { metodo: "mercadopago", paymentId: payment.id, monto: payment.transaction_amount });
+      }
+      return { statusCode: 200, body: "swm" };
+    }
 
     const orderId = payment.external_reference;
 

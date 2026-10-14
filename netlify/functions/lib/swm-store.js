@@ -1,68 +1,86 @@
-// "Shop with Mae" (personal shopper / cruce de paquetes de EE.UU. a
-// México): solicitudes que las clientas mandan desde alpacca.mx con su
-// cuenta, y que Mae cotiza y va moviendo de etapa desde /admin.html
-// (sección Encargos USA). Cada solicitud es un blob con id propio; el
-// folio consecutivo (SWM-0001, SWM-0002...) se guarda aparte.
+// "Shop with Mae" (casillero en EE.UU. + personal shopper + cruce a
+// México), al estilo de Delivered: todo se registra y se paga en la página.
 //
-// No tiene nada que ver con "Encargos USA" de lib/usa-clients-store.js
-// (ese es el control manual de Mae); aquí solo están las que llegan por
-// el sitio.
+// Hay tres tipos de registro, cada uno con su folio:
+//   paquete (P-0001): una caja que llega al almacén de Mae en El Paso.
+//     registrado → recibido (peso, medidas, fotos) → en_envio → enviado
+//     → entregado (o cancelado).
+//   compra (C-0001): "Mae compra por mí". solicitud → cotizado → pagado
+//     → comprado (Mae registra los paquetes) (o cancelado).
+//   envio (E-0001): la clienta junta paquetes recibidos y pide que se los
+//     manden a México. solicitado → cotizado → pagado → enviado →
+//     entregado (o cancelado).
+//
+// Compras y envíos llevan un "pago": { status: "pendiente" | "revision" |
+// "pagado", metodo, monto, ... }. Mercado Pago lo marca solo (webhook);
+// por transferencia la clienta sube su comprobante y Mae lo aprueba.
 
 const { getStore } = require("@netlify/blobs");
 const { blobsClientOptions } = require("./blob-store.js");
 
-const STAGES = ["solicitud", "cotizado", "esperando_paquete", "recibido", "en_camino_mx", "enviado", "entregado", "cancelado"];
+const PREFIX = { paquete: "pkg/", compra: "buy/", envio: "ship/" };
+const FOLIO = { paquete: "P", compra: "C", envio: "E" };
 
-function getSwmStore() {
-  return getStore({ name: "swm-requests", consistency: "strong", ...blobsClientOptions() });
+function store() {
+  return getStore({ name: "swm", consistency: "strong", ...blobsClientOptions() });
+}
+function filesStore() {
+  return getStore({ name: "swm-files", consistency: "strong", ...blobsClientOptions() });
 }
 
-async function nextFolio() {
-  const store = getSwmStore();
+async function nextFolio(kind) {
+  const s = store();
+  const key = `counter/${kind}`;
   for (let attempt = 0; attempt < 8; attempt++) {
-    const cur = await store.getWithMetadata("_counter", { type: "json" });
+    const cur = await s.getWithMetadata(key, { type: "json" });
     const n = ((cur && cur.data && cur.data.n) || 0) + 1;
-    const res = cur
-      ? await store.setJSON("_counter", { n }, { onlyIfMatch: cur.etag })
-      : await store.setJSON("_counter", { n }, { onlyIfNew: true });
-    if (res.modified) return `SWM-${String(n).padStart(4, "0")}`;
+    const res = cur ? await s.setJSON(key, { n }, { onlyIfMatch: cur.etag }) : await s.setJSON(key, { n }, { onlyIfNew: true });
+    if (res.modified) return `${FOLIO[kind]}-${String(n).padStart(4, "0")}`;
   }
   throw new Error("No se pudo asignar el folio.");
 }
 
-async function saveSwmRequest(req) {
-  await getSwmStore().setJSON(req.id, req);
-  return req;
+async function saveRecord(kind, rec) {
+  await store().setJSON(PREFIX[kind] + rec.id, rec);
+  return rec;
 }
 
-async function getSwmRequest(id) {
-  return getSwmStore().get(id, { type: "json" });
+async function getRecord(kind, id) {
+  return store().get(PREFIX[kind] + id, { type: "json" });
 }
 
-async function listSwmRequests({ email } = {}) {
-  const store = getSwmStore();
-  const { blobs } = await store.list();
-  const out = [];
-  for (const b of blobs) {
-    if (b.key.startsWith("_")) continue;
-    const r = await store.get(b.key, { type: "json" });
-    if (r && (!email || r.email === email)) out.push(r);
-  }
+async function listRecords(kind, { email } = {}) {
+  const s = store();
+  const { blobs } = await s.list({ prefix: PREFIX[kind] });
+  const out = (await Promise.all(blobs.map((b) => s.get(b.key, { type: "json" })))).filter((r) => r && (!email || r.email === email));
   out.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   return out;
 }
 
-async function mutateSwmRequest(id, mutate) {
-  const store = getSwmStore();
+async function mutateRecord(kind, id, mutate) {
+  const s = store();
+  const key = PREFIX[kind] + id;
   for (let attempt = 0; attempt < 6; attempt++) {
-    const existing = await store.getWithMetadata(id, { type: "json" });
+    const existing = await s.getWithMetadata(key, { type: "json" });
     if (!existing) return null;
     const updated = mutate(existing.data);
+    if (!updated) return existing.data;
     updated.updatedAt = new Date().toISOString();
-    const result = await store.setJSON(id, updated, { onlyIfMatch: existing.etag });
+    const result = await s.setJSON(key, updated, { onlyIfMatch: existing.etag });
     if (result.modified) return updated;
   }
-  throw new Error("No se pudo actualizar la solicitud (conflicto de concurrencia).");
+  throw new Error("No se pudo actualizar (conflicto de concurrencia).");
 }
 
-module.exports = { STAGES, nextFolio, saveSwmRequest, getSwmRequest, listSwmRequests, mutateSwmRequest };
+/* Archivos: fotos de paquetes ("foto/<uuid>") y comprobantes de pago
+   ("comprobante/<kind>/<id>"). */
+async function saveFile(key, buffer, contentType) {
+  await filesStore().set(key, buffer, { metadata: { contentType } });
+}
+async function getFile(key) {
+  const r = await filesStore().getWithMetadata(key, { type: "arrayBuffer" });
+  if (!r) return null;
+  return { buffer: Buffer.from(r.data), contentType: (r.metadata && r.metadata.contentType) || "application/octet-stream" };
+}
+
+module.exports = { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, getFile };

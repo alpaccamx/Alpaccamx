@@ -3742,18 +3742,14 @@ ${itemLines}
      de la pantalla en el celular) y parecía que el botón no hacía nada. */
 
   /* ====================================================================
-     Shop with Mae: solicitudes de cruce que mandan las clientas desde la
-     página (ver netlify/functions/admin-swm.js). La tarifa por peso es la
+     Shop with Mae: casillero de las clientas (paquetes, compras, envíos y
+     pagos). Ver netlify/functions/admin-swm.js. La tarifa por peso es la
      misma que lib/swm-pricing.js y swm.js.
      ==================================================================== */
   const SWM_TARIFA = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 900, 7: 900, 8: 1000, 9: 1000, 10: 1000, 11: 1000, 12: 1200, 13: 1200, 14: 1400, 15: 2000 };
-  const SWM_STAGES = [
-    ["solicitud", "🆕 Solicitud nueva"], ["cotizado", "💬 Cotizado"], ["esperando_paquete", "⏳ Esperando paquete"],
-    ["recibido", "📥 Recibido en EE.UU."], ["en_camino_mx", "✈️ En camino a México"], ["enviado", "🚚 Enviado"],
-    ["entregado", "🎁 Entregado"], ["cancelado", "❌ Cancelado"],
-  ];
-  let swmRequests = [];
-  let swmFilter = "activas";
+  let swmData = { paquetes: [], compras: [], envios: [], almacenajeDias: 30 };
+  let swmTab = "acciones";
+  let swmSearch = "";
 
   function swmCobrable(kg, alto, ancho, largo) {
     const vol = alto > 0 && ancho > 0 && largo > 0 ? (alto * ancho * largo) / 5000 : 0;
@@ -3764,6 +3760,19 @@ ${itemLines}
     if (!kg) return 0;
     return kg <= 15 ? SWM_TARIFA[kg] : SWM_TARIFA[15] + (kg - 15) * 120;
   }
+  const swmFecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "short" }) : "");
+  const swmPorRevisar = () => [...swmData.compras.map((r) => ["compra", r]), ...swmData.envios.map((r) => ["envio", r])].filter(([, r]) => r.pago && r.pago.status === "revision" && r.status === "cotizado");
+
+  /* Lo que requiere que Mae haga algo. */
+  function swmPendientes() {
+    return {
+      cotizarCompra: swmData.compras.filter((c) => c.status === "solicitud"),
+      comprar: swmData.compras.filter((c) => c.status === "pagado"),
+      cotizarEnvio: swmData.envios.filter((e) => e.status === "solicitado"),
+      enviar: swmData.envios.filter((e) => e.status === "pagado"),
+      pagos: swmPorRevisar(),
+    };
+  }
 
   async function loadSwm({ quiet = false } = {}) {
     const loading = document.getElementById("swm-loading");
@@ -3771,14 +3780,15 @@ ${itemLines}
     try {
       const res = await fetch("/.netlify/functions/admin-swm", { headers: { "x-admin-key": adminKey } });
       const data = await res.json();
-      if (!res.ok) { if (!quiet) setStatus(data.error || "No se pudieron cargar las solicitudes."); return; }
-      swmRequests = data.requests || [];
-      swmNewCount = swmRequests.filter((r) => r.stage === "solicitud").length;
+      if (!res.ok) { if (!quiet) setStatus(data.error || "No se pudo cargar Shop with Mae."); return; }
+      swmData = data;
+      const pend = swmPendientes();
+      swmNewCount = pend.cotizarCompra.length + pend.comprar.length + pend.cotizarEnvio.length + pend.enviar.length + pend.pagos.length;
       const badge = document.getElementById("swm-badge");
       badge.textContent = swmNewCount ? String(swmNewCount) : "";
       badge.style.display = swmNewCount ? "inline-flex" : "none";
       updateMoreBadge();
-      renderSwmList();
+      if (currentView === "swm") renderSwmAdmin();
     } catch (err) {
       if (!quiet) setStatus("No se pudo conectar con el servidor.");
     } finally {
@@ -3786,149 +3796,271 @@ ${itemLines}
     }
   }
 
-  function renderSwmList() {
-    const filters = [["activas", "Activas"], ["solicitud", "Nuevas"], ["todas", "Todas"]];
-    document.getElementById("swm-filters").innerHTML = filters
-      .map(([k, l]) => `<button type="button" class="btn-secondary ${swmFilter === k ? "on" : ""}" data-swm-filter="${k}">${l}</button>`).join("");
-    const list = swmRequests.filter((r) => swmFilter === "todas" || (swmFilter === "solicitud" ? r.stage === "solicitud" : !["entregado", "cancelado"].includes(r.stage)));
-    document.getElementById("swm-empty").style.display = list.length ? "none" : "block";
-    document.getElementById("swm-list").innerHTML = list.map(swmCardHTML).join("");
-  }
-
-  function swmCardHTML(r) {
-    const m = r.montos || {}; const p = r.pagos || {}; const w = r.peso || {};
-    const stageLabel = (SWM_STAGES.find(([k]) => k === r.stage) || [, r.stage])[1];
-    const pkgRow = (x) => `<div class="grid" data-swm-pkg style="grid-template-columns:repeat(auto-fit,minmax(88px,1fr));align-items:end;border-top:1px dashed #eee;padding-top:8px;">
-        <label>Tienda<input data-k="tienda" type="text" value="${escapeHtml(x.tienda || "")}"></label>
-        <label>Rastreo<input data-k="rastreo" type="text" value="${escapeHtml(x.rastreo || "")}"></label>
-        <label>Contenido<input data-k="contenido" type="text" value="${escapeHtml(x.contenido || "")}"></label>
-        <label>Kg<input data-k="kg" type="number" step="0.01" min="0" value="${x.kg || ""}"></label>
-        <label>Alto<input data-k="alto" type="number" min="0" value="${x.alto || ""}"></label>
-        <label>Ancho<input data-k="ancho" type="number" min="0" value="${x.ancho || ""}"></label>
-        <label>Largo<input data-k="largo" type="number" min="0" value="${x.largo || ""}"></label>
-      </div>`;
-    const pkgs = (r.paquetes && r.paquetes.length ? r.paquetes : [{}]).map(pkgRow).join("");
-    const wa = waLinkFromPhone(r.phone);
-    const due = ["productos", "cruce", "consolidacion", "envio"].reduce((s, k) => s + (m[k] > 0 && !p[k] ? m[k] : 0), 0);
-    return `<div class="swm-card" data-swm-id="${escapeHtml(r.id)}">
-      <h4><span>${escapeHtml(r.folio)} · ${escapeHtml(r.name || r.email)}</span><span class="swm-pill ${r.stage === "solicitud" ? "new" : ""}">${escapeHtml(stageLabel)}</span></h4>
-      <div class="meta">${r.tipo === "compra_mae" ? "🛍️ Quiere que TÚ compres" : "📦 Ella compra"} · Cruce ${r.cobro === "comision" ? "15% del valor" : "por peso"} · ${new Date(r.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
-        ${r.valorUSD ? ` · Valor aprox. US$${Number(r.valorUSD).toFixed(2)}` : ""}<br>${escapeHtml(r.email)}${r.phone ? ` · ${escapeHtml(r.phone)}` : ""}${wa ? ` · <a href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div>
-      <div style="margin-top:10px;font-size:13px;font-weight:600;">📦 Cajas (cada una cruza por separado)</div>
-      <div data-swm-pkgs>${pkgs}</div>
-      <button type="button" class="btn-secondary" data-swm-add-pkg style="margin-top:6px;padding:6px 12px;font-size:13px;">+ Agregar caja</button>
-      <div class="pay"><label><input type="checkbox" data-f-consolidar ${r.consolidar ? "checked" : ""}> Consolidar en un solo envío nacional ($100 por cada 12 kg)</label></div>
-      ${r.links ? `<div style="margin-top:8px;font-size:13px;white-space:pre-wrap;word-break:break-all;background:#faf7fb;border-radius:8px;padding:8px;">${escapeHtml(r.links)}</div>` : ""}
-      ${r.notas ? `<div class="meta">📝 ${escapeHtml(r.notas)}</div>` : ""}
-      <div class="grid">
-        <label>Etapa<select data-f="stage">${SWM_STAGES.map(([k, l]) => `<option value="${k}" ${k === r.stage ? "selected" : ""}>${l}</option>`).join("")}</select></label>
-      </div>
-      <div class="meta" data-swm-calc>${w.cobrable ? `Peso cobrado total: ${w.cobrable} kg` : ""}</div>
-      <div class="grid">
-        <label>Productos (MXN)<input data-f="productos" type="number" step="0.01" min="0" value="${m.productos || ""}"></label>
-        <label>Cruce (MXN)<input data-f="cruce" type="number" step="0.01" min="0" value="${m.cruce || ""}"></label>
-        <label>Consolidación (MXN)<input data-f="consolidacion" type="number" step="0.01" min="0" value="${m.consolidacion || ""}"></label>
-        <label>Envío nacional (MXN)<input data-f="envio" type="number" step="0.01" min="0" value="${m.envio || ""}"></label>
-        <label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(r.paqueteria || "")}" placeholder="Estafeta"></label>
-        <label>Guía<input data-f="guia" type="text" value="${escapeHtml(r.guia || "")}"></label>
-      </div>
-      <div class="pay"><b>Pagado:</b>
-        <label><input type="checkbox" data-p="productos" ${p.productos ? "checked" : ""}> Productos</label>
-        <label><input type="checkbox" data-p="cruce" ${p.cruce ? "checked" : ""}> Cruce</label>
-        <label><input type="checkbox" data-p="consolidacion" ${p.consolidacion ? "checked" : ""}> Consolidación</label>
-        <label><input type="checkbox" data-p="envio" ${p.envio ? "checked" : ""}> Envío</label>
-        ${due ? `<span style="margin-left:auto;font-weight:600;color:#b33660;">Por cobrar: ${formatPrice(due)}</span>` : ""}
-      </div>
-      <div class="grid" style="grid-template-columns:1fr 1fr;">
-        <label>Nota para la clienta (la ve en la página y en el correo)<textarea data-f="notaClienta" rows="2">${escapeHtml(r.notaClienta || "")}</textarea></label>
-        <label>Nota privada (solo tú)<textarea data-f="notaPrivada" rows="2">${escapeHtml(r.notaPrivada || "")}</textarea></label>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
-        <button type="button" class="btn-primary" data-swm-save>Guardar</button>
-        <span class="meta" data-swm-msg></span>
-      </div>
-    </div>`;
-  }
-
-  document.getElementById("swm-panel").addEventListener("click", async (e) => {
-    const f = e.target.closest("[data-swm-filter]");
-    if (f) { swmFilter = f.dataset.swmFilter; renderSwmList(); return; }
-    const add = e.target.closest("[data-swm-add-pkg]");
-    if (add) {
-      const box = add.parentElement.querySelector("[data-swm-pkgs]");
-      const first = box.querySelector("[data-swm-pkg]");
-      const clone = first.cloneNode(true);
-      clone.querySelectorAll("input").forEach((i) => { i.value = ""; });
-      box.appendChild(clone);
-      return;
-    }
-    const save = e.target.closest("[data-swm-save]");
-    if (!save) return;
-    const card = save.closest("[data-swm-id]");
-    const v = (k) => card.querySelector(`[data-f="${k}"]`).value;
-    const r = swmRequests.find((x) => x.id === card.dataset.swmId) || {};
-    const body = {
-      id: card.dataset.swmId,
-      stage: v("stage"),
-      paquetes: [...card.querySelectorAll("[data-swm-pkg]")].map((row) => Object.fromEntries([...row.querySelectorAll("[data-k]")].map((i) => [i.dataset.k, i.value]))),
-      consolidar: card.querySelector("[data-f-consolidar]").checked,
-      montos: { productos: v("productos"), cruce: v("cruce"), consolidacion: v("consolidacion"), envio: v("envio") },
-      pagos: Object.fromEntries([...card.querySelectorAll("[data-p]")].map((c) => [c.dataset.p, c.checked])),
-      paqueteria: v("paqueteria"), guia: v("guia"), notaClienta: v("notaClienta"), notaPrivada: v("notaPrivada"),
-    };
-    // Cruce vacío: el servidor lo calcula (peso o 15% de productos).
-    // Cruce y consolidación: si Mae no los tocó, el servidor los recalcula
-    // con el peso de cada caja (o el 15%); si los escribió, se respetan.
-    ["cruce", "consolidacion"].forEach((k) => {
-      const inp = card.querySelector(`[data-f="${k}"]`);
-      if (body.montos[k] === "" || !inp.dataset.touched) delete body.montos[k];
-    });
-    const msg = card.querySelector("[data-swm-msg]");
-    save.disabled = true; msg.textContent = "Guardando...";
+  async function swmAct(body, btn) {
+    if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = "Guardando..."; }
     try {
       const res = await fetch("/.netlify/functions/admin-swm", {
-        method: "PATCH",
+        method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
         body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
-      swmRequests = swmRequests.map((x) => (x.id === data.request.id ? data.request : x));
-      swmNewCount = swmRequests.filter((x) => x.stage === "solicitud").length;
-      const badge = document.getElementById("swm-badge");
-      badge.textContent = swmNewCount ? String(swmNewCount) : "";
-      badge.style.display = swmNewCount ? "inline-flex" : "none";
-      updateMoreBadge();
-      renderSwmList();
-      showToast(body.stage !== r.stage ? `${data.request.folio} guardada · se le avisó por correo` : `${data.request.folio} guardada`);
+      showToast("Guardado ✅");
+      await loadSwm({ quiet: true });
+      return data;
     } catch (err) {
-      msg.textContent = err.message; save.disabled = false;
+      if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label; }
+      alert(err.message);
+      return null;
+    }
+  }
+
+  function swmMatches(r) {
+    const q = swmSearch.trim().toLowerCase();
+    if (!q) return true;
+    return [r.folio, r.name, r.email, r.phone, r.tienda, r.rastreo, r.contenido, r.links].some((v) => String(v || "").toLowerCase().includes(q));
+  }
+
+  function renderSwmAdmin() {
+    const pend = swmPendientes();
+    const P = swmData.paquetes;
+    const tabs = [
+      ["acciones", `⚡ Por hacer (${swmNewCount})`],
+      ["llegar", `⏳ Por llegar (${P.filter((p) => p.status === "registrado").length})`],
+      ["almacen", `📥 En almacén (${P.filter((p) => p.status === "recibido").length})`],
+      ["compras", `🛍️ Compras (${swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status)).length})`],
+      ["envios", `🚚 Envíos (${swmData.envios.filter((e) => !["entregado", "cancelado"].includes(e.status)).length})`],
+      ["historial", "🗂️ Historial"],
+    ];
+    document.getElementById("swm-filters").innerHTML = `${tabs.map(([k, l]) => `<button type="button" class="btn-secondary ${swmTab === k ? "on" : ""}" data-swm-tab="${k}">${l}</button>`).join("")}
+      <input type="search" id="swm-search" placeholder="🔍 Buscar por folio, nombre, tienda o rastreo" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">`;
+    let html = "";
+    const sec = (title, items, fn) => (items.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">${title} (${items.length})</h4>${items.map(fn).join("")}` : "");
+    if (swmSearch.trim()) {
+      html = sec("Paquetes", P.filter(swmMatches), swmPaqueteCard) + sec("Compras", swmData.compras.filter(swmMatches), swmCompraCard) + sec("Envíos", swmData.envios.filter(swmMatches), swmEnvioCard)
+        || `<p style="color:#5f5866;font-size:14px;">No encontré nada con "${escapeHtml(swmSearch)}".</p>`;
+    } else if (swmTab === "acciones") {
+      html = sec("🔎 Pagos por revisar", pend.pagos.filter(([, r]) => swmMatches(r)), ([k, r]) => (k === "compra" ? swmCompraCard(r) : swmEnvioCard(r)))
+        + sec("🛍️ Compras por cotizar", pend.cotizarCompra.filter(swmMatches), swmCompraCard)
+        + sec("🛒 Compras pagadas: hay que comprar", pend.comprar.filter(swmMatches), swmCompraCard)
+        + sec("🚚 Envíos por cotizar", pend.cotizarEnvio.filter(swmMatches), swmEnvioCard)
+        + sec("📦 Envíos pagados: hay que mandar", pend.enviar.filter(swmMatches), swmEnvioCard);
+      if (!html) html = `<p style="color:#5f5866;font-size:14px;">No hay nada pendiente 🎉</p>`;
+    } else if (swmTab === "llegar") {
+      html = P.filter((p) => p.status === "registrado" && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes por llegar.</p>`;
+    } else if (swmTab === "almacen") {
+      html = P.filter((p) => p.status === "recibido" && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes en el almacén.</p>`;
+    } else if (swmTab === "compras") {
+      html = swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status) && swmMatches(c)).map(swmCompraCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay compras activas.</p>`;
+    } else if (swmTab === "envios") {
+      html = swmData.envios.filter((e) => !["entregado", "cancelado"].includes(e.status) && swmMatches(e)).map(swmEnvioCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay envíos activos.</p>`;
+    } else {
+      html = sec("Envíos", swmData.envios.filter((e) => ["entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard)
+        + sec("Compras", swmData.compras.filter((c) => ["comprado", "cancelado"].includes(c.status) && swmMatches(c)), swmCompraCard)
+        + sec("Paquetes", P.filter((p) => ["en_envio", "enviado", "entregado", "cancelado"].includes(p.status) && swmMatches(p)), swmPaqueteCard)
+        || `<p style="color:#5f5866;font-size:14px;">Todavía no hay historial.</p>`;
+    }
+    document.getElementById("swm-empty").style.display = "none";
+    document.getElementById("swm-list").innerHTML = html;
+  }
+
+  function swmWho(r) {
+    const wa = waLinkFromPhone(r.phone);
+    return `${escapeHtml(r.name || r.email)} · ${escapeHtml(r.email)}${r.phone ? ` · ${escapeHtml(r.phone)}` : ""}${wa ? ` · <a href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}`;
+  }
+  const swmPillA = (t, cls = "") => `<span class="swm-pill ${cls}">${t}</span>`;
+  const swmCancelBtn = (kind, r) => (["cancelado", "entregado", "comprado", "enviado"].includes(r.status) ? "" : `<button type="button" class="btn-secondary" data-swm-cancel="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">Cancelar</button>`);
+
+  function swmPaqueteCard(p) {
+    const st = { registrado: "⏳ Por llegar", recibido: "📥 En almacén", en_envio: "📦 En un envío", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
+    const hasta = p.receivedAt ? new Date(new Date(p.receivedAt).getTime() + swmData.almacenajeDias * 864e5) : null;
+    const vence = hasta ? Math.ceil((hasta - Date.now()) / 864e5) : null;
+    const fotos = (p.fotos || []).map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:4px 10px;font-size:12px;">📷 Foto</button>`).join(" ");
+    const editable = ["registrado", "recibido"].includes(p.status);
+    return `<div class="swm-card" data-swm-id="${escapeHtml(p.id)}" data-kind="paquete">
+      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}</span>${swmPillA(st, p.status === "registrado" ? "new" : "")}</h4>
+      <div class="meta">${swmWho(p)}<br>${p.origen === "compra" ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "comision" ? `15% de US$${Number(p.valorUSD || 0).toFixed(2)}` : "por peso"}${p.contenido ? ` · ${escapeHtml(p.contenido)}` : ""}
+        ${p.receivedAt ? `<br>Llegó ${swmFecha(p.receivedAt)} · almacenaje gratis ${vence > 0 ? `${vence} días más` : "<b style='color:#b33660'>vencido</b>"}` : ""}</div>
+      ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}
+      ${editable ? `<div class="grid">
+        <label>Peso (kg)<input data-f="kg" type="number" step="0.01" min="0" value="${p.kg || ""}"></label>
+        <label>Alto (cm)<input data-f="alto" type="number" min="0" value="${p.alto || ""}"></label>
+        <label>Ancho (cm)<input data-f="ancho" type="number" min="0" value="${p.ancho || ""}"></label>
+        <label>Largo (cm)<input data-f="largo" type="number" min="0" value="${p.largo || ""}"></label>
+      </div>
+      <div class="meta" data-swm-calc>${p.cobrable ? `Peso cobrado: ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → cruce ${formatPrice(swmCrucePeso(p.cobrable))}` : ""}` : ""}</div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;">
+        <label>Fotos (opcional)<input data-f="fotos" type="file" accept="image/*" multiple></label>
+        <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(p.notaClienta || "")}"></label>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        ${p.status === "registrado" ? `<button type="button" class="btn-primary" data-swm-recibir>📥 Marcar como recibido (y avisarle)</button>` : `<button type="button" class="btn-primary" data-swm-recibir>Guardar peso / fotos</button>`}
+        ${swmCancelBtn("paquete", p)}
+      </div>` : ""}
+    </div>`;
+  }
+
+  function swmPagoBox(kind, r) {
+    if (!r.pago) return "";
+    const st = { pendiente: "⏳ Esperando pago", revision: "🔎 Comprobante por revisar", pagado: "✅ Pagado" }[r.pago.status] || r.pago.status;
+    const met = r.pago.metodo === "mercadopago" ? "Tarjeta (Mercado Pago)" : r.pago.metodo === "transferencia" ? "Transferencia" : "";
+    return `<div class="pay"><b>Pago:</b> ${st}${met ? ` · ${met}` : ""}${r.pago.paidAt ? ` · ${swmFecha(r.pago.paidAt)}` : ""}${r.pago.motivo ? ` · ⚠️ ${escapeHtml(r.pago.motivo)}` : ""}
+      ${r.pago.status === "revision" ? `${r.pago.comprobanteAt ? `<button type="button" class="btn-secondary" data-swm-file="comprobante/${kind}/${escapeHtml(r.id)}" style="padding:4px 10px;font-size:13px;">📄 Ver comprobante</button>` : ""}
+        <button type="button" class="btn-primary" data-swm-aprobar="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">✅ Aprobar pago</button>
+        <button type="button" class="btn-secondary" data-swm-rechazar="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">Rechazar</button>` : ""}
+    </div>`;
+  }
+
+  function swmCompraCard(c) {
+    const st = { solicitud: "🆕 Por cotizar", cotizado: "💳 Cotizada", pagado: "✅ Pagada · hay que comprar", comprado: "🛍️ Comprada", cancelado: "❌ Cancelada" }[c.status] || c.status;
+    const q = c.cotizacion;
+    let action = "";
+    if (c.status === "solicitud" || (c.status === "cotizado" && (!c.pago || c.pago.status === "pendiente"))) {
+      action = `<div class="grid">
+          <label>Productos (MXN, con tax y envío dentro de EE.UU.)<input data-f="productos" type="number" step="0.01" min="0" value="${q ? q.productos : ""}"></label>
+          ${c.cobro === "comision" ? `<label>Cruce 15% (vacío = automático)<input data-f="cruce" type="number" step="0.01" min="0" value="" placeholder="${q ? q.cruce : ""}"></label>` : ""}
+          <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(c.notaClienta || "")}"></label>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-compra>${c.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("compra", c)}</div>`;
+    } else if (c.status === "pagado") {
+      action = `<div style="margin-top:10px;font-size:13px;font-weight:600;">Ya compré: ¿qué paquetes van a llegar?</div>
+        <div data-swm-pkgs><div class="grid" data-swm-pkg><label>Tienda<input data-k="tienda" type="text"></label><label>Rastreo<input data-k="rastreo" type="text"></label><label>Contenido<input data-k="contenido" type="text"></label></div></div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button type="button" class="btn-secondary" data-swm-add-pkg style="padding:6px 12px;font-size:13px;">+ Otro paquete</button><button type="button" class="btn-primary" data-swm-comprada>🛍️ Ya compré (avisarle)</button></div>`;
+    }
+    return `<div class="swm-card" data-swm-id="${escapeHtml(c.id)}" data-kind="compra">
+      <h4><span>${escapeHtml(c.folio)} · Compra por ella</span>${swmPillA(st, ["solicitud", "pagado"].includes(c.status) ? "new" : "")}</h4>
+      <div class="meta">${swmWho(c)} · ${swmFecha(c.createdAt)}<br>Cruce ${c.cobro === "comision" ? "15% (se cobra con la compra)" : "por peso (se cobra al enviar)"}</div>
+      <div style="margin-top:8px;font-size:13px;white-space:pre-wrap;word-break:break-all;background:#faf7fb;border-radius:8px;padding:8px;">${escapeHtml(c.links)}</div>
+      ${c.notas ? `<div class="meta">📝 ${escapeHtml(c.notas)}</div>` : ""}
+      ${q ? `<div class="meta">Cotización: productos ${formatPrice(q.productos)}${q.cruce ? ` + cruce ${formatPrice(q.cruce)}` : ""} = <b>${formatPrice(q.total)}</b></div>` : ""}
+      ${swmPagoBox("compra", c)}${action}
+    </div>`;
+  }
+
+  function swmEnvioCard(e) {
+    const st = { solicitado: "🆕 Por cotizar", cotizado: "💳 Cotizado", pagado: "✅ Pagado · hay que mandar", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[e.status] || e.status;
+    const pk = (e.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
+    const d = e.direccion || {};
+    const q = e.cotizacion; const sug = e.sugerido || {};
+    let action = "";
+    if (e.status === "solicitado" || (e.status === "cotizado" && (!e.pago || e.pago.status === "pendiente"))) {
+      action = `<div class="grid">
+          <label>Envío nacional (MXN)<input data-f="envio" type="number" step="0.01" min="0" value="${q ? q.envio : ""}"></label>
+          <label>Cruce (vacío = ${formatPrice(sug.cruce || 0)})<input data-f="cruce" type="number" step="0.01" min="0" placeholder="${sug.cruce || 0}"></label>
+          <label>Consolidación (vacío = ${formatPrice(sug.consolidacion || 0)})<input data-f="consolidacion" type="number" step="0.01" min="0" placeholder="${sug.consolidacion || 0}"></label>
+          <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(e.notaClienta || "")}"></label>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("envio", e)}</div>`;
+    } else if (e.status === "pagado") {
+      action = `<div class="grid"><label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(e.paqueteria || "Estafeta")}"></label><label>Número de guía<input data-f="guia" type="text" value="${escapeHtml(e.guia || "")}"></label></div>
+        <div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-primary" data-swm-enviado>🚚 Marcar enviado (mandarle la guía)</button></div>`;
+    } else if (e.status === "enviado") {
+      action = `<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-secondary" data-swm-entregado>🎁 Marcar entregado</button></div>`;
+    }
+    return `<div class="swm-card" data-swm-id="${escapeHtml(e.id)}" data-kind="envio">
+      <h4><span>${escapeHtml(e.folio)} · Envío a México</span>${swmPillA(st, ["solicitado", "pagado"].includes(e.status) ? "new" : "")}</h4>
+      <div class="meta">${swmWho(e)} · ${swmFecha(e.createdAt)}${e.consolidar ? " · <b>consolidar</b>" : ""}</div>
+      <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${pk.map((p) => `<li>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "")} · ${p.cobrable || "?"} kg · cruce ${p.crucePagado ? "ya pagado" : p.cobro === "comision" ? "15%" : "por peso"}</li>`).join("")}</ul>
+      <div class="meta">📍 ${escapeHtml([d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}</div>
+      <div class="meta">Sugerido: cruce ${formatPrice(sug.cruce || 0)}${sug.consolidacion ? ` + consolidación ${formatPrice(sug.consolidacion)}` : ""} · ${sug.kg || 0} kg en total</div>
+      ${q ? `<div class="meta">Cotización: cruce ${formatPrice(q.cruce)}${q.consolidacion ? ` + consolidación ${formatPrice(q.consolidacion)}` : ""} + envío ${formatPrice(q.envio)} = <b>${formatPrice(q.total)}</b></div>` : ""}
+      ${e.guia ? `<div class="meta">🚚 ${escapeHtml(e.paqueteria)} · ${escapeHtml(e.guia)}</div>` : ""}
+      ${swmPagoBox("envio", e)}${action}
+    </div>`;
+  }
+
+  /* Achica fotos del celular antes de subirlas (máx. 1600 px, JPEG). */
+  function swmResize(file) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        resolve({ contentType: "image/jpeg", dataBase64: c.toDataURL("image/jpeg", 0.82).split(",")[1] });
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => resolve(null);
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function swmOpenFile(key) {
+    const w = window.open("", "_blank");
+    try {
+      const res = await fetch(`/.netlify/functions/admin-swm?archivo=${encodeURIComponent(key)}`, { headers: { "x-admin-key": adminKey } });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const url = URL.createObjectURL(await res.blob());
+      if (w) w.location.href = url; else window.location.href = url;
+    } catch (err) {
+      if (w) w.close();
+      alert("No se pudo abrir el archivo.");
+    }
+  }
+
+  document.getElementById("swm-panel").addEventListener("click", async (e) => {
+    const t = e.target;
+    const tab = t.closest("[data-swm-tab]");
+    if (tab) { swmTab = tab.dataset.swmTab; renderSwmAdmin(); return; }
+    const file = t.closest("[data-swm-file]");
+    if (file) { swmOpenFile(file.dataset.swmFile); return; }
+    const ap = t.closest("[data-swm-aprobar]");
+    if (ap) { const [kind, id] = ap.dataset.swmAprobar.split(":"); if (confirm("¿Ya verificaste que el dinero llegó a tu cuenta?")) swmAct({ accion: "aprobar_pago", kind, id }, ap); return; }
+    const re = t.closest("[data-swm-rechazar]");
+    if (re) { const [kind, id] = re.dataset.swmRechazar.split(":"); const motivo = prompt("¿Por qué lo rechazas? (se lo mandamos a la clienta)", "No encontramos tu transferencia, revisa el comprobante."); if (motivo != null) swmAct({ accion: "rechazar_pago", kind, id, motivo }, re); return; }
+    const ca = t.closest("[data-swm-cancel]");
+    if (ca) { const [kind, id] = ca.dataset.swmCancel.split(":"); const motivo = prompt("¿Cancelar? Escribe el motivo para la clienta (o deja vacío):", ""); if (motivo != null) swmAct({ accion: "cancelar", kind, id, motivo }, ca); return; }
+    const add = t.closest("[data-swm-add-pkg]");
+    if (add) {
+      const box = add.closest(".swm-card").querySelector("[data-swm-pkgs]");
+      const clone = box.querySelector("[data-swm-pkg]").cloneNode(true);
+      clone.querySelectorAll("input").forEach((i) => { i.value = ""; });
+      box.appendChild(clone);
+      return;
+    }
+    const card = t.closest("[data-swm-id]");
+    if (!card) return;
+    const id = card.dataset.swmId;
+    const v = (k) => { const el = card.querySelector(`[data-f="${k}"]`); return el ? el.value : undefined; };
+    const btn = t.closest("button");
+    if (t.closest("[data-swm-recibir]")) {
+      const input = card.querySelector('[data-f="fotos"]');
+      const fotos = (await Promise.all([...(input.files || [])].slice(0, 6).map(swmResize))).filter(Boolean);
+      swmAct({ accion: "recibir_paquete", id, kg: v("kg"), alto: v("alto"), ancho: v("ancho"), largo: v("largo"), notaClienta: v("notaClienta"), fotos }, btn);
+    } else if (t.closest("[data-swm-cotizar-compra]")) {
+      if (!(parseFloat(v("productos")) > 0)) { alert("Pon el costo de los productos."); return; }
+      swmAct({ accion: "cotizar_compra", id, productos: v("productos"), cruce: v("cruce"), notaClienta: v("notaClienta") }, btn);
+    } else if (t.closest("[data-swm-comprada]")) {
+      const paquetes = [...card.querySelectorAll("[data-swm-pkg]")].map((row) => Object.fromEntries([...row.querySelectorAll("[data-k]")].map((i) => [i.dataset.k, i.value])));
+      swmAct({ accion: "compra_comprada", id, paquetes }, btn);
+    } else if (t.closest("[data-swm-cotizar-envio]")) {
+      if (v("envio") === "") { alert("Pon el costo del envío nacional."); return; }
+      swmAct({ accion: "cotizar_envio", id, envio: v("envio"), cruce: v("cruce"), consolidacion: v("consolidacion"), notaClienta: v("notaClienta") }, btn);
+    } else if (t.closest("[data-swm-enviado]")) {
+      if (!v("guia")) { alert("Pon el número de guía."); return; }
+      swmAct({ accion: "marcar_enviado", id, paqueteria: v("paqueteria"), guia: v("guia") }, btn);
+    } else if (t.closest("[data-swm-entregado]")) {
+      swmAct({ accion: "marcar_entregado", id }, btn);
     }
   });
 
   document.getElementById("swm-panel").addEventListener("input", (e) => {
-    const card = e.target.closest("[data-swm-id]");
-    if (!card) return;
-    if (e.target.dataset.f === "cruce" || e.target.dataset.f === "consolidacion") { e.target.dataset.touched = "1"; return; }
-    if (!e.target.closest("[data-swm-pkg]") && e.target.dataset.f !== "productos") return;
-    const r = swmRequests.find((x) => x.id === card.dataset.swmId) || {};
-    const out = card.querySelector("[data-swm-calc]");
-    if (r.cobro === "comision") {
-      const c = Math.ceil((parseFloat(card.querySelector('[data-f="productos"]').value) || 0) * 0.15);
-      out.textContent = c ? `15% de productos: ${formatPrice(c)} (se pone solo al guardar, salvo que escribas otro monto)` : "";
+    if (e.target.id === "swm-search") {
+      swmSearch = e.target.value;
+      const pos = e.target.selectionStart;
+      renderSwmAdmin();
+      const s = document.getElementById("swm-search");
+      s.focus(); s.setSelectionRange(pos, pos);
       return;
     }
-    let total = 0; let cruce = 0; const parts = [];
-    card.querySelectorAll("[data-swm-pkg]").forEach((row, i) => {
-      const n = (k) => parseFloat(row.querySelector(`[data-k="${k}"]`).value) || 0;
-      const kg = swmCobrable(n("kg"), n("alto"), n("ancho"), n("largo"));
-      if (!kg) return;
-      total += kg; cruce += swmCrucePeso(kg); parts.push(`caja ${i + 1}: ${kg} kg = ${formatPrice(swmCrucePeso(kg))}`);
-    });
-    const cons = card.querySelector("[data-f-consolidar]").checked && parts.length > 1
-      ? ` · Consolidación: ${formatPrice(Math.max(1, Math.ceil(total / 12 - 1e-9)) * 100)} (${Math.max(1, Math.ceil(total / 12 - 1e-9))} grupo${total > 12 ? "s" : ""} de hasta 12 kg)`
-      : "";
-    out.textContent = parts.length ? `${parts.join(" · ")} → cruce total ${formatPrice(cruce)}${cons} (se ponen solos al guardar, salvo que escribas otro monto)` : "";
+    const card = e.target.closest('[data-kind="paquete"]');
+    if (!card || !["kg", "alto", "ancho", "largo"].includes(e.target.dataset.f)) return;
+    const n = (k) => parseFloat(card.querySelector(`[data-f="${k}"]`).value) || 0;
+    const kg = swmCobrable(n("kg"), n("alto"), n("ancho"), n("largo"));
+    const p = swmData.paquetes.find((x) => x.id === card.dataset.swmId) || {};
+    card.querySelector("[data-swm-calc]").textContent = kg ? `Se cobran ${kg} kg${p.cobro === "peso" && !p.crucePagado ? ` → cruce ${formatPrice(swmCrucePeso(kg))}` : ""}` : "";
   });
 
   const VIEWS = {
@@ -3978,7 +4110,7 @@ ${itemLines}
     if (view === "restock" && !restockRequestsLoaded) loadRestockRequests();
     if (view === "resenas" && !reviewsLoaded) loadReviews();
     if (view === "usa" && !usaClientsLoaded) loadUsaClients();
-    if (view === "swm") loadSwm();
+    if (view === "swm") { renderSwmAdmin(); loadSwm(); }
     window.scrollTo({ top: 0 });
   }
 
