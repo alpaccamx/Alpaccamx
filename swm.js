@@ -137,7 +137,8 @@ function renderSwmForm() {
       <p class="text-sm font-semibold">Tus paquetes</p>
       <div id="swm-paquetes" class="space-y-3">${swmPaqueteRowHTML()}</div>
       <button type="button" id="swm-add-paquete" class="text-sm font-semibold text-rose-ink underline">+ Agregar otro paquete</button>
-      <p class="text-xs text-ink/65">Si son de varias tiendas, regístralos todos aquí: se juntan en un solo cruce y te sale más barato.</p>
+      <p class="text-xs text-ink/65">Si son de varias tiendas, regístralos todos aquí. Cada caja cruza por separado (se cobra según su peso).</p>
+      <label class="flex gap-2 text-sm mt-2"><input id="swm-consolidar" type="checkbox" class="mt-0.5 accent-[#c4466e]" /> <span><b>Consolidar mis cajas en un solo envío nacional</b> (+$100 MXN por grupo de cajas, siempre que juntas no pasen de 12 kg; si pasan, hay un cargo adicional).</span></label>
     </div>
     <label data-swm-when="compra_mae" class="hidden flex-col gap-1 text-sm font-semibold">Links de los productos (uno por línea, con tono o talla y cantidad)
       <textarea id="swm-links" rows="5" maxlength="4000" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" placeholder="https://www.sephora.com/...  · Tono 2N · 1 pieza"></textarea>
@@ -182,11 +183,11 @@ function swmRequestCardHTML(r) {
   const line = (k, label) => (m[k] > 0
     ? `<div class="flex justify-between text-sm"><span>${label}</span><span class="tabular-nums">${swmMXN(m[k])} ${p[k] ? '<b class="text-green-700 text-xs">· Pagado</b>' : '<b class="text-rose-ink text-xs">· Por pagar</b>'}</span></div>`
     : "");
-  const lines = [line("productos", "Productos"), line("cruce", "Cruce a México"), line("envio", "Envío nacional")].join("");
-  const due = ["productos", "cruce", "envio"].reduce((s, k) => s + (m[k] > 0 && !p[k] ? m[k] : 0), 0);
+  const lines = [line("productos", "Productos"), line("cruce", "Cruce a México"), line("consolidacion", "Consolidación de cajas"), line("envio", "Envío nacional")].join("");
+  const due = ["productos", "cruce", "consolidacion", "envio"].reduce((s, k) => s + (m[k] > 0 && !p[k] ? m[k] : 0), 0);
   const tipo = r.tipo === "compra_mae" ? "Mae compra por ti" : "Tú compras";
   const cobro = r.cobro === "comision" ? "Cruce: 15% del valor" : "Cruce: por peso";
-  const peso = r.peso && r.peso.cobrable ? `<p class="text-xs text-ink/70 mt-1">Peso cobrado: ${r.peso.cobrable} kg</p>` : "";
+  const peso = r.peso && r.peso.cobrable ? `<p class="text-xs text-ink/70 mt-1">Peso cobrado: ${r.peso.cobrable} kg${r.consolidar ? " · Consolidado en un solo envío" : ""}</p>` : (r.consolidar ? `<p class="text-xs text-ink/70 mt-1">Pediste consolidar tus cajas en un solo envío nacional.</p>` : "");
   const guia = r.guia ? `<p class="text-sm mt-2">🚚 Guía${r.paqueteria ? ` ${escapeHtml(r.paqueteria)}` : ""}: <b>${escapeHtml(r.guia)}</b></p>` : "";
   const nota = r.notaClienta ? `<p class="mt-3 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(r.notaClienta)}</p>` : "";
   const pay = due > 0
@@ -194,7 +195,7 @@ function swmRequestCardHTML(r) {
         <p class="text-xs text-ink/70 mt-1">${swmBankText()}</p>
         <a href="${escapeHtml(whatsappHref(`Hola Mae! Te mando mi comprobante de pago de Shop with Mae ${r.folio} (${swmMXN(due)}).`) || "#")}" target="_blank" rel="noopener" class="mt-2 inline-flex rounded-full bg-[#25d366] px-4 py-2 text-xs font-semibold text-white">Mandar comprobante por WhatsApp</a></div>`
     : "";
-  const paquetes = (r.paquetes || []).map((x) => `<li>${escapeHtml([x.tienda, x.rastreo && `rastreo ${x.rastreo}`, x.contenido].filter(Boolean).join(" · "))}</li>`).join("");
+  const paquetes = (r.paquetes || []).map((x) => `<li>${escapeHtml([x.tienda, x.rastreo && `rastreo ${x.rastreo}`, x.contenido, x.cobrable && `${x.cobrable} kg → cruce ${swmMXN(x.cruce)}`].filter(Boolean).join(" · "))}</li>`).join("");
   return `<article class="rounded-3xl border border-ink/10 p-4 sm:p-5">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
       <b class="text-base">${escapeHtml(r.folio)}</b>
@@ -251,6 +252,7 @@ async function submitSwmForm(e) {
     valorUSD: document.getElementById("swm-valor").value,
     notas: document.getElementById("swm-notas").value,
     aceptaRestricciones: document.getElementById("swm-acepta").checked,
+    consolidar: tipo === "yo_compro" && document.getElementById("swm-consolidar").checked,
   };
   const fail = (msg) => { err.textContent = msg; err.classList.remove("hidden"); };
   err.classList.add("hidden");

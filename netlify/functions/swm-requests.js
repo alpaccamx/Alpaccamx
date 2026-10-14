@@ -6,7 +6,9 @@
 // GET: regresa { requests, name } -- sus solicitudes (sin las notas
 //   privadas de Mae).
 // POST: body { tipo, cobro, paquetes?, links?, valorUSD?, notas,
-//   aceptaRestricciones } -- crea una solicitud nueva. Mae la ve en
+//   aceptaRestricciones, consolidar? } -- crea una solicitud nueva. Cada
+//   paquete cruza por separado; "consolidar" pide juntarlos en un solo
+//   envío nacional ($100 por grupo hasta 12 kg). Mae la ve en
 //   /admin.html → Encargos USA.
 
 const { randomUUID } = require("crypto");
@@ -76,9 +78,10 @@ exports.handler = async (event) => {
     links,
     valorUSD,
     notas: clip(body.notas, 1000),
+    consolidar: !!body.consolidar,
     stage: "solicitud",
-    montos: { productos: 0, cruce: 0, envio: 0 },
-    pagos: { productos: false, cruce: false, envio: false },
+    montos: { productos: 0, cruce: 0, consolidacion: 0, envio: 0 },
+    pagos: { productos: false, cruce: false, consolidacion: false, envio: false },
     peso: { kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0 },
     notaClienta: "",
     guia: "",

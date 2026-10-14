@@ -3,14 +3,17 @@
 // Requiere el header "x-admin-key" con el valor de ADMIN_KEY.
 //
 // GET: regresa { requests } -- todas, la más nueva primero.
-// PATCH: body { id, stage?, montos?, pagos?, peso?, notaClienta?,
-//   notaPrivada?, guia?, paqueteria? } -- edita la solicitud. Si se manda
-//   el peso, el cruce (cobro por peso) se recalcula con la tarifa. Al
-//   cambiar de etapa se le avisa a la clienta por correo.
+// PATCH: body { id, stage?, montos?, pagos?, paquetes?, consolidar?,
+//   notaClienta?, notaPrivada?, guia?, paqueteria? } -- edita la
+//   solicitud. Cada paquete trae su peso y medidas y cruza por separado:
+//   con cobro por peso, el cruce es la suma de los de cada paquete (si
+//   Mae no escribe otro). Si la clienta pidió consolidar, se cobran $100
+//   por grupo mientras pese hasta 12 kg. Al cambiar de etapa se le avisa
+//   a la clienta por correo.
 
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { STAGES, listSwmRequests, mutateSwmRequest } = require("./lib/swm-store.js");
-const { pesoCobrable, crucePorPeso, crucePorComision } = require("./lib/swm-pricing.js");
+const { pesoCobrable, crucePorPeso, crucePorComision, CONSOLIDACION } = require("./lib/swm-pricing.js");
 const { sendEmail, baseEmailHTML, formatPriceMXN } = require("./lib/email.js");
 
 const STAGE_LABEL = {
@@ -57,14 +60,21 @@ exports.handler = async (event) => {
   try {
     const updated = await mutateSwmRequest(id, (r) => {
       prevStage = r.stage;
-      if (body.peso) {
-        const p = { kg: num(body.peso.kg), alto: num(body.peso.alto), ancho: num(body.peso.ancho), largo: num(body.peso.largo) };
-        p.cobrable = pesoCobrable(p.kg, p.alto, p.ancho, p.largo);
-        r.peso = p;
-        if (r.cobro === "peso" && !(body.montos && body.montos.cruce != null)) r.montos.cruce = crucePorPeso(p.cobrable);
+      if (Array.isArray(body.paquetes)) {
+        r.paquetes = body.paquetes.slice(0, 30).map((x) => {
+          const q = { tienda: clip(x.tienda, 80), rastreo: clip(x.rastreo, 80), contenido: clip(x.contenido, 300),
+            kg: num(x.kg), alto: num(x.alto), ancho: num(x.ancho), largo: num(x.largo) };
+          q.cobrable = pesoCobrable(q.kg, q.alto, q.ancho, q.largo);
+          q.cruce = crucePorPeso(q.cobrable);
+          return q;
+        }).filter((q) => q.tienda || q.rastreo || q.contenido || q.cobrable);
+        const total = r.paquetes.reduce((t, q) => t + q.cobrable, 0);
+        r.peso = { cobrable: total };
+        if (r.cobro === "peso" && !(body.montos && body.montos.cruce != null)) r.montos.cruce = r.paquetes.reduce((t, q) => t + q.cruce, 0);
       }
+      if (body.consolidar != null) r.consolidar = !!body.consolidar;
       if (body.montos) {
-        ["productos", "cruce", "envio"].forEach((k) => {
+        ["productos", "cruce", "consolidacion", "envio"].forEach((k) => {
           if (body.montos[k] != null) r.montos[k] = money(body.montos[k]);
         });
         // Por comisión, el cruce es el 15% de los productos si Mae no puso otro.
@@ -73,9 +83,17 @@ exports.handler = async (event) => {
         }
       }
       if (body.pagos) {
-        ["productos", "cruce", "envio"].forEach((k) => {
+        ["productos", "cruce", "consolidacion", "envio"].forEach((k) => {
           if (body.pagos[k] != null) r.pagos[k] = !!body.pagos[k];
         });
+      }
+      // Consolidación: $100 por grupo hasta 12 kg (si Mae no puso otro monto).
+      r.montos.consolidacion = r.montos.consolidacion || 0;
+      if (!r.consolidar) r.montos.consolidacion = 0;
+      else if (!(body.montos && body.montos.consolidacion != null) && (r.paquetes || []).length > 1) {
+        // Arriba de 12 kg hay un cargo adicional: se pone la base y Mae le
+        // suma el extra a mano en el admin.
+        r.montos.consolidacion = CONSOLIDACION;
       }
       if (body.notaClienta != null) r.notaClienta = clip(body.notaClienta, 1000);
       if (body.notaPrivada != null) r.notaPrivada = clip(body.notaPrivada, 2000);
@@ -102,6 +120,7 @@ async function notifyStage(r) {
   const pendientes = [
     ["Productos", m.productos, p.productos],
     ["Cruce a México", m.cruce, p.cruce],
+    ["Consolidación de cajas", m.consolidacion, p.consolidacion],
     ["Envío nacional", m.envio, p.envio],
   ].filter(([, v, pagado]) => v > 0 && !pagado);
   const porPagar = pendientes.length

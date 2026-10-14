@@ -3798,27 +3798,36 @@ ${itemLines}
   function swmCardHTML(r) {
     const m = r.montos || {}; const p = r.pagos || {}; const w = r.peso || {};
     const stageLabel = (SWM_STAGES.find(([k]) => k === r.stage) || [, r.stage])[1];
-    const paquetes = (r.paquetes || []).map((x) => `<li>${escapeHtml([x.tienda, x.rastreo && `rastreo ${x.rastreo}`, x.contenido].filter(Boolean).join(" · "))}</li>`).join("");
+    const pkgRow = (x) => `<div class="grid" data-swm-pkg style="grid-template-columns:repeat(auto-fit,minmax(88px,1fr));align-items:end;border-top:1px dashed #eee;padding-top:8px;">
+        <label>Tienda<input data-k="tienda" type="text" value="${escapeHtml(x.tienda || "")}"></label>
+        <label>Rastreo<input data-k="rastreo" type="text" value="${escapeHtml(x.rastreo || "")}"></label>
+        <label>Contenido<input data-k="contenido" type="text" value="${escapeHtml(x.contenido || "")}"></label>
+        <label>Kg<input data-k="kg" type="number" step="0.01" min="0" value="${x.kg || ""}"></label>
+        <label>Alto<input data-k="alto" type="number" min="0" value="${x.alto || ""}"></label>
+        <label>Ancho<input data-k="ancho" type="number" min="0" value="${x.ancho || ""}"></label>
+        <label>Largo<input data-k="largo" type="number" min="0" value="${x.largo || ""}"></label>
+      </div>`;
+    const pkgs = (r.paquetes && r.paquetes.length ? r.paquetes : [{}]).map(pkgRow).join("");
     const wa = waLinkFromPhone(r.phone);
-    const due = ["productos", "cruce", "envio"].reduce((s, k) => s + (m[k] > 0 && !p[k] ? m[k] : 0), 0);
+    const due = ["productos", "cruce", "consolidacion", "envio"].reduce((s, k) => s + (m[k] > 0 && !p[k] ? m[k] : 0), 0);
     return `<div class="swm-card" data-swm-id="${escapeHtml(r.id)}">
       <h4><span>${escapeHtml(r.folio)} · ${escapeHtml(r.name || r.email)}</span><span class="swm-pill ${r.stage === "solicitud" ? "new" : ""}">${escapeHtml(stageLabel)}</span></h4>
       <div class="meta">${r.tipo === "compra_mae" ? "🛍️ Quiere que TÚ compres" : "📦 Ella compra"} · Cruce ${r.cobro === "comision" ? "15% del valor" : "por peso"} · ${new Date(r.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
         ${r.valorUSD ? ` · Valor aprox. US$${Number(r.valorUSD).toFixed(2)}` : ""}<br>${escapeHtml(r.email)}${r.phone ? ` · ${escapeHtml(r.phone)}` : ""}${wa ? ` · <a href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div>
-      ${paquetes ? `<ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${paquetes}</ul>` : ""}
+      <div style="margin-top:10px;font-size:13px;font-weight:600;">📦 Cajas (cada una cruza por separado)</div>
+      <div data-swm-pkgs>${pkgs}</div>
+      <button type="button" class="btn-secondary" data-swm-add-pkg style="margin-top:6px;padding:6px 12px;font-size:13px;">+ Agregar caja</button>
+      <div class="pay"><label><input type="checkbox" data-f-consolidar ${r.consolidar ? "checked" : ""}> Consolidar en un solo envío nacional ($100 por grupo hasta 12 kg)</label></div>
       ${r.links ? `<div style="margin-top:8px;font-size:13px;white-space:pre-wrap;word-break:break-all;background:#faf7fb;border-radius:8px;padding:8px;">${escapeHtml(r.links)}</div>` : ""}
       ${r.notas ? `<div class="meta">📝 ${escapeHtml(r.notas)}</div>` : ""}
       <div class="grid">
         <label>Etapa<select data-f="stage">${SWM_STAGES.map(([k, l]) => `<option value="${k}" ${k === r.stage ? "selected" : ""}>${l}</option>`).join("")}</select></label>
-        <label>Peso real (kg)<input data-f="kg" type="number" step="0.01" min="0" value="${w.kg || ""}"></label>
-        <label>Alto (cm)<input data-f="alto" type="number" min="0" value="${w.alto || ""}"></label>
-        <label>Ancho (cm)<input data-f="ancho" type="number" min="0" value="${w.ancho || ""}"></label>
-        <label>Largo (cm)<input data-f="largo" type="number" min="0" value="${w.largo || ""}"></label>
       </div>
-      <div class="meta" data-swm-calc>${w.cobrable ? `Peso cobrado: ${w.cobrable} kg` : ""}</div>
+      <div class="meta" data-swm-calc>${w.cobrable ? `Peso cobrado total: ${w.cobrable} kg` : ""}</div>
       <div class="grid">
         <label>Productos (MXN)<input data-f="productos" type="number" step="0.01" min="0" value="${m.productos || ""}"></label>
         <label>Cruce (MXN)<input data-f="cruce" type="number" step="0.01" min="0" value="${m.cruce || ""}"></label>
+        <label>Consolidación (MXN)<input data-f="consolidacion" type="number" step="0.01" min="0" value="${m.consolidacion || ""}"></label>
         <label>Envío nacional (MXN)<input data-f="envio" type="number" step="0.01" min="0" value="${m.envio || ""}"></label>
         <label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(r.paqueteria || "")}" placeholder="Estafeta"></label>
         <label>Guía<input data-f="guia" type="text" value="${escapeHtml(r.guia || "")}"></label>
@@ -3826,6 +3835,7 @@ ${itemLines}
       <div class="pay"><b>Pagado:</b>
         <label><input type="checkbox" data-p="productos" ${p.productos ? "checked" : ""}> Productos</label>
         <label><input type="checkbox" data-p="cruce" ${p.cruce ? "checked" : ""}> Cruce</label>
+        <label><input type="checkbox" data-p="consolidacion" ${p.consolidacion ? "checked" : ""}> Consolidación</label>
         <label><input type="checkbox" data-p="envio" ${p.envio ? "checked" : ""}> Envío</label>
         ${due ? `<span style="margin-left:auto;font-weight:600;color:#b33660;">Por cobrar: ${formatPrice(due)}</span>` : ""}
       </div>
@@ -3843,6 +3853,15 @@ ${itemLines}
   document.getElementById("swm-panel").addEventListener("click", async (e) => {
     const f = e.target.closest("[data-swm-filter]");
     if (f) { swmFilter = f.dataset.swmFilter; renderSwmList(); return; }
+    const add = e.target.closest("[data-swm-add-pkg]");
+    if (add) {
+      const box = add.parentElement.querySelector("[data-swm-pkgs]");
+      const first = box.querySelector("[data-swm-pkg]");
+      const clone = first.cloneNode(true);
+      clone.querySelectorAll("input").forEach((i) => { i.value = ""; });
+      box.appendChild(clone);
+      return;
+    }
     const save = e.target.closest("[data-swm-save]");
     if (!save) return;
     const card = save.closest("[data-swm-id]");
@@ -3851,13 +3870,19 @@ ${itemLines}
     const body = {
       id: card.dataset.swmId,
       stage: v("stage"),
-      peso: { kg: v("kg"), alto: v("alto"), ancho: v("ancho"), largo: v("largo") },
-      montos: { productos: v("productos"), cruce: v("cruce"), envio: v("envio") },
+      paquetes: [...card.querySelectorAll("[data-swm-pkg]")].map((row) => Object.fromEntries([...row.querySelectorAll("[data-k]")].map((i) => [i.dataset.k, i.value]))),
+      consolidar: card.querySelector("[data-f-consolidar]").checked,
+      montos: { productos: v("productos"), cruce: v("cruce"), consolidacion: v("consolidacion"), envio: v("envio") },
       pagos: Object.fromEntries([...card.querySelectorAll("[data-p]")].map((c) => [c.dataset.p, c.checked])),
       paqueteria: v("paqueteria"), guia: v("guia"), notaClienta: v("notaClienta"), notaPrivada: v("notaPrivada"),
     };
     // Cruce vacío: el servidor lo calcula (peso o 15% de productos).
-    if (body.montos.cruce === "") delete body.montos.cruce;
+    // Cruce y consolidación: si Mae no los tocó, el servidor los recalcula
+    // con el peso de cada caja (o el 15%); si los escribió, se respetan.
+    ["cruce", "consolidacion"].forEach((k) => {
+      const inp = card.querySelector(`[data-f="${k}"]`);
+      if (body.montos[k] === "" || !inp.dataset.touched) delete body.montos[k];
+    });
     const msg = card.querySelector("[data-swm-msg]");
     save.disabled = true; msg.textContent = "Guardando...";
     try {
@@ -3883,17 +3908,27 @@ ${itemLines}
 
   document.getElementById("swm-panel").addEventListener("input", (e) => {
     const card = e.target.closest("[data-swm-id]");
-    if (!card || !["kg", "alto", "ancho", "largo", "productos"].includes(e.target.dataset.f)) return;
+    if (!card) return;
+    if (e.target.dataset.f === "cruce" || e.target.dataset.f === "consolidacion") { e.target.dataset.touched = "1"; return; }
+    if (!e.target.closest("[data-swm-pkg]") && e.target.dataset.f !== "productos") return;
     const r = swmRequests.find((x) => x.id === card.dataset.swmId) || {};
-    const n = (k) => parseFloat(card.querySelector(`[data-f="${k}"]`).value) || 0;
     const out = card.querySelector("[data-swm-calc]");
     if (r.cobro === "comision") {
-      const c = Math.ceil(n("productos") * 0.15);
-      out.textContent = c ? `15% de productos: ${formatPrice(c)} (se pone solo si dejas el cruce vacío)` : "";
-    } else {
-      const kg = swmCobrable(n("kg"), n("alto"), n("ancho"), n("largo"));
-      out.textContent = kg ? `Se cobran ${kg} kg → cruce ${formatPrice(swmCrucePeso(kg))} (se pone solo si dejas el cruce vacío)` : "";
+      const c = Math.ceil((parseFloat(card.querySelector('[data-f="productos"]').value) || 0) * 0.15);
+      out.textContent = c ? `15% de productos: ${formatPrice(c)} (se pone solo al guardar, salvo que escribas otro monto)` : "";
+      return;
     }
+    let total = 0; let cruce = 0; const parts = [];
+    card.querySelectorAll("[data-swm-pkg]").forEach((row, i) => {
+      const n = (k) => parseFloat(row.querySelector(`[data-k="${k}"]`).value) || 0;
+      const kg = swmCobrable(n("kg"), n("alto"), n("ancho"), n("largo"));
+      if (!kg) return;
+      total += kg; cruce += swmCrucePeso(kg); parts.push(`caja ${i + 1}: ${kg} kg = ${formatPrice(swmCrucePeso(kg))}`);
+    });
+    const cons = card.querySelector("[data-f-consolidar]").checked && parts.length > 1
+      ? (total <= 12 ? " · Consolidación: $100" : " · ⚠️ Pasa de 12 kg: súmale el cargo adicional a la consolidación ($100 + extra)")
+      : "";
+    out.textContent = parts.length ? `${parts.join(" · ")} → cruce total ${formatPrice(cruce)}${cons} (se ponen solos al guardar, salvo que escribas otro monto)` : "";
   });
 
   const VIEWS = {
