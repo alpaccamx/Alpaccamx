@@ -82,3 +82,9 @@
   from = "/catalogo.csv"
   to = "/.netlify/functions/catalog-light"
   status = 200
+
+# Hoja de "Stock en México" (ver netlify/functions/stock-csv.js).
+[[redirects]]
+  from = "/stock.csv"
+  to = "/.netlify/functions/stock-csv"
+  status = 200
