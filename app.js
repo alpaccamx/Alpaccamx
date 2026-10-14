@@ -1974,7 +1974,7 @@ function getMenuItems() {
     items.push({ type: "link", label: "✅ Stock en México 🇲🇽", href: "#stock-section" });
   }
 
-  items.push({ type: "link", label: "🇺🇸 Shop with Mae · Compras en EE.UU.", href: "#swm-section" });
+  items.push({ type: "link", label: "🇺🇸 Dirección americana · Compras en EE.UU.", href: "#swm-section" });
 
   const brandsSection = document.getElementById("brands-section");
   if (brandsSection && !brandsSection.classList.contains("hidden")) {
@@ -3952,7 +3952,7 @@ function setRouteMeta(r) {
   else if (r.categoria) { title = `${r.categoria} coreano — Alpacca`; canonical += `?categoria=${encodeURIComponent(r.categoria)}`; }
   else if (r.ver === "catalogo") { title = "Catálogo completo — Alpacca"; canonical += "?ver=catalogo"; }
   else if (r.ver === "stock") { title = "Stock en México, entrega inmediata — Alpacca"; canonical += "?ver=stock"; }
-  else if (r.ver === "shopwithmae") { title = "Shop with Mae: compras en EE.UU. con envío a México — Alpacca"; canonical += "?ver=shopwithmae"; }
+  else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México — Shop with Mae · Alpacca"; canonical += "?ver=shopwithmae"; }
   else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
   document.title = title;
   const link = document.querySelector('link[rel="canonical"]');
@@ -3979,7 +3979,7 @@ function openRouteView(params, restore) {
   }
   else if (ver === "stock") openStockSection({ restore });
   else if (ver === "favoritos") openWishlistSection();
-  else if (ver === "shopwithmae" && typeof openSwmSection === "function") openSwmSection({ restore });
+  else if ((ver === "shopwithmae" || ver === "direccion-americana") && typeof openSwmSection === "function") openSwmSection({ restore });
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
   else showHomeView("home");
 }
@@ -5831,7 +5831,7 @@ function renderAccountQuick(orders) {
   tiles.push(tile('data-acct-action="favs"', "💗", "Mis favoritos", wishlist.size ? `${wishlist.size} guardado${wishlist.size === 1 ? "" : "s"}` : "Toca el ♡ en un producto", "bg-lilac/15"));
   tiles.push(tile('data-acct-action="skin"', "🧴", skin ? `Mi piel: ${escapeHtml(skin)}` : "¿Cuál es mi tipo de piel?", skin ? "Ver productos para mí" : "Haz el quiz en 1 minuto", "bg-[#eef8f2]"));
   tiles.push(tile('data-acct-action="whatsapp"', "💬", "Hablar con Mae", "Dudas de tus pedidos por WhatsApp", "bg-[#fff6e5]"));
-  tiles.push(tile('data-acct-action="swm"', "🇺🇸", "Shop with Mae", "Tu dirección en EE.UU. y tus paquetes", "bg-[#eef3ff] col-span-2"));
+  tiles.push(tile('data-acct-action="swm"', "🇺🇸", "Mi dirección americana", "Compra en EE.UU. y te lo traemos (Shop with Mae)", "bg-[#eef3ff] col-span-2"));
   el.innerHTML = tiles.slice(0, 5).join("");
 }
 
