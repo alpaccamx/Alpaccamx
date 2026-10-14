@@ -1578,7 +1578,15 @@ async function loadStockData() {
   const isPlaceholder = !CONFIG.STOCK_CSV_URL || CONFIG.STOCK_CSV_URL.includes("PEGA_AQUI");
   if (isPlaceholder) return;
   try {
-    const text = await fetchTextWithRetry(CONFIG.STOCK_CSV_URL);
+    // Primero desde alpacca.mx (más rápido y confiable en celular); si
+    // fallara, directo de Google Sheets.
+    let text;
+    try {
+      text = await fetchTextWithRetry("/stock.csv", { retries: 1 });
+      if (!/sku/i.test(text.split("\n")[0] || "")) throw new Error("stock.csv inválido");
+    } catch (localErr) {
+      text = await fetchTextWithRetry(CONFIG.STOCK_CSV_URL);
+    }
     await loadSoldStock();
     stockData = csvToStockData(text);
     applyStockData();
@@ -1970,9 +1978,9 @@ function getMenuItems() {
     items.push({ type: "link", label: CONFIG.AMERICANO.TITLE || "Cosmético Americano", href: "#americano-section" });
   }
 
-  if (products.some((p) => p.enStock)) {
-    items.push({ type: "link", label: "✅ Stock en México 🇲🇽", href: "#stock-section" });
-  }
+  // Siempre visible (aunque la hoja de Stock todavía no termine de cargar):
+  // la sección muestra sus productos en cuanto llegan.
+  items.push({ type: "link", label: "✅ Stock en México 🇲🇽", href: "#stock-section" });
 
   items.push({ type: "link", label: "🇺🇸 Dirección americana · Compras en EE.UU.", href: "#swm-section" });
 
