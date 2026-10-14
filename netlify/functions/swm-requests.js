@@ -54,7 +54,7 @@ exports.handler = async (event) => {
   const cobro = COBROS.includes(body.cobro) ? body.cobro : null;
   if (!tipo) return jsonResponse(400, { error: "Elige si tú compras o si quieres que Mae compre por ti." });
   if (!cobro) return jsonResponse(400, { error: "Elige cómo quieres pagar el cruce." });
-  if (!body.aceptaRestricciones) return jsonResponse(400, { error: "Confirma que tu pedido no trae artículos de cristal, muebles ni pallets." });
+  if (!body.aceptaRestricciones) return jsonResponse(400, { error: "Confirma que tu pedido no trae nada ilegal ni artículos de cristal, muebles ni pallets." });
 
   const paquetes = (Array.isArray(body.paquetes) ? body.paquetes : [])
     .slice(0, 20)

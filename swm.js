@@ -153,7 +153,7 @@ function renderSwmForm() {
     <label class="flex flex-col gap-1 text-sm font-semibold">Notas (opcional)
       <textarea id="swm-notas" rows="2" maxlength="1000" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" placeholder="Ciudad y código postal de entrega, dudas, etc."></textarea>
     </label>
-    <label class="flex gap-2 text-sm"><input id="swm-acepta" type="checkbox" class="mt-0.5 accent-[#c4466e]" /> <span>Confirmo que mi pedido <b>no trae artículos de cristal</b> (velas, jarrones, etc.), muebles ni pallets.</span></label>
+    <label class="flex gap-2 text-sm"><input id="swm-acepta" type="checkbox" class="mt-0.5 accent-[#c4466e]" /> <span>Confirmo que mi pedido <b>no trae nada ilegal</b> ni artículos de cristal (velas, jarrones, etc.), muebles ni pallets.</span></label>
     <p id="swm-form-error" class="hidden rounded-xl bg-sale/10 px-3 py-2 text-sm text-sale" role="alert"></p>
     <button type="submit" id="swm-submit" class="inline-flex items-center rounded-full bg-rose-deep px-6 py-3 text-sm font-semibold text-cream hover:bg-rose-ink transition disabled:opacity-60">Mandar solicitud</button>
   </form>`;
@@ -258,7 +258,7 @@ async function submitSwmForm(e) {
   err.classList.add("hidden");
   if (tipo === "yo_compro" && !body.paquetes.some((p) => p.tienda.trim() || p.rastreo.trim())) return fail("Agrega al menos un paquete con la tienda o el número de rastreo.");
   if (tipo === "compra_mae" && !body.links.trim()) return fail("Pega los links de los productos que quieres.");
-  if (!body.aceptaRestricciones) return fail("Confirma que tu pedido no trae artículos de cristal, muebles ni pallets.");
+  if (!body.aceptaRestricciones) return fail("Confirma que tu pedido no trae nada ilegal ni artículos de cristal, muebles ni pallets.");
   btn.disabled = true;
   btn.textContent = "Mandando...";
   try {
