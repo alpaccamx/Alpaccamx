@@ -240,6 +240,17 @@
     font-family: inherit;
   }
   .usa-client-card { cursor: pointer; transition: box-shadow .15s; }
+  .swm-card { background:#fff; border-radius:14px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:12px; }
+  .swm-card h4 { margin:0; font-size:16px; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  .swm-card .meta { font-size:13px; color:#6b6370; margin-top:4px; }
+  .swm-card .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px; margin-top:10px; }
+  .swm-card label { display:flex; flex-direction:column; gap:3px; font-size:12px; color:#5f5866; }
+  .swm-card input, .swm-card select, .swm-card textarea { padding:9px 10px; border-radius:8px; border:1px solid #ddd; font-size:14px; font-family:inherit; }
+  .swm-card .pay { display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; font-size:14px; }
+  .swm-card .pay label { flex-direction:row; align-items:center; gap:6px; font-size:14px; color:#333; }
+  .swm-pill { display:inline-block; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:600; background:#f3eef8; color:#5b4f7a; }
+  .swm-pill.new { background:#fde4ec; color:#b33660; }
+  #swm-filters button.on { background:#333; color:#fff; }
   .usa-client-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.12); }
   .usa-pedido-card select.usa-status-select {
     border-radius: 999px;
@@ -480,6 +491,7 @@
   <div id="more-view" class="more-grid" style="display:none;">
     <button type="button" class="more-btn" data-goto="restock"><span class="ico" aria-hidden="true">🔔</span><span>Avisos de restock<small>Clientas esperando un producto</small></span><span class="nav-badge" id="restock-requests-badge" style="display:none;"></span></button>
     <button type="button" class="more-btn" data-goto="resenas"><span class="ico" aria-hidden="true">⭐</span><span>Reseñas<small>Ver y borrar reseñas</small></span></button>
+    <button type="button" class="more-btn" data-goto="swm"><span class="ico" aria-hidden="true">🇺🇸</span><span>Shop with Mae<small>Solicitudes de cruce desde la página</small></span><span class="nav-badge" id="swm-badge" style="display:none;"></span></button>
     <button type="button" class="more-btn" data-goto="usa"><span class="ico" aria-hidden="true">🛍️</span><span>Encargos USA<small>Personal shopper</small></span><span class="nav-badge" id="usa-orders-badge" style="display:none;"></span></button>
     <button type="button" class="more-btn" data-goto="ajustes"><span class="ico" aria-hidden="true">⚙️</span><span>Ajustes<small>Tipo de cambio, comisiones, descuento</small></span></button>
     <button type="button" class="more-btn" data-goto="papelera"><span class="ico" aria-hidden="true">🗑️</span><span>Papelera<small>Pedidos borrados (30 días)</small></span></button>
@@ -662,6 +674,15 @@
     <div id="reviews-list"></div>
     <p id="reviews-empty" style="display:none;color:#5f5866;font-size:14px;">Todavía no hay ninguna reseña.</p>
     <p id="reviews-loading" style="color:#5f5866;font-size:14px;">Cargando...</p>
+  </div>
+
+  <div class="filters" id="swm-panel" style="display:none;">
+    <label class="filters-label">🇺🇸 Shop with Mae</label>
+    <details class="help"><summary>¿Cómo funciona?</summary><p>Aquí llegan las solicitudes que tus clientas mandan desde alpacca.mx/?ver=shopwithmae (con su cuenta). Ábrela, pon los montos (o el peso y medidas cuando llegue el paquete: el cruce se calcula solo con tu tabla), marca lo que ya te pagaron y cámbiala de etapa. Cada cambio de etapa le llega por correo a la clienta, y ella ve todo en la página.</p></details>
+    <div class="filters-row" id="swm-filters"></div>
+    <div id="swm-list"></div>
+    <p id="swm-empty" style="display:none;color:#5f5866;font-size:14px;">Todavía no hay solicitudes.</p>
+    <p id="swm-loading" style="color:#5f5866;font-size:14px;">Cargando...</p>
   </div>
 
   <div class="filters" id="usa-orders-panel" style="display:none;">
