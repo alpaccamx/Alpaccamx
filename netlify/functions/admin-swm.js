@@ -3,7 +3,7 @@
 //
 // GET                 → { paquetes, compras, envios, almacenajeDias }
 // GET ?archivo=<key>  → el archivo (foto de paquete o comprobante)
-// GET ?buscarClienta=<texto> → { clientas: [{ email, name, phone, casillero }] }  (acepta "ALP-0012")
+// GET ?buscarClienta=<texto> → { clientas: [{ email, name, phone, casillero }] }  (acepta "ALP-ANA LOPEZ")
 // POST { accion, ... }:
 //   recibir_paquete   { id, kg, alto, ancho, largo, fotos?: [{ dataBase64, contentType }], notaClienta? }
 //   sin_registrar     { email?, etiqueta, tienda?, rastreo?, kg, alto, ancho, largo, fotos?, notaClienta? }
@@ -44,13 +44,16 @@ exports.handler = async (event) => {
     const qs = event.queryStringParameters || {};
     if (qs.buscarClienta != null) {
       try {
-        // "ALP-0012" o "alp12": busca por número de casillero.
-        const m = /^\s*alp\s*-?\s*0*(\d{1,6})\s*$/i.exec(qs.buscarClienta);
+        // "ALP-ANA LOPEZ" (o "alp ana lopez"): busca por código de casillero.
+        const m = /^\s*alp[\s-]+(.+)$/i.exec(qs.buscarClienta);
         if (m) {
-          const code = `ALP-${m[1].padStart(4, "0")}`;
+          const code = `ALP-${m[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9 ]+/g, " ").replace(/\s+/g, " ").trim()}`;
           const email = await emailDeCasillero(code);
-          const found = email ? (await searchCustomers(email)).filter((c) => c.email === email) : [];
-          return json(200, { clientas: found.map((c) => ({ ...c, casillero: code })) });
+          if (email) {
+            const found = (await searchCustomers(email)).filter((c) => c.email === email);
+            return json(200, { clientas: found.map((c) => ({ ...c, casillero: code })) });
+          }
+          qs.buscarClienta = m[1];
         }
         const [clientas, cas] = await Promise.all([searchCustomers(qs.buscarClienta), todosLosCasilleros()]);
         return json(200, { clientas: clientas.map((c) => ({ ...c, casillero: cas[c.email] || "" })) });

@@ -13,12 +13,13 @@ const SWM_TARIFA = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 900, 7: 900, 8: 
 const SWM_KILO_EXTRA = 120;
 const SWM_COMISION_PCT = 15;
 
-/* Dirección americana. El "Last name" es el nombre de la clienta y en
-   "Address 2" va su número de casillero (ALP-0001): así Mae sabe de quién
-   es cada paquete que llega, aunque no lo hayan registrado. */
+/* Dirección americana. En el "Last name" va el código de casillero de la
+   clienta (ALP-ANA LOPEZ): así Mae sabe de quién es cada paquete que
+   llega, aunque no lo hayan registrado, y la dirección queda limpia para
+   el repartidor. */
 const SWM_ADDRESS = {
   address1: "648 White Cliffs Drive",
-  address2: "Apartment B",
+  address2: "Apt B",
   city: "El Paso",
   state: "Texas",
   zip: "79912-8225",
@@ -114,12 +115,12 @@ function swmLoginPrompt(text) {
 }
 
 function swmAddressFields() {
-  const last = swm.name || (typeof myAccountCache !== "undefined" && myAccountCache.name) || "Tu nombre";
+  const nombre = swm.name || (typeof myAccountCache !== "undefined" && myAccountCache.name) || "Tu nombre";
   return [
     ["First name (Nombre)", SWM_ADDRESS.firstName],
-    ["Last name (Apellido)", last],
+    ["Last name (Apellido)", swm.casillero || nombre],
     ["Address (Dirección)", SWM_ADDRESS.address1],
-    ["Address 2 (Apt, suite)", swm.casillero ? `${SWM_ADDRESS.address2} #${swm.casillero}` : SWM_ADDRESS.address2],
+    ["Address 2 (Apt, suite)", SWM_ADDRESS.address2],
     ["City (Ciudad)", SWM_ADDRESS.city],
     ["State (Estado)", SWM_ADDRESS.state],
     ["ZIP code", SWM_ADDRESS.zip],
@@ -131,7 +132,7 @@ function renderSwmAddress() {
   const el = document.getElementById("swm-address");
   const h = `<h3 class="font-display text-xl sm:text-2xl text-ink mb-3">🏠 Tu dirección americana</h3>`;
   if (!getCustomerToken()) {
-    el.innerHTML = h + swmLoginPrompt("Crea tu cuenta gratis (o inicia sesión) para ver tu dirección en EE.UU. y tu número de casillero.");
+    el.innerHTML = h + swmLoginPrompt("Crea tu cuenta gratis (o inicia sesión) para ver tu dirección en EE.UU. y tu código de casillero.");
     return;
   }
   const fields = swmAddressFields();
@@ -143,15 +144,15 @@ function renderSwmAddress() {
   el.innerHTML = `${h}
     <div class="grid gap-4 md:grid-cols-[1fr_0.8fr]">
       <div class="rounded-3xl bg-rose-deep p-5">
-        ${swm.casillero ? `<p class="mb-2 inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-cream">Tu número de casillero: ${escapeHtml(swm.casillero)}</p>` : ""}
+        ${swm.casillero ? `<p class="mb-2 inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-cream">Tu código de casillero: ${escapeHtml(swm.casillero)}</p>` : ""}
         ${fields.map(row).join("")}
         <button type="button" data-swm-copy="${escapeHtml(all)}" class="mt-3 w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-rose-deep hover:bg-white/90">📋 Copiar toda la dirección</button>
       </div>
       <div class="rounded-3xl bg-pill p-5 text-sm text-ink/85 space-y-3">
         <p class="font-semibold text-ink">¿Cómo la lleno en la tienda?</p>
         <ol class="space-y-2 list-decimal pl-5">
-          <li>En <b>First name</b> pon <b>${escapeHtml(SWM_ADDRESS.firstName)}</b> y en <b>Last name</b> tu nombre (<b>${escapeHtml(fields[1][1])}</b>).</li>
-          <li>En <b>Address 2</b> (o "Apt, suite, unit") copia <b>${escapeHtml(fields[3][1])}</b>${swm.casillero ? ": tu número de casillero es lo que nos dice que el paquete es tuyo" : ""}.</li>
+          <li>En <b>First name</b> pon <b>${escapeHtml(SWM_ADDRESS.firstName)}</b> y en <b>Last name</b> tu código <b>${escapeHtml(fields[1][1])}</b>${swm.casillero ? ": es lo que nos dice que el paquete es tuyo" : ""}.</li>
+          <li>En <b>Address 2</b> (o "Apt, suite, unit") pon <b>${escapeHtml(SWM_ADDRESS.address2)}</b>.</li>
           <li>Lo demás, tal cual. Si la tienda lo permite, pide que la entrega <b>no requiera firma</b>.</li>
           <li>Cuando te den tu número de rastreo, <b>regístralo en "Mi casillero"</b>.</li>
         </ol>
@@ -169,7 +170,7 @@ function renderSwmWelcome() {
   el.innerHTML = `<div class="rounded-3xl border-2 border-rose/40 bg-white p-5">
     <p class="font-display text-lg text-ink">👋 ¡Bienvenida! Así empiezas:</p>
     <ol class="mt-3 space-y-3">
-      ${step(1, "Copia tu dirección americana", "Está aquí abajo, con tu número de casillero.")}
+      ${step(1, "Copia tu dirección americana", "Está aquí abajo, con tu código de casillero en el apellido.")}
       ${step(2, "Compra en tu tienda favorita", "Sephora, Ulta, Amazon... y manda tu pedido a esa dirección.")}
       ${step(3, "Registra tu número de rastreo", "En \u201cMi casillero\u201d → Registrar un paquete. Te avisamos cuando llegue.")}
     </ol>
