@@ -111,6 +111,9 @@ function orderBreakdownRowsHTML(order) {
   } else if (shippingMXN > 0) {
     rows.push(row("Envío", shippingMXN));
   }
+  if (order.descuento > 0) {
+    rows.push(`<div style="display:flex;justify-content:space-between;font-size:14px;padding:2px 0;color:#9b2c4f;"><span>🎟️ Cupón ${order.cupon || ""}</span><span>−${formatPriceMXN(order.descuento)}</span></div>`);
+  }
   if (order.customer && order.customer.entregaPersonal) {
     rows.push(`<div style="display:flex;justify-content:space-between;font-size:14px;padding:2px 0;"><span>📍 Entrega personal en Ciudad Juárez</span><span>Sin costo</span></div>`);
   }

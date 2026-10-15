@@ -12,6 +12,9 @@
 //   comprobante       { kind, id, filename, contentType, dataBase64 }
 //   completar_paquete { id, contenido, valorUSD, cobro }  (paquete que llegó sin registrar)
 //   cancelar          { kind, id }
+//   pedir_revision    { id }  (abrir el paquete y mandar fotos del contenido; cargo REVISION_FOTOS)
+//   aplicar_cupon     { kind, id, code }  (descuento sobre una cotización sin pagar)
+//   pedir_separar     { id, nota }  (mandar solo algunos artículos; cargo SEPARAR al separarlo)
 
 const { randomUUID } = require("crypto");
 const { getCustomerByEmail } = require("./lib/customer-store.js");
@@ -20,6 +23,8 @@ const { checkRateLimit } = require("./lib/rate-limit.js");
 const { detectFileType } = require("./lib/file-signature.js");
 const { nextFolio, saveRecord, getRecord, mutateRecord, saveFile, casilleroDe } = require("./lib/swm-store.js");
 const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe } = require("./lib/swm-core.js");
+const { REVISION_FOTOS, SEPARAR } = require("./lib/swm-pricing.js");
+const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/coupons.js");
 
 const COBROS = ["peso", "comision"];
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -40,6 +45,7 @@ exports.handler = async (event) => {
         casillero,
         paquetes: all.paquetes.map(publico), compras: all.compras.map(publico), envios: all.envios.map(publico),
         name: customer.name || "", phone: customer.phone || "", almacenajeDias: ALMACENAJE_DIAS,
+        precios: { revision: REVISION_FOTOS, separar: SEPARAR },
       });
     } catch (err) {
       console.error("swm-client GET:", err);
@@ -118,13 +124,15 @@ exports.handler = async (event) => {
         if (paquetes.some((p) => !p || p.email !== me || p.status !== "recibido")) {
           return json(409, { error: "Solo puedes enviar paquetes tuyos que ya llegaron al almacén." });
         }
+        const separando = paquetes.find((p) => p.separar && p.separar.estado === "pedida");
+        if (separando) return json(409, { error: `Estamos separando ${separando.folio}; en cuanto quede listo lo puedes enviar.` });
         const pendiente = paquetes.find((p) => p.datosPendientes);
         if (pendiente) return json(409, { error: `Antes de enviar, completa los datos de ${pendiente.folio} (qué trae y cuánto costó).` });
         const consolidar = !!b.consolidar && paquetes.length > 1;
         const sug = await cotizacionSugerida(paquetes, consolidar);
         const rec = {
           id: randomUUID(), folio: await nextFolio("envio"), ...base, paqueteIds: ids, consolidar, direccion,
-          status: "solicitado", sugerido: { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro, kg: sug.kg },
+          status: "solicitado", sugerido: { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro, extras: sug.extras, kg: sug.kg },
           cotizacion: null, pago: null, paqueteria: "", guia: "", notaClienta: "", notaPrivada: "",
           history: [{ at: now(), status: "solicitado" }], createdAt: now(), updatedAt: now(),
         };
@@ -171,6 +179,7 @@ exports.handler = async (event) => {
           r.pago = { ...(r.pago || {}), status: "revision", metodo: "transferencia", monto: r.cotizacion.total, comprobanteAt: now(), comprobanteTipo: ct };
           return r;
         });
+        if (!updated || updated.cotizacion.cupon !== c.code) return json(409, { error: "Ya tiene un cupón aplicado." });
         return json(200, { [kind]: publico(updated) });
       }
 
@@ -191,6 +200,63 @@ exports.handler = async (event) => {
           })));
         }
         return json(200, { [kind]: publico(updated) });
+      }
+
+      case "aplicar_cupon": {
+        const kind = b.kind === "compra" ? "compra" : b.kind === "envio" ? "envio" : null;
+        if (!kind) return json(400, { error: "Inválido." });
+        const rec = await getRecord(kind, String(b.id || ""));
+        if (!rec || rec.email !== me) return json(404, { error: "No encontramos esa cotización." });
+        if (rec.status !== "cotizado" || !rec.cotizacion) return json(409, { error: "Todavía no hay cotización." });
+        if (rec.pago && rec.pago.status !== "pendiente") return json(409, { error: "Esta cotización ya se está pagando." });
+        if (rec.cotizacion.cupon) return json(409, { error: "Ya tiene un cupón aplicado." });
+        const limit = await checkRateLimit(`coupon-swm:${me}`, { max: 20, windowMs: 60 * 60 * 1000 });
+        if (!limit.allowed) return json(429, { error: "Demasiados intentos. Espera un poco." });
+        const c = await getCoupon(b.code);
+        const base = rec.cotizacion.total;
+        const check = checkCoupon(c, { email: me, ambito: "swm", base });
+        if (!check.ok) return json(409, { error: check.error });
+        const descuento = discountFor(c, base);
+        if (!(descuento > 0)) return json(409, { error: "Ese cupón no aplica a esta cotización." });
+        if (!(await redeemCoupon(c.code, me))) return json(409, { error: "Ese cupón ya no está disponible." });
+        const updated = await mutateRecord(kind, rec.id, (r) => {
+          if (r.cotizacion.cupon) return null;
+          r.cotizacion = { ...r.cotizacion, cupon: c.code, descuento, totalSinDescuento: r.cotizacion.total, total: Math.round((r.cotizacion.total - descuento) * 100) / 100 };
+          if (r.pago) r.pago.monto = r.cotizacion.total;
+          return r;
+        });
+        if (!updated || updated.cotizacion.cupon !== c.code) return json(409, { error: "Ya tiene un cupón aplicado." });
+        return json(200, { [kind]: publico(updated) });
+      }
+
+      case "pedir_revision": {
+        const rec = await getRecord("paquete", String(b.id || ""));
+        if (!rec || rec.email !== me) return json(404, { error: "No encontramos ese paquete." });
+        if (!["registrado", "recibido"].includes(rec.status)) return json(409, { error: "Ese paquete ya va en un envío; escríbele a Mae." });
+        if (rec.revision) return json(409, { error: "Ya pediste la revisión de este paquete." });
+        const updated = await mutateRecord("paquete", rec.id, (p) => {
+          if (p.revision) return null;
+          p.revision = { estado: "pedida", at: now(), fotos: [], nota: "" };
+          p.cargos = [...(p.cargos || []), { concepto: "Revisión con fotos", monto: REVISION_FOTOS }];
+          p.history = [...(p.history || []), { at: now(), status: "revision_pedida" }];
+          return p;
+        });
+        return json(200, { paquete: publico(updated) });
+      }
+
+      case "pedir_separar": {
+        const rec = await getRecord("paquete", String(b.id || ""));
+        if (!rec || rec.email !== me) return json(404, { error: "No encontramos ese paquete." });
+        if (rec.status !== "recibido") return json(409, { error: "Solo se pueden separar paquetes que ya están en el almacén." });
+        const nota = clip(b.nota, 500);
+        if (!nota) return json(400, { error: "Dime qué artículos quieres que te mandemos ahora." });
+        if (rec.separar && rec.separar.estado === "pedida") return json(409, { error: "Ya pediste separar este paquete." });
+        const updated = await mutateRecord("paquete", rec.id, (p) => {
+          p.separar = { estado: "pedida", nota, at: now() };
+          p.history = [...(p.history || []), { at: now(), status: "separar_pedido" }];
+          return p;
+        });
+        return json(200, { paquete: publico(updated) });
       }
 
       default:
