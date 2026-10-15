@@ -54,6 +54,8 @@ function limpiar(c) {
     activo: c.activo !== false,
     nota: String(c.nota || "").slice(0, 200),
     sinMinimo: !!c.sinMinimo,
+    // Pedido compartido: envío Corea→México fijo por kg (MXN). 0 = tabla normal.
+    envioKg: c.sinMinimo ? Math.max(0, Math.min(10000, Number(c.envioKg) || 0)) : 0,
   };
 }
 
@@ -118,7 +120,7 @@ function discountFor(c, monto) {
 
 /* Lo que ve la clienta antes de usarlo (sin datos de uso). */
 function publicTerms(c) {
-  return { code: c.code, tipo: c.tipo, valor: c.valor, tope: c.tope, minimo: c.minimo, aplica: c.aplica, sinMinimo: !!c.sinMinimo, hasta: c.hasta || "" };
+  return { code: c.code, tipo: c.tipo, valor: c.valor, tope: c.tope, minimo: c.minimo, aplica: c.aplica, sinMinimo: !!c.sinMinimo, envioKg: c.envioKg || 0, hasta: c.hasta || "" };
 }
 
 /* Cuenta un uso (se llama al registrar el pedido o aplicar el cupón).

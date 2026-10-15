@@ -3809,7 +3809,7 @@ ${itemLines}
 
   /* ---------- Cupones (admin-coupons; ver lib/coupons.js) ---------- */
   let coupons = [];
-  const couponDesc = (c) => `${c.sinMinimo ? "👯 Pedido compartido de Corea (sin mínimo)" + (c.valor ? " · " : "") : ""}${!c.valor && c.sinMinimo ? "" : c.tipo === "pct" ? `${c.valor}%${c.tope ? ` (máx. ${formatPrice(c.tope)})` : ""}` : formatPrice(c.valor)} · ${{ tienda: "Tienda", swm: "Dirección americana", ambos: "Tienda y dirección americana" }[c.aplica]}${c.minimo ? ` · mínimo ${formatPrice(c.minimo)}` : ""}${c.unaVez ? " · una vez por clienta" : ""}${c.usosMax ? ` · ${c.usosMax} usos en total` : ""}`;
+  const couponDesc = (c) => `${c.sinMinimo ? `👯 Pedido compartido de Corea (sin mínimo${c.envioKg ? `, envío de Corea ${formatPrice(c.envioKg)}/kg` : ""})` + (c.valor ? " · " : "") : ""}${!c.valor && c.sinMinimo ? "" : c.tipo === "pct" ? `${c.valor}%${c.tope ? ` (máx. ${formatPrice(c.tope)})` : ""}` : formatPrice(c.valor)} · ${{ tienda: "Tienda", swm: "Dirección americana", ambos: "Tienda y dirección americana" }[c.aplica]}${c.minimo ? ` · mínimo ${formatPrice(c.minimo)}` : ""}${c.unaVez ? " · una vez por clienta" : ""}${c.usosMax ? ` · ${c.usosMax} usos en total` : ""}`;
 
   /* Temporizador: "desde"/"hasta" son "AAAA-MM-DD" o "AAAA-MM-DDTHH:MM" en
      hora de Ciudad Juárez (igual que lib/coupons.js). */
@@ -3880,7 +3880,7 @@ ${itemLines}
   function fillCouponForm(c) {
     const f = document.getElementById("coupon-form");
     const set = (k, v) => { const el = f.querySelector(`[name="${k}"]`); if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? ""; };
-    ["code", "tipo", "valor", "tope", "aplica", "minimo", "usosMax", "nota"].forEach((k) => set(k, c[k] || (k === "tipo" ? "pct" : k === "aplica" ? "ambos" : "")));
+    ["code", "tipo", "valor", "tope", "aplica", "minimo", "usosMax", "nota", "envioKg"].forEach((k) => set(k, c[k] || (k === "tipo" ? "pct" : k === "aplica" ? "ambos" : "")));
     set("desde", couponIni(c));
     set("hasta", couponFin(c));
     set("unaVez", c.unaVez);
