@@ -380,6 +380,14 @@
   .report-cols { display: grid; gap: 16px; }
   @media (min-width: 760px) { .report-cols { grid-template-columns: 1fr 1fr; } }
   .report-cols h3 { font-size: 15px; margin: 0 0 8px; }
+  .rev-brand { margin: 14px 0 6px; font-size: 15px; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .rev-brand small { color: #5f5866; font-weight: 400; }
+  .rev-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 4px; border-bottom: 1px solid #f1eaee; font-size: 14px; }
+  .rev-row input { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; }
+  .rev-row .what { flex: 1; min-width: 0; }
+  .rev-row .what small { display: block; color: #5f5866; }
+  .rev-row .chg { white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
+  .rev-up { color: #b42318; } .rev-down { color: #067647; }
   .st-por_abw { background: #fde6ee; color: #b0365f; }
   .st-esperando_abw { background: #efe8fb; color: #6a45b8; }
   .st-por_enviar { background: #fff1d8; color: #8a5a00; }
@@ -505,6 +513,7 @@
     <button type="button" class="more-btn" data-goto="resenas"><span class="ico" aria-hidden="true">⭐</span><span>Reseñas<small>Ver y borrar reseñas</small></span></button>
     <button type="button" class="more-btn" data-goto="swm"><span class="ico" aria-hidden="true">🇺🇸</span><span>Shop with Mae<small>Casillero EE.UU.: paquetes, compras y envíos</small></span><span class="nav-badge" id="swm-badge" style="display:none;"></span></button>
     <button type="button" class="more-btn" data-goto="usa"><span class="ico" aria-hidden="true">🛍️</span><span>Encargos USA<small>Personal shopper</small></span><span class="nav-badge" id="usa-orders-badge" style="display:none;"></span></button>
+    <button type="button" class="more-btn" data-goto="revision"><span class="ico" aria-hidden="true">🔄</span><span>Revisión ABW<small>Precios y agotados que cambiaron en ABW</small></span><span class="nav-badge" id="revision-badge" style="display:none;"></span></button>
     <button type="button" class="more-btn" data-goto="ajustes"><span class="ico" aria-hidden="true">⚙️</span><span>Ajustes<small>Tipo de cambio, comisiones, descuento</small></span></button>
     <button type="button" class="more-btn" data-goto="papelera"><span class="ico" aria-hidden="true">🗑️</span><span>Papelera<small>Pedidos borrados (30 días)</small></span></button>
     <button type="button" class="more-btn" id="notify-toggle"><span class="ico" aria-hidden="true">📣</span><span id="notify-label">Avisos de pedidos nuevos<small>Sonido y notificación mientras el admin está abierto</small></span></button>
@@ -545,6 +554,18 @@
   </div>
 
   <!-- Papelera -->
+  <!-- Revisión ABW: cambios de precio y disponibilidad para aplicar al Sheet -->
+  <div id="revision-view" class="filters" style="display:none;">
+    <p class="abw-intro">Claude revisa tu catálogo contra Asian Beauty Wholesale marca por marca, y aquí aparece lo que cambió. Al aplicar se actualizan <b>Precio USD</b> y <b>Disponible</b> en tu Sheet; el precio en pesos se recalcula solo. Lo que no quieras cambiar, ignóralo.</p>
+    <div id="revision-summary"></div>
+    <div class="tabs" id="revision-tabs"></div>
+    <div id="revision-list"></div>
+    <div class="abw-actions" id="revision-actions" style="display:none;">
+      <button type="button" class="btn-primary" id="revision-apply">✅ Aplicar seleccionados</button>
+      <button type="button" class="btn-secondary" id="revision-ignore">Ignorar seleccionados</button>
+    </div>
+  </div>
+
   <div id="trash-view" class="filters" style="display:none;">
     <p class="abw-intro">Los pedidos que borras se quedan aquí 30 días por si te equivocaste. Después se borran solos.</p>
     <div id="trash-list"></div>
