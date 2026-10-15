@@ -2,7 +2,7 @@
 //
 // Requiere "Authorization: Bearer <token>" (el de customer-login).
 //
-// GET  → { paquetes, compras, envios, name, almacenajeDias }
+// GET  → { paquetes, compras, envios, name, almacenajeDias, casillero }
 // POST { accion, ... }:
 //   registrar_paquete { tienda, rastreo, contenido, valorUSD, cobro, aceptaRestricciones }
 //   solicitar_compra  { links, notas, cobro, aceptaRestricciones }
@@ -18,7 +18,7 @@ const { getCustomerByEmail } = require("./lib/customer-store.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
 const { detectFileType } = require("./lib/file-signature.js");
-const { nextFolio, saveRecord, getRecord, mutateRecord, saveFile } = require("./lib/swm-store.js");
+const { nextFolio, saveRecord, getRecord, mutateRecord, saveFile, casilleroDe } = require("./lib/swm-store.js");
 const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe } = require("./lib/swm-core.js");
 
 const COBROS = ["peso", "comision"];
@@ -35,8 +35,9 @@ exports.handler = async (event) => {
 
   if (event.httpMethod === "GET") {
     try {
-      const all = await todoDe(me);
+      const [all, casillero] = await Promise.all([todoDe(me), casilleroDe(me).catch((err) => { console.error("swm casillero:", err); return ""; })]);
       return json(200, {
+        casillero,
         paquetes: all.paquetes.map(publico), compras: all.compras.map(publico), envios: all.envios.map(publico),
         name: customer.name || "", phone: customer.phone || "", almacenajeDias: ALMACENAJE_DIAS,
       });

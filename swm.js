@@ -13,8 +13,9 @@ const SWM_TARIFA = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 900, 7: 900, 8: 
 const SWM_KILO_EXTRA = 120;
 const SWM_COMISION_PCT = 15;
 
-/* Dirección americana. El "Last name" es el nombre de la clienta: así
-   Mae sabe de quién es cada paquete que llega. */
+/* Dirección americana. El "Last name" es el nombre de la clienta y en
+   "Address 2" va su número de casillero (ALP-0001): así Mae sabe de quién
+   es cada paquete que llega, aunque no lo hayan registrado. */
 const SWM_ADDRESS = {
   address1: "648 White Cliffs Drive",
   address2: "Apartment B",
@@ -50,7 +51,7 @@ const SWM_ENVIO_STATUS = {
   cancelado: ["Cancelado", "bg-pill text-ink/50"],
 };
 
-let swm = { loaded: false, loading: false, error: "", name: "", phone: "", paquetes: [], compras: [], envios: [], tab: "paquetes", form: "", almacenajeDias: 30 };
+let swm = { loaded: false, loading: false, error: "", name: "", phone: "", casillero: "", paquetes: [], compras: [], envios: [], tab: "paquetes", form: "", almacenajeDias: 30 };
 
 const swmMXN = (n) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
 const swmDate = (iso, opts = { day: "numeric", month: "short" }) => (iso ? new Date(iso).toLocaleDateString("es-MX", opts) : "");
@@ -75,12 +76,18 @@ function openSwmSection({ restore = false } = {}) {
 
 /* Se llama desde app.js cuando la clienta inicia o cierra sesión. */
 function swmOnAuthChange() {
-  swm = { ...swm, loaded: false, loading: false, error: "", paquetes: [], compras: [], envios: [], form: "" };
+  swm = { ...swm, loaded: false, loading: false, error: "", casillero: "", paquetes: [], compras: [], envios: [], form: "" };
   if (!document.getElementById("swm-section").classList.contains("hidden")) renderSwm();
 }
 
 function renderSwm() {
+  // Con sesión, la página abre directo en su dirección y su casillero: la
+  // explicación del servicio queda plegada abajo. Sin sesión, al revés.
+  const logged = Boolean(getCustomerToken());
+  document.querySelectorAll("#swm-section .swm-guest").forEach((el) => el.classList.toggle("hidden", logged));
+  ["swm-how", "swm-prices"].forEach((id) => { document.getElementById(id).open = !logged; });
   renderSwmPagoBanner();
+  renderSwmWelcome();
   renderSwmAddress();
   renderSwmCasillero();
   if (getCustomerToken() && !swm.loaded && !swm.loading) loadSwm();
@@ -106,44 +113,75 @@ function swmLoginPrompt(text) {
   </div>`;
 }
 
+function swmAddressFields() {
+  const last = swm.name || (typeof myAccountCache !== "undefined" && myAccountCache.name) || "Tu nombre";
+  return [
+    ["First name (Nombre)", SWM_ADDRESS.firstName],
+    ["Last name (Apellido)", last],
+    ["Address (Dirección)", SWM_ADDRESS.address1],
+    ["Address 2 (Apt, suite)", swm.casillero ? `${SWM_ADDRESS.address2} #${swm.casillero}` : SWM_ADDRESS.address2],
+    ["City (Ciudad)", SWM_ADDRESS.city],
+    ["State (Estado)", SWM_ADDRESS.state],
+    ["ZIP code", SWM_ADDRESS.zip],
+    ["Phone (Teléfono)", SWM_ADDRESS.phone],
+  ];
+}
+
 function renderSwmAddress() {
   const el = document.getElementById("swm-address");
   const h = `<h3 class="font-display text-xl sm:text-2xl text-ink mb-3">🏠 Tu dirección americana</h3>`;
   if (!getCustomerToken()) {
-    el.innerHTML = h + swmLoginPrompt("Inicia sesión (o crea tu cuenta gratis) para ver la dirección en EE.UU. a la que vas a mandar tus compras.");
+    el.innerHTML = h + swmLoginPrompt("Crea tu cuenta gratis (o inicia sesión) para ver tu dirección en EE.UU. y tu número de casillero.");
     return;
   }
-  const last = swm.name || (typeof myAccountCache !== "undefined" && myAccountCache.name) || "Tu nombre";
-  const row = (label, value) => `<div class="flex items-center justify-between gap-3 py-2 border-b border-white/30 last:border-0">
+  const fields = swmAddressFields();
+  const all = fields.map(([l, v]) => `${l.replace(/ \(.*\)$/, "")}: ${v}`).join("\n");
+  const row = ([label, value]) => `<div class="flex items-center justify-between gap-3 py-2 border-b border-white/30 last:border-0">
       <div class="min-w-0"><span class="block text-[11px] uppercase tracking-wide text-cream/80">${label}</span><b class="block text-base text-cream break-words">${escapeHtml(value)}</b></div>
       <button type="button" data-swm-copy="${escapeHtml(value)}" class="shrink-0 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold text-cream hover:bg-white/30">Copiar</button>
     </div>`;
   el.innerHTML = `${h}
     <div class="grid gap-4 md:grid-cols-[1fr_0.8fr]">
       <div class="rounded-3xl bg-rose-deep p-5">
-        ${row("Address", SWM_ADDRESS.address1)}
-        ${row("Address 2", SWM_ADDRESS.address2)}
-        ${row("City", SWM_ADDRESS.city)}
-        ${row("State", SWM_ADDRESS.state)}
-        ${row("ZIP code", SWM_ADDRESS.zip)}
-        ${row("Phone", SWM_ADDRESS.phone)}
-        ${row("Name (First name)", SWM_ADDRESS.firstName)}
-        ${row("Last name", last)}
+        ${swm.casillero ? `<p class="mb-2 inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-cream">Tu número de casillero: ${escapeHtml(swm.casillero)}</p>` : ""}
+        ${fields.map(row).join("")}
+        <button type="button" data-swm-copy="${escapeHtml(all)}" class="mt-3 w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-rose-deep hover:bg-white/90">📋 Copiar toda la dirección</button>
       </div>
       <div class="rounded-3xl bg-pill p-5 text-sm text-ink/85 space-y-3">
-        <p><b>⚠️ Muy importante:</b> pon el pedido a nombre de <b>${escapeHtml(SWM_ADDRESS.firstName)}</b> y en <b>Last name</b> tu nombre (<b>${escapeHtml(last)}</b>). Si no lo haces así, el paquete no podrá ser recibido.</p>
-        <p>Pide que la guía <b>no requiera firma</b> al momento de la entrega.</p>
-        <p class="rounded-xl bg-sale/10 px-3 py-2 text-ink"><b>📌 SIEMPRE registra tu número de rastreo ANTES de que tu paquete llegue a la bodega</b> (en "Mi casillero" → Registrar un paquete). Si llega sin registrar se cobran <b>$80 MXN</b> por paquete, y si no podemos saber de quién es y nadie lo reclama en <b>7 días</b>, dispondremos de él.</p>
-        <p>📦 Guardamos tus paquetes <b>gratis ${swm.almacenajeDias} días</b> desde que llegan.</p>
+        <p class="font-semibold text-ink">¿Cómo la lleno en la tienda?</p>
+        <ol class="space-y-2 list-decimal pl-5">
+          <li>En <b>First name</b> pon <b>${escapeHtml(SWM_ADDRESS.firstName)}</b> y en <b>Last name</b> tu nombre (<b>${escapeHtml(fields[1][1])}</b>).</li>
+          <li>En <b>Address 2</b> (o "Apt, suite, unit") copia <b>${escapeHtml(fields[3][1])}</b>${swm.casillero ? ": tu número de casillero es lo que nos dice que el paquete es tuyo" : ""}.</li>
+          <li>Lo demás, tal cual. Si la tienda lo permite, pide que la entrega <b>no requiera firma</b>.</li>
+          <li>Cuando te den tu número de rastreo, <b>regístralo en "Mi casillero"</b>.</li>
+        </ol>
       </div>
     </div>`;
+}
+
+/* Primera vez (casillero vacío): 3 pasos para empezar. */
+function renderSwmWelcome() {
+  const el = document.getElementById("swm-welcome");
+  const show = Boolean(getCustomerToken()) && swm.loaded && !swm.error && !swm.paquetes.length && !swm.compras.length && !swm.envios.length;
+  el.classList.toggle("hidden", !show);
+  if (!show) return;
+  const step = (n, t, d) => `<li class="flex gap-3"><span class="shrink-0 w-7 h-7 rounded-full bg-rose-deep text-cream text-sm font-bold flex items-center justify-center">${n}</span><span><b class="block text-sm text-ink">${t}</b><span class="text-xs text-ink/75">${d}</span></span></li>`;
+  el.innerHTML = `<div class="rounded-3xl border-2 border-rose/40 bg-white p-5">
+    <p class="font-display text-lg text-ink">👋 ¡Bienvenida! Así empiezas:</p>
+    <ol class="mt-3 space-y-3">
+      ${step(1, "Copia tu dirección americana", "Está aquí abajo, con tu número de casillero.")}
+      ${step(2, "Compra en tu tienda favorita", "Sephora, Ulta, Amazon... y manda tu pedido a esa dirección.")}
+      ${step(3, "Registra tu número de rastreo", "En \u201cMi casillero\u201d → Registrar un paquete. Te avisamos cuando llegue.")}
+    </ol>
+    <p class="mt-3 text-xs text-ink/70">¿No tienes tarjeta americana? Usa <b>\u201cQue Mae compre por mí\u201d</b> y yo hago la compra.</p>
+  </div>`;
 }
 
 /* ---------------------------- Casillero ---------------------------- */
 function renderSwmCasillero() {
   const el = document.getElementById("swm-casillero");
   const h = `<h3 class="font-display text-xl sm:text-2xl text-ink mb-3">🗄️ Mi casillero</h3>`;
-  if (!getCustomerToken()) { el.innerHTML = h + swmLoginPrompt("Inicia sesión para registrar tus paquetes, pedir compras y pagar tus envíos aquí mismo."); return; }
+  if (!getCustomerToken()) { el.innerHTML = ""; return; }
   if (swm.loading && !swm.loaded) { el.innerHTML = h + `<p class="text-sm text-ink/70">Cargando tu casillero...</p>`; return; }
   if (swm.error) { el.innerHTML = h + `<p class="text-sm text-sale">${escapeHtml(swm.error)}</p>`; return; }
 
@@ -170,6 +208,21 @@ function renderSwmCasillero() {
     <div class="mt-4 space-y-3">${swmTabHTML()}</div>`;
 }
 
+/* Línea de avance ("Registrado → En almacén → ..."), como en Delivered. */
+const SWM_STEPS = {
+  paquete: [{ registrado: 0, recibido: 1, en_envio: 1, enviado: 2, entregado: 3 }, ["Registrado", "En almacén", "Enviado", "Entregado"]],
+  compra: [{ solicitud: 0, cotizado: 1, pagado: 2, comprado: 3 }, ["Cotizando", "Por pagar", "Pagada", "Comprada"]],
+  envio: [{ solicitado: 0, cotizado: 1, pagado: 2, enviado: 3, entregado: 4 }, ["Cotizando", "Por pagar", "Pagado", "En camino", "Entregado"]],
+};
+function swmStepsHTML(kind, status) {
+  const [idxMap, labels] = SWM_STEPS[kind];
+  const idx = idxMap[status];
+  if (idx == null) return "";
+  return `<ol class="mt-3 flex items-start" aria-label="Avance">${labels.map((l, i) => `<li class="flex-1 flex flex-col items-center text-center ${i ? "relative before:absolute before:top-[7px] before:right-1/2 before:w-full before:h-0.5 " + (i <= idx ? "before:bg-rose-deep" : "before:bg-ink/15") : ""}">
+      <span class="relative z-10 w-4 h-4 rounded-full border-2 ${i <= idx ? "bg-rose-deep border-rose-deep" : "bg-white border-ink/25"}"${i === idx ? ' aria-current="step"' : ""}></span>
+      <span class="mt-1 text-[10px] leading-tight ${i === idx ? "font-bold text-ink" : "text-ink/60"}">${l}</span></li>`).join("")}</ol>`;
+}
+
 function swmTabHTML() {
   const empty = (t) => `<p class="rounded-2xl bg-pill px-4 py-6 text-center text-sm text-ink/70">${t}</p>`;
   if (swm.tab === "compras") {
@@ -192,7 +245,8 @@ function swmPaqueteCardHTML(p) {
   const fotos = (p.fotos || []).map((f) => `<a href="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" target="_blank" rel="noopener"><img src="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" alt="Foto de tu paquete" loading="lazy" class="w-20 h-20 rounded-xl object-cover bg-pill"></a>`).join("");
   return `<article class="rounded-2xl border border-ink/10 p-4">
     <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(p.folio)}</b>${swmPill(SWM_PKG_STATUS, p.datosPendientes ? "sin_registro" : p.status)}</div>
-    <p class="text-sm mt-1">${escapeHtml(desc || "Paquete")}${p.origen === "compra" ? ' <span class="text-xs text-lilac-ink">(compra de Mae)</span>' : ""}</p>
+    ${p.status === "cancelado" ? "" : swmStepsHTML("paquete", p.status)}
+    <p class="text-sm mt-2">${escapeHtml(desc || "Paquete")}${p.origen === "compra" ? ' <span class="text-xs text-lilac-ink">(compra de Mae)</span>' : ""}</p>
     ${p.contenido ? `<p class="text-xs text-ink/65">${escapeHtml(p.contenido)}</p>` : ""}
     <p class="text-xs text-ink/65 mt-1">Cruce: ${p.crucePagado ? "ya pagado con tu compra" : p.cobro === "comision" ? "15% del valor" : "por peso"}${p.cobrable ? ` · ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → ${swmMXN(swmCrucePeso(p.cobrable))}` : ""}` : ""}</p>
     ${extra}
@@ -219,21 +273,28 @@ function swmPagoHTML(kind, r) {
   const s = typeof shippingSettings !== "undefined" ? shippingSettings : {};
   const bank = [s.bankName && `<div>Banco: <b>${escapeHtml(s.bankName)}</b></div>`, s.bankHolder && `<div>Titular: <b>${escapeHtml(s.bankHolder)}</b></div>`,
     s.bankClabe && `<div>CLABE: <b>${escapeHtml(s.bankClabe)}</b> <button type="button" data-swm-copy="${escapeHtml(s.bankClabe)}" class="ml-1 text-xs underline">Copiar</button></div>`,
-    s.bankAccount && `<div>Cuenta: <b>${escapeHtml(s.bankAccount)}</b></div>`].filter(Boolean).join("");
+    s.bankAccount && `<div>Cuenta: <b>${escapeHtml(s.bankAccount)}</b> <button type="button" data-swm-copy="${escapeHtml(s.bankAccount)}" class="ml-1 text-xs underline">Copiar</button></div>`].filter(Boolean).join("");
   const key = `${kind}:${r.id}`;
-  return `<div class="mt-3 rounded-xl bg-pill p-3">
-    <b class="text-sm">Total a pagar: ${swmMXN(total)}</b>
-    ${r.pago && r.pago.rechazo ? `<p class="text-xs text-sale mt-1">${escapeHtml(r.pago.rechazo)}</p>` : ""}
-    <div class="mt-2 flex flex-wrap gap-2">
-      <button type="button" data-swm-pay-mp="${escapeHtml(key)}" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream hover:bg-rose-ink">💳 Pagar con tarjeta</button>
-      <button type="button" data-swm-pay-tr="${escapeHtml(key)}" class="rounded-full bg-white px-4 py-2 text-xs font-semibold text-ink border border-ink/15">🏦 Pagar por transferencia</button>
+  const k = escapeHtml(key);
+  const opt = (v, t, d) => `<label class="flex items-center gap-3 rounded-xl border-2 border-ink/15 bg-white px-3 py-2.5 cursor-pointer has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20">
+      <input type="radio" name="swm-pm-${k}" value="${v}" data-swm-pm="${k}" class="accent-[#c4466e] w-5 h-5 shrink-0"><span><b class="block text-sm">${t}</b><span class="block text-xs text-ink/70">${d}</span></span></label>`;
+  return `<div class="mt-3 rounded-xl bg-pill p-3 space-y-2">
+    <b class="block text-sm">Total a pagar: ${swmMXN(total)}</b>
+    ${r.pago && r.pago.rechazo ? `<p class="text-xs text-sale">${escapeHtml(r.pago.rechazo)}</p>` : ""}
+    <p class="text-xs font-semibold text-ink/80">¿Cómo quieres pagar? (solo una vez)</p>
+    ${opt("tr", "🏦 Transferencia o depósito", "Subes la captura de tu transferencia")}
+    ${opt("mp", "💳 Tarjeta (Mercado Pago)", "Pagas en línea, sin subir comprobante")}
+    <div data-swm-pm-box="mp:${k}" class="hidden rounded-xl bg-white p-3 space-y-2">
+      <button type="button" data-swm-pay-mp="${k}" class="w-full rounded-full bg-[#0074C2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#00609F]">💳 Pagar ${swmMXN(total)} en Mercado Pago</button>
+      <p class="text-xs text-ink/70">Al terminar regresas aquí y se marca pagado solito. No necesitas subir comprobante.</p>
     </div>
-    <div data-swm-tr-box="${escapeHtml(key)}" class="hidden mt-3 text-sm space-y-1">
-      ${bank || '<p class="text-xs text-ink/70">Cargando datos bancarios...</p>'}
-      <div>Concepto: <b>${escapeHtml(r.folio)}</b></div>
-      <label class="mt-2 flex flex-col gap-1 text-xs font-semibold">Sube tu comprobante (foto o PDF)
-        <input type="file" accept="image/*,application/pdf" data-swm-proof="${escapeHtml(key)}" class="text-xs font-normal" /></label>
-      <p data-swm-proof-msg="${escapeHtml(key)}" class="text-xs"></p>
+    <div data-swm-pm-box="tr:${k}" class="hidden rounded-xl bg-white p-3 text-sm space-y-2">
+      <p><b>1.</b> Transfiere exactamente <b>${swmMXN(total)}</b> <button type="button" data-swm-copy="${Number(total).toFixed(2)}" class="ml-1 text-xs font-semibold text-rose-ink underline">Copiar</button></p>
+      <div class="rounded-lg bg-pill/60 px-3 py-2 space-y-0.5">${bank || '<p class="text-xs text-ink/70">Cargando datos bancarios...</p>'}<div>Concepto: <b>${escapeHtml(r.folio)}</b></div></div>
+      <label class="flex flex-col gap-1"><span><b>2.</b> Sube la captura de tu transferencia (foto o PDF)</span>
+        <input type="file" accept="image/*,application/pdf" data-swm-proof="${k}" class="text-xs font-normal" /></label>
+      <p data-swm-proof-msg="${k}" class="text-xs"></p>
+      <p class="text-xs text-ink/70">Al subirla queda enviada; te avisamos por correo cuando confirmemos tu pago.</p>
     </div>
   </div>`;
 }
@@ -246,7 +307,8 @@ function swmCompraCardHTML(c) {
       <div class="flex justify-between font-semibold border-t border-ink/10 pt-1"><span>Total</span><span class="tabular-nums">${swmMXN(q.total)}</span></div></div>` : "";
   return `<article class="rounded-2xl border border-ink/10 p-4">
     <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(c.folio)}</b>${swmPill(SWM_COMPRA_STATUS, c.status)}</div>
-    <p class="text-xs text-ink/65 mt-1">${swmDate(c.createdAt)} · Cruce ${c.cobro === "comision" ? "15% (se paga con la compra)" : "por peso (se paga al enviar)"}</p>
+    ${swmStepsHTML("compra", c.status)}
+    <p class="text-xs text-ink/65 mt-2">${swmDate(c.createdAt)} · Cruce ${c.cobro === "comision" ? "15% (se paga con la compra)" : "por peso (se paga al enviar)"}</p>
     <p class="mt-2 text-xs whitespace-pre-wrap break-all rounded-xl bg-pill/70 px-3 py-2">${escapeHtml(c.links)}</p>
     ${c.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(c.notaClienta)}</p>` : ""}
     ${lines}${swmPagoHTML("compra", c)}
@@ -263,7 +325,8 @@ function swmEnvioCardHTML(e) {
   const d = e.direccion || {};
   return `<article class="rounded-2xl border border-ink/10 p-4">
     <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(e.folio)}</b>${swmPill(SWM_ENVIO_STATUS, e.status)}</div>
-    <p class="text-xs text-ink/65 mt-1">${swmDate(e.createdAt)} · ${pk.length} paquete${pk.length === 1 ? "" : "s"}: ${escapeHtml(pk.map((p) => p.folio).join(", "))}${e.consolidar ? " · consolidado" : ""}</p>
+    ${swmStepsHTML("envio", e.status)}
+    <p class="text-xs text-ink/65 mt-2">${swmDate(e.createdAt)} · ${pk.length} paquete${pk.length === 1 ? "" : "s"}: ${escapeHtml(pk.map((p) => p.folio).join(", "))}${e.consolidar ? " · consolidado" : ""}</p>
     <p class="text-xs text-ink/65">A: ${escapeHtml([d.nombre, d.ciudad, d.cp].filter(Boolean).join(" · "))}</p>
     ${e.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(e.notaClienta)}</p>` : ""}
     ${q ? `<div class="mt-2 text-sm space-y-0.5">${line("Cruce a México", q.cruce)}${line("Consolidación", q.consolidacion)}${line("Paquete(s) sin registrar", q.sinRegistro)}${line("Envío nacional", q.envio)}
@@ -294,7 +357,7 @@ function swmFormHTML() {
       <div class="grid gap-3 sm:grid-cols-2">${swmInput("swm-f-tienda", "Tienda", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}${swmInput("swm-f-rastreo", "Número de rastreo (guía) *", 'maxlength="80" required')}</div>
       ${swmInput("swm-f-contenido", "¿Qué trae?", 'maxlength="300" placeholder="Ej. 2 cremas, 1 perfume"')}
       ${swmInput("swm-f-valor", "Valor de los productos con tax (USD)", 'type="number" min="0" step="0.01" inputmode="decimal"')}
-      <p class="text-xs text-ink/65">Regístralo en cuanto tengas la guía, <b>antes de que llegue a la bodega</b>. Los paquetes sin registrar tienen un cargo de $80 MXN.</p>
+      <p class="text-xs text-ink/65">Regístralo en cuanto tengas la guía, antes de que llegue a la bodega.</p>
       ${swmCobroRadios()}${swmAcepta()}`, "Registrar paquete");
   }
   if (swm.form === "compra") {
@@ -353,13 +416,14 @@ async function loadSwm() {
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) swm.error = "Tu sesión venció. Vuelve a iniciar sesión.";
     else if (!res.ok) swm.error = data.error || "No se pudo cargar tu casillero.";
-    else Object.assign(swm, { paquetes: data.paquetes || [], compras: data.compras || [], envios: data.envios || [], name: data.name || "", phone: data.phone || "", almacenajeDias: data.almacenajeDias || 30, error: "" });
+    else Object.assign(swm, { paquetes: data.paquetes || [], compras: data.compras || [], envios: data.envios || [], name: data.name || "", phone: data.phone || "", casillero: data.casillero || "", almacenajeDias: data.almacenajeDias || 30, error: "" });
   } catch (err) {
     swm.error = "No se pudo cargar tu casillero. Revisa tu conexión.";
   }
   swm.loading = false;
   swm.loaded = true;
   if ([...swm.compras, ...swm.envios].some((x) => x.status === "cotizado")) swm.tab = swm.envios.some((x) => x.status === "cotizado") ? "envios" : "compras";
+  renderSwmWelcome();
   renderSwmAddress();
   renderSwmCasillero();
 }
@@ -416,7 +480,7 @@ async function swmPayMP(key, btn) {
     if (data.redirectUrl) location.href = data.redirectUrl;
   } catch (ex) {
     btn.disabled = false;
-    btn.textContent = "💳 Pagar con tarjeta";
+    btn.textContent = "💳 Pagar en Mercado Pago";
     alert(ex.message);
   }
 }
@@ -509,10 +573,21 @@ function initSwm() {
     const a = t.closest('a[href^="#swm-"]');
     if (a) {
       e.preventDefault();
-      document.getElementById(a.getAttribute("href").slice(1)).scrollIntoView({ behavior: "smooth", block: "start" });
+      const target = document.getElementById(a.getAttribute("href").slice(1));
+      if (target.tagName === "DETAILS") target.open = true;
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   });
   sec.addEventListener("change", (e) => {
+    const pm = e.target.closest("[data-swm-pm]");
+    if (pm) {
+      const key = pm.dataset.swmPm;
+      ["mp", "tr"].forEach((v) => {
+        const box = sec.querySelector(`[data-swm-pm-box="${v}:${CSS.escape(key)}"]`);
+        if (box) box.classList.toggle("hidden", pm.value !== v);
+      });
+      return;
+    }
     const proof = e.target.closest("[data-swm-proof]");
     if (proof) swmUploadProof(proof.dataset.swmProof, proof);
   });

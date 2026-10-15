@@ -3821,7 +3821,8 @@ ${itemLines}
   function swmMatches(r) {
     const q = swmSearch.trim().toLowerCase();
     if (!q) return true;
-    return [r.folio, r.name, r.email, r.phone, r.tienda, r.rastreo, r.contenido, r.links].some((v) => String(v || "").toLowerCase().includes(q));
+    const cas = r.email && swmData.casilleros ? swmData.casilleros[r.email] : "";
+    return [r.folio, r.name, r.email, r.phone, r.tienda, r.rastreo, r.contenido, r.links, cas, r.etiqueta].some((v) => String(v || "").toLowerCase().includes(q));
   }
 
   function renderSwmAdmin() {
@@ -3875,7 +3876,8 @@ ${itemLines}
 
   function swmWho(r) {
     const wa = waLinkFromPhone(r.phone);
-    return `${escapeHtml(r.name || r.email)} · ${escapeHtml(r.email)}${r.phone ? ` · ${escapeHtml(r.phone)}` : ""}${wa ? ` · <a href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}`;
+    const cas = r.email && swmData.casilleros && swmData.casilleros[r.email];
+    return `${cas ? `<b>${escapeHtml(cas)}</b> · ` : ""}${escapeHtml(r.name || r.email)} · ${escapeHtml(r.email)}${r.phone ? ` · ${escapeHtml(r.phone)}` : ""}${wa ? ` · <a href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}`;
   }
   const swmPillA = (t, cls = "") => `<span class="swm-pill ${cls}">${t}</span>`;
   const swmCancelBtn = (kind, r) => (["cancelado", "entregado", "comprado", "enviado"].includes(r.status) ? "" : `<button type="button" class="btn-secondary" data-swm-cancel="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">Cancelar</button>`);
@@ -3926,11 +3928,11 @@ ${itemLines}
       <h4><span>📦 Llegó un paquete sin registrar</span></h4>
       <div class="meta">Busca primero en "Por llegar" por el rastreo: si ya lo registró, márcalo ahí como recibido. Si no aparece, regístralo aquí; se le cobra ${formatPrice(swmData.cargoSinRegistro || 80)} y le llega un correo para que diga qué trae. Si no sabes de quién es, déjalo sin dueña (tienes ${swmData.diasSinDuena || 7} días antes de disponer de él).</div>
       <div class="grid">
-        <label>Nombre en la etiqueta (Last name)<input data-g="etiqueta" type="text"></label>
+        <label>Nombre o número de casillero en la etiqueta (ALP-…)<input data-g="etiqueta" type="text"></label>
         <label>Tienda<input data-g="tienda" type="text"></label>
         <label>Rastreo<input data-g="rastreo" type="text"></label>
       </div>
-      <div class="grid"><label>Buscar a la dueña (nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Opcional"></label></div>
+      <div class="grid"><label>Buscar a la dueña (número ALP-…, nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Opcional"></label></div>
       <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
       <div class="meta" data-swm-elegida>Sin dueña (se queda en "Sin dueña")</div>
       <div class="grid">
@@ -4131,7 +4133,7 @@ ${itemLines}
         try {
           const res = await fetch(`/.netlify/functions/admin-swm?buscarClienta=${encodeURIComponent(q)}`, { headers: { "x-admin-key": adminKey } });
           const data = await res.json();
-          out.innerHTML = (data.clientas || []).map((c) => `<button type="button" class="btn-secondary" data-swm-pick-email="${escapeHtml(c.email)}" style="padding:6px 10px;font-size:13px;">${escapeHtml(c.name || c.email)} · ${escapeHtml(c.email)}</button>`).join("") || "No encontré ninguna cuenta.";
+          out.innerHTML = (data.clientas || []).map((c) => `<button type="button" class="btn-secondary" data-swm-pick-email="${escapeHtml(c.email)}" style="padding:6px 10px;font-size:13px;">${c.casillero ? `${escapeHtml(c.casillero)} · ` : ""}${escapeHtml(c.name || c.email)} · ${escapeHtml(c.email)}</button>`).join("") || "No encontré ninguna cuenta.";
         } catch (err) { out.textContent = "No se pudo buscar."; }
       }, 350);
       return;
