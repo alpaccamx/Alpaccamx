@@ -125,6 +125,7 @@ function publico(r) {
   const out = { ...r };
   delete out.notaPrivada;
   delete out.history;
+  delete out.capturas;
   if (out.pago) out.pago = { ...out.pago, paymentId: undefined };
   return out;
 }
