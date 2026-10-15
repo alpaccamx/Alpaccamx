@@ -776,7 +776,7 @@
         <span id="cart-shipping-nacional" class="text-right">$0.00</span>
       </div>
       <div class="flex items-center justify-between font-semibold text-ink pt-1.5 border-t border-ink/10">
-        <span>Total estimado</span>
+        <span id="cart-grand-total-label">Total estimado</span>
         <span id="cart-grand-total">$0.00</span>
       </div>
     </div>
@@ -887,41 +887,67 @@
 
       <p id="cart-error" role="alert" class="hidden rounded-lg border border-rose-deep/30 bg-rose/10 px-3 py-2 text-sm text-rose-ink"></p>
 
-      <button id="pay-mercadopago" type="button"
-        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#0074C2] text-white font-semibold py-3 hover:bg-[#00609F] transition active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed">
-        <span>💳 Pagar con Mercado Pago</span>
-      </button>
-      <p class="text-xs text-center text-ink/75">Se abrirá Mercado Pago para pagar en línea con tarjeta.</p>
+      <!-- Forma de pago: primero se elige UNA y solo se ven sus pasos (antes
+           salían las dos juntas y parecía que había que pagar dos veces). -->
+      <fieldset id="pay-method" class="space-y-2 pt-2">
+        <legend class="text-sm font-semibold text-ink mb-2">¿Cómo quieres pagar?</legend>
+        <label class="pay-opt flex items-center gap-3 rounded-xl border-2 border-ink/15 bg-white px-3 py-3 cursor-pointer has-[:checked]:border-rose has-[:checked]:bg-blush/30">
+          <input type="radio" name="pay-method" value="transfer" class="accent-rose-deep w-5 h-5 shrink-0" />
+          <span class="flex-1 min-w-0">
+            <span class="block text-sm font-semibold text-ink">🏦 Transferencia o depósito</span>
+            <span id="pay-opt-transfer-note" class="block text-xs text-rose-ink font-semibold"></span>
+          </span>
+          <span id="pay-opt-transfer-total" class="text-sm font-bold text-ink tabular-nums whitespace-nowrap"></span>
+        </label>
+        <label class="pay-opt flex items-center gap-3 rounded-xl border-2 border-ink/15 bg-white px-3 py-3 cursor-pointer has-[:checked]:border-[#0074C2] has-[:checked]:bg-[#0074C2]/5">
+          <input type="radio" name="pay-method" value="card" class="accent-[#0074C2] w-5 h-5 shrink-0" />
+          <span class="flex-1 min-w-0">
+            <span class="block text-sm font-semibold text-ink">💳 Tarjeta (Mercado Pago)</span>
+            <span class="block text-xs text-ink/75">Pagas en línea, sin subir comprobante</span>
+          </span>
+          <span id="pay-opt-card-total" class="text-sm font-bold text-ink tabular-nums whitespace-nowrap"></span>
+        </label>
+        <p class="text-xs text-ink/75 text-center">Solo pagas <strong>una vez</strong>, con la forma que elijas.</p>
+      </fieldset>
 
-      <div class="flex items-center gap-2 text-xs text-ink/75">
-        <span class="flex-1 h-px bg-ink/10"></span>
-        <span>o paga por transferencia y ahorra</span>
-        <span class="flex-1 h-px bg-ink/10"></span>
+      <div id="pay-card-panel" class="hidden space-y-2 rounded-xl border border-[#0074C2]/30 bg-[#0074C2]/5 p-3">
+        <p class="text-sm text-ink">Vas a pagar <strong id="pay-card-amount" class="tabular-nums"></strong> con tarjeta de crédito o débito en Mercado Pago.</p>
+        <button id="pay-mercadopago" type="button"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#0074C2] text-white font-semibold py-3 hover:bg-[#00609F] transition active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed">
+          <span>💳 Ir a pagar a Mercado Pago</span>
+        </button>
+        <p class="text-xs text-ink/75">Al terminar de pagar regresas a la tienda y tu pedido queda confirmado solito. <strong>No necesitas subir comprobante.</strong></p>
       </div>
 
-      <div id="cart-bank-details" class="hidden rounded-lg border border-lilac/30 bg-blush/20 p-3">
-        <p class="text-xs font-semibold text-ink mb-1">🏦 Datos para tu depósito o transferencia</p>
-        <div id="cart-bank-details-body" class="text-xs text-ink/75 leading-relaxed"></div>
+      <div id="pay-transfer-panel" class="hidden space-y-3 rounded-xl border border-rose/30 bg-blush/20 p-3">
+        <div>
+          <p class="text-sm font-semibold text-ink"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose text-cream text-xs mr-1">1</span> Transfiere exactamente <span id="pay-transfer-amount" class="tabular-nums"></span></p>
+          <div id="cart-bank-details" class="hidden mt-2 rounded-lg bg-white border border-ink/10 p-3">
+            <div id="cart-bank-details-body" class="text-sm text-ink/80 leading-relaxed"></div>
+          </div>
+        </div>
+        <div>
+          <label for="proof-file-input" class="block text-sm font-semibold text-ink mb-1"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose text-cream text-xs mr-1">2</span> Sube la captura de tu transferencia</label>
+          <input id="proof-file-input" type="file" accept="image/*,application/pdf"
+            class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
+          <p class="text-xs text-ink/75 mt-1">Una foto o captura de pantalla del comprobante de tu banco (o PDF), hasta 4 MB.</p>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-ink mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose text-cream text-xs mr-1">3</span> Envía tu pedido</p>
+          <button id="send-quote" type="submit"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose text-cream font-semibold py-3 hover:bg-rose/90 transition active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed">
+            <span>✅ Enviar pedido con mi comprobante</span>
+          </button>
+          <p class="text-xs text-ink/75 mt-2">Revisamos tu comprobante y te avisamos por correo cuando tu pago quede confirmado. No pagues también con tarjeta.</p>
+        </div>
       </div>
-
-      <div>
-        <label for="proof-file-input" class="block text-xs font-semibold text-ink/75 mb-1">📎 Sube tu comprobante de transferencia (captura o PDF, hasta 4 MB) *</label>
-        <input id="proof-file-input" required type="file" accept="image/*,application/pdf"
-          class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
-        <p class="text-xs text-ink/75 mt-1">Primero transfiere a los datos de arriba y luego sube aquí tu comprobante — es obligatorio para poder confirmar el pedido.</p>
-      </div>
-
-      <button id="send-quote" type="submit"
-        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose text-cream font-semibold py-3 hover:bg-rose/90 transition active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed">
-        <span>✅ Confirmar pedido por transferencia</span>
-      </button>
-      <p class="text-xs text-center text-ink/75">No se realiza ningún cobro aquí. Se registra tu pedido junto con tu comprobante.</p>
     </form>
 
     <div id="quote-success-panel" class="hidden space-y-4">
       <div class="rounded-lg border border-rose/30 bg-blush/30 p-3 text-center">
         <p class="text-sm font-semibold text-ink">✅ ¡Tu pedido y tu comprobante quedaron registrados!</p>
         <p class="text-xs text-ink/75 mt-1">Número de orden: <span id="success-order-id" class="font-mono"></span></p>
+        <p class="text-xs text-ink/75 mt-1">Revisamos tu comprobante y te avisamos por correo cuando tu pago quede confirmado. Puedes ver tu pedido en "Mi cuenta".</p>
       </div>
 
       <div id="success-bank-details" class="hidden rounded-lg border border-lilac/30 bg-blush/20 p-3">
