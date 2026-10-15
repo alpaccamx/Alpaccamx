@@ -344,6 +344,7 @@
       o.customer?.municipio,
       orderNumber(o),
       o.supplierOrderNumber,
+      o.cupon,
       ...((o.items || []).map((it) => it.nombre)),
       ...((o.items || []).map((it) => itemMarca(it))),
     ].filter(Boolean).join(" ").toLowerCase();
@@ -1523,6 +1524,7 @@ ${itemLines}
     const { pieces } = orderPiecesAndWeight(o);
     const extra = [bucketChipHTML(o)];
     if (isEntregaPersonal(o)) extra.push(`<span class="badge" style="background:#fde7ee;color:#9b2c4f;">📍 Entrega personal</span>`);
+    if (o.pedidoCompartido) extra.push(`<span class="badge" style="background:#ede7fb;color:#5b3fa0;">👯 Compartido ${escapeHtml(o.cupon || "")}</span>`);
     return `
       <button type="button" class="card-summary" data-card-toggle="${o.id}" aria-expanded="${expanded ? "true" : "false"}" aria-controls="card-body-${o.id}">
         <span>
@@ -3807,7 +3809,7 @@ ${itemLines}
 
   /* ---------- Cupones (admin-coupons; ver lib/coupons.js) ---------- */
   let coupons = [];
-  const couponDesc = (c) => `${c.tipo === "pct" ? `${c.valor}%${c.tope ? ` (máx. ${formatPrice(c.tope)})` : ""}` : formatPrice(c.valor)} · ${{ tienda: "Tienda", swm: "Dirección americana", ambos: "Tienda y dirección americana" }[c.aplica]}${c.minimo ? ` · mínimo ${formatPrice(c.minimo)}` : ""}${c.unaVez ? " · una vez por clienta" : ""}${c.usosMax ? ` · ${c.usosMax} usos en total` : ""}${c.desde || c.hasta ? ` · ${c.desde || "…"} a ${c.hasta || "…"}` : ""}`;
+  const couponDesc = (c) => `${c.sinMinimo ? "👯 Pedido compartido de Corea (sin mínimo)" + (c.valor ? " · " : "") : ""}${!c.valor && c.sinMinimo ? "" : c.tipo === "pct" ? `${c.valor}%${c.tope ? ` (máx. ${formatPrice(c.tope)})` : ""}` : formatPrice(c.valor)} · ${{ tienda: "Tienda", swm: "Dirección americana", ambos: "Tienda y dirección americana" }[c.aplica]}${c.minimo ? ` · mínimo ${formatPrice(c.minimo)}` : ""}${c.unaVez ? " · una vez por clienta" : ""}${c.usosMax ? ` · ${c.usosMax} usos en total` : ""}${c.desde || c.hasta ? ` · ${c.desde || "…"} a ${c.hasta || "…"}` : ""}`;
 
   async function loadCoupons() {
     const list = document.getElementById("coupons-list");
@@ -3838,6 +3840,7 @@ ${itemLines}
     const set = (k, v) => { const el = f.querySelector(`[name="${k}"]`); if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? ""; };
     ["code", "tipo", "valor", "tope", "aplica", "minimo", "usosMax", "desde", "hasta", "nota"].forEach((k) => set(k, c[k] || (k === "tipo" ? "pct" : k === "aplica" ? "ambos" : "")));
     set("unaVez", c.unaVez);
+    set("sinMinimo", c.sinMinimo);
     f.querySelector('[name="code"]').readOnly = !!c.code;
     f.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -3845,7 +3848,9 @@ ${itemLines}
   async function saveCouponFrom(form, extra = {}) {
     const fd = Object.fromEntries(new FormData(form).entries());
     const prev = coupons.find((c) => c.code === String(fd.code || "").trim().toUpperCase());
-    const cupon = { ...fd, unaVez: form.querySelector('[name="unaVez"]').checked, activo: prev ? prev.activo : true, ...extra };
+    const sinMinimo = form.querySelector('[name="sinMinimo"]').checked;
+    // Un pedido compartido nuevo nace en pausa: Mae lo activa cuando abre la dinámica.
+    const cupon = { ...fd, unaVez: form.querySelector('[name="unaVez"]').checked, sinMinimo, activo: prev ? prev.activo : !sinMinimo, ...extra };
     const res = await fetch("/.netlify/functions/admin-coupons", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
@@ -3863,7 +3868,7 @@ ${itemLines}
     btn.disabled = true;
     try {
       const c = await saveCouponFrom(form);
-      showToast(`🎟️ Cupón ${c.code} guardado.`);
+      showToast(c.activo ? `🎟️ Cupón ${c.code} guardado.` : `🎟️ ${c.code} guardado en pausa. Tócale "Activar" cuando quieras abrirlo.`);
       form.reset();
       form.querySelector('[name="code"]').readOnly = false;
       await loadCoupons();

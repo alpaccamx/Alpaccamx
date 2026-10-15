@@ -139,9 +139,23 @@ exports.handler = async (event) => {
     return jsonResponse(503, { error: "No pudimos revisar el stock en este momento. Intenta de nuevo en un momento." });
   }
 
+  // Cupón: se lee antes de calcular precios porque el de "pedido
+  // compartido" quita el pedido mínimo de Corea.
+  let couponDoc = null;
+  if (body.coupon) {
+    try {
+      couponDoc = await getCoupon(body.coupon);
+    } catch (err) {
+      console.error("No se pudo leer el cupón:", err);
+      return jsonResponse(503, { error: "No pudimos revisar tu cupón en este momento. Intenta de nuevo." });
+    }
+    const pre = checkCoupon(couponDoc, { email: customerEmail, ambito: "tienda", base: Infinity });
+    if (!pre.ok) return jsonResponse(409, { error: `${pre.error} Quítalo e intenta de nuevo.` });
+  }
+
   let priced;
   try {
-    priced = await priceOrder({ source, items: requested, customer, soldMap });
+    priced = await priceOrder({ source, items: requested, customer, soldMap, sinMinimo: !!(couponDoc && couponDoc.sinMinimo) });
   } catch (err) {
     console.error("No se pudieron cargar precios y envíos:", err);
     return jsonResponse(503, { error: "No pudimos cargar los precios en este momento. Intenta de nuevo en un momento." });
@@ -153,14 +167,8 @@ exports.handler = async (event) => {
   // Cupón: descuento sobre los productos (nunca sobre el envío).
   let cupon = null;
   let descuento = 0;
-  if (body.coupon) {
-    let c;
-    try {
-      c = await getCoupon(body.coupon);
-    } catch (err) {
-      console.error("No se pudo leer el cupón:", err);
-      return jsonResponse(503, { error: "No pudimos revisar tu cupón en este momento. Intenta de nuevo." });
-    }
+  if (couponDoc) {
+    const c = couponDoc;
     const check = checkCoupon(c, { email: customerEmail, ambito: "tienda", base: priced.subtotalBase });
     if (!check.ok) return jsonResponse(409, { error: `${check.error} Quítalo e intenta de nuevo.` });
     descuento = discountFor(c, priced.subtotal);
@@ -241,6 +249,7 @@ exports.handler = async (event) => {
     cardFeeMXN: priced.cardFeeMXN,
     grandTotal: priced.grandTotal,
     ...(cupon ? { cupon, descuento } : {}),
+    ...(couponDoc && couponDoc.sinMinimo ? { pedidoCompartido: true } : {}),
     shippingKoreaMXN: priced.shippingKoreaMXN,
     shippingNacionalMXN: priced.shippingNacionalMXN,
     shippingKoreaMXNTarjeta: priced.shippingKoreaMXNTarjeta,

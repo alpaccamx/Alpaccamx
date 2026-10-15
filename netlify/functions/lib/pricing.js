@@ -421,7 +421,7 @@ const round2 = (n) => Math.round(n * 100) / 100;
    items: [{ sku, qty, enStock }] tal como los manda el navegador (solo se
    usan sku, qty y enStock; el precio y el peso se buscan aquí).
    soldMap: Map(sku -> piezas vendidas) para descontar del stock. */
-async function priceOrder({ source, items, customer, soldMap }) {
+async function priceOrder({ source, items, customer, soldMap, sinMinimo = false }) {
   const { catalog, stock, state } = await loadPricingData();
   const useTarjeta = source === "mercadopago";
 
@@ -491,7 +491,7 @@ async function priceOrder({ source, items, customer, soldMap }) {
 
   const hasNonStock = lines.some((l) => !l.enStock);
   const nonStockBaseTotal = lines.reduce((s, l) => s + (l.enStock ? 0 : l.precioBase * l.qty), 0);
-  if (hasNonStock && nonStockBaseTotal < MIN_ORDER_MXN) {
+  if (hasNonStock && !sinMinimo && nonStockBaseTotal < MIN_ORDER_MXN) {
     return { ok: false, status: 400, error: `Tu pedido todavía no llega al mínimo de $${MIN_ORDER_MXN.toLocaleString("es-MX")} en productos de Corea.` };
   }
 

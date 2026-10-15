@@ -10,6 +10,9 @@
 // - usosMax: usos totales (0 = sin límite); unaVez: una vez por clienta.
 // - desde / hasta: "AAAA-MM-DD" (hasta incluye todo ese día, hora de Juárez).
 // El descuento nunca toca el envío de la tienda.
+// - sinMinimo: "pedido compartido de Corea": quita el pedido mínimo de
+//   productos de Corea (solo tienda). Puede no tener descuento (valor 0).
+//   Mae lo activa o lo pausa cuando abre o cierra la dinámica.
 
 const { getStore } = require("@netlify/blobs");
 const { blobsClientOptions } = require("./blob-store.js");
@@ -45,6 +48,7 @@ function limpiar(c) {
     hasta: fecha(c.hasta),
     activo: c.activo !== false,
     nota: String(c.nota || "").slice(0, 200),
+    sinMinimo: !!c.sinMinimo,
   };
 }
 
@@ -63,7 +67,8 @@ async function getCoupon(code) {
 async function saveCoupon(input) {
   const c = limpiar(input);
   if (!c.code || c.code.length < 3) throw new Error("El código debe tener al menos 3 letras o números.");
-  if (!(c.valor > 0)) throw new Error("Pon el descuento.");
+  if (c.sinMinimo) c.aplica = "tienda";
+  if (!(c.valor > 0) && !c.sinMinimo) throw new Error("Pon el descuento.");
   const s = store();
   for (let attempt = 0; attempt < 6; attempt++) {
     const cur = await s.getWithMetadata(key(c.code), { type: "json" });
@@ -108,7 +113,7 @@ function discountFor(c, monto) {
 
 /* Lo que ve la clienta antes de usarlo (sin datos de uso). */
 function publicTerms(c) {
-  return { code: c.code, tipo: c.tipo, valor: c.valor, tope: c.tope, minimo: c.minimo, aplica: c.aplica };
+  return { code: c.code, tipo: c.tipo, valor: c.valor, tope: c.tope, minimo: c.minimo, aplica: c.aplica, sinMinimo: !!c.sinMinimo };
 }
 
 /* Cuenta un uso (se llama al registrar el pedido o aplicar el cupón).
