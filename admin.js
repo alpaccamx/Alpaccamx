@@ -3809,7 +3809,48 @@ ${itemLines}
 
   /* ---------- Cupones (admin-coupons; ver lib/coupons.js) ---------- */
   let coupons = [];
-  const couponDesc = (c) => `${c.sinMinimo ? "👯 Pedido compartido de Corea (sin mínimo)" + (c.valor ? " · " : "") : ""}${!c.valor && c.sinMinimo ? "" : c.tipo === "pct" ? `${c.valor}%${c.tope ? ` (máx. ${formatPrice(c.tope)})` : ""}` : formatPrice(c.valor)} · ${{ tienda: "Tienda", swm: "Dirección americana", ambos: "Tienda y dirección americana" }[c.aplica]}${c.minimo ? ` · mínimo ${formatPrice(c.minimo)}` : ""}${c.unaVez ? " · una vez por clienta" : ""}${c.usosMax ? ` · ${c.usosMax} usos en total` : ""}${c.desde || c.hasta ? ` · ${c.desde || "…"} a ${c.hasta || "…"}` : ""}`;
+  const couponDesc = (c) => `${c.sinMinimo ? "👯 Pedido compartido de Corea (sin mínimo)" + (c.valor ? " · " : "") : ""}${!c.valor && c.sinMinimo ? "" : c.tipo === "pct" ? `${c.valor}%${c.tope ? ` (máx. ${formatPrice(c.tope)})` : ""}` : formatPrice(c.valor)} · ${{ tienda: "Tienda", swm: "Dirección americana", ambos: "Tienda y dirección americana" }[c.aplica]}${c.minimo ? ` · mínimo ${formatPrice(c.minimo)}` : ""}${c.unaVez ? " · una vez por clienta" : ""}${c.usosMax ? ` · ${c.usosMax} usos en total` : ""}`;
+
+  /* Temporizador: "desde"/"hasta" son "AAAA-MM-DD" o "AAAA-MM-DDTHH:MM" en
+     hora de Ciudad Juárez (igual que lib/coupons.js). */
+  function ahoraJuarez() {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Ciudad_Juarez", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(new Date()).map((x) => [x.type, x.value]));
+    return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+  }
+  const couponIni = (c) => (c.desde ? (c.desde.length === 10 ? `${c.desde}T00:00` : c.desde) : "");
+  const couponFin = (c) => (c.hasta ? (c.hasta.length === 10 ? `${c.hasta}T23:59` : c.hasta) : "");
+  function couponFecha(v) {
+    const [d, t] = v.split("T");
+    const [y, m, dd] = d.split("-").map(Number);
+    const [hh, mi] = t.split(":").map(Number);
+    const dia = new Date(Date.UTC(y, m - 1, dd, 12)).toLocaleDateString("es-MX", { day: "numeric", month: "short", timeZone: "UTC" });
+    const h12 = hh % 12 || 12;
+    return `${dia}, ${h12}:${String(mi).padStart(2, "0")} ${hh < 12 ? "a.m." : "p.m."}`;
+  }
+  /* Minutos entre dos "AAAA-MM-DDTHH:MM" (misma zona). */
+  const minsEntre = (a, b) => Math.round((Date.parse(`${b}:00Z`) - Date.parse(`${a}:00Z`)) / 60000);
+  function enCuanto(min) {
+    if (min < 60) return `${min} min`;
+    if (min < 48 * 60) return `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ""}`;
+    return `${Math.round(min / 1440)} días`;
+  }
+  /* Etiqueta del temporizador y si ahorita está vigente por fechas. */
+  function couponTimer(c) {
+    const ahora = ahoraJuarez();
+    const ini = couponIni(c), fin = couponFin(c);
+    if (fin && ahora >= fin && !(c.hasta.length === 10 && ahora.slice(0, 10) <= c.hasta)) return { html: `<span class="badge" style="background:#eee;color:#666;">⌛ Venció el ${couponFecha(fin)}</span>`, vigente: false };
+    if (ini && ahora < ini) return { html: `<span class="badge" style="background:#fff4d6;color:#8a5a00;">🕒 Se activa el ${couponFecha(ini)} (en ${enCuanto(minsEntre(ahora, ini))})</span>`, vigente: false };
+    if (fin) return { html: `<span class="badge" style="background:#e7f6ec;color:#1e6b3a;">⏰ Se desactiva el ${couponFecha(fin)} (en ${enCuanto(minsEntre(ahora, fin))})</span>`, vigente: true };
+    return { html: "", vigente: true };
+  }
+
+  // Los letreros del temporizador ("en 2 h 10 min") se actualizan solos.
+  setInterval(() => {
+    const v = document.getElementById("coupons-view");
+    if (v && v.style.display !== "none" && coupons.length) renderCoupons();
+  }, 60000);
 
   async function loadCoupons() {
     const list = document.getElementById("coupons-list");
@@ -3828,7 +3869,8 @@ ${itemLines}
   function renderCoupons() {
     document.getElementById("coupons-list").innerHTML = coupons.length
       ? coupons.map((c) => `<div class="trash-row"><div class="who"><b>${escapeHtml(c.code)}</b>${c.activo ? "" : ' <span class="badge">Pausado</span>'} · ${escapeHtml(couponDesc(c))}
-          <small>Usado ${c.usos || 0} ${c.usos === 1 ? "vez" : "veces"}${c.nota ? ` · ${escapeHtml(c.nota)}` : ""}</small></div>
+          <small>Usado ${c.usos || 0} ${c.usos === 1 ? "vez" : "veces"}${c.nota ? ` · ${escapeHtml(c.nota)}` : ""}</small>
+          ${c.activo ? couponTimer(c).html : ""}</div>
           <button type="button" class="btn-secondary" data-coupon-edit="${escapeHtml(c.code)}">✏️ Editar</button>
           <button type="button" class="btn-secondary" data-coupon-toggle="${escapeHtml(c.code)}">${c.activo ? "Pausar" : "Activar"}</button>
           <button type="button" class="btn-danger" data-coupon-delete="${escapeHtml(c.code)}">Borrar</button></div>`).join("")
@@ -3838,7 +3880,9 @@ ${itemLines}
   function fillCouponForm(c) {
     const f = document.getElementById("coupon-form");
     const set = (k, v) => { const el = f.querySelector(`[name="${k}"]`); if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? ""; };
-    ["code", "tipo", "valor", "tope", "aplica", "minimo", "usosMax", "desde", "hasta", "nota"].forEach((k) => set(k, c[k] || (k === "tipo" ? "pct" : k === "aplica" ? "ambos" : "")));
+    ["code", "tipo", "valor", "tope", "aplica", "minimo", "usosMax", "nota"].forEach((k) => set(k, c[k] || (k === "tipo" ? "pct" : k === "aplica" ? "ambos" : "")));
+    set("desde", couponIni(c));
+    set("hasta", couponFin(c));
     set("unaVez", c.unaVez);
     set("sinMinimo", c.sinMinimo);
     f.querySelector('[name="code"]').readOnly = !!c.code;
@@ -3849,8 +3893,9 @@ ${itemLines}
     const fd = Object.fromEntries(new FormData(form).entries());
     const prev = coupons.find((c) => c.code === String(fd.code || "").trim().toUpperCase());
     const sinMinimo = form.querySelector('[name="sinMinimo"]').checked;
-    // Un pedido compartido nuevo nace en pausa: Mae lo activa cuando abre la dinámica.
-    const cupon = { ...fd, unaVez: form.querySelector('[name="unaVez"]').checked, sinMinimo, activo: prev ? prev.activo : !sinMinimo, ...extra };
+    // Un pedido compartido nuevo nace en pausa (Mae lo activa cuando abre la
+    // dinámica), salvo que tenga hora para activarse solo.
+    const cupon = { ...fd, unaVez: form.querySelector('[name="unaVez"]').checked, sinMinimo, activo: prev ? prev.activo : !sinMinimo || !!fd.desde, ...extra };
     const res = await fetch("/.netlify/functions/admin-coupons", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-admin-key": adminKey },

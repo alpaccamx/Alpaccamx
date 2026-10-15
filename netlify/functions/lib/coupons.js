@@ -8,7 +8,9 @@
 // - monto: pesos de descuento (nunca más que el total).
 // - minimo: compra mínima en pesos (sobre el precio de transferencia).
 // - usosMax: usos totales (0 = sin límite); unaVez: una vez por clienta.
-// - desde / hasta: "AAAA-MM-DD" (hasta incluye todo ese día, hora de Juárez).
+// - desde / hasta: "AAAA-MM-DD" o "AAAA-MM-DDTHH:MM", hora de Ciudad Juárez.
+//   Sin hora, "hasta" incluye todo ese día y "desde" empieza a las 00:00.
+//   Con hora, el cupón se activa / se desactiva solo a esa hora.
 // El descuento nunca toca el envío de la tienda.
 // - sinMinimo: "pedido compartido de Corea": quita el pedido mínimo de
 //   productos de Corea (solo tienda). Puede no tener descuento (valor 0).
@@ -27,14 +29,17 @@ function store() {
 const normCode = (c) => String(c || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 30);
 const key = (code) => `c/${normCode(code)}`;
 
-/* Fecha de hoy en Ciudad Juárez, "AAAA-MM-DD". */
-function hoyJuarez() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Ciudad_Juarez", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+/* Fecha y hora de ahorita en Ciudad Juárez, "AAAA-MM-DDTHH:MM". */
+function ahoraJuarez() {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Ciudad_Juarez", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date()).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
 
 function limpiar(c) {
   const tipo = c.tipo === "monto" ? "monto" : "pct";
-  const fecha = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? String(v) : "");
+  const fecha = (v) => (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(String(v || "").slice(0, 16)) ? String(v).slice(0, 16) : "");
   return {
     code: normCode(c.code),
     tipo,
@@ -91,9 +96,9 @@ function checkCoupon(c, { email, ambito, base }) {
   if (c.aplica !== "ambos" && c.aplica !== ambito) {
     return { ok: false, error: c.aplica === "swm" ? "Ese cupón es solo para la dirección americana." : "Ese cupón es solo para la tienda." };
   }
-  const hoy = hoyJuarez();
-  if (c.desde && hoy < c.desde) return { ok: false, error: "Ese cupón todavía no empieza." };
-  if (c.hasta && hoy > c.hasta) return { ok: false, error: "Ese cupón ya venció." };
+  const ahora = ahoraJuarez();
+  if (c.desde && ahora < (c.desde.length === 10 ? `${c.desde}T00:00` : c.desde)) return { ok: false, error: "Ese cupón todavía no empieza." };
+  if (c.hasta && (c.hasta.length === 10 ? ahora.slice(0, 10) > c.hasta : ahora >= c.hasta)) return { ok: false, error: "Ese cupón ya venció." };
   if (c.usosMax && (c.usos || 0) >= c.usosMax) return { ok: false, error: "Ese cupón ya se agotó." };
   const who = String(email || "").toLowerCase();
   if (c.unaVez && who && (c.usadoPor || []).includes(who)) return { ok: false, error: "Ya usaste este cupón." };
@@ -113,7 +118,7 @@ function discountFor(c, monto) {
 
 /* Lo que ve la clienta antes de usarlo (sin datos de uso). */
 function publicTerms(c) {
-  return { code: c.code, tipo: c.tipo, valor: c.valor, tope: c.tope, minimo: c.minimo, aplica: c.aplica, sinMinimo: !!c.sinMinimo };
+  return { code: c.code, tipo: c.tipo, valor: c.valor, tope: c.tope, minimo: c.minimo, aplica: c.aplica, sinMinimo: !!c.sinMinimo, hasta: c.hasta || "" };
 }
 
 /* Cuenta un uso (se llama al registrar el pedido o aplicar el cupón).
