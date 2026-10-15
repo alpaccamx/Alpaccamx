@@ -75,34 +75,44 @@ async function mutateRecord(kind, id, mutate) {
 /* Código de casillero de cada clienta: "ALP-" + su nombre (ALP-ANA LOPEZ).
    Va en el "Last name" de la dirección americana, así Mae sabe de quién
    es un paquete aunque no lo hayan registrado y el repartidor no ve nada
-   raro en la dirección. Nunca se repite y no lleva números: si ya existe,
-   se usa su nombre completo (ALP-ANA LOPEZ GARCIA) y si aun así existe, se
-   agrega una letra (ALP-ANA LOPEZ B, C...). Se asigna la primera vez que
+   raro en la dirección. Máximo 15 caracteres. Nunca se repite y no lleva
+   números: si ya existe, se usa su otro apellido (ALP-ANA GARCIA) y si aun
+   así existe, se agrega una letra (ALP-ANA LOPE B, C...). Se asigna la primera vez que
    abre su casillero y ya no cambia; "casillero-code/<código>" sirve para
    buscarla por código. */
 const casKey = (email) => `casillero/${encodeURIComponent(String(email).toLowerCase())}`;
 const codeKey = (code) => `casillero-code/${encodeURIComponent(String(code).toUpperCase())}`;
-const OLD_CODE = /\d/; // los primeros códigos llevaban número; se cambian por el de nombre
 
 const cleanName = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z ]+/g, " ").replace(/\s+/g, " ").trim();
+
+/* Máximo 15 caracteres en total ("ALP-" + 11): cabe en el apellido de
+   cualquier tienda de EE.UU. y en la guía de la paquetería. */
+const CODE_MAX = 15;
+const cut = (t, n) => t.slice(0, n).trim();
 
 function codeCandidates(name, email) {
   let words = cleanName(name).split(" ").filter(Boolean);
   if (!words.length) words = cleanName(String(email).split("@")[0]).split(" ").filter(Boolean);
   if (!words.length) words = ["CLIENTA"];
-  const short = words.length > 2 ? [words[0], words[words.length > 3 ? 2 : 1]] : words;
-  const bases = [...new Set([short.join(" "), words.slice(0, 4).join(" ")].map((b) => `ALP-${b.slice(0, 32).trim()}`))];
-  const out = [...bases];
+  const room = CODE_MAX - 4;
+  const first = words[0];
+  const surnames = words.length > 2 ? [words[words.length > 3 ? 2 : 1], words[words.length - 1]] : words.slice(1);
+  const bases = [...new Set([
+    cut([first, surnames[0]].filter(Boolean).join(" "), room),
+    ...(surnames[1] ? [cut(`${first} ${surnames[1]}`, room), cut(`${first} ${surnames[0][0]}${surnames[1][0]}`, room)] : []),
+  ])];
+  const out = bases.map((b) => `ALP-${b}`);
   const letters = "BCDEFGHJKLMNPQRSTUVWXYZ";
-  for (const l of letters) out.push(`${bases[0]} ${l}`);
-  for (const l1 of letters) for (const l2 of letters) out.push(`${bases[0]} ${l1}${l2}`);
+  for (const l of letters) out.push(`ALP-${cut(bases[0], room - 2)} ${l}`);
+  for (const l1 of letters) for (const l2 of letters) out.push(`ALP-${cut(bases[0], room - 3)} ${l1}${l2}`);
   return out;
 }
 
 async function casilleroDe(email, name) {
   const s = store();
   const cur = await s.get(casKey(email), { type: "json" });
-  if (cur && cur.code && !OLD_CODE.test(cur.code)) return cur.code;
+  // Los primeros códigos llevaban número o eran más largos: se cambian.
+  if (cur && cur.code && !/\d/.test(cur.code) && cur.code.length <= CODE_MAX) return cur.code;
   let code = "";
   for (const c of codeCandidates(name, email)) {
     const res = await s.setJSON(codeKey(c), { email }, { onlyIfNew: true });
