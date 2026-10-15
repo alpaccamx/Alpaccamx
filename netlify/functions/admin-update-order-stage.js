@@ -7,7 +7,9 @@
 //
 // Body esperado (JSON):
 //   { orderIds: ["..."], stage: "pedido_abw", supplierOrderNumber?: "10293-AB" }
-// (también acepta { orderId } para uno solo). Si viene supplierOrderNumber
+// (también acepta { orderId } para uno solo).
+//   { orderId, entregaPersonal: true|false } -> solo marca o quita la
+//   entrega personal en Ciudad Juárez (sin envío nacional). Si viene supplierOrderNumber
 // se guarda en todos esos pedidos -- así una sola compra en ABW queda
 // anotada en todos los pedidos que surte.
 
@@ -40,6 +42,17 @@ exports.handler = async (event) => {
   const ids = [...new Set((Array.isArray(body.orderIds) ? body.orderIds : [body.orderId]).filter(Boolean).map(String))];
   const stage = String(body.stage || "");
   if (!ids.length) return jsonResponse(400, { error: "Falta orderId." });
+  if (typeof body.entregaPersonal === "boolean" && !stage) {
+    try {
+      const existing = await getOrder(ids[0]);
+      if (!existing) return jsonResponse(404, { error: "Ese pedido no existe." });
+      const customer = { ...(existing.customer || {}), entregaPersonal: body.entregaPersonal };
+      return jsonResponse(200, { orders: [await updateOrderFields(ids[0], { customer })] });
+    } catch (err) {
+      console.error("Error marcando entrega personal:", err);
+      return jsonResponse(500, { error: "No se pudo guardar." });
+    }
+  }
   if (ids.length > MAX_ORDERS) return jsonResponse(400, { error: `Máximo ${MAX_ORDERS} pedidos a la vez.` });
   if (!STAGES.includes(stage)) return jsonResponse(400, { error: "Etapa no válida." });
   const supplierOrderNumber =

@@ -14,7 +14,7 @@ const SWM_KILO_EXTRA = 120;
 const SWM_COMISION_PCT = 15;
 
 /* Dirección americana. En el "Last name" va el código de casillero de la
-   clienta (ALP-ANA LOPEZ): así Mae sabe de quién es cada paquete que
+   clienta (ALP-ANA L): así Mae sabe de quién es cada paquete que
    llega, aunque no lo hayan registrado, y la dirección queda limpia para
    el repartidor. */
 const SWM_ADDRESS = {
