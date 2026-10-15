@@ -3615,6 +3615,149 @@ ${itemLines}
   let trashLoaded = false;
   let trashOrders = [];
 
+  /* ---------- Revisión ABW ----------
+     Claude sube por marca lo que cambió en ABW (admin-abw-revision); aquí
+     Mae lo aplica al Sheet (admin-append-catalog-rows con "updates") o lo
+     ignora. */
+  let revisionData = { marcas: {} };
+  let revisionTab = "";
+  const REV_TIPOS = {
+    sube: "💲 Subió de precio",
+    baja: "💲 Bajó de precio",
+    agotado: "⛔ Se agotó",
+    disponible: "✅ Volvió a haber",
+    no_existe: "❓ Ya no está en ABW",
+  };
+  const revKind = (c) => (c.tipo === "precio" ? ((c.despues.usd || 0) > (c.antes.usd || 0) ? "sube" : "baja") : c.tipo);
+  const revKey = (marca, c) => `${marca}|${c.sku}|${c.tipo}`;
+
+  async function loadRevision() {
+    const listEl = document.getElementById("revision-list");
+    listEl.innerHTML = `<p class="abw-intro">Cargando…</p>`;
+    try {
+      const res = await fetch("/.netlify/functions/admin-abw-revision", { headers: { "x-admin-key": adminKey }, cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo cargar la revisión.");
+      revisionData = data;
+      renderRevision();
+    } catch (err) {
+      listEl.innerHTML = `<p class="guide-error" style="display:block;">${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  function revisionChanges() {
+    const out = [];
+    Object.entries(revisionData.marcas || {}).forEach(([marca, m]) => (m.cambios || []).forEach((c) => out.push({ marca, c, kind: revKind(c) })));
+    return out;
+  }
+
+  function updateRevisionBadge() {
+    const n = revisionChanges().length;
+    const b = document.getElementById("revision-badge");
+    if (b) { b.textContent = n; b.style.display = n ? "" : "none"; }
+  }
+
+  function renderRevision() {
+    const all = revisionChanges();
+    const marcas = Object.entries(revisionData.marcas || {});
+    const counts = {};
+    all.forEach((x) => { counts[x.kind] = (counts[x.kind] || 0) + 1; });
+    const last = revisionData.updatedAt ? formatFecha(revisionData.updatedAt) : "";
+    document.getElementById("revision-summary").innerHTML = marcas.length
+      ? `<p class="abw-intro" style="margin-top:0;">${marcas.length} marca${marcas.length === 1 ? "" : "s"} revisada${marcas.length === 1 ? "" : "s"}${last ? ` · última actualización ${escapeHtml(last)}` : ""} · <b>${all.length} cambio${all.length === 1 ? "" : "s"} por revisar</b></p>`
+      : `<p class="abw-intro" style="margin-top:0;">Todavía no hay ninguna revisión. Pídele a Claude "revisa precios en ABW".</p>`;
+    document.getElementById("revision-tabs").innerHTML = all.length
+      ? [["", `Todos (${all.length})`], ...Object.entries(REV_TIPOS).filter(([k]) => counts[k]).map(([k, l]) => [k, `${l} (${counts[k]})`])]
+          .map(([k, l]) => `<button type="button" class="tab${k === revisionTab ? " active" : ""}" aria-pressed="${k === revisionTab}" data-rev-tab="${k}">${l}</button>`).join("")
+      : "";
+    const shown = all.filter((x) => !revisionTab || x.kind === revisionTab);
+    const usd = (v) => (v == null ? "—" : `US$${Number(v).toFixed(2)}`);
+    const byBrand = new Map();
+    shown.forEach((x) => byBrand.set(x.marca, [...(byBrand.get(x.marca) || []), x]));
+    document.getElementById("revision-list").innerHTML = [...byBrand.entries()].map(([marca, rows]) => {
+      const m = revisionData.marcas[marca] || {};
+      return `<h3 class="rev-brand"><span>${escapeHtml(marca)}</span><small>revisada ${escapeHtml(formatFecha(m.fecha))} · ${m.revisados || 0} productos</small></h3>
+        ${rows.map(({ c, kind }) => {
+          const chg = c.tipo === "precio"
+            ? `<span class="${kind === "sube" ? "rev-up" : "rev-down"}">${usd(c.antes.usd)} → <b>${usd(c.despues.usd)}</b></span>`
+            : c.tipo === "disponible" ? `Disponible: NO → <b>SI</b>` : `Disponible: ${escapeHtml(c.antes.disp || "SI")} → <b>NO</b>`;
+          return `<label class="rev-row"><input type="checkbox" checked data-rev-key="${escapeHtml(revKey(marca, c))}">
+            <span class="what">${escapeHtml(c.nombre)}<small>${escapeHtml(c.presentacion || "")} · SKU ${escapeHtml(c.sku)} · ${REV_TIPOS[kind]}</small></span>
+            <span class="chg">${chg}</span></label>`;
+        }).join("")}`;
+    }).join("") || (all.length ? "" : `<p class="abw-intro">🎉 No hay cambios pendientes.</p>`);
+    document.getElementById("revision-actions").style.display = shown.length ? "" : "none";
+    updateRevisionBadge();
+  }
+
+  function selectedRevision() {
+    const keys = new Set([...document.querySelectorAll("#revision-list [data-rev-key]:checked")].map((i) => i.dataset.revKey));
+    return revisionChanges().filter((x) => keys.has(revKey(x.marca, x.c)));
+  }
+
+  async function quitarRevision(sel) {
+    const res = await fetch("/.netlify/functions/admin-abw-revision", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+      body: JSON.stringify({ quitar: sel.map((x) => ({ marca: x.marca, sku: x.c.sku, tipo: x.c.tipo })) }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "No se pudo actualizar la revisión.");
+  }
+
+  async function applyRevision(ignore) {
+    const sel = selectedRevision();
+    if (!sel.length) { showToast("Selecciona al menos un cambio."); return; }
+    if (!ignore && !window.confirm(`¿Aplicar ${sel.length} cambio${sel.length === 1 ? "" : "s"} a tu Sheet?`)) return;
+    const btn = document.getElementById(ignore ? "revision-ignore" : "revision-apply");
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = ignore ? "Quitando…" : "Aplicando…";
+    try {
+      if (!ignore) {
+        // Un renglón por SKU con todas sus celdas.
+        const bySku = new Map();
+        sel.forEach(({ c }) => {
+          const f = bySku.get(c.sku) || {};
+          if (c.tipo === "precio" && c.despues.usd != null) f["Precio USD"] = c.despues.usd;
+          if (c.tipo === "agotado" || c.tipo === "no_existe") f.Disponible = "NO";
+          if (c.tipo === "disponible") f.Disponible = "SI";
+          bySku.set(c.sku, f);
+        });
+        const updates = [...bySku.entries()].map(([sku, fields]) => ({ sku, fields }));
+        let skipped = 0;
+        for (let i = 0; i < updates.length; i += 1000) {
+          const res = await fetch("/.netlify/functions/admin-append-catalog-rows", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+            body: JSON.stringify({ updates: updates.slice(i, i + 1000) }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || "No se pudo actualizar el Sheet.");
+          skipped += (data.skipped || []).length;
+        }
+        showToast(`✅ ${updates.length - skipped} producto${updates.length - skipped === 1 ? "" : "s"} actualizado${updates.length - skipped === 1 ? "" : "s"} en el Sheet${skipped ? ` (${skipped} no se encontraron)` : ""}. La tienda se actualiza en unos minutos.`);
+      }
+      await quitarRevision(sel);
+      if (ignore) showToast(`Se quitaron ${sel.length} cambio${sel.length === 1 ? "" : "s"} de la lista.`);
+      await loadRevision();
+    } catch (err) {
+      showToast(`⚠️ ${err.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  }
+
+  document.getElementById("revision-tabs").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-rev-tab]");
+    if (!t) return;
+    revisionTab = t.dataset.revTab;
+    renderRevision();
+  });
+  document.getElementById("revision-apply").addEventListener("click", () => applyRevision(false));
+  document.getElementById("revision-ignore").addEventListener("click", () => applyRevision(true));
+
   async function loadTrash() {
     const listEl = document.getElementById("trash-list");
     listEl.innerHTML = `<p class="abw-intro">Cargando…</p>`;
@@ -4252,6 +4395,7 @@ ${itemLines}
     swm: { el: "swm-panel", title: "🇺🇸 Shop with Mae", nav: "mas" },
     ajustes: { el: "settings-view", title: "⚙️ Ajustes", nav: "mas" },
     papelera: { el: "trash-view", title: "🗑️ Papelera", nav: "mas" },
+    revision: { el: "revision-view", title: "🔄 Revisión ABW", nav: "mas" },
   };
   let currentView = "inicio";
 
@@ -4279,6 +4423,7 @@ ${itemLines}
     if (view === "catalogo") renderCatalogList();
     if (view === "ajustes") loadSettings();
     if (view === "papelera") loadTrash();
+    if (view === "revision") loadRevision();
     if (view === "mas") renderNotifyToggle();
     if (view !== "catalogo" && catalogEditing) closeCatalogEditor();
     if (view === "inventario" && !inventoryLoaded) loadInventory();
@@ -4293,7 +4438,7 @@ ${itemLines}
     loginBox.style.display = on ? "none" : "block";
     toolbar.style.display = on ? "flex" : "none";
     document.getElementById("logout-btn").style.display = on ? "inline-flex" : "none";
-    if (on) { showView("inicio"); startPolling(); loadSwm({ quiet: true }); }
+    if (on) { showView("inicio"); startPolling(); loadSwm({ quiet: true }); loadRevision(); }
     else stopPolling();
     if (!on) Object.values(VIEWS).forEach((v) => { document.getElementById(v.el).style.display = "none"; });
   }
