@@ -155,7 +155,11 @@ exports.handler = async (event) => {
 
   let priced;
   try {
-    priced = await priceOrder({ source, items: requested, customer, soldMap, sinMinimo: !!(couponDoc && couponDoc.sinMinimo) });
+    priced = await priceOrder({
+      source, items: requested, customer, soldMap,
+      sinMinimo: !!(couponDoc && couponDoc.sinMinimo),
+      koreaPorKgMXN: couponDoc && couponDoc.sinMinimo ? Number(couponDoc.envioKg) || 0 : 0,
+    });
   } catch (err) {
     console.error("No se pudieron cargar precios y envíos:", err);
     return jsonResponse(503, { error: "No pudimos cargar los precios en este momento. Intenta de nuevo en un momento." });
@@ -249,7 +253,7 @@ exports.handler = async (event) => {
     cardFeeMXN: priced.cardFeeMXN,
     grandTotal: priced.grandTotal,
     ...(cupon ? { cupon, descuento } : {}),
-    ...(couponDoc && couponDoc.sinMinimo ? { pedidoCompartido: true } : {}),
+    ...(couponDoc && couponDoc.sinMinimo ? { pedidoCompartido: true, ...(couponDoc.envioKg > 0 ? { envioKgCompartido: Number(couponDoc.envioKg) } : {}) } : {}),
     shippingKoreaMXN: priced.shippingKoreaMXN,
     shippingNacionalMXN: priced.shippingNacionalMXN,
     shippingKoreaMXNTarjeta: priced.shippingKoreaMXNTarjeta,

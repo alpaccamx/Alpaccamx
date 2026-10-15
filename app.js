@@ -1303,16 +1303,30 @@ function koreaParcelsUSD(parcels, useTarjeta = false) {
    pagan este tramo). Un número se toma como un solo envío. Si no se
    pasa, se asume un solo envío con pesoKg (compatibilidad). El envío
    nacional se sigue cotizando una sola vez con el peso total. */
+/* Pedido compartido con envío fijo por kg (ver koreaFlatMXN en
+   netlify/functions/lib/pricing.js; deben dar lo mismo). */
+function koreaPorKgCompartido() {
+  return typeof cartCoupon !== "undefined" && cartCoupon && cartCoupon.terms.sinMinimo ? Number(cartCoupon.terms.envioKg) || 0 : 0;
+}
+function koreaFlatMXN(parcels, porKgMXN, useTarjeta = false) {
+  const kg = parcels.reduce((s, x) => s + x, 0);
+  const pct = shippingSettings.transferDiscountPct || 0;
+  const rate = useTarjeta ? ceilTo(porKgMXN * (1 + pct / 100), 1) : porKgMXN;
+  return Math.round(kg * rate * 100) / 100;
+}
+
 function shippingEstimate(pesoKg, cp, korea = pesoKg) {
   if (pesoKg <= 0) return null;
   const parcels = (Array.isArray(korea) ? korea : [korea]).filter((kg) => kg > 0);
-  const hasKorea = parcels.length > 0 && shippingKoreaRates.tiers.length > 0 && shippingSettings.exchangeRate > 0;
+  const porKg = koreaPorKgCompartido();
+  const flat = porKg > 0;
+  const hasKorea = parcels.length > 0 && (flat || (shippingKoreaRates.tiers.length > 0 && shippingSettings.exchangeRate > 0));
   const nacionalMXN = nacionalShippingMXN(cp, pesoKg);
   const hasNacional = nacionalMXN !== null;
   if (!hasKorea && !hasNacional) return null;
 
-  const coreaUSD = hasKorea ? koreaParcelsUSD(parcels) : 0;
-  const coreaMXN = coreaUSD * (shippingSettings.exchangeRate || 0);
+  const coreaUSD = hasKorea && !flat ? koreaParcelsUSD(parcels) : 0;
+  const coreaMXN = !hasKorea ? 0 : flat ? koreaFlatMXN(parcels, porKg) : coreaUSD * (shippingSettings.exchangeRate || 0);
   const totalMXN = coreaMXN + (nacionalMXN || 0);
 
   // Precio de envío de referencia al pagar con tarjeta (Mercado Pago):
@@ -1322,15 +1336,15 @@ function shippingEstimate(pesoKg, cp, korea = pesoKg) {
   // también se cobra a través de la terminal, así que le aplica la misma
   // diferencia entre ambos métodos de pago.
   const nacionalMXNTarjeta = hasNacional ? nacionalShippingMXN(cp, pesoKg, true) || 0 : 0;
-  const coreaUSDTarjeta = hasKorea ? koreaParcelsUSD(parcels, true) : 0;
-  const coreaMXNTarjeta = coreaUSDTarjeta * (shippingSettings.exchangeRate || 0);
+  const coreaUSDTarjeta = hasKorea && !flat ? koreaParcelsUSD(parcels, true) : 0;
+  const coreaMXNTarjeta = !hasKorea ? 0 : flat ? koreaFlatMXN(parcels, porKg, true) : coreaUSDTarjeta * (shippingSettings.exchangeRate || 0);
   const totalMXNTarjeta = coreaMXNTarjeta + nacionalMXNTarjeta;
 
   return {
     hasKorea, hasNacional, coreaUSD,
     coreaMXN, nacionalMXN: nacionalMXN || 0, totalMXN,
     coreaMXNTarjeta, nacionalMXNTarjeta, totalMXNTarjeta,
-    coreaEnvios: hasKorea ? parcels.length : 0,
+    coreaEnvios: hasKorea ? (flat ? 1 : parcels.length) : 0,
   };
 }
 
@@ -4768,7 +4782,7 @@ function renderCouponUI() {
       msg.textContent = `Este cupón es para compras desde ${formatPrice(t.minimo)}.`;
       msg.className = "mt-1 text-xs text-rose-ink";
     } else if (t.sinMinimo && !(t.valor > 0)) {
-      msg.textContent = `👯 Pedido compartido de Corea activo: tu pedido no necesita llegar al mínimo.${t.hasta ? ` Termina el ${couponHastaTexto(t.hasta)} (hora de Cd. Juárez).` : ""}`;
+      msg.textContent = `👯 Pedido compartido de Corea activo: tu pedido no necesita llegar al mínimo${t.envioKg ? ` y el envío desde Corea es de ${formatPrice(t.envioKg)} por kg` : ""}.${t.hasta ? ` Termina el ${couponHastaTexto(t.hasta)} (hora de Cd. Juárez).` : ""}`;
       msg.className = "mt-1 text-xs text-green-800";
     } else {
       msg.textContent = `✅ ${t.sinMinimo ? "Pedido compartido de Corea (sin mínimo) + " : "Cupón aplicado: "}${t.tipo === "pct" ? `${t.valor}% de descuento en productos${t.tope ? ` (máx. ${formatPrice(t.tope)})` : ""}` : `${formatPrice(t.valor)} de descuento`}.${t.hasta ? ` Válido hasta el ${couponHastaTexto(t.hasta)} (hora de Cd. Juárez).` : ""}`;
@@ -4891,7 +4905,8 @@ function renderCart() {
     document.getElementById("cart-shipping-korea").textContent = formatPrice(shipping.coreaMXN);
     // Cada caja viaja en su propio envío: se avisa cuántos son.
     document.getElementById("cart-shipping-korea-label").textContent =
-      shipping.coreaEnvios > 1 ? `✈️ Envío Corea→México (${shipping.coreaEnvios} envíos)` : "✈️ Envío Corea→México";
+      koreaPorKgCompartido() ? `✈️ Envío Corea→México (${formatPrice(koreaPorKgCompartido())}/kg · ${formatWeight(cartKoreaParcels().reduce((t, x) => t + x, 0))})`
+        : shipping.coreaEnvios > 1 ? `✈️ Envío Corea→México (${shipping.coreaEnvios} envíos)` : "✈️ Envío Corea→México";
     koreaRow.classList.remove("hidden");
   } else {
     koreaRow.classList.add("hidden");

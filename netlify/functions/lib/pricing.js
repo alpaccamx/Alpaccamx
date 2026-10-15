@@ -335,28 +335,39 @@ function koreaParcelsUSD(state, parcels, useTarjeta = false) {
   return parcels.reduce((sum, kg) => sum + koreaShippingUSD(state, kg, useTarjeta), 0);
 }
 
-function shippingEstimate(state, pesoKg, cp, korea = pesoKg) {
+/* Envío Corea→México con tarifa fija por kg (pedido compartido): todo lo
+   de Corea por su peso exacto × la tarifa, sin la tabla de envíos. Con
+   tarjeta, la tarifa sube el mismo % que el resto. Igual en app.js. */
+function koreaFlatMXN(state, parcels, porKgMXN, useTarjeta = false) {
+  const kg = parcels.reduce((s, x) => s + x, 0);
+  const pct = state.settings.transferDiscountPct || 0;
+  const rate = useTarjeta ? ceilTo(porKgMXN * (1 + pct / 100), 1) : porKgMXN;
+  return Math.round(kg * rate * 100) / 100;
+}
+
+function shippingEstimate(state, pesoKg, cp, korea = pesoKg, koreaPorKgMXN = 0) {
   if (pesoKg <= 0) return null;
   const parcels = (Array.isArray(korea) ? korea : [korea]).filter((kg) => kg > 0);
-  const hasKorea = parcels.length > 0 && state.korea.tiers.length > 0 && state.settings.exchangeRate > 0;
+  const flat = koreaPorKgMXN > 0;
+  const hasKorea = parcels.length > 0 && (flat || (state.korea.tiers.length > 0 && state.settings.exchangeRate > 0));
   const nacionalMXN = nacionalShippingMXN(state, cp, pesoKg);
   const hasNacional = nacionalMXN !== null;
   if (!hasKorea && !hasNacional) return null;
 
-  const coreaUSD = hasKorea ? koreaParcelsUSD(state, parcels) : 0;
-  const coreaMXN = coreaUSD * (state.settings.exchangeRate || 0);
+  const coreaUSD = hasKorea && !flat ? koreaParcelsUSD(state, parcels) : 0;
+  const coreaMXN = !hasKorea ? 0 : flat ? koreaFlatMXN(state, parcels, koreaPorKgMXN) : coreaUSD * (state.settings.exchangeRate || 0);
   const totalMXN = coreaMXN + (nacionalMXN || 0);
 
   const nacionalMXNTarjeta = hasNacional ? nacionalShippingMXN(state, cp, pesoKg, true) || 0 : 0;
-  const coreaUSDTarjeta = hasKorea ? koreaParcelsUSD(state, parcels, true) : 0;
-  const coreaMXNTarjeta = coreaUSDTarjeta * (state.settings.exchangeRate || 0);
+  const coreaUSDTarjeta = hasKorea && !flat ? koreaParcelsUSD(state, parcels, true) : 0;
+  const coreaMXNTarjeta = !hasKorea ? 0 : flat ? koreaFlatMXN(state, parcels, koreaPorKgMXN, true) : coreaUSDTarjeta * (state.settings.exchangeRate || 0);
   const totalMXNTarjeta = coreaMXNTarjeta + nacionalMXNTarjeta;
 
   return {
     hasKorea, hasNacional, coreaUSD,
     coreaMXN, nacionalMXN: nacionalMXN || 0, totalMXN,
     coreaMXNTarjeta, nacionalMXNTarjeta, totalMXNTarjeta,
-    coreaEnvios: hasKorea ? parcels.length : 0,
+    coreaEnvios: hasKorea ? (flat ? 1 : parcels.length) : 0,
   };
 }
 
@@ -421,7 +432,7 @@ const round2 = (n) => Math.round(n * 100) / 100;
    items: [{ sku, qty, enStock }] tal como los manda el navegador (solo se
    usan sku, qty y enStock; el precio y el peso se buscan aquí).
    soldMap: Map(sku -> piezas vendidas) para descontar del stock. */
-async function priceOrder({ source, items, customer, soldMap, sinMinimo = false }) {
+async function priceOrder({ source, items, customer, soldMap, sinMinimo = false, koreaPorKgMXN = 0 }) {
   const { catalog, stock, state } = await loadPricingData();
   const useTarjeta = source === "mercadopago";
 
@@ -504,7 +515,7 @@ async function priceOrder({ source, items, customer, soldMap, sinMinimo = false 
   const entregaPersonal = !!(customer && customer.entregaPersonal) && isJuarezAddress(customer);
   let shipping = null;
   if (weight > 0) {
-    shipping = shippingEstimate(state, weight, cp, koreaParcels);
+    shipping = shippingEstimate(state, weight, cp, koreaParcels, koreaPorKgMXN);
     if (!shipping && !entregaPersonal) {
       return { ok: false, status: 400, error: "No pudimos calcular el envío para tu código postal. Revisa que esté bien escrito." };
     }
