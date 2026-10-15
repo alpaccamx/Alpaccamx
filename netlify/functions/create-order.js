@@ -40,6 +40,7 @@ const {
   claimIdempotencyKey, completeIdempotencyKey, releaseIdempotencyKey,
 } = require("./lib/blob-store.js");
 const { priceOrder, matchesClientTotals } = require("./lib/pricing.js");
+const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/coupons.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { notifySellerOrderCreated, notifyCustomerOrderPending } = require("./lib/whatsapp.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
@@ -149,6 +150,24 @@ exports.handler = async (event) => {
     return jsonResponse(priced.status, { error: priced.error });
   }
 
+  // Cupón: descuento sobre los productos (nunca sobre el envío).
+  let cupon = null;
+  let descuento = 0;
+  if (body.coupon) {
+    let c;
+    try {
+      c = await getCoupon(body.coupon);
+    } catch (err) {
+      console.error("No se pudo leer el cupón:", err);
+      return jsonResponse(503, { error: "No pudimos revisar tu cupón en este momento. Intenta de nuevo." });
+    }
+    const check = checkCoupon(c, { email: customerEmail, ambito: "tienda", base: priced.subtotalBase });
+    if (!check.ok) return jsonResponse(409, { error: `${check.error} Quítalo e intenta de nuevo.` });
+    descuento = discountFor(c, priced.subtotal);
+    cupon = c.code;
+    priced.grandTotal = Math.round((priced.grandTotal - descuento) * 100) / 100;
+  }
+
   if (!matchesClientTotals(priced, { subtotal, shippingMXN, grandTotal })) {
     return jsonResponse(409, {
       error: "Los precios o el envío cambiaron desde que armaste tu carrito. Recarga la página para ver los precios actuales.",
@@ -221,6 +240,7 @@ exports.handler = async (event) => {
     shippingMXNBase: priced.shippingMXNBase,
     cardFeeMXN: priced.cardFeeMXN,
     grandTotal: priced.grandTotal,
+    ...(cupon ? { cupon, descuento } : {}),
     shippingKoreaMXN: priced.shippingKoreaMXN,
     shippingNacionalMXN: priced.shippingNacionalMXN,
     shippingKoreaMXNTarjeta: priced.shippingKoreaMXNTarjeta,
@@ -236,6 +256,7 @@ exports.handler = async (event) => {
     if (idemKey) await releaseIdempotencyKey(idemKey);
     return jsonResponse(500, { error: "No se pudo guardar el pedido." });
   }
+  if (cupon) await redeemCoupon(cupon, customerEmail).catch((err) => console.error("No se pudo contar el uso del cupón:", err));
 
   // Avisos de "pedido nuevo, aún sin confirmar": al dueño y a la clienta.
   // Van DESPUÉS de que el pedido ya existe de verdad (preferencia de
@@ -265,13 +286,17 @@ exports.handler = async (event) => {
   // de saber en qué ambiente estamos es leer el host de la propia petición.
   const requestHost = (event.headers["x-forwarded-host"] || event.headers.host || "").trim();
   const siteUrl = (requestHost ? `https://${requestHost}` : process.env.URL || "https://alpacca.mx").replace(/\/$/, "");
-  const mpItems = order.items.map((it) => ({
-    title: it.nombre.slice(0, 250),
-    quantity: it.qty,
-    unit_price: it.precio,
-    currency_id: "MXN",
-  }));
-  if (order.shippingMXN > 0) {
+  // Con cupón se manda un solo renglón con el total (Mercado Pago no
+  // acepta renglones negativos para el descuento).
+  const mpItems = order.descuento > 0
+    ? [{ title: `Pedido Alpacca (cupón ${order.cupon})`, quantity: 1, unit_price: order.grandTotal, currency_id: "MXN" }]
+    : order.items.map((it) => ({
+      title: it.nombre.slice(0, 250),
+      quantity: it.qty,
+      unit_price: it.precio,
+      currency_id: "MXN",
+    }));
+  if (order.shippingMXN > 0 && !(order.descuento > 0)) {
     mpItems.push({
       title: "Envío",
       quantity: 1,

@@ -513,6 +513,7 @@
     <button type="button" class="more-btn" data-goto="resenas"><span class="ico" aria-hidden="true">⭐</span><span>Reseñas<small>Ver y borrar reseñas</small></span></button>
     <button type="button" class="more-btn" data-goto="swm"><span class="ico" aria-hidden="true">🇺🇸</span><span>Shop with Mae<small>Casillero EE.UU.: paquetes, compras y envíos</small></span><span class="nav-badge" id="swm-badge" style="display:none;"></span></button>
     <button type="button" class="more-btn" data-goto="usa"><span class="ico" aria-hidden="true">🛍️</span><span>Encargos USA<small>Personal shopper</small></span><span class="nav-badge" id="usa-orders-badge" style="display:none;"></span></button>
+    <button type="button" class="more-btn" data-goto="cupones"><span class="ico" aria-hidden="true">🎟️</span><span>Cupones<small>Descuentos para la tienda y la dirección americana</small></span></button>
     <button type="button" class="more-btn" data-goto="revision"><span class="ico" aria-hidden="true">🔄</span><span>Revisión ABW<small>Precios y agotados que cambiaron en ABW</small></span><span class="nav-badge" id="revision-badge" style="display:none;"></span></button>
     <button type="button" class="more-btn" data-goto="ajustes"><span class="ico" aria-hidden="true">⚙️</span><span>Ajustes<small>Tipo de cambio, comisiones, descuento</small></span></button>
     <button type="button" class="more-btn" data-goto="papelera"><span class="ico" aria-hidden="true">🗑️</span><span>Papelera<small>Pedidos borrados (30 días)</small></span></button>
@@ -554,6 +555,33 @@
   </div>
 
   <!-- Papelera -->
+  <!-- Cupones de descuento -->
+  <div id="coupons-view" class="filters" style="display:none;">
+    <p class="abw-intro">Las clientas escriben el código en su carrito (tienda) o al pagar una cotización de la dirección americana. El descuento es sobre los productos o la cotización, nunca sobre el envío de la tienda.</p>
+    <form id="coupon-form" class="swm-card" novalidate>
+      <h4><span>Crear o editar cupón</span><button type="button" class="btn-secondary" id="coupon-form-new" style="padding:4px 10px;font-size:12px;">Nuevo</button></h4>
+      <div class="grid">
+        <label>Código<input name="code" type="text" required placeholder="BIENVENIDA" style="text-transform:uppercase;"></label>
+        <label>Tipo<select name="tipo"><option value="pct">% de descuento</option><option value="monto">$ de descuento</option></select></label>
+        <label>Descuento (% o $)<input name="valor" type="number" min="0" step="0.01" required></label>
+        <label>Tope en $ (solo %, opcional)<input name="tope" type="number" min="0" step="0.01"></label>
+      </div>
+      <div class="grid">
+        <label>Para<select name="aplica"><option value="ambos">Tienda y dirección americana</option><option value="tienda">Solo tienda</option><option value="swm">Solo dirección americana</option></select></label>
+        <label>Compra mínima $ (opcional)<input name="minimo" type="number" min="0" step="0.01"></label>
+        <label>Usos en total (0 = sin límite)<input name="usosMax" type="number" min="0" step="1"></label>
+        <label style="flex-direction:row;align-items:center;gap:8px;"><input name="unaVez" type="checkbox" style="width:auto;"> Una vez por clienta</label>
+      </div>
+      <div class="grid">
+        <label>Desde (opcional)<input name="desde" type="date"></label>
+        <label>Hasta (opcional)<input name="hasta" type="date"></label>
+        <label style="grid-column:span 2;">Nota (solo para ti)<input name="nota" type="text" placeholder="Ej. Para clientas de Instagram"></label>
+      </div>
+      <button type="submit" class="btn-primary" style="margin-top:10px;">💾 Guardar cupón</button>
+    </form>
+    <div id="coupons-list" style="margin-top:12px;display:grid;gap:8px;"></div>
+  </div>
+
   <!-- Revisión ABW: cambios de precio y disponibilidad para aplicar al Sheet -->
   <div id="revision-view" class="filters" style="display:none;">
     <p class="abw-intro">Claude revisa tu catálogo contra Asian Beauty Wholesale marca por marca, y aquí aparece lo que cambió. Al aplicar se actualizan <b>Precio USD</b> y <b>Disponible</b> en tu Sheet; el precio en pesos se recalcula solo. Lo que no quieras cambiar, ignóralo.</p>

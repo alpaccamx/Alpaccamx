@@ -1117,6 +1117,9 @@
     if (cardFeeMXN > 0.5) {
       rows.push(`<div class="row fee"><span>💳 Comisión por pago con tarjeta</span><span>${formatPrice(cardFeeMXN)}</span></div>`);
     }
+    if (o.descuento > 0) {
+      rows.push(`<div class="row" style="color:#9b2c4f;"><span>🎟️ Cupón ${escapeHtml(o.cupon || "")}</span><span>−${formatPrice(o.descuento)}</span></div>`);
+    }
     return `<div class="breakdown">${rows.join("")}</div>`;
   }
 
@@ -3802,6 +3805,111 @@ ${itemLines}
   document.getElementById("revision-apply").addEventListener("click", () => applyRevision(false));
   document.getElementById("revision-ignore").addEventListener("click", () => applyRevision(true));
 
+  /* ---------- Cupones (admin-coupons; ver lib/coupons.js) ---------- */
+  let coupons = [];
+  const couponDesc = (c) => `${c.tipo === "pct" ? `${c.valor}%${c.tope ? ` (máx. ${formatPrice(c.tope)})` : ""}` : formatPrice(c.valor)} · ${{ tienda: "Tienda", swm: "Dirección americana", ambos: "Tienda y dirección americana" }[c.aplica]}${c.minimo ? ` · mínimo ${formatPrice(c.minimo)}` : ""}${c.unaVez ? " · una vez por clienta" : ""}${c.usosMax ? ` · ${c.usosMax} usos en total` : ""}${c.desde || c.hasta ? ` · ${c.desde || "…"} a ${c.hasta || "…"}` : ""}`;
+
+  async function loadCoupons() {
+    const list = document.getElementById("coupons-list");
+    list.innerHTML = `<p class="abw-intro">Cargando…</p>`;
+    try {
+      const res = await fetch("/.netlify/functions/admin-coupons", { headers: { "x-admin-key": adminKey }, cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudieron cargar los cupones.");
+      coupons = data.cupones || [];
+      renderCoupons();
+    } catch (err) {
+      list.innerHTML = `<p class="guide-error" style="display:block;">${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  function renderCoupons() {
+    document.getElementById("coupons-list").innerHTML = coupons.length
+      ? coupons.map((c) => `<div class="trash-row"><div class="who"><b>${escapeHtml(c.code)}</b>${c.activo ? "" : ' <span class="badge">Pausado</span>'} · ${escapeHtml(couponDesc(c))}
+          <small>Usado ${c.usos || 0} ${c.usos === 1 ? "vez" : "veces"}${c.nota ? ` · ${escapeHtml(c.nota)}` : ""}</small></div>
+          <button type="button" class="btn-secondary" data-coupon-edit="${escapeHtml(c.code)}">✏️ Editar</button>
+          <button type="button" class="btn-secondary" data-coupon-toggle="${escapeHtml(c.code)}">${c.activo ? "Pausar" : "Activar"}</button>
+          <button type="button" class="btn-danger" data-coupon-delete="${escapeHtml(c.code)}">Borrar</button></div>`).join("")
+      : `<p class="abw-intro">Todavía no hay cupones.</p>`;
+  }
+
+  function fillCouponForm(c) {
+    const f = document.getElementById("coupon-form");
+    const set = (k, v) => { const el = f.querySelector(`[name="${k}"]`); if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? ""; };
+    ["code", "tipo", "valor", "tope", "aplica", "minimo", "usosMax", "desde", "hasta", "nota"].forEach((k) => set(k, c[k] || (k === "tipo" ? "pct" : k === "aplica" ? "ambos" : "")));
+    set("unaVez", c.unaVez);
+    f.querySelector('[name="code"]').readOnly = !!c.code;
+    f.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function saveCouponFrom(form, extra = {}) {
+    const fd = Object.fromEntries(new FormData(form).entries());
+    const prev = coupons.find((c) => c.code === String(fd.code || "").trim().toUpperCase());
+    const cupon = { ...fd, unaVez: form.querySelector('[name="unaVez"]').checked, activo: prev ? prev.activo : true, ...extra };
+    const res = await fetch("/.netlify/functions/admin-coupons", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+      body: JSON.stringify({ accion: "guardar", cupon }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
+    return data.cupon;
+  }
+
+  document.getElementById("coupon-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    try {
+      const c = await saveCouponFrom(form);
+      showToast(`🎟️ Cupón ${c.code} guardado.`);
+      form.reset();
+      form.querySelector('[name="code"]').readOnly = false;
+      await loadCoupons();
+    } catch (err) {
+      showToast(`⚠️ ${err.message}`);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  document.getElementById("coupon-form-new").addEventListener("click", () => {
+    const f = document.getElementById("coupon-form");
+    f.reset();
+    f.querySelector('[name="code"]').readOnly = false;
+  });
+  document.getElementById("coupons-list").addEventListener("click", async (e) => {
+    const ed = e.target.closest("[data-coupon-edit]");
+    const tg = e.target.closest("[data-coupon-toggle]");
+    const del = e.target.closest("[data-coupon-delete]");
+    const find = (code) => coupons.find((c) => c.code === code);
+    try {
+      if (ed) fillCouponForm(find(ed.dataset.couponEdit));
+      if (tg) {
+        const c = find(tg.dataset.couponToggle);
+        const res = await fetch("/.netlify/functions/admin-coupons", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ accion: "guardar", cupon: { ...c, activo: !c.activo } }),
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "No se pudo guardar.");
+        await loadCoupons();
+      }
+      if (del) {
+        if (!window.confirm(`¿Borrar el cupón ${del.dataset.couponDelete}?`)) return;
+        const res = await fetch("/.netlify/functions/admin-coupons", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ accion: "borrar", code: del.dataset.couponDelete }),
+        });
+        if (!res.ok) throw new Error("No se pudo borrar.");
+        await loadCoupons();
+      }
+    } catch (err) {
+      showToast(`⚠️ ${err.message}`);
+    }
+  });
+
   async function loadTrash() {
     const listEl = document.getElementById("trash-list");
     listEl.innerHTML = `<p class="abw-intro">Cargando…</p>`;
@@ -4044,6 +4152,9 @@ ${itemLines}
       sinDuena: swmData.paquetes.filter((p) => p.status === "sin_dueña"),
       enviar: swmData.envios.filter((e) => e.status === "pagado"),
       pagos: swmPorRevisar(),
+      // Servicios extra que pidió la clienta (revisión con fotos solo
+      // cuando el paquete ya llegó).
+      extras: swmData.paquetes.filter((p) => p.status === "recibido" && ((p.revision && p.revision.estado === "pedida") || (p.separar && p.separar.estado === "pedida"))),
     };
   }
 
@@ -4056,7 +4167,7 @@ ${itemLines}
       if (!res.ok) { if (!quiet) setStatus(data.error || "No se pudo cargar Shop with Mae."); return; }
       swmData = data;
       const pend = swmPendientes();
-      swmNewCount = pend.cotizarCompra.length + pend.comprar.length + pend.cotizarEnvio.length + pend.enviar.length + pend.pagos.length + pend.sinDuena.length;
+      swmNewCount = pend.cotizarCompra.length + pend.comprar.length + pend.cotizarEnvio.length + pend.enviar.length + pend.pagos.length + pend.sinDuena.length + pend.extras.length;
       const badge = document.getElementById("swm-badge");
       badge.textContent = swmNewCount ? String(swmNewCount) : "";
       badge.style.display = swmNewCount ? "inline-flex" : "none";
@@ -4123,7 +4234,8 @@ ${itemLines}
         + sec("🛒 Compras pagadas: hay que comprar", pend.comprar.filter(swmMatches), swmCompraCard)
         + sec("🚚 Envíos por cotizar", pend.cotizarEnvio.filter(swmMatches), swmEnvioCard)
         + sec("📦 Envíos pagados: hay que mandar", pend.enviar.filter(swmMatches), swmEnvioCard)
-        + sec("❓ Paquetes sin dueña", pend.sinDuena.filter(swmMatches), swmPaqueteCard);
+        + sec("❓ Paquetes sin dueña", pend.sinDuena.filter(swmMatches), swmPaqueteCard)
+        + sec("📸 Revisiones y separaciones pedidas", pend.extras.filter(swmMatches), swmPaqueteCard);
       if (!html) html = `<p style="color:#5f5866;font-size:14px;">No hay nada pendiente 🎉</p>`;
     } else if (swmTab === "llegar") {
       html = P.filter((p) => p.status === "registrado" && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes por llegar.</p>`;
@@ -4171,7 +4283,8 @@ ${itemLines}
     </div>` : ""}${sinDuena ? "" : `
       <div class="meta">${swmWho(p)}<br>${p.origen === "sin_registro" ? `⚠️ Llegó sin registrar (cargo ${formatPrice(p.cargoSinRegistro || 0)})${p.datosPendientes ? " · <b>ella todavía no dice qué trae</b>" : ""} · ` : ""}${p.origen === "compra" ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "comision" ? `15% de US$${Number(p.valorUSD || 0).toFixed(2)}` : "por peso"}${p.contenido ? ` · ${escapeHtml(p.contenido)}` : ""}
         ${p.receivedAt ? `<br>Llegó ${swmFecha(p.receivedAt)} · almacenaje gratis ${vence > 0 ? `${vence} días más` : "<b style='color:#b33660'>vencido</b>"}` : ""}</div>
-      ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}`}
+      ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}
+      ${swmExtrasAdmin(p)}`}
       ${editable ? `<div class="grid">
         <label>Peso (kg)<input data-f="kg" type="number" step="0.01" min="0" value="${p.kg || ""}"></label>
         <label>Alto (cm)<input data-f="alto" type="number" min="0" value="${p.alto || ""}"></label>
@@ -4188,6 +4301,33 @@ ${itemLines}
         ${swmCancelBtn("paquete", p)}
       </div>` : ""}
     ${sinDuena ? "" : "</div>"}`;
+  }
+
+  /* Revisión con fotos y separar paquete (los pide la clienta). */
+  function swmExtrasAdmin(p) {
+    const out = [];
+    const rv = p.revision, sp = p.separar;
+    if (rv && rv.estado === "hecha") out.push(`<div class="meta">📸 Revisión hecha · ${(rv.fotos || []).map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:4px 10px;font-size:12px;">📷</button>`).join(" ")}${rv.nota ? ` · ${escapeHtml(rv.nota)}` : ""}</div>`);
+    if (rv && rv.estado === "pedida") {
+      out.push(p.status === "recibido"
+        ? `<div class="swm-sub" style="margin-top:10px;padding:10px;border-radius:12px;background:#fff6e5;"><b>📸 Pidió revisión con fotos</b>
+          <div class="grid" style="grid-template-columns:1fr 1fr;"><label>Fotos del contenido<input data-f="revFotos" type="file" accept="image/*" multiple></label><label>Nota para ella<input data-f="revNota" type="text" placeholder="Ej. Todo completo y sin daños"></label></div>
+          <button type="button" class="btn-primary" data-swm-revision-hecha style="margin-top:8px;">📸 Mandar fotos (y avisarle)</button></div>`
+        : `<div class="meta">📸 Pidió revisión con fotos (hazla cuando llegue).</div>`);
+    }
+    if (sp && sp.estado === "pedida") {
+      const f = (k, l, t = "number") => `<label>${l}<input data-f="${k}" type="${t}"${t === "number" ? ' step="0.01" min="0"' : ""}></label>`;
+      out.push(`<div style="margin-top:10px;padding:10px;border-radius:12px;background:#fff6e5;"><b>✂️ Quiere separar:</b> ${escapeHtml(sp.nota)}
+        <div class="meta" style="margin-top:6px;">Lo que se va ahora (paquete nuevo):</div>
+        <div class="grid">${f("nKg", "Peso (kg)")}${f("nAlto", "Alto")}${f("nAncho", "Ancho")}${f("nLargo", "Largo")}</div>
+        <div class="grid" style="grid-template-columns:1fr 1fr 1fr;">${f("nContenido", "Qué lleva", "text")}${f("nValor", "Valor USD (si es 15%)")}<label>Fotos<input data-f="nFotos" type="file" accept="image/*" multiple></label></div>
+        <div class="meta" style="margin-top:6px;">Lo que se queda guardado (${escapeHtml(p.folio)}):</div>
+        <div class="grid">${f("rKg", "Peso (kg)")}${f("rAlto", "Alto")}${f("rAncho", "Ancho")}${f("rLargo", "Largo")}</div>
+        <div class="grid" style="grid-template-columns:1fr 1fr;">${f("rContenido", "Qué lleva", "text")}${f("rValor", "Valor USD (si es 15%)")}</div>
+        <button type="button" class="btn-primary" data-swm-separar-hecho style="margin-top:8px;">✂️ Separar (y avisarle)</button></div>`);
+    }
+    if ((p.cargos || []).length) out.push(`<div class="meta">Extras: ${p.cargos.map((c) => `${escapeHtml(c.concepto)} ${formatPrice(c.monto)}`).join(" · ")} (se suman a su envío)</div>`);
+    return out.join("");
   }
 
   function fotosHtml(p) {
@@ -4266,6 +4406,7 @@ ${itemLines}
           <label>Cruce (vacío = ${formatPrice(sug.cruce || 0)})<input data-f="cruce" type="number" step="0.01" min="0" placeholder="${sug.cruce || 0}"></label>
           <label>Consolidación (vacío = ${formatPrice(sug.consolidacion || 0)})<input data-f="consolidacion" type="number" step="0.01" min="0" placeholder="${sug.consolidacion || 0}"></label>
           ${sug.sinRegistro ? `<label>Cargo sin registrar (vacío = ${formatPrice(sug.sinRegistro)})<input data-f="sinRegistro" type="number" step="0.01" min="0" placeholder="${sug.sinRegistro}"></label>` : ""}
+          ${sug.extras ? `<label>Servicios extra (vacío = ${formatPrice(sug.extras)})<input data-f="extras" type="number" step="0.01" min="0" placeholder="${sug.extras}"></label>` : ""}
           <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(e.notaClienta || "")}"></label>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("envio", e)}</div>`;
@@ -4280,8 +4421,8 @@ ${itemLines}
       <div class="meta">${swmWho(e)} · ${swmFecha(e.createdAt)}${e.consolidar ? " · <b>consolidar</b>" : ""}</div>
       <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${pk.map((p) => `<li>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "")} · ${p.cobrable || "?"} kg · cruce ${p.crucePagado ? "ya pagado" : p.cobro === "comision" ? "15%" : "por peso"}</li>`).join("")}</ul>
       <div class="meta">📍 ${escapeHtml([d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}</div>
-      <div class="meta">Sugerido: cruce ${formatPrice(sug.cruce || 0)}${sug.consolidacion ? ` + consolidación ${formatPrice(sug.consolidacion)}` : ""}${sug.sinRegistro ? ` + sin registrar ${formatPrice(sug.sinRegistro)}` : ""} · ${sug.kg || 0} kg en total</div>
-      ${q ? `<div class="meta">Cotización: cruce ${formatPrice(q.cruce)}${q.consolidacion ? ` + consolidación ${formatPrice(q.consolidacion)}` : ""}${q.sinRegistro ? ` + sin registrar ${formatPrice(q.sinRegistro)}` : ""} + envío ${formatPrice(q.envio)} = <b>${formatPrice(q.total)}</b></div>` : ""}
+      <div class="meta">Sugerido: cruce ${formatPrice(sug.cruce || 0)}${sug.consolidacion ? ` + consolidación ${formatPrice(sug.consolidacion)}` : ""}${sug.sinRegistro ? ` + sin registrar ${formatPrice(sug.sinRegistro)}` : ""}${sug.extras ? ` + extras ${formatPrice(sug.extras)}` : ""} · ${sug.kg || 0} kg en total</div>
+      ${q ? `<div class="meta">Cotización: cruce ${formatPrice(q.cruce)}${q.consolidacion ? ` + consolidación ${formatPrice(q.consolidacion)}` : ""}${q.sinRegistro ? ` + sin registrar ${formatPrice(q.sinRegistro)}` : ""}${q.extras ? ` + extras ${formatPrice(q.extras)}` : ""} + envío ${formatPrice(q.envio)} = <b>${formatPrice(q.total)}</b></div>` : ""}
       ${e.guia ? `<div class="meta">🚚 ${escapeHtml(e.paqueteria)} · ${escapeHtml(e.guia)}</div>` : ""}
       ${swmPagoBox("envio", e)}${action}
     </div>`;
@@ -4382,7 +4523,19 @@ ${itemLines}
       swmAct({ accion: "compra_comprada", id, paquetes }, btn);
     } else if (t.closest("[data-swm-cotizar-envio]")) {
       if (v("envio") === "") { alert("Pon el costo del envío nacional."); return; }
-      swmAct({ accion: "cotizar_envio", id, envio: v("envio"), cruce: v("cruce"), consolidacion: v("consolidacion"), sinRegistro: v("sinRegistro"), notaClienta: v("notaClienta") }, btn);
+      swmAct({ accion: "cotizar_envio", id, envio: v("envio"), cruce: v("cruce"), consolidacion: v("consolidacion"), sinRegistro: v("sinRegistro"), extras: v("extras"), notaClienta: v("notaClienta") }, btn);
+    } else if (t.closest("[data-swm-revision-hecha]")) {
+      const input = card.querySelector('[data-f="revFotos"]');
+      const fotos = (await Promise.all([...(input.files || [])].slice(0, 10).map(swmResize))).filter(Boolean);
+      if (!fotos.length) { alert("Sube al menos una foto del contenido."); return; }
+      swmAct({ accion: "revision_hecha", id, fotos, nota: v("revNota") }, btn);
+    } else if (t.closest("[data-swm-separar-hecho]")) {
+      if (!(parseFloat(v("nKg")) > 0) || !(parseFloat(v("rKg")) > 0)) { alert("Pon el peso de las dos partes."); return; }
+      const input = card.querySelector('[data-f="nFotos"]');
+      const fotos = (await Promise.all([...(input.files || [])].slice(0, 6).map(swmResize))).filter(Boolean);
+      swmAct({ accion: "separar_paquete", id, fotos,
+        nuevo: { contenido: v("nContenido"), valorUSD: v("nValor"), kg: v("nKg"), alto: v("nAlto"), ancho: v("nAncho"), largo: v("nLargo") },
+        resto: { contenido: v("rContenido"), valorUSD: v("rValor"), kg: v("rKg"), alto: v("rAlto"), ancho: v("rAncho"), largo: v("rLargo") } }, btn);
     } else if (t.closest("[data-swm-enviado]")) {
       if (!v("guia")) { alert("Pon el número de guía."); return; }
       swmAct({ accion: "marcar_enviado", id, paqueteria: v("paqueteria"), guia: v("guia") }, btn);
@@ -4440,6 +4593,7 @@ ${itemLines}
     ajustes: { el: "settings-view", title: "⚙️ Ajustes", nav: "mas" },
     papelera: { el: "trash-view", title: "🗑️ Papelera", nav: "mas" },
     revision: { el: "revision-view", title: "🔄 Revisión ABW", nav: "mas" },
+    cupones: { el: "coupons-view", title: "🎟️ Cupones", nav: "mas" },
   };
   let currentView = "inicio";
 
@@ -4468,6 +4622,7 @@ ${itemLines}
     if (view === "ajustes") loadSettings();
     if (view === "papelera") loadTrash();
     if (view === "revision") loadRevision();
+    if (view === "cupones") loadCoupons();
     if (view === "mas") renderNotifyToggle();
     if (view !== "catalogo" && catalogEditing) closeCatalogEditor();
     if (view === "inventario" && !inventoryLoaded) loadInventory();

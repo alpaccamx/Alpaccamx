@@ -12,7 +12,9 @@
 //   editar_paquete    { id, tienda?, rastreo?, contenido?, valorUSD?, cobro?, kg?, alto?, ancho?, largo?, notaClienta?, notaPrivada? }
 //   cotizar_compra    { id, productos, cruce?, notaClienta? }   (MXN)
 //   compra_comprada   { id, paquetes: [{ tienda, rastreo, contenido }] }
-//   cotizar_envio     { id, envio, cruce?, consolidacion?, notaClienta? }
+//   cotizar_envio     { id, envio, cruce?, consolidacion?, sinRegistro?, extras?, notaClienta? }
+//   revision_hecha    { id, fotos: [{ dataBase64, contentType }], nota? }  (fotos del contenido)
+//   separar_paquete   { id, nuevo: { contenido, valorUSD?, kg, alto, ancho, largo }, resto: { contenido?, valorUSD?, kg, alto, ancho, largo }, fotos? }
 //   aprobar_pago      { kind, id }
 //   rechazar_pago     { kind, id, motivo }
 //   marcar_enviado    { id, paqueteria, guia }
@@ -24,7 +26,7 @@ const { randomUUID } = require("crypto");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { detectFileType } = require("./lib/file-signature.js");
 const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, getFile, emailDeCasillero, todosLosCasilleros } = require("./lib/swm-store.js");
-const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA } = require("./lib/swm-pricing.js");
+const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, SEPARAR } = require("./lib/swm-pricing.js");
 const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
 const { ALMACENAJE_DIAS, round2, cotizacionSugerida, aplicarPago, avisar, formatPriceMXN } = require("./lib/swm-core.js");
 
@@ -208,9 +210,10 @@ exports.handler = async (event) => {
         const cruce = val(b.cruce, sug.cruce);
         const consolidacion = val(b.consolidacion, sug.consolidacion);
         const sinRegistro = val(b.sinRegistro, sug.sinRegistro || 0);
+        const extras = val(b.extras, sug.extras || 0);
         const rec = await mutateRecord("envio", id, (e) => {
-          e.sugerido = { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro || 0, kg: sug.kg };
-          e.cotizacion = { cruce, consolidacion, sinRegistro, envio: envioMX, total: round2(cruce + consolidacion + sinRegistro + envioMX), at: now() };
+          e.sugerido = { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro || 0, extras: sug.extras || 0, kg: sug.kg };
+          e.cotizacion = { cruce, consolidacion, sinRegistro, extras, envio: envioMX, total: round2(cruce + consolidacion + sinRegistro + extras + envioMX), at: now() };
           e.pago = { status: "pendiente", monto: e.cotizacion.total };
           if (b.notaClienta != null) e.notaClienta = clip(b.notaClienta, 1000);
           e.status = "cotizado"; push(e, "cotizado");
@@ -219,10 +222,59 @@ exports.handler = async (event) => {
         const c = rec.cotizacion;
         await avisar(rec.email, `tu envío ${rec.folio} está cotizado`, `
           <h2 style="margin:0 0 8px;font-size:20px;">Tu envío a México está cotizado</h2>
-          <p style="font-size:14px;">${c.cruce ? `Cruce a México: <b>${formatPriceMXN(c.cruce)}</b><br>` : ""}${c.consolidacion ? `Consolidación: <b>${formatPriceMXN(c.consolidacion)}</b><br>` : ""}${c.sinRegistro ? `Paquete(s) sin registrar: <b>${formatPriceMXN(c.sinRegistro)}</b><br>` : ""}Envío nacional: <b>${formatPriceMXN(c.envio)}</b><br>Total a pagar: <b>${formatPriceMXN(c.total)}</b></p>
+          <p style="font-size:14px;">${c.cruce ? `Cruce a México: <b>${formatPriceMXN(c.cruce)}</b><br>` : ""}${c.consolidacion ? `Consolidación: <b>${formatPriceMXN(c.consolidacion)}</b><br>` : ""}${c.sinRegistro ? `Paquete(s) sin registrar: <b>${formatPriceMXN(c.sinRegistro)}</b><br>` : ""}${c.extras ? `Servicios extra (revisión / separar): <b>${formatPriceMXN(c.extras)}</b><br>` : ""}Envío nacional: <b>${formatPriceMXN(c.envio)}</b><br>Total a pagar: <b>${formatPriceMXN(c.total)}</b></p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
           <p style="font-size:14px;">Págalo con tarjeta o transferencia desde tu casillero y lo preparo.</p>`);
         return json(200, { envio: rec });
+      }
+
+      case "revision_hecha": {
+        const fotos = await guardarFotos(b.fotos);
+        if (!fotos.length) return json(400, { error: "Sube al menos una foto del contenido." });
+        const rec = await mutateRecord("paquete", id, (p) => {
+          if (!p.revision) p.revision = { estado: "pedida", at: now(), fotos: [], nota: "" };
+          p.revision = { ...p.revision, estado: "hecha", hechaAt: now(), fotos: [...(p.revision.fotos || []), ...fotos], nota: clip(b.nota, 1000) };
+          push(p, "revision_hecha");
+          return p;
+        });
+        if (!rec) return json(404, { error: "No existe ese paquete." });
+        await avisar(rec.email, `revisamos tu paquete ${rec.folio} 📸`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">Ya revisamos tu paquete</h2>
+          <p style="font-size:14px;">Abrimos ${esc(rec.folio)} y le tomamos ${rec.revision.fotos.length} foto${rec.revision.fotos.length === 1 ? "" : "s"} al contenido. Las ves en tu casillero.</p>
+          ${rec.revision.nota ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.revision.nota)}</p>` : ""}`);
+        return json(200, { paquete: rec });
+      }
+
+      case "separar_paquete": {
+        const orig = await getRecord("paquete", id);
+        if (!orig || orig.status !== "recibido") return json(409, { error: "Solo se separan paquetes que están en el almacén." });
+        const nu = b.nuevo || {}, re = b.resto || {};
+        if (!(num(nu.kg) > 0) || !(num(re.kg) > 0)) return json(400, { error: "Pon el peso de las dos partes." });
+        const fotos = await guardarFotos(b.fotos);
+        const kg = num(nu.kg), alto = num(nu.alto), ancho = num(nu.ancho), largo = num(nu.largo);
+        const nuevo = {
+          id: randomUUID(), folio: await nextFolio("paquete"), email: orig.email, name: orig.name, phone: orig.phone,
+          origen: "separado", parentId: orig.id, tienda: orig.tienda, rastreo: orig.rastreo,
+          contenido: clip(nu.contenido, 300) || (orig.separar && orig.separar.nota) || "", valorUSD: num(nu.valorUSD),
+          cobro: orig.cobro, crucePagado: orig.crucePagado, status: "recibido",
+          kg, alto, ancho, largo, cobrable: pesoCobrable(kg, alto, ancho, largo), fotos,
+          cargos: [{ concepto: "Separar paquete", monto: SEPARAR }], notaClienta: `Separado de ${orig.folio}.`, notaPrivada: "",
+          receivedAt: orig.receivedAt || now(), history: [{ at: now(), status: "separado" }], createdAt: now(), updatedAt: now(),
+        };
+        await saveRecord("paquete", nuevo);
+        const rec = await mutateRecord("paquete", id, (p) => {
+          ["kg", "alto", "ancho", "largo"].forEach((k) => { p[k] = num(re[k]); });
+          p.cobrable = pesoCobrable(p.kg, p.alto, p.ancho, p.largo);
+          if (re.contenido != null && re.contenido !== "") p.contenido = clip(re.contenido, 300);
+          if (re.valorUSD != null && re.valorUSD !== "") p.valorUSD = num(re.valorUSD);
+          p.separar = { ...(p.separar || {}), estado: "hecha", hechaAt: now(), nuevoId: nuevo.id, nuevoFolio: nuevo.folio };
+          push(p, "separado");
+          return p;
+        });
+        await avisar(orig.email, `separamos tu paquete ${orig.folio}`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">Ya separamos tu paquete</h2>
+          <p style="font-size:14px;">Lo que pediste quedó en el paquete <b>${esc(nuevo.folio)}</b> (${nuevo.cobrable} kg), listo para que pidas su envío. El resto sigue guardado en <b>${esc(orig.folio)}</b>.</p>`);
+        return json(200, { paquete: rec, nuevo });
       }
 
       case "aprobar_pago": {

@@ -256,6 +256,11 @@
     </div>
   </details>
 
+  <details id="swm-guias-box" class="mt-4 group rounded-2xl border border-ink/10 open:bg-white">
+    <summary class="cursor-pointer list-none flex items-center justify-between px-5 py-4 font-display text-lg sm:text-xl text-ink">🛍️ Cómo poner tu dirección en cada tienda <span class="text-ink/50 group-open:rotate-180 transition" aria-hidden="true">⌄</span></summary>
+    <div id="swm-guias" class="px-5 pb-5"></div>
+  </details>
+
   <details id="swm-prices" class="mt-4 group rounded-2xl border border-ink/10 open:bg-white scroll-mt-24">
     <summary class="cursor-pointer list-none flex items-center justify-between px-5 py-4 font-display text-lg sm:text-xl text-ink">¿Cuánto cuesta el cruce? <span class="text-ink/50 group-open:rotate-180 transition" aria-hidden="true">⌄</span></summary>
     <div class="px-5 pb-5 space-y-4">
@@ -777,10 +782,22 @@
         <span id="cart-shipping-nacional-label">🚚 Envío nacional (estimado)</span>
         <span id="cart-shipping-nacional" class="text-right">$0.00</span>
       </div>
+      <div id="cart-coupon-row" class="hidden flex items-center justify-between font-semibold text-rose-ink">
+        <span id="cart-coupon-label">🎟️ Cupón</span>
+        <span id="cart-coupon-amount" class="text-right"></span>
+      </div>
       <div class="flex items-center justify-between font-semibold text-ink pt-1.5 border-t border-ink/10">
         <span id="cart-grand-total-label">Total estimado</span>
         <span id="cart-grand-total">$0.00</span>
       </div>
+    </div>
+    <div id="cart-coupon-box">
+      <div class="flex gap-2">
+        <input id="cart-coupon-input" type="text" autocomplete="off" autocapitalize="characters" placeholder="¿Tienes un cupón?" aria-label="Código de cupón"
+          class="flex-1 min-w-0 rounded-lg border border-ink/20 bg-white px-3 py-2 text-base sm:text-sm uppercase placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-lilac" />
+        <button id="cart-coupon-apply" type="button" class="shrink-0 rounded-full border border-ink px-4 text-sm font-semibold text-ink hover:bg-ink hover:text-cream transition">Aplicar</button>
+      </div>
+      <p id="cart-coupon-msg" role="status" class="hidden mt-1 text-xs"></p>
     </div>
     <label id="cart-entrega-personal-wrap" class="hidden flex items-start gap-2 rounded-xl border-2 border-rose/40 bg-blush/20 px-3 py-2.5 text-sm text-ink cursor-pointer">
       <input id="cart-entrega-personal" type="checkbox" checked class="mt-0.5 w-5 h-5 shrink-0 accent-rose-deep" />

@@ -4722,14 +4722,90 @@ function selectedPayMethod() {
   return el ? el.value : "";
 }
 
+/* Cupón del carrito: { code, terms } que ya revisó el servidor
+   (coupon-check). El descuento es sobre los productos, nunca el envío, y
+   el servidor lo vuelve a calcular al registrar el pedido. */
+let cartCoupon = null;
+
+function couponDiscount(base) {
+  if (!cartCoupon) return 0;
+  const t = cartCoupon.terms;
+  if (t.minimo && cartTotal() < t.minimo) return 0;
+  let d = t.tipo === "monto" ? t.valor : (base * t.valor) / 100;
+  if (t.tipo === "pct" && t.tope) d = Math.min(d, t.tope);
+  return Math.round(Math.min(d, base) * 100) / 100;
+}
+
+function renderCouponUI() {
+  const row = document.getElementById("cart-coupon-row");
+  const msg = document.getElementById("cart-coupon-msg");
+  const input = document.getElementById("cart-coupon-input");
+  const btn = document.getElementById("cart-coupon-apply");
+  if (!row) return;
+  const m = selectedPayMethod();
+  const d = couponDiscount(m === "card" ? cartTotalTarjeta() : cartTotal());
+  row.classList.toggle("hidden", !(cartCoupon && d > 0));
+  if (cartCoupon) {
+    document.getElementById("cart-coupon-label").textContent = `🎟️ Cupón ${cartCoupon.code}`;
+    document.getElementById("cart-coupon-amount").textContent = `−${formatPrice(d)}`;
+    input.value = cartCoupon.code;
+    input.disabled = true;
+    btn.textContent = "Quitar";
+    const t = cartCoupon.terms;
+    if (t.minimo && cartTotal() < t.minimo) {
+      msg.textContent = `Este cupón es para compras desde ${formatPrice(t.minimo)}.`;
+      msg.className = "mt-1 text-xs text-rose-ink";
+    } else {
+      msg.textContent = `✅ Cupón aplicado: ${t.tipo === "pct" ? `${t.valor}% de descuento en productos${t.tope ? ` (máx. ${formatPrice(t.tope)})` : ""}` : `${formatPrice(t.valor)} de descuento`}.`;
+      msg.className = "mt-1 text-xs text-green-800";
+    }
+  } else {
+    input.disabled = false;
+    btn.textContent = "Aplicar";
+  }
+}
+
+async function applyCartCoupon() {
+  const input = document.getElementById("cart-coupon-input");
+  const msg = document.getElementById("cart-coupon-msg");
+  if (cartCoupon) {
+    cartCoupon = null;
+    input.value = "";
+    msg.className = "hidden";
+    updateNacionalShippingUI();
+    renderCouponUI();
+    return;
+  }
+  const code = input.value.trim();
+  if (!code) return;
+  if (!getCustomerToken()) { msg.textContent = "Inicia sesión para usar un cupón."; msg.className = "mt-1 text-xs text-rose-ink"; return; }
+  msg.textContent = "Revisando…";
+  msg.className = "mt-1 text-xs text-ink/70";
+  try {
+    const res = await fetch("/.netlify/functions/coupon-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getCustomerToken()}` },
+      body: JSON.stringify({ code, ambito: "tienda", base: cartTotal() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!data.ok) { msg.textContent = data.error || "Ese cupón no sirve."; msg.className = "mt-1 text-xs text-rose-ink"; return; }
+    cartCoupon = { code: data.terms.code, terms: data.terms };
+    updateNacionalShippingUI();
+    renderCouponUI();
+  } catch (err) {
+    msg.textContent = "No pudimos revisar el cupón. Intenta de nuevo.";
+    msg.className = "mt-1 text-xs text-rose-ink";
+  }
+}
+
 /* Total a pagar con cada forma de pago (productos + envío, si ya se
    puede calcular con el CP). Con tarjeta se usa el "Precio Tarjeta". */
 function cartPayTotals() {
   const cp = document.getElementById("customer-cp").value.trim();
   const shipping = cartShippingEstimate(cp);
   return {
-    transfer: cartTotal() + (shipping ? shipping.totalMXN : 0),
-    card: cartTotalTarjeta() + (shipping ? shipping.totalMXNTarjeta : 0),
+    transfer: cartTotal() - couponDiscount(cartTotal()) + (shipping ? shipping.totalMXN : 0),
+    card: cartTotalTarjeta() - couponDiscount(cartTotalTarjeta()) + (shipping ? shipping.totalMXNTarjeta : 0),
   };
 }
 
@@ -4764,6 +4840,7 @@ function renderGrandTotal() {
   const m = selectedPayMethod();
   document.getElementById("cart-grand-total-label").textContent = m === "card" ? "Total con tarjeta" : m === "transfer" ? "Total por transferencia" : "Total estimado";
   document.getElementById("cart-grand-total").textContent = formatPrice(m === "card" ? t.card : t.transfer);
+  renderCouponUI();
 }
 
 function renderCart() {
@@ -5232,6 +5309,7 @@ async function sendQuote(e) {
   sendBtn.innerHTML = originalLabel;
 
   document.getElementById("quote-form").reset();
+  cartCoupon = null;
   updatePayMethodUI();
   // No se cierra el carrito aquí -- se queda abierto mostrando el panel
   // de "pedido enviado" (ver showQuoteSuccess).
@@ -5290,7 +5368,8 @@ function recordTransferOrder() {
         // cobrado es el mismo que el base.
         subtotalBase: subtotal,
         shippingMXNBase: shippingMXN,
-        grandTotal: subtotal + shippingMXN,
+        grandTotal: subtotal - couponDiscount(subtotal) + shippingMXN,
+        coupon: cartCoupon && couponDiscount(subtotal) > 0 ? cartCoupon.code : undefined,
         // Desglose de envío y peso, para que /admin.html pueda mostrarlos
         // sin tener que volver a adivinar el peso de cada producto.
         shippingKoreaMXN: shipping ? shipping.coreaMXN : 0,
@@ -5496,7 +5575,8 @@ async function payWithMercadoPago() {
         shippingMXN,
         subtotalBase,
         shippingMXNBase,
-        grandTotal: subtotal + shippingMXN,
+        grandTotal: subtotal - couponDiscount(subtotal) + shippingMXN,
+        coupon: cartCoupon && couponDiscount(subtotal) > 0 ? cartCoupon.code : undefined,
         // Desglose de envío a precio de transferencia (igual que
         // shippingMXNBase), para que /admin.html pueda mostrarlo tal cual
         // siempre cobra Mae internamente, y también a precio de tarjeta
@@ -6633,6 +6713,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("americano-quote-form").addEventListener("input", () => clearCartError("americano-cart-error"));
   document.getElementById("login-form").addEventListener("input", () => document.getElementById("login-notice").classList.add("hidden"));
   document.getElementById("pay-mercadopago").addEventListener("click", payWithMercadoPago);
+  document.getElementById("cart-coupon-apply").addEventListener("click", applyCartCoupon);
+  document.getElementById("cart-coupon-input").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); applyCartCoupon(); } });
   document.querySelectorAll('input[name="pay-method"]').forEach((r) => r.addEventListener("change", updatePayMethodUI));
   // "Copiar" junto a la CLABE, la cuenta y el monto a transferir.
   document.getElementById("cart-drawer").addEventListener("click", (e) => {

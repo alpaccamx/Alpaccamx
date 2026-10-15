@@ -18,6 +18,11 @@ const CARGO_SIN_REGISTRO = 80;
 // Días que se guarda un paquete sin dueña antes de que Mae disponga de él.
 const DIAS_SIN_DUENA = 7;
 const CONSOLIDACION_MAX_KG = 12;
+// Servicios extra que la clienta pide desde su casillero; se suman a la
+// cotización de su envío (precios propuestos; Mae los puede cambiar aquí
+// y en SWM_EXTRAS de swm.js).
+const REVISION_FOTOS = 50; // abrir el paquete y mandar fotos del contenido
+const SEPARAR = 50; // separar artículos de un paquete en otro
 
 function pesoVolumetrico(alto, ancho, largo) {
   const v = Number(alto) * Number(ancho) * Number(largo);
@@ -43,4 +48,4 @@ function consolidacionPorPeso(totalKg) {
   return Math.max(1, Math.ceil((Number(totalKg) || 0) / CONSOLIDACION_MAX_KG - 1e-9)) * CONSOLIDACION;
 }
 
-module.exports = { CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, consolidacionPorPeso, TARIFA_KG, KILO_EXTRA, COMISION_PCT, CONSOLIDACION, CONSOLIDACION_MAX_KG, pesoVolumetrico, pesoCobrable, crucePorPeso, crucePorComision };
+module.exports = { REVISION_FOTOS, SEPARAR, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, consolidacionPorPeso, TARIFA_KG, KILO_EXTRA, COMISION_PCT, CONSOLIDACION, CONSOLIDACION_MAX_KG, pesoVolumetrico, pesoCobrable, crucePorPeso, crucePorComision };
