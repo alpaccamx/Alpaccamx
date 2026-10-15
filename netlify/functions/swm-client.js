@@ -35,7 +35,7 @@ exports.handler = async (event) => {
 
   if (event.httpMethod === "GET") {
     try {
-      const [all, casillero] = await Promise.all([todoDe(me), casilleroDe(me).catch((err) => { console.error("swm casillero:", err); return ""; })]);
+      const [all, casillero] = await Promise.all([todoDe(me), casilleroDe(me, customer.name).catch((err) => { console.error("swm casillero:", err); return ""; })]);
       return json(200, {
         casillero,
         paquetes: all.paquetes.map(publico), compras: all.compras.map(publico), envios: all.envios.map(publico),

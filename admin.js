@@ -4155,11 +4155,11 @@ ${itemLines}
       <h4><span>📦 Llegó un paquete sin registrar</span></h4>
       <div class="meta">Busca primero en "Por llegar" por el rastreo: si ya lo registró, márcalo ahí como recibido. Si no aparece, regístralo aquí; se le cobra ${formatPrice(swmData.cargoSinRegistro || 80)} y le llega un correo para que diga qué trae. Si no sabes de quién es, déjalo sin dueña (tienes ${swmData.diasSinDuena || 7} días antes de disponer de él).</div>
       <div class="grid">
-        <label>Nombre o número de casillero en la etiqueta (ALP-…)<input data-g="etiqueta" type="text"></label>
+        <label>Last name de la etiqueta (código ALP-…)<input data-g="etiqueta" type="text"></label>
         <label>Tienda<input data-g="tienda" type="text"></label>
         <label>Rastreo<input data-g="rastreo" type="text"></label>
       </div>
-      <div class="grid"><label>Buscar a la dueña (número ALP-…, nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Opcional"></label></div>
+      <div class="grid"><label>Buscar a la dueña (código ALP-…, nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Opcional"></label></div>
       <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
       <div class="meta" data-swm-elegida>Sin dueña (se queda en "Sin dueña")</div>
       <div class="grid">

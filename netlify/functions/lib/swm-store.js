@@ -72,29 +72,54 @@ async function mutateRecord(kind, id, mutate) {
   throw new Error("No se pudo actualizar (conflicto de concurrencia).");
 }
 
-/* Número de casillero de cada clienta (ALP-0001...). Va en la dirección
-   americana ("Apartment B #ALP-0001") para que un paquete que llegue sin
-   registrar se pueda identificar. Se asigna la primera vez que abre su
-   casillero; "casillero-code/<código>" sirve para buscarla por número. */
+/* Código de casillero de cada clienta: "ALP-" + su nombre (ALP-ANA LOPEZ).
+   Va en el "Last name" de la dirección americana, así Mae sabe de quién
+   es un paquete aunque no lo hayan registrado y el repartidor no ve nada
+   raro en la dirección. Nunca se repite y no lleva números: si ya existe,
+   se usa su nombre completo (ALP-ANA LOPEZ GARCIA) y si aun así existe, se
+   agrega una letra (ALP-ANA LOPEZ B, C...). Se asigna la primera vez que
+   abre su casillero y ya no cambia; "casillero-code/<código>" sirve para
+   buscarla por código. */
 const casKey = (email) => `casillero/${encodeURIComponent(String(email).toLowerCase())}`;
-async function casilleroDe(email) {
+const codeKey = (code) => `casillero-code/${encodeURIComponent(String(code).toUpperCase())}`;
+const OLD_CODE = /\d/; // los primeros códigos llevaban número; se cambian por el de nombre
+
+const cleanName = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z ]+/g, " ").replace(/\s+/g, " ").trim();
+
+function codeCandidates(name, email) {
+  let words = cleanName(name).split(" ").filter(Boolean);
+  if (!words.length) words = cleanName(String(email).split("@")[0]).split(" ").filter(Boolean);
+  if (!words.length) words = ["CLIENTA"];
+  const short = words.length > 2 ? [words[0], words[words.length > 3 ? 2 : 1]] : words;
+  const bases = [...new Set([short.join(" "), words.slice(0, 4).join(" ")].map((b) => `ALP-${b.slice(0, 32).trim()}`))];
+  const out = [...bases];
+  const letters = "BCDEFGHJKLMNPQRSTUVWXYZ";
+  for (const l of letters) out.push(`${bases[0]} ${l}`);
+  for (const l1 of letters) for (const l2 of letters) out.push(`${bases[0]} ${l1}${l2}`);
+  return out;
+}
+
+async function casilleroDe(email, name) {
   const s = store();
   const cur = await s.get(casKey(email), { type: "json" });
-  if (cur && cur.code) return cur.code;
-  const code = await nextFolio("casillero");
-  const res = await s.setJSON(casKey(email), { code, email, createdAt: new Date().toISOString() }, { onlyIfNew: true });
-  if (!res.modified) {
-    const again = await s.get(casKey(email), { type: "json" });
-    return again && again.code;
+  if (cur && cur.code && !OLD_CODE.test(cur.code)) return cur.code;
+  let code = "";
+  for (const c of codeCandidates(name, email)) {
+    const res = await s.setJSON(codeKey(c), { email }, { onlyIfNew: true });
+    if (res.modified) { code = c; break; }
+    const owner = await s.get(codeKey(c), { type: "json" });
+    if (owner && owner.email === email) { code = c; break; }
   }
-  await s.setJSON(`casillero-code/${code}`, { email });
+  if (!code) throw new Error("No se pudo asignar el código de casillero.");
+  await s.setJSON(casKey(email), { code, email, createdAt: (cur && cur.createdAt) || new Date().toISOString() });
+  if (cur && cur.code && cur.code !== code) await s.delete(codeKey(cur.code)).catch(() => {});
   return code;
 }
 async function emailDeCasillero(code) {
-  const r = await store().get(`casillero-code/${String(code).toUpperCase()}`, { type: "json" });
+  const r = await store().get(codeKey(code), { type: "json" });
   return r ? r.email : null;
 }
-/* { email: código } de todas las clientas que ya tienen número. */
+/* { email: código } de todas las clientas que ya tienen código. */
 async function todosLosCasilleros() {
   const s = store();
   const { blobs } = await s.list({ prefix: "casillero/" });
