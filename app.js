@@ -2709,14 +2709,111 @@ function initProductSheet() {
 let suggestTimer = null;
 let suggestActive = -1;
 
-function searchMatches(q) {
-  const words = normalizeForSearch(q).trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return [];
-  const exact = products.filter((p) => {
-    const hay = normalizeForSearch(`${p.marca} ${p.nombre} ${p.categoria}`);
-    return words.every((w) => hay.includes(w));
+/* Español -> palabras de los nombres (casi todos en inglés, de ABW). Si
+   la búsqueda trae una de estas frases, basta con que el producto tenga
+   CUALQUIERA de sus equivalentes. Van sin acentos (ver normalizeForSearch)
+   y de la más larga a la más corta dentro de cada grupo no importa: se
+   buscan primero las frases más largas de todas. */
+const SEARCH_SYNONYMS = [
+  [["protector solar", "bloqueador solar", "bloqueador", "filtro solar", "solar", "sol"], ["sun", "spf", "uv", "protector solar"]],
+  [["crema para ojos", "crema de ojos", "contorno de ojos", "contorno ojos", "ojeras"], ["eye cream", "eye serum", "eye patch", "eye essence", "eye gel", "eye balm", "eye stick", "eye mask", "eye care", "contorno de ojos"]],
+  [["mascara de pestanas", "rimel", "pestanas"], ["mascara", "colorcara", "lash"]],
+  [["mascarilla facial", "mascarillas", "mascarilla", "mascaras faciales", "mascara facial"], ["mask", "pack", "mascarilla"]],
+  [["manchas", "mancha", "hiperpigmentacion", "melasma", "aclarante", "aclarar", "despigmentante", "luminosidad", "iluminar la piel", "tono disparejo"],
+    ["spot", "bright", "whiten", "tone up", "tone-up", "niacinamide", "glutathione", "tranexamic", "vita c", "vitamin c", "melano", "pigment"]],
+  [["acne", "granos", "barros", "espinillas", "imperfecciones"], ["acne", "trouble", "blemish", "pimple", "salicylic", "tea tree", "bha", "a-clear", "ac "]],
+  [["puntos negros", "poros"], ["pore", "blackhead", "nose", "sebum"]],
+  [["antiarrugas", "anti arrugas", "arrugas", "antiedad", "anti edad", "envejecimiento", "firmeza", "flacidez"],
+    ["wrinkle", "aging", "retinol", "retinal", "peptide", "collagen", "firm", "lift", "bakuchiol", "adenosine", "elastic"]],
+  [["piel seca", "resequedad", "hidratante", "hidratacion", "humectante"], ["moist", "hydra", "hyaluron", "aqua", "water", "ceramide", "hidratante"]],
+  [["piel grasa", "control de grasa", "grasa", "brillo graso"], ["oil control", "sebum", "pore", "matte", "oil-free", "oil free"]],
+  [["piel sensible", "sensible", "irritacion", "rojeces", "calmante"], ["sensitive", "calm", "cica", "centella", "sooth", "madeca", "mugwort"]],
+  [["agua micelar", "aceite limpiador", "balsamo limpiador", "desmaquillante"], ["micellar", "cleansing oil", "cleansing balm", "cleansing water", "remover", "clean balm", "desmaquillante"]],
+  [["limpiador facial", "jabon facial", "limpiador", "espuma limpiadora", "espuma"], ["cleans", "foam", "wash", "limpiador"]],
+  [["tonico", "tonicos", "locion facial"], ["toner", "tonico", "softener"]],
+  [["serum", "suero", "ampolleta", "ampula", "ampolla"], ["serum", "ampoule", "ampule", "concentrate", "shot"]],
+  [["esencia"], ["essence", "esencia"]],
+  [["exfoliante", "exfoliacion", "peeling"], ["peel", "exfoli", "scrub", "gommage", "aha", "bha"]],
+  [["crema facial", "cremas", "crema"], ["cream", "crema", "moistur"]],
+  [["balsamo labial", "balsamo de labios", "cuidado de labios"], ["lip balm", "lip mask", "lip care", "lip oil", "lip treatment"]],
+  [["brillo labial", "brillo de labios"], ["gloss", "lip oil"]],
+  [["labiales", "labial", "pintalabios", "lapiz labial", "tintas", "tinta"], ["lip", "tint", "rouge", "lipstick", "velvet"]],
+  [["base de maquillaje", "base liquida", "base"], ["foundation", "cushion", "bb cream", "b.b", "cc cream", "skin tint", "base y cushion"]],
+  [["corrector", "correctores"], ["conceal", "corrector"]],
+  [["rubor", "rubores", "chapitas", "colorete"], ["blush", "cheek"]],
+  [["iluminador", "iluminadores"], ["highlight", "glow"]],
+  [["polvo", "polvos", "polvo compacto", "polvo suelto"], ["powder", "pact"]],
+  [["sombras", "sombra", "paleta", "paletas"], ["shadow", "palette", "eyes"]],
+  [["delineador", "delineadores"], ["liner"]],
+  [["cejas", "ceja"], ["eyebrow", "cejas", "brow pencil", "brow gel", "brow mascara", "brow tint", "brow cara", "brow powder", "brow kit", "skinny brow", "brow pen"]],
+  [["esmalte", "unas"], ["nail"]],
+  [["parches", "parche"], ["patch"]],
+  [["shampoo", "champu"], ["shampoo"]],
+  [["acondicionador"], ["conditioner", "treatment", "rinse"]],
+  [["tinte para cabello", "tinte de cabello", "tinte"], ["hair color", "hair colour", "dye", "bleach"]],
+  [["cabello", "pelo", "capilar"], ["hair", "scalp", "shampoo"]],
+  [["cuerpo", "corporal"], ["body", "corporal"]],
+  [["manos"], ["hand"]],
+  [["pies"], ["foot", "feet", "heel"]],
+  [["dientes", "pasta de dientes", "dental"], ["tooth", "dental"]],
+  [["acido hialuronico", "hialuronico"], ["hyaluron"]],
+  [["vitamina c"], ["vita c", "vitamin c", "vitamin-c", "vita-c"]],
+  [["niacinamida"], ["niacinamide"]],
+  [["colageno"], ["collagen"]],
+  [["baba de caracol", "caracol"], ["snail"]],
+  [["te verde"], ["green tea"]],
+  [["arroz"], ["rice"]],
+  [["aceite"], ["oil"]],
+  [["rojo", "roja", "rojos"], ["red", "rojo", "cherry", "scarlet"]],
+  [["rosa", "rosado", "rosita"], ["pink", "rose", "rosy"]],
+  [["nude", "beige", "natural"], ["nude", "beige", "natural"]],
+  [["coral"], ["coral"]],
+  [["durazno", "melocoton"], ["peach"]],
+  [["naranja"], ["orange"]],
+  [["morado", "lila", "ciruela", "vino"], ["purple", "plum", "mauve", "lilac", "wine", "berry"]],
+  [["cafe", "marron", "chocolate"], ["brown", "choco", "mocha", "coffee"]],
+  [["negro", "negra"], ["black"]],
+  [["kit", "kits", "set", "regalo"], ["set", "kit", "gift", "trial"]],
+];
+// Palabras que no ayudan a encontrar ("crema PARA ojos").
+const SEARCH_STOPWORDS = new Set(["para", "de", "del", "la", "el", "los", "las", "con", "y", "en", "un", "una", "mi", "piel"]);
+const SEARCH_PHRASES = SEARCH_SYNONYMS.flatMap(([keys, alts]) => keys.map((k) => ({ k, alts: [...alts, k] }))).sort((a, b) => b.k.length - a.k.length);
+
+/* Texto donde se busca: marca, nombre, categoría, tipo de producto (en
+   español, ver productType) y tipo de piel. Se guarda en el producto. */
+function searchHaystack(p) {
+  if (!p._hay) p._hay = normalizeForSearch(`${p.marca} ${p.nombre} ${p.categoria} ${productType(p)} ${(p.tipoPiel || []).join(" ")}`);
+  return p._hay;
+}
+
+/* Convierte la búsqueda en "conceptos": cada frase en español del
+   diccionario se vuelve un grupo de equivalentes; lo demás se busca tal
+   cual (y sin la "s" final si viene en plural). */
+function searchConcepts(q) {
+  let rest = ` ${normalizeForSearch(q).replace(/[^a-z0-9&+.-]+/g, " ").trim()} `;
+  const concepts = [];
+  for (const { k, alts } of SEARCH_PHRASES) {
+    if (rest.includes(` ${k} `)) {
+      concepts.push(alts);
+      rest = rest.replace(` ${k} `, " ");
+    }
+  }
+  rest.split(/\s+/).filter((w) => w && !SEARCH_STOPWORDS.has(w)).forEach((w) => {
+    const alts = [w];
+    if (w.length > 4 && w.endsWith("es")) alts.push(w.slice(0, -2));
+    if (w.length > 3 && w.endsWith("s")) alts.push(w.slice(0, -1));
+    concepts.push(alts);
   });
-  return exact;
+  return concepts;
+}
+
+function searchMatches(q) {
+  const concepts = searchConcepts(q);
+  if (!concepts.length) return [];
+  return products.filter((p) => {
+    const hay = searchHaystack(p);
+    return concepts.every((alts) => alts.some((a) => hay.includes(a)));
+  });
 }
 
 /* Si no hubo nada, se intenta con faltas de ortografía comunes (una letra
@@ -3680,7 +3777,7 @@ const PRODUCT_TYPES = [
   ["Acondicionador y tratamiento", /conditioner|rinse|hair (mask|pack|treatment|clinic)|acondicionador|treatment.*hair|scalp|hair/i],
   ["Contorno de ojos", /\beye (film|roller|solution|tightener|cream|serum|essence|gel|balm|stick|mask|patch)|eye ?zone|contorno de ojos/i],
   ["Bálsamo y cuidado de labios", /\blip (balm|mask|care|scrub|oil|treatment|sleeping|essence|serum|plumper)|bálsamo labial|lip ?balm/i],
-  ["Cejas", /brow|ceja/i],
+  ["Cejas", /brow(?!n)|ceja/i],
   ["Máscara de pestañas", /mascara|colorcara|rímel|pestañas|lash/i],
   ["Delineador", /liner|delineador/i],
   ["Sombras", /shadow|\beyes\b|eye (blend|stick|glitter|pigment|topper)|palette|paleta|single (matte|shimmer|glitter)|sombra|eye palette|glitter|eye ?(color|colour)|\beyes?\b.*palette/i],
