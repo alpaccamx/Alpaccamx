@@ -2873,9 +2873,7 @@ ${itemLines}
     const msgs = [];
     if (o.status === "paid") msgs.push(["Recibí tu pago", `${hola} ¡Recibí tu pago del pedido ${num}! Muchas gracias por tu compra en Alpacca. Te voy avisando cómo va 🌸`]);
     if (b === "esperando_abw") msgs.push(["Ya lo pedimos", `${hola} Tu pedido ${num} ya está pedido a Corea 🇰🇷. En cuanto llegue a México te aviso para enviártelo.`]);
-    if (b === "por_enviar" && orderStage(o) === "llego") msgs.push(["Llegó a México", isEntregaPersonal(o)
-      ? `${hola} ¡Tu pedido ${num} ya llegó! 🇲🇽 ¿Cuándo te queda bien que te lo entregue?`
-      : `${hola} ¡Tu pedido ${num} ya llegó a México! 🇲🇽 Lo preparo y te mando la guía en cuanto salga.`]);
+    if (b === "por_enviar" && orderStage(o) === "llego" && !isEntregaPersonal(o)) msgs.push(["Llegó a México", `${hola} ¡Tu pedido ${num} ya llegó a México! 🇲🇽 Lo preparo y te mando la guía en cuanto salga.`]);
     if (b === "enviado") msgs.push(["¿Ya te llegó?", `${hola} ¿Ya te llegó tu pedido ${num}? Cualquier cosa aquí estoy 🌸`]);
     if (b === "entregado") msgs.push(["Gracias", `${hola} ¡Gracias por tu compra! Si te gustaron tus productos, me ayudaría mucho que dejaras tu reseña en alpacca.mx 💕`]);
     if (!msgs.length) return "";
