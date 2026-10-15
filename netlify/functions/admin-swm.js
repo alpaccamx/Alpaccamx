@@ -3,7 +3,7 @@
 //
 // GET                 → { paquetes, compras, envios, almacenajeDias }
 // GET ?archivo=<key>  → el archivo (foto de paquete o comprobante)
-// GET ?buscarClienta=<texto> → { clientas: [{ email, name, phone }] }
+// GET ?buscarClienta=<texto> → { clientas: [{ email, name, phone, casillero }] }  (acepta "ALP-0012")
 // POST { accion, ... }:
 //   recibir_paquete   { id, kg, alto, ancho, largo, fotos?: [{ dataBase64, contentType }], notaClienta? }
 //   sin_registrar     { email?, etiqueta, tienda?, rastreo?, kg, alto, ancho, largo, fotos?, notaClienta? }
@@ -23,7 +23,7 @@
 const { randomUUID } = require("crypto");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { detectFileType } = require("./lib/file-signature.js");
-const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, getFile } = require("./lib/swm-store.js");
+const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, getFile, emailDeCasillero, todosLosCasilleros } = require("./lib/swm-store.js");
 const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA } = require("./lib/swm-pricing.js");
 const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
 const { ALMACENAJE_DIAS, round2, cotizacionSugerida, aplicarPago, avisar, formatPriceMXN } = require("./lib/swm-core.js");
@@ -43,7 +43,18 @@ exports.handler = async (event) => {
   if (event.httpMethod === "GET") {
     const qs = event.queryStringParameters || {};
     if (qs.buscarClienta != null) {
-      try { return json(200, { clientas: await searchCustomers(qs.buscarClienta) }); } catch (err) { console.error(err); return json(500, { error: "No se pudo buscar." }); }
+      try {
+        // "ALP-0012" o "alp12": busca por número de casillero.
+        const m = /^\s*alp\s*-?\s*0*(\d{1,6})\s*$/i.exec(qs.buscarClienta);
+        if (m) {
+          const code = `ALP-${m[1].padStart(4, "0")}`;
+          const email = await emailDeCasillero(code);
+          const found = email ? (await searchCustomers(email)).filter((c) => c.email === email) : [];
+          return json(200, { clientas: found.map((c) => ({ ...c, casillero: code })) });
+        }
+        const [clientas, cas] = await Promise.all([searchCustomers(qs.buscarClienta), todosLosCasilleros()]);
+        return json(200, { clientas: clientas.map((c) => ({ ...c, casillero: cas[c.email] || "" })) });
+      } catch (err) { console.error(err); return json(500, { error: "No se pudo buscar." }); }
     }
     const key = qs.archivo;
     if (key) {
@@ -53,8 +64,8 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
     }
     try {
-      const [paquetes, compras, envios] = await Promise.all([listRecords("paquete"), listRecords("compra"), listRecords("envio")]);
-      return json(200, { paquetes, compras, envios, almacenajeDias: ALMACENAJE_DIAS, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
+      const [paquetes, compras, envios, casilleros] = await Promise.all([listRecords("paquete"), listRecords("compra"), listRecords("envio"), todosLosCasilleros()]);
+      return json(200, { paquetes, compras, envios, casilleros, almacenajeDias: ALMACENAJE_DIAS, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
     } catch (err) {
       console.error("admin-swm GET:", err);
       return json(500, { error: "No se pudo cargar Shop with Mae." });
