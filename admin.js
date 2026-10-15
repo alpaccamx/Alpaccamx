@@ -3010,6 +3010,7 @@ ${itemLines}
       </div>`;
 
     renderHomeProfit(paid, now);
+    renderHomeReport(paid, now);
 
     // Lo más vendido del mes (piezas)
     const tops = new Map();
@@ -3175,6 +3176,89 @@ ${itemLines}
     const pct = p.known ? Math.round((p.profit / p.known) * 100) : 0;
     return `<div class="profit-box">💵 Ganancia estimada: <b>${formatPrice(p.profit)}</b> (${pct}%)<br/>
       <small>Productos ${formatPrice(p.known)} − costo ABW ${formatPrice(p.cost)}${p.missing ? ` · ${p.missing} pieza${p.missing === 1 ? "" : "s"} de Stock MX sin costo en el Sheet (no incluida${p.missing === 1 ? "" : "s"})` : ""}</small></div>`;
+  }
+
+  /* ---------- Reporte de ventas ----------
+     Lo que más se vende, ticket promedio y clientas que regresan, para
+     decidir qué tener en Stock MX. Solo pedidos pagados; "Productos" es
+     lo que pagaron por productos (sin envío). */
+  let reportPeriod = "mes";
+  const REPORT_PERIODS = [["mes", "Este mes"], ["3m", "Últimos 3 meses"], ["anio", "Este año"], ["todo", "Todo"]];
+
+  function renderHomeReport(paid, now) {
+    const el = document.getElementById("home-report");
+    if (!el) return;
+    const from = reportPeriod === "mes" ? new Date(now.getFullYear(), now.getMonth(), 1)
+      : reportPeriod === "3m" ? new Date(now.getFullYear(), now.getMonth() - 2, 1)
+      : reportPeriod === "anio" ? new Date(now.getFullYear(), 0, 1) : null;
+    const inRange = paid.filter((o) => o.createdAt && (!from || new Date(o.createdAt) >= from));
+    const lineTotal = (it) => (Number(it.precio) || 0) * (Number(it.qty) || 0);
+    let total = 0, prods = 0, piezas = 0, stockMX = 0;
+    const byProd = new Map(), byBrand = new Map(), byClient = new Map();
+    inRange.forEach((o) => {
+      total += o.grandTotal || 0;
+      const k = clientKey(o);
+      byClient.set(k, (byClient.get(k) || 0) + (o.grandTotal || 0));
+      (o.items || []).forEach((it) => {
+        const v = lineTotal(it), q = Number(it.qty) || 0, marca = itemMarca(it) || "Sin marca";
+        prods += v; piezas += q;
+        if (it.enStock) stockMX += v;
+        // Sin distinguir mayúsculas ("Bath & body works" = "Bath & Body Works").
+        const pk = `${marca}||${it.nombre}`.toLowerCase();
+        const pr = byProd.get(pk) || { q: 0, v: 0, label: `${marca}||${it.nombre}` }; pr.q += q; pr.v += v; byProd.set(pk, pr);
+        const bk = marca.toLowerCase();
+        const br = byBrand.get(bk) || { q: 0, v: 0, label: marca }; br.q += q; br.v += v; byBrand.set(bk, br);
+      });
+    });
+    // Recurrentes: clientas con 2 o más pedidos pagados en todo el historial.
+    const allCount = new Map();
+    paid.forEach((o) => { const k = clientKey(o); allCount.set(k, (allCount.get(k) || 0) + 1); });
+    const clients = [...byClient.keys()];
+    const repeat = clients.filter((k) => (allCount.get(k) || 0) >= 2);
+    const repeatSales = repeat.reduce((t, k) => t + byClient.get(k), 0);
+    const n = inRange.length;
+    const top = (m) => [...m.entries()].sort((a, b) => b[1].v - a[1].v).slice(0, 10);
+    const list = (rows, label) => rows.length
+      ? `<ul class="top-list">${rows.map(([, x]) => `<li><span>${label(x.label)}</span><b>${formatPrice(x.v)} · ${x.q} pzs</b></li>`).join("")}</ul>`
+      : `<p style="margin:0;color:#5f5866;">Sin ventas en este periodo.</p>`;
+    // Por mes (12 meses)
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString("es-MX", { month: "short", year: "2-digit" }), n: 0, v: 0, c: new Set() });
+    }
+    const mk = new Map(months.map((m) => [m.key, m]));
+    paid.forEach((o) => {
+      if (!o.createdAt) return;
+      const d = new Date(o.createdAt);
+      const m = mk.get(`${d.getFullYear()}-${d.getMonth()}`);
+      if (m) { m.n++; m.v += o.grandTotal || 0; m.c.add(clientKey(o)); }
+    });
+    const mrows = months.slice().reverse().filter((m, i) => i === 0 || m.n);
+    el.innerHTML = `<h2>📊 Reporte de ventas</h2>
+      <div class="report-periods">${REPORT_PERIODS.map(([k, l]) => `<button type="button" data-report-period="${k}" class="${k === reportPeriod ? "on" : ""}">${l}</button>`).join("")}</div>
+      <div class="report-kpis">
+        <div><span>Vendido</span><b>${formatPrice(total)}</b><span>${n} pedido${n === 1 ? "" : "s"}</span></div>
+        <div><span>Ticket promedio</span><b>${formatPrice(n ? total / n : 0)}</b><span>${piezas} piezas</span></div>
+        <div><span>Clientas</span><b>${clients.length}</b><span>${repeat.length} regresan a comprar${clients.length ? ` (${Math.round((repeat.length / clients.length) * 100)}%)` : ""}</span></div>
+        <div><span>Stock MX</span><b>${formatPrice(stockMX)}</b><span>${prods ? Math.round((stockMX / prods) * 100) : 0}% de los productos</span></div>
+      </div>
+      ${repeat.length ? `<p class="profit-note" style="margin-top:0;">Las clientas que regresan hicieron el ${total ? Math.round((repeatSales / total) * 100) : 0}% de lo vendido en este periodo.</p>` : ""}
+      <div class="report-cols">
+        <div><h3>⭐ Productos más vendidos</h3>${list(top(byProd), (k) => { const [marca, nombre] = k.split("||"); return `<strong>${escapeHtml(marca)}</strong> — ${escapeHtml(nombre)}`; })}</div>
+        <div><h3>🏷️ Marcas más vendidas</h3>${list(top(byBrand), (k) => `<strong>${escapeHtml(k)}</strong>`)}</div>
+      </div>
+      <h3 style="font-size:15px;margin:16px 0 8px;">📅 Ventas por mes</h3>
+      <table class="profit-table"><thead><tr><th>Mes</th><th>Pedidos</th><th>Clientas</th><th>Vendido</th><th>Ticket</th></tr></thead><tbody>
+      ${mrows.map((m, i) => `<tr class="${i === 0 ? "now" : ""}"><td>${escapeHtml(m.label)}</td><td>${m.n}</td><td>${m.c.size}</td><td>${formatPrice(m.v)}</td><td>${formatPrice(m.n ? m.v / m.n : 0)}</td></tr>`).join("")}
+      </tbody></table>
+      <p class="profit-note">Solo pedidos pagados. "Vendido" incluye envíos; los productos y marcas cuentan solo el precio de los productos.</p>`;
+    el.onclick = (e) => {
+      const b = e.target.closest("[data-report-period]");
+      if (!b) return;
+      reportPeriod = b.dataset.reportPeriod;
+      renderHomeReport(paidOrders(), new Date());
+    };
   }
 
   function renderHomeProfit(paid, now) {
