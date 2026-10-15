@@ -77,6 +77,46 @@
   force = true
   query = {p = ":p"}
 
+# Links de listados (marca, categoría, país, stock, búsqueda): la misma
+# tienda, pero con título e imagen de esa marca/categoría para la vista
+# previa de WhatsApp o Facebook. Netlify pasa el ?... original tal cual a
+# la función (por eso "to" no lleva parámetros: "rom&nd" o "I'M MEME" no
+# se rompen).
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/product-page"
+  status = 200
+  force = true
+  query = {marca = ":marca"}
+
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/product-page"
+  status = 200
+  force = true
+  query = {categoria = ":categoria"}
+
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/product-page"
+  status = 200
+  force = true
+  query = {pais = ":pais"}
+
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/product-page"
+  status = 200
+  force = true
+  query = {ver = ":ver"}
+
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/product-page"
+  status = 200
+  force = true
+  query = {q = ":q"}
+
 # Catálogo ligero que baja la tienda (ver netlify/functions/catalog-light.js).
 [[redirects]]
   from = "/catalogo.csv"
