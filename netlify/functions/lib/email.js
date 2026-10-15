@@ -111,6 +111,9 @@ function orderBreakdownRowsHTML(order) {
   } else if (shippingMXN > 0) {
     rows.push(row("Envío", shippingMXN));
   }
+  if (order.customer && order.customer.entregaPersonal) {
+    rows.push(`<div style="display:flex;justify-content:space-between;font-size:14px;padding:2px 0;"><span>📍 Entrega personal en Ciudad Juárez</span><span>Sin costo</span></div>`);
+  }
   return rows.join("");
 }
 

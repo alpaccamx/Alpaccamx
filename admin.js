@@ -1422,7 +1422,7 @@ ${itemLines}
      Perros (cotiza, tú eliges la paquetería y se genera + avisa por
      WhatsApp). Caja fija 2x2x2 cm, solo el peso lo escribes tú. */
   function guideBlockHTML(o) {
-    if (o.status !== "paid") return "";
+    if (o.status !== "paid" || isEntregaPersonal(o)) return "";
     const c = o.customer || {};
     return `
       <div class="guide-block">
@@ -1519,6 +1519,7 @@ ${itemLines}
     const c = o.customer || {};
     const { pieces } = orderPiecesAndWeight(o);
     const extra = [bucketChipHTML(o)];
+    if (isEntregaPersonal(o)) extra.push(`<span class="badge" style="background:#fde7ee;color:#9b2c4f;">📍 Entrega personal</span>`);
     return `
       <button type="button" class="card-summary" data-card-toggle="${o.id}" aria-expanded="${expanded ? "true" : "false"}" aria-controls="card-body-${o.id}">
         <span>
@@ -2842,6 +2843,16 @@ ${itemLines}
     return st;
   }
 
+  /* Ciudad Juárez: Mae entrega en persona (sin guía ni envío nacional).
+     Misma regla que isJuarezAddress en app.js y lib/pricing.js. */
+  function isJuarezOrder(o) {
+    const c = o.customer || {};
+    const cpText = String(c.cp || "").trim();
+    if (/^\d{5}$/.test(cpText)) return Number(cpText) >= 32000 && Number(cpText) <= 32799;
+    return normalizeForSearch(c.municipio || "").includes("juarez") && normalizeForSearch(c.estado || "").includes("chihuahua");
+  }
+  const isEntregaPersonal = (o) => !!(o.customer && o.customer.entregaPersonal);
+
   function bucketChipHTML(o) {
     const b = orderBucket(o);
     return b ? `<span class="badge st-${b}">${BUCKETS[b]}</span>` : "";
@@ -2862,7 +2873,9 @@ ${itemLines}
     const msgs = [];
     if (o.status === "paid") msgs.push(["Recibí tu pago", `${hola} ¡Recibí tu pago del pedido ${num}! Muchas gracias por tu compra en Alpacca. Te voy avisando cómo va 🌸`]);
     if (b === "esperando_abw") msgs.push(["Ya lo pedimos", `${hola} Tu pedido ${num} ya está pedido a Corea 🇰🇷. En cuanto llegue a México te aviso para enviártelo.`]);
-    if (b === "por_enviar" && orderStage(o) === "llego") msgs.push(["Llegó a México", `${hola} ¡Tu pedido ${num} ya llegó a México! 🇲🇽 Lo preparo y te mando la guía en cuanto salga.`]);
+    if (b === "por_enviar" && orderStage(o) === "llego") msgs.push(["Llegó a México", isEntregaPersonal(o)
+      ? `${hola} ¡Tu pedido ${num} ya llegó! 🇲🇽 ¿Cuándo te queda bien que te lo entregue?`
+      : `${hola} ¡Tu pedido ${num} ya llegó a México! 🇲🇽 Lo preparo y te mando la guía en cuanto salga.`]);
     if (b === "enviado") msgs.push(["¿Ya te llegó?", `${hola} ¿Ya te llegó tu pedido ${num}? Cualquier cosa aquí estoy 🌸`]);
     if (b === "entregado") msgs.push(["Gracias", `${hola} ¡Gracias por tu compra! Si te gustaron tus productos, me ayudaría mucho que dejaras tu reseña en alpacca.mx 💕`]);
     if (!msgs.length) return "";
@@ -2879,9 +2892,13 @@ ${itemLines}
     let action = "";
     if (b === "por_abw") action = btn("pedido_abw", "🛍️ Ya lo pedí a ABW");
     else if (b === "esperando_abw") action = btn("llego", "📦 Ya llegó a México");
+    else if (b === "por_enviar" && isEntregaPersonal(o)) action = `${btn("entregado", "🎁 Ya se lo entregué")}<span class="edit-hint">Entrega personal en Ciudad Juárez: no lleva guía.</span>`;
     else if (b === "por_enviar") action = `${btn("enviado", "🚚 Ya lo envié")}<span class="edit-hint">Para generar la guía con paquetería usa "📦 Generar guía real" más abajo; al guardar la guía se marca como enviado solo.</span>`;
     else if (b === "enviado") action = btn("entregado", "🎁 Ya lo recibió");
-    return `<div class="next-step"><span class="ns-label">Siguiente paso · <b>${BUCKETS[b]}</b></span>${action}${waTemplatesHTML(o)}</div>`;
+    const personal = isJuarezOrder(o) && ["por_abw", "esperando_abw", "por_enviar"].includes(b)
+      ? `<button type="button" class="btn-secondary" data-personal-toggle="${o.id}" data-personal-to="${isEntregaPersonal(o) ? "0" : "1"}">${isEntregaPersonal(o) ? "Quitar entrega personal" : "📍 Marcar como entrega personal (Juárez)"}</button>`
+      : "";
+    return `<div class="next-step"><span class="ns-label">Siguiente paso · <b>${BUCKETS[b]}</b></span>${action}${personal}${waTemplatesHTML(o)}</div>`;
   }
 
   function stageSelectHTML(o) {
@@ -2919,8 +2936,37 @@ ${itemLines}
     }
   }
 
+  async function setEntregaPersonal(id, on) {
+    setStatus("Guardando...");
+    try {
+      const res = await fetch("/.netlify/functions/admin-update-order-stage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ orderId: id, entregaPersonal: on }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setStatus(data.error || "No se pudo guardar."); return; }
+      (data.orders || []).forEach((u) => {
+        const i = allOrders.findIndex((x) => x.id === u.id);
+        if (i >= 0) allOrders[i] = u;
+      });
+      setStatus("");
+      applyFilters();
+      showToast(on ? "📍 Marcado como entrega personal." : "Se quitó la entrega personal.");
+    } catch (err) {
+      setStatus("No se pudo conectar con el servidor.");
+    }
+  }
+
   function wireStageControls(container) {
     container.addEventListener("click", async (e) => {
+      const pt = e.target.closest("[data-personal-toggle]");
+      if (pt && container.contains(pt)) {
+        openCards.add(pt.dataset.personalToggle);
+        pt.disabled = true;
+        await setEntregaPersonal(pt.dataset.personalToggle, pt.dataset.personalTo === "1");
+        return;
+      }
       const btn = e.target.closest("[data-stage]");
       if (!btn || !container.contains(btn)) return;
       const id = btn.dataset.stage;

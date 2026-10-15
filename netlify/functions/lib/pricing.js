@@ -405,6 +405,16 @@ async function loadPricingData() {
 /* ======================================================================
    Precio del pedido
    ====================================================================== */
+/* Ciudad Juárez: Mae entrega en persona y no se cobra el envío nacional
+   (misma regla que isJuarezAddress en app.js): CP 32000-32799, o
+   municipio "Juárez" en Chihuahua. */
+function isJuarezAddress(c) {
+  const cpText = String((c && c.cp) || "").trim();
+  if (/^\d{5}$/.test(cpText)) return Number(cpText) >= 32000 && Number(cpText) <= 32799;
+  const n = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return n(c && c.municipio).includes("juarez") && n(c && c.estado).includes("chihuahua");
+}
+
 const round2 = (n) => Math.round(n * 100) / 100;
 
 /* Regresa { ok: true, ...totales } o { ok: false, status, error }.
@@ -491,11 +501,21 @@ async function priceOrder({ source, items, customer, soldMap }) {
   const koreaParcels = koreaParcelWeights(lines.filter((l) => !l.enStock));
 
   const cp = String((customer && customer.cp) || "");
+  const entregaPersonal = !!(customer && customer.entregaPersonal) && isJuarezAddress(customer);
   let shipping = null;
   if (weight > 0) {
     shipping = shippingEstimate(state, weight, cp, koreaParcels);
-    if (!shipping) {
+    if (!shipping && !entregaPersonal) {
       return { ok: false, status: 400, error: "No pudimos calcular el envío para tu código postal. Revisa que esté bien escrito." };
+    }
+    if (shipping && entregaPersonal) {
+      shipping = {
+        ...shipping,
+        totalMXN: shipping.totalMXN - shipping.nacionalMXN,
+        totalMXNTarjeta: shipping.totalMXNTarjeta - shipping.nacionalMXNTarjeta,
+        nacionalMXN: 0,
+        nacionalMXNTarjeta: 0,
+      };
     }
   }
   const shippingMXN = shipping ? (useTarjeta ? shipping.totalMXNTarjeta : shipping.totalMXN) : 0;
@@ -509,6 +529,7 @@ async function priceOrder({ source, items, customer, soldMap }) {
     shippingMXN: round2(shippingMXN),
     shippingMXNBase: round2(shippingMXNBase),
     grandTotal: round2(subtotal + shippingMXN),
+    entregaPersonal,
     exchangeRate: state.settings.exchangeRate || 0,
     shippingKoreaMXN: shipping ? shipping.coreaMXN : 0,
     shippingNacionalMXN: shipping ? shipping.nacionalMXN : 0,
@@ -536,6 +557,7 @@ function matchesClientTotals(priced, client) {
 }
 
 module.exports = {
+  isJuarezAddress,
   priceOrder,
   matchesClientTotals,
   loadPricingData,

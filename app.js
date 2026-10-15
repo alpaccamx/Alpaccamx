@@ -4650,12 +4650,46 @@ function renderBankDetails() {
   if (successBody) successBody.innerHTML = html;
 }
 
+/* Ciudad Juárez: Mae entrega en persona, sin envío nacional. Se reconoce
+   por el CP (32000-32799) o por municipio "Juárez" en Chihuahua; la misma
+   regla está en lib/pricing.js (el servidor no cobra el envío nacional
+   si el pedido viene marcado y la dirección es de Juárez). */
+function isJuarezAddress(c) {
+  const cpText = String((c && c.cp) || "").trim();
+  if (/^\d{5}$/.test(cpText)) return Number(cpText) >= 32000 && Number(cpText) <= 32799;
+  const n = (t) => normalizeForSearch(t || "");
+  return n(c && c.municipio).includes("juarez") && n(c && c.estado).includes("chihuahua");
+}
+
+function cartJuarez() {
+  return isJuarezAddress({
+    cp: document.getElementById("customer-cp").value,
+    municipio: document.getElementById("customer-municipio").value,
+    estado: document.getElementById("customer-estado").value,
+  });
+}
+
+function entregaPersonalActiva() {
+  const box = document.getElementById("cart-entrega-personal");
+  return cartJuarez() && !!box && box.checked;
+}
+
+/* Envío del carrito; con entrega personal en Juárez no lleva el nacional. */
+function cartShippingEstimate(cp) {
+  const s = shippingEstimate(cartWeight(), cp, cartKoreaParcels());
+  if (!s || !entregaPersonalActiva()) return s;
+  const out = { ...s, totalMXN: s.totalMXN - s.nacionalMXN, totalMXNTarjeta: s.totalMXNTarjeta - s.nacionalMXNTarjeta, nacionalMXN: 0, nacionalMXNTarjeta: 0, hasNacional: false };
+  return out.hasKorea || out.totalMXN > 0 ? out : null;
+}
+
 function updateNacionalShippingUI() {
   const row = document.getElementById("cart-shipping-nacional-row");
   const label = document.getElementById("cart-shipping-nacional-label");
   const amount = document.getElementById("cart-shipping-nacional");
   const cp = document.getElementById("customer-cp").value.trim();
 
+  const personalWrap = document.getElementById("cart-entrega-personal-wrap");
+  if (personalWrap) personalWrap.classList.toggle("hidden", !(Object.keys(cart).length && cartJuarez()));
   if (!Object.keys(cart).length || cp.length !== 5) {
     row.classList.add("hidden");
     renderGrandTotal();
@@ -4664,7 +4698,10 @@ function updateNacionalShippingUI() {
   }
 
   const shipping = shippingEstimate(cartWeight(), cp, cartKoreaParcels());
-  if (shipping && shipping.hasNacional) {
+  if (entregaPersonalActiva()) {
+    label.textContent = "📍 Entrega personal en Ciudad Juárez";
+    amount.textContent = "Sin costo";
+  } else if (shipping && shipping.hasNacional) {
     label.textContent = `🚚 Envío nacional (estimado) a CP ${cp}`;
     amount.textContent = formatPrice(shipping.nacionalMXN);
   } else {
@@ -4689,7 +4726,7 @@ function selectedPayMethod() {
    puede calcular con el CP). Con tarjeta se usa el "Precio Tarjeta". */
 function cartPayTotals() {
   const cp = document.getElementById("customer-cp").value.trim();
-  const shipping = shippingEstimate(cartWeight(), cp, cartKoreaParcels());
+  const shipping = cartShippingEstimate(cp);
   return {
     transfer: cartTotal() + (shipping ? shipping.totalMXN : 0),
     card: cartTotalTarjeta() + (shipping ? shipping.totalMXNTarjeta : 0),
@@ -5118,6 +5155,7 @@ function getCustomerFields() {
     estado: document.getElementById("customer-estado").value.trim(),
     referencias: document.getElementById("customer-referencias").value.trim(),
     notes: document.getElementById("customer-notes").value.trim(),
+    entregaPersonal: entregaPersonalActiva(),
   };
 }
 
@@ -5234,7 +5272,7 @@ function recordTransferOrder() {
     const items = cartItemsForOrder();
     const subtotal = cartTotal();
     const weight = cartWeight();
-    const shipping = shippingEstimate(weight, c.cp, cartKoreaParcels());
+    const shipping = cartShippingEstimate(c.cp);
     const shippingMXN = shipping ? shipping.totalMXN : 0;
 
     const fingerprint = JSON.stringify({ source: "transferencia", c, items, subtotal, shippingMXN, weight });
@@ -5436,7 +5474,7 @@ async function payWithMercadoPago() {
 
   try {
     const weight = cartWeight();
-    const shipping = shippingEstimate(weight, c.cp, cartKoreaParcels());
+    const shipping = cartShippingEstimate(c.cp);
     const shippingMXN = shipping ? shipping.totalMXNTarjeta : 0;
     const subtotal = cartTotalTarjeta();
     // Precios/envío sin la comisión de tarjeta, solo para que
@@ -6605,6 +6643,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(btn.dataset.copy).then(done, () => {});
   });
   document.getElementById("customer-cp").addEventListener("input", updateNacionalShippingUI);
+  ["customer-municipio", "customer-estado", "cart-entrega-personal"].forEach((id) => document.getElementById(id).addEventListener("change", updateNacionalShippingUI));
   document.getElementById("quote-success-close").addEventListener("click", closeQuoteSuccess);
 
   document.getElementById("quiz-retake").addEventListener("click", () => {

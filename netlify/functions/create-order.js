@@ -198,6 +198,7 @@ exports.handler = async (event) => {
       estado: String((customer && customer.estado) || ""),
       referencias: String((customer && customer.referencias) || ""),
       notes: String((customer && customer.notes) || ""),
+      entregaPersonal: !!priced.entregaPersonal,
     },
     // Todos los montos y el desglose de envío salen de priceOrder (ver
     // arriba): el navegador solo aporta nombre/marca para mostrar en
