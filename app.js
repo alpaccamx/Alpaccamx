@@ -4755,6 +4755,15 @@ function couponDiscount(base) {
 }
 
 /* "AAAA-MM-DDTHH:MM" (hora de Juárez) -> "15 oct, 9:00 p.m." */
+/* El código que se manda con el pedido: el de descuento solo si de verdad
+   descuenta algo (si no llega a su mínimo, se ignora en vez de rechazar el
+   pedido), y el de pedido compartido siempre, aunque no tenga descuento,
+   porque es el que le quita el mínimo de Corea y cambia el envío. */
+function cartCouponParaEnviar(subtotal) {
+  if (!cartCoupon) return undefined;
+  return cartCoupon.terms.sinMinimo || couponDiscount(subtotal) > 0 ? cartCoupon.code : undefined;
+}
+
 function couponHastaTexto(v) {
   if (!v) return "";
   const [d, t = "23:59"] = v.split("T");
@@ -5401,7 +5410,7 @@ function recordTransferOrder() {
         subtotalBase: subtotal,
         shippingMXNBase: shippingMXN,
         grandTotal: subtotal - couponDiscount(subtotal) + shippingMXN,
-        coupon: cartCoupon && couponDiscount(subtotal) > 0 ? cartCoupon.code : undefined,
+        coupon: cartCouponParaEnviar(subtotal),
         // Desglose de envío y peso, para que /admin.html pueda mostrarlos
         // sin tener que volver a adivinar el peso de cada producto.
         shippingKoreaMXN: shipping ? shipping.coreaMXN : 0,
@@ -5608,7 +5617,7 @@ async function payWithMercadoPago() {
         subtotalBase,
         shippingMXNBase,
         grandTotal: subtotal - couponDiscount(subtotal) + shippingMXN,
-        coupon: cartCoupon && couponDiscount(subtotal) > 0 ? cartCoupon.code : undefined,
+        coupon: cartCouponParaEnviar(subtotal),
         // Desglose de envío a precio de transferencia (igual que
         // shippingMXNBase), para que /admin.html pueda mostrarlo tal cual
         // siempre cobra Mae internamente, y también a precio de tarjeta
