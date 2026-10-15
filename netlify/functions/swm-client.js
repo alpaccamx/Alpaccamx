@@ -179,7 +179,6 @@ exports.handler = async (event) => {
           r.pago = { ...(r.pago || {}), status: "revision", metodo: "transferencia", monto: r.cotizacion.total, comprobanteAt: now(), comprobanteTipo: ct };
           return r;
         });
-        if (!updated || updated.cotizacion.cupon !== c.code) return json(409, { error: "Ya tiene un cupón aplicado." });
         return json(200, { [kind]: publico(updated) });
       }
 
