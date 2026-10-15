@@ -14,6 +14,9 @@
 //   crear_compra      { email, name?, phone?, tienda, items: [{ nombre, tono?, cantidad, precio }], cobro, cruce?, notaClienta?, fotos? }
 //                     (Mae arma la cotización con lo que la clienta le mandó por WhatsApp;
 //                      precio = MXN por pieza; regresa la compra para mandarle el link)
+//   editar_compra     { id, tienda?, items, cobro, cruce?, notaClienta?, fotos? }
+//                     (corrige una cotización que todavía no se paga; si tenía cupón,
+//                      se recalcula el descuento)
 //   compra_comprada   { id, paquetes: [{ tienda, rastreo, contenido }] }
 //   cotizar_envio     { id, envio, cruce?, consolidacion?, sinRegistro?, extras?, notaClienta? }
 //   revision_hecha    { id, fotos: [{ dataBase64, contentType }], nota? }  (fotos del contenido)
@@ -31,6 +34,7 @@ const { detectFileType } = require("./lib/file-signature.js");
 const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, getFile, emailDeCasillero, todosLosCasilleros } = require("./lib/swm-store.js");
 const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, SEPARAR } = require("./lib/swm-pricing.js");
 const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
+const { getCoupon, discountFor } = require("./lib/coupons.js");
 const { ALMACENAJE_DIAS, round2, cotizacionSugerida, aplicarPago, avisar, formatPriceMXN } = require("./lib/swm-core.js");
 
 const num = (v) => Math.max(0, parseFloat(v) || 0);
@@ -160,17 +164,46 @@ exports.handler = async (event) => {
         return rec ? json(200, { paquete: rec }) : json(404, { error: "No existe ese paquete." });
       }
 
-      case "crear_compra": {
-        const email = clip(b.email, 200).toLowerCase();
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(400, { error: "Pon el correo de la clienta (el de su cuenta)." });
-        const items = (Array.isArray(b.items) ? b.items : []).slice(0, 60)
-          .map((x) => ({ nombre: clip(x.nombre, 200), tono: clip(x.tono, 100), cantidad: Math.max(1, Math.floor(num(x.cantidad)) || 1), precio: round2(num(x.precio)) }))
-          .filter((x) => x.nombre && x.precio > 0);
+      case "crear_compra":
+      case "editar_compra": {
+        const editar = b.accion === "editar_compra";
+        const items = leerItems(b.items);
         if (!items.length) return json(400, { error: "Pon al menos un artículo con su precio." });
-        const cuenta = await getCustomerByEmail(email);
         const cobro = b.cobro === "comision" ? "comision" : "peso";
         const productos = round2(items.reduce((t, x) => t + x.precio * x.cantidad, 0));
         const cruce = cobro === "comision" ? (b.cruce !== "" && b.cruce != null ? round2(num(b.cruce)) : crucePorComision(productos)) : 0;
+        if (editar) {
+          const actual = await getRecord("compra", id);
+          if (!actual) return json(404, { error: "No existe esa compra." });
+          const cup = actual.cotizacion && actual.cotizacion.cupon ? await getCoupon(actual.cotizacion.cupon) : null;
+          const fotos = await guardarFotos(b.fotos);
+          let error = "";
+          const rec = await mutateRecord("compra", id, (c) => {
+            if (c.status !== "cotizado" || (c.pago && c.pago.status !== "pendiente")) { error = "Ya no se puede editar: ya mandó su pago o la compra cambió de estado."; return null; }
+            const base = round2(productos + cruce);
+            const viejo = c.cotizacion || {};
+            const descuento = viejo.cupon && cup ? discountFor(cup, base) : viejo.cupon ? Math.min(viejo.descuento || 0, base) : 0;
+            c.cotizacion = { items, productos, cruce, total: round2(base - descuento), at: now(),
+              ...(viejo.cupon ? { cupon: viejo.cupon, descuento, totalSinDescuento: base } : {}) };
+            c.cobro = cobro;
+            if (b.tienda != null) c.tienda = clip(b.tienda, 80);
+            if (b.notaClienta != null) c.notaClienta = clip(b.notaClienta, 1000);
+            c.capturas = [...(c.capturas || []), ...fotos];
+            c.pago = { status: "pendiente", monto: c.cotizacion.total };
+            push(c, "editado");
+            return c;
+          });
+          if (!rec || error) return json(409, { error: error || "No se pudo editar." });
+          await avisar(rec.email, `actualicé tu cotización ${rec.folio}`, `
+            <h2 style="margin:0 0 8px;font-size:20px;">Actualicé tu cotización</h2>
+            <p style="font-size:14px;">${rec.cotizacion.items.map((x) => `${x.cantidad} × ${esc(x.nombre)}${x.tono ? ` · ${esc(x.tono)}` : ""}`).join("<br>")}</p>
+            <p style="font-size:14px;">Total a pagar: <b>${formatPriceMXN(rec.cotizacion.total)}</b></p>
+            <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=shopwithmae&compra=${rec.id}">Ver y pagar mi cotización</a></p>`).catch(() => {});
+          return json(200, { compra: rec });
+        }
+        const email = clip(b.email, 200).toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(400, { error: "Pon el correo de la clienta (el de su cuenta)." });
+        const cuenta = await getCustomerByEmail(email);
         const fotos = await guardarFotos(b.fotos);
         const rec = {
           id: randomUUID(), folio: await nextFolio("compra"), email,
@@ -381,6 +414,12 @@ exports.handler = async (event) => {
     return json(500, { error: "No se pudo guardar." });
   }
 };
+
+function leerItems(lista) {
+  return (Array.isArray(lista) ? lista : []).slice(0, 60)
+    .map((x) => ({ nombre: clip(x.nombre, 200), tono: clip(x.tono, 100), cantidad: Math.max(1, Math.floor(num(x.cantidad)) || 1), precio: round2(num(x.precio)) }))
+    .filter((x) => x.nombre && x.precio > 0);
+}
 
 async function guardarFotos(lista) {
   const fotos = [];
