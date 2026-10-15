@@ -4612,6 +4612,8 @@ function formatWeight(kg) {
 }
 
 function minOrderMXN() {
+  // Código de "pedido compartido de Corea" (cupón con sinMinimo): sin mínimo.
+  if (typeof cartCoupon !== "undefined" && cartCoupon && cartCoupon.terms.sinMinimo) return 0;
   return CONFIG.MIN_ORDER_MXN || 0;
 }
 
@@ -4755,8 +4757,11 @@ function renderCouponUI() {
     if (t.minimo && cartTotal() < t.minimo) {
       msg.textContent = `Este cupón es para compras desde ${formatPrice(t.minimo)}.`;
       msg.className = "mt-1 text-xs text-rose-ink";
+    } else if (t.sinMinimo && !(t.valor > 0)) {
+      msg.textContent = "👯 Pedido compartido de Corea activo: tu pedido no necesita llegar al mínimo.";
+      msg.className = "mt-1 text-xs text-green-800";
     } else {
-      msg.textContent = `✅ Cupón aplicado: ${t.tipo === "pct" ? `${t.valor}% de descuento en productos${t.tope ? ` (máx. ${formatPrice(t.tope)})` : ""}` : `${formatPrice(t.valor)} de descuento`}.`;
+      msg.textContent = `✅ ${t.sinMinimo ? "Pedido compartido de Corea (sin mínimo) + " : "Cupón aplicado: "}${t.tipo === "pct" ? `${t.valor}% de descuento en productos${t.tope ? ` (máx. ${formatPrice(t.tope)})` : ""}` : `${formatPrice(t.valor)} de descuento`}.`;
       msg.className = "mt-1 text-xs text-green-800";
     }
   } else {
@@ -4772,7 +4777,7 @@ async function applyCartCoupon() {
     cartCoupon = null;
     input.value = "";
     msg.className = "hidden";
-    updateNacionalShippingUI();
+    renderCart();
     renderCouponUI();
     return;
   }
@@ -4790,7 +4795,7 @@ async function applyCartCoupon() {
     const data = await res.json().catch(() => ({}));
     if (!data.ok) { msg.textContent = data.error || "Ese cupón no sirve."; msg.className = "mt-1 text-xs text-rose-ink"; return; }
     cartCoupon = { code: data.terms.code, terms: data.terms };
-    updateNacionalShippingUI();
+    renderCart();
     renderCouponUI();
   } catch (err) {
     msg.textContent = "No pudimos revisar el cupón. Intenta de nuevo.";

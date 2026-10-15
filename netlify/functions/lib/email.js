@@ -111,6 +111,9 @@ function orderBreakdownRowsHTML(order) {
   } else if (shippingMXN > 0) {
     rows.push(row("Envío", shippingMXN));
   }
+  if (order.pedidoCompartido) {
+    rows.push(`<div style="display:flex;justify-content:space-between;font-size:14px;padding:2px 0;color:#5b3fa0;"><span>👯 Pedido compartido de Corea (${order.cupon || ""})</span><span>Sin mínimo</span></div>`);
+  }
   if (order.descuento > 0) {
     rows.push(`<div style="display:flex;justify-content:space-between;font-size:14px;padding:2px 0;color:#9b2c4f;"><span>🎟️ Cupón ${order.cupon || ""}</span><span>−${formatPriceMXN(order.descuento)}</span></div>`);
   }

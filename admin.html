@@ -563,9 +563,10 @@
       <div class="grid">
         <label>Código<input name="code" type="text" required placeholder="BIENVENIDA" style="text-transform:uppercase;"></label>
         <label>Tipo<select name="tipo"><option value="pct">% de descuento</option><option value="monto">$ de descuento</option></select></label>
-        <label>Descuento (% o $)<input name="valor" type="number" min="0" step="0.01" required></label>
+        <label>Descuento (% o $)<input name="valor" type="number" min="0" step="0.01" placeholder="0 = sin descuento"></label>
         <label>Tope en $ (solo %, opcional)<input name="tope" type="number" min="0" step="0.01"></label>
       </div>
+      <label style="flex-direction:row;align-items:flex-start;gap:8px;margin-top:10px;background:#f4f0fc;border-radius:10px;padding:10px;font-size:13px;color:#3d2a6b;"><input name="sinMinimo" type="checkbox" style="width:auto;margin-top:2px;"> <span><b>👯 Pedido compartido de Corea</b>: quita el pedido mínimo para que varias clientas hagan un solo pedido contigo (solo tienda; el descuento puede quedar en 0). Actívalo o páusalo desde la lista cuando abras o cierres la dinámica.</span></label>
       <div class="grid">
         <label>Para<select name="aplica"><option value="ambos">Tienda y dirección americana</option><option value="tienda">Solo tienda</option><option value="swm">Solo dirección americana</option></select></label>
         <label>Compra mínima $ (opcional)<input name="minimo" type="number" min="0" step="0.01"></label>
