@@ -4527,8 +4527,9 @@ function bankDetailsHTML() {
   const rows = [];
   if (s.bankName) rows.push(`Banco: <strong>${escapeHtml(s.bankName)}</strong>`);
   if (s.bankHolder) rows.push(`Titular: <strong>${escapeHtml(s.bankHolder)}</strong>`);
-  if (s.bankClabe) rows.push(`CLABE: <strong>${escapeHtml(s.bankClabe)}</strong>`);
-  if (s.bankAccount) rows.push(`Cuenta: <strong>${escapeHtml(s.bankAccount)}</strong>`);
+  const copyBtn = (v) => ` <button type="button" data-copy="${escapeAttr(v)}" class="tap ml-1 text-xs font-semibold text-rose-ink underline">Copiar</button>`;
+  if (s.bankClabe) rows.push(`CLABE: <strong class="tabular-nums">${escapeHtml(s.bankClabe)}</strong>${copyBtn(s.bankClabe)}`);
+  if (s.bankAccount) rows.push(`Cuenta: <strong class="tabular-nums">${escapeHtml(s.bankAccount)}</strong>${copyBtn(s.bankAccount)}`);
   if (s.bankNote) rows.push(escapeHtml(s.bankNote));
   return rows.map((r) => `<p>${r}</p>`).join("");
 }
@@ -4578,41 +4579,57 @@ function updateNacionalShippingUI() {
   updateTransferNote();
 }
 
-/* Nota de "ahorras $X por transferencia" debajo del total -- aparte de
-   renderGrandTotal() porque también depende del CP (envío nacional), pero
-   con los precios de TARJETA para comparar. Es su propia función (no solo
-   código suelto dentro de renderCart()) para que updateNacionalShippingUI()
-   -- que corre cada vez que la clienta escribe su CP, sin volver a llamar
-   a renderCart() completo -- también la mantenga al día; si no, esta nota
-   se quedaba con el envío de antes de escribir el CP (p.ej. $0 si el
-   carrito se abrió sin CP todavía), sin cuadrar con el total real de
-   arriba, que sí se actualiza con cada CP nuevo. */
-function updateTransferNote() {
-  const transferNote = document.getElementById("cart-mp-surcharge-note");
-  if (!transferNote) return;
-  const items = Object.entries(cart);
-  const total = cartTotal();
+/* Forma de pago elegida en el carrito ("transfer", "card" o "" si aún no
+   elige). Antes el botón de Mercado Pago y el comprobante de transferencia
+   salían juntos y muchas clientas creían que había que hacer las dos
+   cosas; ahora primero se elige una y solo se ven sus pasos. */
+function selectedPayMethod() {
+  const el = document.querySelector('input[name="pay-method"]:checked');
+  return el ? el.value : "";
+}
+
+/* Total a pagar con cada forma de pago (productos + envío, si ya se
+   puede calcular con el CP). Con tarjeta se usa el "Precio Tarjeta". */
+function cartPayTotals() {
   const cp = document.getElementById("customer-cp").value.trim();
-  const shippingForNote = shippingEstimate(cartWeight(), cp, cartKoreaParcels());
-  const totalConEnvio = total + (shippingForNote ? shippingForNote.totalMXN : 0);
-  const tarjetaTotalConEnvio = cartTotalTarjeta() + (shippingForNote ? shippingForNote.totalMXNTarjeta : 0);
-  if (items.length && tarjetaTotalConEnvio > totalConEnvio + 0.5) {
-    transferNote.textContent = `🏦 Pagando por transferencia ahorras ${formatPrice(tarjetaTotalConEnvio - totalConEnvio)} (precio con tarjeta, incluyendo envío: ${formatPrice(tarjetaTotalConEnvio)})`;
-    transferNote.classList.remove("hidden");
-  } else {
-    transferNote.classList.add("hidden");
-  }
+  const shipping = shippingEstimate(cartWeight(), cp, cartKoreaParcels());
+  return {
+    transfer: cartTotal() + (shipping ? shipping.totalMXN : 0),
+    card: cartTotalTarjeta() + (shipping ? shipping.totalMXNTarjeta : 0),
+  };
+}
+
+/* Montos en las dos opciones de pago y en el paso que se ve. Corre cada
+   vez que cambia el carrito o el CP (ver updateNacionalShippingUI). */
+function updateTransferNote() {
+  const oldNote = document.getElementById("cart-mp-surcharge-note");
+  if (oldNote) oldNote.classList.add("hidden");
+  const has = Object.keys(cart).length > 0;
+  const t = cartPayTotals();
+  const save = t.card - t.transfer;
+  document.getElementById("pay-opt-transfer-total").textContent = has ? formatPrice(t.transfer) : "";
+  document.getElementById("pay-opt-card-total").textContent = has ? formatPrice(t.card) : "";
+  document.getElementById("pay-opt-transfer-note").textContent = has && save > 0.5 ? `Ahorras ${formatPrice(save)}` : "Sin comisión";
+  document.getElementById("pay-card-amount").textContent = formatPrice(t.card);
+  const amount = document.getElementById("pay-transfer-amount");
+  amount.innerHTML = `<strong>${formatPrice(t.transfer)}</strong> <button type="button" data-copy="${t.transfer.toFixed(2)}" class="tap ml-1 align-middle text-xs font-semibold text-rose-ink underline">Copiar</button>`;
+}
+
+function updatePayMethodUI() {
+  const m = selectedPayMethod();
+  document.getElementById("pay-card-panel").classList.toggle("hidden", m !== "card");
+  document.getElementById("pay-transfer-panel").classList.toggle("hidden", m !== "transfer");
+  // El comprobante solo es obligatorio si eligió transferencia (si no, el
+  // navegador bloquea el formulario por un campo que ni se ve).
+  document.getElementById("proof-file-input").required = m === "transfer";
+  renderGrandTotal();
 }
 
 function renderGrandTotal() {
-  const cp = document.getElementById("customer-cp").value.trim();
-  const shipping = shippingEstimate(cartWeight(), cp, cartKoreaParcels());
-
-  let grandTotal = cartTotal();
-  if (shipping && shipping.hasKorea) grandTotal += shipping.coreaMXN;
-  if (shipping && shipping.hasNacional) grandTotal += shipping.nacionalMXN;
-
-  document.getElementById("cart-grand-total").textContent = formatPrice(grandTotal);
+  const t = cartPayTotals();
+  const m = selectedPayMethod();
+  document.getElementById("cart-grand-total-label").textContent = m === "card" ? "Total con tarjeta" : m === "transfer" ? "Total por transferencia" : "Total estimado";
+  document.getElementById("cart-grand-total").textContent = formatPrice(m === "card" ? t.card : t.transfer);
 }
 
 function renderCart() {
@@ -5011,6 +5028,15 @@ async function sendQuote(e) {
   e.preventDefault();
   if (!Object.keys(cart).length) return;
   clearCartError("cart-error");
+  // Enter en un campo manda el formulario: solo cuenta como pedido por
+  // transferencia si eligió transferencia.
+  const method = selectedPayMethod();
+  if (method === "card") return payWithMercadoPago();
+  if (method !== "transfer") {
+    showCartError("cart-error", "Elige cómo quieres pagar: transferencia o tarjeta.");
+    document.getElementById("pay-method").scrollIntoView({ behavior: scrollBehavior(), block: "center" });
+    return;
+  }
   // El formulario está oculto sin sesión (ver updateCartLoginGate), esto
   // es nomás por si acaso -- nunca debería llegar hasta aquí sin token.
   if (!getCustomerToken()) {
@@ -5071,6 +5097,7 @@ async function sendQuote(e) {
   sendBtn.innerHTML = originalLabel;
 
   document.getElementById("quote-form").reset();
+  updatePayMethodUI();
   // No se cierra el carrito aquí -- se queda abierto mostrando el panel
   // de "pedido enviado" (ver showQuoteSuccess).
   showQuoteSuccess(orderId, proofFailed);
@@ -6471,6 +6498,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("americano-quote-form").addEventListener("input", () => clearCartError("americano-cart-error"));
   document.getElementById("login-form").addEventListener("input", () => document.getElementById("login-notice").classList.add("hidden"));
   document.getElementById("pay-mercadopago").addEventListener("click", payWithMercadoPago);
+  document.querySelectorAll('input[name="pay-method"]').forEach((r) => r.addEventListener("change", updatePayMethodUI));
+  // "Copiar" junto a la CLABE, la cuenta y el monto a transferir.
+  document.getElementById("cart-drawer").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-copy]");
+    if (!btn) return;
+    const label = btn.textContent;
+    const done = () => { btn.textContent = "¡Copiado!"; setTimeout(() => { btn.textContent = label; }, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(btn.dataset.copy).then(done, () => {});
+  });
   document.getElementById("customer-cp").addEventListener("input", updateNacionalShippingUI);
   document.getElementById("quote-success-close").addEventListener("click", closeQuoteSuccess);
 
