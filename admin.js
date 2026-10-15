@@ -4130,6 +4130,7 @@ ${itemLines}
   let swmTab = "acciones";
   let swmSearch = "";
   let swmSinRegistroOpen = false;
+  let swmNuevaCompraOpen = false;
 
   function swmCobrable(kg, alto, ancho, largo) {
     const vol = alto > 0 && ancho > 0 && largo > 0 ? (alto * ancho * largo) / 5000 : 0;
@@ -4221,7 +4222,9 @@ ${itemLines}
     ];
     document.getElementById("swm-filters").innerHTML = `${tabs.map(([k, l]) => `<button type="button" class="btn-secondary ${swmTab === k ? "on" : ""}" data-swm-tab="${k}">${l}</button>`).join("")}
       <input type="search" id="swm-search" placeholder="🔍 Buscar por folio, nombre, tienda o rastreo" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
+      <button type="button" class="btn-primary" data-swm-nc-toggle>🛍️ Nueva cotización (WhatsApp)</button>
       <button type="button" class="btn-primary" data-swm-sinreg-toggle>📦 Llegó un paquete sin registrar</button>
+      <div id="swm-nc-box" style="width:100%;">${swmNuevaCompraOpen ? swmNuevaCompraForm() : ""}</div>
       <div id="swm-sinreg-box" style="width:100%;">${swmSinRegistroOpen ? swmSinRegistroForm() : ""}</div>`;
     let html = "";
     const sec = (title, items, fn) => (items.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">${title} (${items.length})</h4>${items.map(fn).join("")}` : "");
@@ -4334,6 +4337,60 @@ ${itemLines}
     return (p.fotos || []).map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:6px 12px;font-size:13px;">📷 Foto</button>`).join("");
   }
 
+  /* Cotización armada por Mae con lo que la clienta mandó por WhatsApp
+     (capturas de su carrito). Al guardarla, le manda el link para pagar. */
+  const swmNcItemRow = () => `<div class="grid" data-swm-nc-item style="grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr);border-top:1px solid #f0e6ec;padding-top:8px;">
+      <label style="grid-column:1/-1;">Artículo<input data-k="nombre" type="text" placeholder="Ej. Rare Beauty Blush"></label>
+      <label>Tono / talla<input data-k="tono" type="text"></label>
+      <label>Cant.<input data-k="cantidad" type="number" min="1" step="1" value="1"></label>
+      <label>Precio c/u (MXN)<input data-k="precio" type="number" min="0" step="0.01"></label>
+    </div>`;
+  function swmNuevaCompraForm() {
+    return `<div class="swm-card" data-swm-nc>
+      <h4><span>🛍️ Nueva cotización (WhatsApp)</span></h4>
+      <div class="meta">Arma la cotización con las capturas que te mandó. Al guardarla le llega un correo y te doy el link para mandárselo por WhatsApp; ahí la ve y la paga (tarjeta o transferencia).</div>
+      <div class="grid"><label>Buscar a la clienta (código ALP-…, nombre, correo o teléfono)<input data-swm-buscar type="search"></label></div>
+      <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+      <div class="grid">
+        <label>Correo de su cuenta<input data-n="email" type="email" placeholder="Si no tiene cuenta, el correo con el que la va a crear"></label>
+        <label>Nombre<input data-n="name" type="text"></label>
+        <label>WhatsApp<input data-n="phone" type="tel"></label>
+        <label>Tienda<input data-n="tienda" type="text" placeholder="Sephora, Ulta, Amazon…"></label>
+      </div>
+      <div data-swm-nc-items style="margin-top:6px;">${swmNcItemRow()}</div>
+      <button type="button" class="btn-secondary" data-swm-nc-add style="margin-top:8px;padding:6px 12px;font-size:13px;">+ Otro artículo</button>
+      <div class="grid">
+        <label>Cruce<select data-n="cobro"><option value="peso">Por peso (se cobra al enviar)</option><option value="comision">15% del valor (se cobra ahora)</option></select></label>
+        <label>Cruce 15% (vacío = automático)<input data-n="cruce" type="number" min="0" step="0.01"></label>
+        <label>Nota para la clienta<input data-n="notaClienta" type="text"></label>
+        <label>Capturas (solo para ti)<input data-n="fotos" type="file" accept="image/*" multiple></label>
+      </div>
+      <div class="meta" data-swm-nc-total style="font-size:15px;"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-nc-save>Guardar y sacar link</button><button type="button" class="btn-secondary" data-swm-nc-toggle>Cancelar</button></div>
+    </div>`;
+  }
+  function swmNcLeer(box) {
+    const items = [...box.querySelectorAll("[data-swm-nc-item]")].map((row) => {
+      const k = (n) => row.querySelector(`[data-k="${n}"]`).value;
+      return { nombre: k("nombre").trim(), tono: k("tono").trim(), cantidad: Math.max(1, parseInt(k("cantidad"), 10) || 1), precio: parseFloat(k("precio")) || 0 };
+    }).filter((x) => x.nombre || x.precio);
+    const n = (k) => box.querySelector(`[data-n="${k}"]`).value;
+    const productos = Math.round(items.reduce((t, x) => t + x.precio * x.cantidad, 0) * 100) / 100;
+    const cruce = n("cobro") === "comision" ? (n("cruce") !== "" ? parseFloat(n("cruce")) || 0 : Math.ceil(productos * 0.15)) : 0;
+    return { items, productos, cruce, n };
+  }
+  function swmNcTotal(box) {
+    const { productos, cruce } = swmNcLeer(box);
+    box.querySelector("[data-swm-nc-total]").innerHTML = productos ? `Productos ${formatPrice(productos)}${cruce ? ` + cruce ${formatPrice(cruce)}` : ""} = <b>${formatPrice(productos + cruce)}</b>` : "";
+  }
+  const swmCompraLink = (c) => `${location.origin}/?ver=shopwithmae&compra=${encodeURIComponent(c.id)}`;
+  function swmCompraWa(c) {
+    const wa = waLinkFromPhone(c.phone);
+    const nombre = String(c.name || "").split(/\s+/)[0];
+    const txt = `Hola${nombre ? ` ${nombre}` : ""} 💕 Ya está tu cotización ${c.folio}${c.tienda ? ` de ${c.tienda}` : ""}: ${formatPrice(c.cotizacion ? c.cotizacion.total : 0)}.\nAquí la ves y la pagas (tarjeta o transferencia): ${swmCompraLink(c)}\nSi todavía no tienes cuenta, créala con este correo: ${c.email}`;
+    return wa ? `${wa}?text=${encodeURIComponent(txt)}` : `https://wa.me/?text=${encodeURIComponent(txt)}`;
+  }
+
   function swmSinRegistroForm() {
     return `<div class="swm-card" data-swm-sinreg>
       <h4><span>📦 Llegó un paquete sin registrar</span></h4>
@@ -4372,13 +4429,18 @@ ${itemLines}
     const st = { solicitud: "🆕 Por cotizar", cotizado: "💳 Cotizada", pagado: "✅ Pagada · hay que comprar", comprado: "🛍️ Comprada", cancelado: "❌ Cancelada" }[c.status] || c.status;
     const q = c.cotizacion;
     let action = "";
-    if (c.status === "solicitud" || (c.status === "cotizado" && (!c.pago || c.pago.status === "pendiente"))) {
+    const porPagar = c.status === "cotizado" && (!c.pago || c.pago.status === "pendiente");
+    const linkBtns = c.status === "cotizado" ? `<a class="btn-primary" href="${escapeHtml(swmCompraWa(c))}" target="_blank" rel="noopener" style="text-decoration:none;padding:8px 14px;font-size:13px;">💬 Mandar link por WhatsApp</a><button type="button" class="btn-secondary" data-swm-copy-link="${escapeHtml(swmCompraLink(c))}" style="padding:6px 12px;font-size:13px;">🔗 Copiar link</button>` : "";
+    if (c.origen === "whatsapp" && porPagar) {
+      action = `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">${linkBtns}${swmCancelBtn("compra", c)}</div>
+        <div class="meta">¿Hay que cambiar algo? Cancélala y haz una nueva.</div>`;
+    } else if (c.status === "solicitud" || porPagar) {
       action = `<div class="grid">
           <label>Productos (MXN, con tax y envío dentro de EE.UU.)<input data-f="productos" type="number" step="0.01" min="0" value="${q ? q.productos : ""}"></label>
           ${c.cobro === "comision" ? `<label>Cruce 15% (vacío = automático)<input data-f="cruce" type="number" step="0.01" min="0" value="" placeholder="${q ? q.cruce : ""}"></label>` : ""}
           <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(c.notaClienta || "")}"></label>
         </div>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-compra>${c.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("compra", c)}</div>`;
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-compra>${c.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${linkBtns}${swmCancelBtn("compra", c)}</div>`;
     } else if (c.status === "pagado") {
       action = `<div style="margin-top:10px;font-size:13px;font-weight:600;">Ya compré: ¿qué paquetes van a llegar?</div>
         <div data-swm-pkgs><div class="grid" data-swm-pkg><label>Tienda<input data-k="tienda" type="text"></label><label>Rastreo<input data-k="rastreo" type="text"></label><label>Contenido<input data-k="contenido" type="text"></label></div></div>
@@ -4387,7 +4449,9 @@ ${itemLines}
     return `<div class="swm-card" data-swm-id="${escapeHtml(c.id)}" data-kind="compra">
       <h4><span>${escapeHtml(c.folio)} · Compra por ella</span>${swmPillA(st, ["solicitud", "pagado"].includes(c.status) ? "new" : "")}</h4>
       <div class="meta">${swmWho(c)} · ${swmFecha(c.createdAt)}<br>Cruce ${c.cobro === "comision" ? "15% (se cobra con la compra)" : "por peso (se cobra al enviar)"}</div>
-      <div style="margin-top:8px;font-size:13px;white-space:pre-wrap;word-break:break-all;background:#faf7fb;border-radius:8px;padding:8px;">${escapeHtml(c.links)}</div>
+      ${c.links ? `<div style="margin-top:8px;font-size:13px;white-space:pre-wrap;word-break:break-all;background:#faf7fb;border-radius:8px;padding:8px;">${escapeHtml(c.links)}</div>` : ""}
+      ${c.origen === "whatsapp" ? `<div class="meta">💬 Por WhatsApp${c.tienda ? ` · ${escapeHtml(c.tienda)}` : ""}${(c.capturas || []).length ? ` · ${c.capturas.map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:4px 10px;font-size:12px;">📷 Captura</button>`).join(" ")}` : ""}</div>` : ""}
+      ${q && q.items ? `<div style="margin-top:8px;font-size:13px;background:#faf7fb;border-radius:8px;padding:8px;">${q.items.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;"><span>${x.cantidad} × ${escapeHtml(x.nombre)}${x.tono ? ` · ${escapeHtml(x.tono)}` : ""}</span><span>${formatPrice(x.precio * x.cantidad)}</span></div>`).join("")}</div>` : ""}
       ${c.notas ? `<div class="meta">📝 ${escapeHtml(c.notas)}</div>` : ""}
       ${q ? `<div class="meta">Cotización: productos ${formatPrice(q.productos)}${q.cruce ? ` + cruce ${formatPrice(q.cruce)}` : ""} = <b>${formatPrice(q.total)}</b></div>` : ""}
       ${swmPagoBox("compra", c)}${action}
@@ -4462,6 +4526,37 @@ ${itemLines}
     const t = e.target;
     const tab = t.closest("[data-swm-tab]");
     if (tab) { swmTab = tab.dataset.swmTab; renderSwmAdmin(); return; }
+    if (t.closest("[data-swm-nc-toggle]")) {
+      swmNuevaCompraOpen = !swmNuevaCompraOpen;
+      document.getElementById("swm-nc-box").innerHTML = swmNuevaCompraOpen ? swmNuevaCompraForm() : "";
+      return;
+    }
+    if (t.closest("[data-swm-nc-add]")) {
+      t.closest("[data-swm-nc]").querySelector("[data-swm-nc-items]").insertAdjacentHTML("beforeend", swmNcItemRow());
+      return;
+    }
+    const copyLink = t.closest("[data-swm-copy-link]");
+    if (copyLink) {
+      navigator.clipboard.writeText(copyLink.dataset.swmCopyLink).then(() => showToast("🔗 Link copiado"), () => prompt("Copia el link:", copyLink.dataset.swmCopyLink));
+      return;
+    }
+    const ncSave = t.closest("[data-swm-nc-save]");
+    if (ncSave) {
+      const box = ncSave.closest("[data-swm-nc]");
+      const { items, n } = swmNcLeer(box);
+      if (!n("email").trim()) { alert("Busca a la clienta o pon su correo."); return; }
+      if (!items.length || items.some((x) => !x.nombre || !(x.precio > 0))) { alert("Cada artículo necesita nombre y precio."); return; }
+      const fotos = (await Promise.all([...(box.querySelector('[data-n="fotos"]').files || [])].slice(0, 8).map(swmResize))).filter(Boolean);
+      const data = await swmAct({ accion: "crear_compra", email: n("email"), name: n("name"), phone: n("phone"), tienda: n("tienda"), items, cobro: n("cobro"), cruce: n("cruce"), notaClienta: n("notaClienta"), fotos }, ncSave);
+      if (data && data.compra) {
+        swmNuevaCompraOpen = false; swmTab = "compras"; swmSearch = ""; renderSwmAdmin();
+        if (!data.tieneCuenta) alert(`Ese correo todavía no tiene cuenta. Cuando ${data.compra.name || "la clienta"} la cree con ${data.compra.email}, verá su cotización.`);
+        const card = document.querySelector(`[data-swm-id="${CSS.escape(data.compra.id)}"]`);
+        if (card) { card.scrollIntoView({ behavior: "smooth", block: "start" }); card.style.outline = "3px solid #c4466e"; }
+        showToast("✅ Cotización lista: toca “💬 Mandar link por WhatsApp”.");
+      }
+      return;
+    }
     if (t.closest("[data-swm-sinreg-toggle]")) {
       swmSinRegistroOpen = !swmSinRegistroOpen;
       document.getElementById("swm-sinreg-box").innerHTML = swmSinRegistroOpen ? swmSinRegistroForm() : "";
@@ -4469,6 +4564,15 @@ ${itemLines}
     }
     const pick = t.closest("[data-swm-pick-email]");
     if (pick) {
+      const nc = pick.closest("[data-swm-nc]");
+      if (nc) {
+        const c = swmBuscados[pick.dataset.swmPickEmail] || {};
+        nc.querySelector('[data-n="email"]').value = pick.dataset.swmPickEmail;
+        nc.querySelector('[data-n="name"]').value = c.name || "";
+        nc.querySelector('[data-n="phone"]').value = c.phone || "";
+        pick.parentElement.innerHTML = `<span class="meta">✅ ${escapeHtml(pick.textContent)}</span>`;
+        return;
+      }
       const box = pick.closest("[data-swm-sinreg]");
       if (box) {
         box.dataset.email = pick.dataset.swmPickEmail;
@@ -4545,7 +4649,10 @@ ${itemLines}
   });
 
   let swmBuscarTimer = null;
+  const swmBuscados = {};
   document.getElementById("swm-panel").addEventListener("input", (e) => {
+    const nc = e.target.closest("[data-swm-nc]");
+    if (nc && !e.target.matches("[data-swm-buscar]")) { swmNcTotal(nc); return; }
     const buscar = e.target.closest("[data-swm-buscar]");
     if (buscar) {
       clearTimeout(swmBuscarTimer);
@@ -4557,6 +4664,7 @@ ${itemLines}
         try {
           const res = await fetch(`/.netlify/functions/admin-swm?buscarClienta=${encodeURIComponent(q)}`, { headers: { "x-admin-key": adminKey } });
           const data = await res.json();
+          (data.clientas || []).forEach((c) => { swmBuscados[c.email] = c; });
           out.innerHTML = (data.clientas || []).map((c) => `<button type="button" class="btn-secondary" data-swm-pick-email="${escapeHtml(c.email)}" style="padding:6px 10px;font-size:13px;">${c.casillero ? `${escapeHtml(c.casillero)} · ` : ""}${escapeHtml(c.name || c.email)} · ${escapeHtml(c.email)}</button>`).join("") || "No encontré ninguna cuenta.";
         } catch (err) { out.textContent = "No se pudo buscar."; }
       }, 350);

@@ -68,6 +68,24 @@ function swmCrucePeso(kg) {
   return kg <= 15 ? SWM_TARIFA[kg] : SWM_TARIFA[15] + (kg - 15) * SWM_KILO_EXTRA;
 }
 
+/* Link que Mae manda por WhatsApp: ?ver=shopwithmae&compra=<id> abre esa
+   cotización (después de iniciar sesión, si hace falta). */
+let swmFocusCompra = new URLSearchParams(location.search).get("compra") || "";
+
+function swmMostrarCompra() {
+  if (!swmFocusCompra || !swm.loaded) return;
+  const id = swmFocusCompra;
+  swmFocusCompra = "";
+  if (!swm.compras.some((c) => c.id === id)) return;
+  swm.tab = "compras";
+  renderSwmCasillero();
+  const el = document.getElementById(`swm-compra-${id}`);
+  if (el) {
+    el.classList.add("ring-2", "ring-rose-deep");
+    setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }
+}
+
 function openSwmSection({ restore = false } = {}) {
   document.getElementById("search-input").value = "";
   showHomeView("swm", { ver: "shopwithmae" });
@@ -93,6 +111,7 @@ function renderSwm() {
   renderSwmAddress();
   renderSwmCasillero();
   if (getCustomerToken() && !swm.loaded && !swm.loading) loadSwm();
+  if (!logged && swmFocusCompra) setTimeout(() => document.getElementById("swm-casillero").scrollIntoView({ behavior: "smooth", block: "center" }), 100);
 }
 
 /* Al regresar de Mercado Pago (?pago=ok|pendiente|error). */
@@ -214,7 +233,10 @@ function renderSwmWelcome() {
 function renderSwmCasillero() {
   const el = document.getElementById("swm-casillero");
   const h = `<h3 class="font-display text-xl sm:text-2xl text-ink mb-3">🗄️ Mi casillero</h3>`;
-  if (!getCustomerToken()) { el.innerHTML = ""; return; }
+  if (!getCustomerToken()) {
+    el.innerHTML = swmFocusCompra ? h + swmLoginPrompt("💕 Tu cotización ya está lista. Inicia sesión (o crea tu cuenta con el correo que le diste a Mae) para verla y pagarla.") : "";
+    return;
+  }
   if (swm.loading && !swm.loaded) { el.innerHTML = h + `<p class="text-sm text-ink/70">Cargando tu casillero...</p>`; return; }
   if (swm.error) { el.innerHTML = h + `<p class="text-sm text-sale">${escapeHtml(swm.error)}</p>`; return; }
 
@@ -232,7 +254,7 @@ function renderSwmCasillero() {
       ${porPagar ? `<p class="mt-3 rounded-xl bg-white/90 px-3 py-2 text-sm font-semibold text-rose-ink">💳 Tienes ${porPagar} cotización${porPagar > 1 ? "es" : ""} lista${porPagar > 1 ? "s" : ""} para pagar.</p>` : ""}
       <div class="mt-3 grid gap-2 sm:grid-cols-3">
         <button type="button" data-swm-form="paquete" class="rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80">📦 Registrar un paquete<span class="block text-[11px] font-normal text-ink/65">Ya compraste y lo mandaste a la dirección</span></button>
-        <button type="button" data-swm-form="compra" class="rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80">🛍️ Que Mae compre por mí<span class="block text-[11px] font-normal text-ink/65">Pega los links y te cotizo</span></button>
+        <button type="button" data-swm-form="compra" class="rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80">🛍️ Que Mae compre por mí<span class="block text-[11px] font-normal text-ink/65">Mándame tu carrito por WhatsApp</span></button>
         <button type="button" data-swm-form="envio" class="rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80">🚚 Pedir mi envío a México<span class="block text-[11px] font-normal text-ink/65">Elige paquetes del almacén</span></button>
       </div>
     </div>
@@ -371,11 +393,13 @@ function swmCompraCardHTML(c) {
       ${q.cruce ? `<div class="flex justify-between"><span>Cruce a México (15%)</span><span class="tabular-nums">${swmMXN(q.cruce)}</span></div>` : ""}
       ${q.descuento ? `<div class="flex justify-between text-rose-ink"><span>Cupón ${escapeHtml(q.cupon)}</span><span class="tabular-nums">−${swmMXN(q.descuento)}</span></div>` : ""}
       <div class="flex justify-between font-semibold border-t border-ink/10 pt-1"><span>Total</span><span class="tabular-nums">${swmMXN(q.total)}</span></div></div>` : "";
-  return `<article class="rounded-2xl border border-ink/10 p-4">
+  return `<article id="swm-compra-${escapeHtml(c.id)}" class="rounded-2xl border border-ink/10 p-4 scroll-mt-28">
     <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(c.folio)}</b>${swmPill(SWM_COMPRA_STATUS, c.status)}</div>
     ${swmStepsHTML("compra", c.status)}
     <p class="text-xs text-ink/65 mt-2">${swmDate(c.createdAt)} · Cruce ${c.cobro === "comision" ? "15% (se paga con la compra)" : "por peso (se paga al enviar)"}</p>
-    <p class="mt-2 text-xs whitespace-pre-wrap break-all rounded-xl bg-pill/70 px-3 py-2">${escapeHtml(c.links)}</p>
+    ${c.tienda ? `<p class="mt-1 text-sm font-semibold">${escapeHtml(c.tienda)}</p>` : ""}
+    ${c.links ? `<p class="mt-2 text-xs whitespace-pre-wrap break-all rounded-xl bg-pill/70 px-3 py-2">${escapeHtml(c.links)}</p>` : ""}
+    ${q && q.items ? `<ul class="mt-2 text-sm divide-y divide-ink/5 rounded-xl bg-pill/60 px-3 py-1">${q.items.map((x) => `<li class="flex justify-between gap-3 py-1"><span>${x.cantidad} × ${escapeHtml(x.nombre)}${x.tono ? ` <span class="text-ink/65">· ${escapeHtml(x.tono)}</span>` : ""}</span><span class="tabular-nums shrink-0">${swmMXN(x.precio * x.cantidad)}</span></li>`).join("")}</ul>` : ""}
     ${c.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(c.notaClienta)}</p>` : ""}
     ${lines}${swmPagoHTML("compra", c)}
     ${c.status === "pagado" ? `<p class="mt-2 text-xs text-ink/70">Pagado el ${swmDate(c.pago && c.pago.paidAt)}. Te aviso cuando haga tu compra.</p>` : ""}
@@ -417,6 +441,12 @@ const swmFormShell = (title, inner, submit) => `<form data-swm-submit class="rou
     <button type="submit" class="inline-flex items-center rounded-full bg-rose-deep px-6 py-3 text-sm font-semibold text-cream hover:bg-rose-ink disabled:opacity-60">${submit}</button>
   </form>`;
 
+function swmCompraWaLink(tienda) {
+  const code = swm.casillero ? ` Mi casillero es ${swm.casillero}.` : "";
+  const txt = `Hola Mae 💕 Quiero cotizar mi carrito${tienda ? ` de ${tienda}` : ""}.${code} Te mando las capturas:`;
+  return `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(txt)}`;
+}
+
 function swmFormHTML() {
   if (swm.form === "paquete") {
     return swmFormShell("📦 Registrar un paquete", `
@@ -427,13 +457,18 @@ function swmFormHTML() {
       ${swmCobroRadios()}${swmAcepta()}`, "Registrar paquete");
   }
   if (swm.form === "compra") {
-    return swmFormShell("🛍️ Que Mae compre por mí", `
-      <label class="flex flex-col gap-1 text-xs font-semibold">Links de los productos (uno por línea, con tono o talla y cantidad)
-        <textarea id="swm-f-links" rows="5" maxlength="4000" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" placeholder="https://www.sephora.com/...  · Tono 2N · 1 pieza"></textarea></label>
-      <label class="flex flex-col gap-1 text-xs font-semibold">Notas (opcional)<textarea id="swm-f-notas" rows="2" maxlength="1000" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal"></textarea></label>
-      ${swmCobroRadios()}
-      <p class="text-xs text-ink/65">Te mando la cotización aquí y por correo. Cuando la pagues (tarjeta o transferencia), hago tu compra sin costo extra por el servicio.</p>
-      ${swmAcepta()}`, "Pedir cotización");
+    return `<div class="rounded-3xl border border-ink/10 p-5 space-y-4">
+      <div class="flex items-center justify-between"><b class="text-base">🛍️ Que Mae compre por mí</b><button type="button" data-swm-form="" aria-label="Cerrar" class="text-2xl leading-none text-ink/60">&times;</button></div>
+      <ol class="space-y-2 text-sm">
+        <li><b>1.</b> Arma tu carrito en la tienda (Sephora, Ulta, Amazon…) con los tonos y cantidades que quieres.</li>
+        <li><b>2.</b> Tómale captura de pantalla al carrito.</li>
+        <li><b>3.</b> Mándamela por WhatsApp con el botón de abajo.</li>
+        <li><b>4.</b> Te mando un link con tu cotización y ahí la pagas (tarjeta o transferencia). Yo hago tu compra sin costo extra por el servicio.</li>
+      </ol>
+      ${swmInput("swm-f-tienda-wa", "¿De qué tienda? (opcional)", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}
+      <p class="text-xs text-ink/65">No compro nada ilegal ni artículos de cristal (velas, jarrones, etc.), muebles ni pallets.</p>
+      <a data-swm-wa-compra href="${escapeHtml(swmCompraWaLink(""))}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-semibold text-white hover:opacity-90">💬 Mandar mi carrito por WhatsApp</a>
+    </div>`;
   }
   if (swm.form === "envio") {
     const disp = swm.paquetes.filter((p) => p.status === "recibido" && !p.datosPendientes);
@@ -493,6 +528,7 @@ async function loadSwm() {
   renderSwmAddress();
   renderSwmCasillero();
   renderSwmGuias();
+  swmMostrarCompra();
 }
 
 async function submitSwmForm(form) {
@@ -508,10 +544,6 @@ async function submitSwmForm(form) {
     if (!body.rastreo.trim()) return fail("Pon el número de rastreo (guía) de tu paquete: sin él no podemos identificarlo cuando llegue.");
     if (cobro === "comision" && !(parseFloat(body.valorUSD) > 0)) return fail("Para cobrar el 15% necesito el valor de tus productos.");
     if (!body.aceptaRestricciones) return fail("Confirma que tu paquete no trae nada ilegal ni artículos de cristal, muebles ni pallets.");
-  } else if (swm.form === "compra") {
-    body = { accion: "solicitar_compra", links: val("swm-f-links"), notas: val("swm-f-notas"), cobro, aceptaRestricciones: document.getElementById("swm-acepta").checked };
-    if (!body.links.trim()) return fail("Pega los links de los productos que quieres.");
-    if (!body.aceptaRestricciones) return fail("Confirma que tu pedido no trae nada ilegal ni artículos de cristal, muebles ni pallets.");
   } else if (swm.form === "envio") {
     const ids = [...form.querySelectorAll("[data-swm-pick]:checked")].map((c) => c.dataset.swmPick);
     const direccion = Object.fromEntries(["nombre", "telefono", "calle", "colonia", "ciudad", "estado", "cp", "referencias"].map((k) => [k, val(`swm-d-${k}`).trim()]));
@@ -651,6 +683,9 @@ function initSwm() {
       if (target.tagName === "DETAILS") target.open = true;
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  });
+  sec.addEventListener("input", (e) => {
+    if (e.target.id === "swm-f-tienda-wa") sec.querySelector("[data-swm-wa-compra]").href = swmCompraWaLink(e.target.value.trim());
   });
   sec.addEventListener("change", (e) => {
     const pm = e.target.closest("[data-swm-pm]");

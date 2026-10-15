@@ -11,6 +11,9 @@
 //   asignar_paquete   { id, email }   (un paquete sin dueña ya tiene dueña)
 //   editar_paquete    { id, tienda?, rastreo?, contenido?, valorUSD?, cobro?, kg?, alto?, ancho?, largo?, notaClienta?, notaPrivada? }
 //   cotizar_compra    { id, productos, cruce?, notaClienta? }   (MXN)
+//   crear_compra      { email, name?, phone?, tienda, items: [{ nombre, tono?, cantidad, precio }], cobro, cruce?, notaClienta?, fotos? }
+//                     (Mae arma la cotización con lo que la clienta le mandó por WhatsApp;
+//                      precio = MXN por pieza; regresa la compra para mandarle el link)
 //   compra_comprada   { id, paquetes: [{ tienda, rastreo, contenido }] }
 //   cotizar_envio     { id, envio, cruce?, consolidacion?, sinRegistro?, extras?, notaClienta? }
 //   revision_hecha    { id, fotos: [{ dataBase64, contentType }], nota? }  (fotos del contenido)
@@ -155,6 +158,37 @@ exports.handler = async (event) => {
           return p;
         });
         return rec ? json(200, { paquete: rec }) : json(404, { error: "No existe ese paquete." });
+      }
+
+      case "crear_compra": {
+        const email = clip(b.email, 200).toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(400, { error: "Pon el correo de la clienta (el de su cuenta)." });
+        const items = (Array.isArray(b.items) ? b.items : []).slice(0, 60)
+          .map((x) => ({ nombre: clip(x.nombre, 200), tono: clip(x.tono, 100), cantidad: Math.max(1, Math.floor(num(x.cantidad)) || 1), precio: round2(num(x.precio)) }))
+          .filter((x) => x.nombre && x.precio > 0);
+        if (!items.length) return json(400, { error: "Pon al menos un artículo con su precio." });
+        const cuenta = await getCustomerByEmail(email);
+        const cobro = b.cobro === "comision" ? "comision" : "peso";
+        const productos = round2(items.reduce((t, x) => t + x.precio * x.cantidad, 0));
+        const cruce = cobro === "comision" ? (b.cruce !== "" && b.cruce != null ? round2(num(b.cruce)) : crucePorComision(productos)) : 0;
+        const fotos = await guardarFotos(b.fotos);
+        const rec = {
+          id: randomUUID(), folio: await nextFolio("compra"), email,
+          name: (cuenta && cuenta.name) || clip(b.name, 120), phone: (cuenta && cuenta.phone) || clip(b.phone, 30),
+          origen: "whatsapp", tienda: clip(b.tienda, 80), links: "", notas: "", capturas: fotos, cobro, status: "cotizado",
+          cotizacion: { items, productos, cruce, total: round2(productos + cruce), at: now() },
+          pago: { status: "pendiente", monto: round2(productos + cruce) }, paqueteIds: [],
+          notaClienta: clip(b.notaClienta, 1000), notaPrivada: "",
+          history: [{ at: now(), status: "cotizado", por: "whatsapp" }], createdAt: now(), updatedAt: now(),
+        };
+        await saveRecord("compra", rec);
+        await avisar(rec.email, `tu cotización ${rec.folio} está lista`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">Tu cotización está lista</h2>
+          <p style="font-size:14px;">${rec.tienda ? `${esc(rec.tienda)} · ` : ""}${items.length} artículo${items.length > 1 ? "s" : ""}</p>
+          <p style="font-size:14px;">Productos: <b>${formatPriceMXN(productos)}</b>${cruce ? `<br>Cruce a México (15%): <b>${formatPriceMXN(cruce)}</b>` : ""}<br>Total a pagar: <b>${formatPriceMXN(rec.cotizacion.total)}</b></p>
+          ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
+          <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=shopwithmae&compra=${rec.id}">Ver y pagar mi cotización</a></p>`).catch(() => {});
+        return json(200, { compra: rec, tieneCuenta: Boolean(cuenta) });
       }
 
       case "cotizar_compra": {
