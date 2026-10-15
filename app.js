@@ -4738,6 +4738,16 @@ function couponDiscount(base) {
   return Math.round(Math.min(d, base) * 100) / 100;
 }
 
+/* "AAAA-MM-DDTHH:MM" (hora de Juárez) -> "15 oct, 9:00 p.m." */
+function couponHastaTexto(v) {
+  if (!v) return "";
+  const [d, t = "23:59"] = v.split("T");
+  const [y, m, dd] = d.split("-").map(Number);
+  const [hh, mi] = t.split(":").map(Number);
+  const dia = new Date(Date.UTC(y, m - 1, dd, 12)).toLocaleDateString("es-MX", { day: "numeric", month: "short", timeZone: "UTC" });
+  return `${dia}, ${hh % 12 || 12}:${String(mi).padStart(2, "0")} ${hh < 12 ? "a.m." : "p.m."}`;
+}
+
 function renderCouponUI() {
   const row = document.getElementById("cart-coupon-row");
   const msg = document.getElementById("cart-coupon-msg");
@@ -4758,10 +4768,10 @@ function renderCouponUI() {
       msg.textContent = `Este cupón es para compras desde ${formatPrice(t.minimo)}.`;
       msg.className = "mt-1 text-xs text-rose-ink";
     } else if (t.sinMinimo && !(t.valor > 0)) {
-      msg.textContent = "👯 Pedido compartido de Corea activo: tu pedido no necesita llegar al mínimo.";
+      msg.textContent = `👯 Pedido compartido de Corea activo: tu pedido no necesita llegar al mínimo.${t.hasta ? ` Termina el ${couponHastaTexto(t.hasta)} (hora de Cd. Juárez).` : ""}`;
       msg.className = "mt-1 text-xs text-green-800";
     } else {
-      msg.textContent = `✅ ${t.sinMinimo ? "Pedido compartido de Corea (sin mínimo) + " : "Cupón aplicado: "}${t.tipo === "pct" ? `${t.valor}% de descuento en productos${t.tope ? ` (máx. ${formatPrice(t.tope)})` : ""}` : `${formatPrice(t.valor)} de descuento`}.`;
+      msg.textContent = `✅ ${t.sinMinimo ? "Pedido compartido de Corea (sin mínimo) + " : "Cupón aplicado: "}${t.tipo === "pct" ? `${t.valor}% de descuento en productos${t.tope ? ` (máx. ${formatPrice(t.tope)})` : ""}` : `${formatPrice(t.valor)} de descuento`}.${t.hasta ? ` Válido hasta el ${couponHastaTexto(t.hasta)} (hora de Cd. Juárez).` : ""}`;
       msg.className = "mt-1 text-xs text-green-800";
     }
   } else {
