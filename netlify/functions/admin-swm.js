@@ -3,7 +3,7 @@
 //
 // GET                 → { paquetes, compras, envios, almacenajeDias }
 // GET ?archivo=<key>  → el archivo (foto de paquete o comprobante)
-// GET ?buscarClienta=<texto> → { clientas: [{ email, name, phone, casillero }] }  (acepta "ALP-ANA LOPEZ")
+// GET ?buscarClienta=<texto> → { clientas: [{ email, name, phone, casillero }] }  (acepta "ALP-ANA L")
 // POST { accion, ... }:
 //   recibir_paquete   { id, kg, alto, ancho, largo, fotos?: [{ dataBase64, contentType }], notaClienta? }
 //   sin_registrar     { email?, etiqueta, tienda?, rastreo?, kg, alto, ancho, largo, fotos?, notaClienta? }
@@ -44,7 +44,7 @@ exports.handler = async (event) => {
     const qs = event.queryStringParameters || {};
     if (qs.buscarClienta != null) {
       try {
-        // "ALP-ANA LOPEZ" (o "alp ana lopez"): busca por código de casillero.
+        // "ALP-ANA L" (o "alp ana l"): busca por código de casillero.
         const m = /^\s*alp[\s-]+(.+)$/i.exec(qs.buscarClienta);
         if (m) {
           const code = `ALP-${m[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9 ]+/g, " ").replace(/\s+/g, " ").trim()}`;
