@@ -335,11 +335,13 @@ function koreaParcelsUSD(state, parcels, useTarjeta = false) {
   return parcels.reduce((sum, kg) => sum + koreaShippingUSD(state, kg, useTarjeta), 0);
 }
 
-/* Envío Corea→México con tarifa fija por kg (pedido compartido): todo lo
-   de Corea por su peso exacto × la tarifa, sin la tabla de envíos. Con
-   tarjeta, la tarifa sube el mismo % que el resto. Igual en app.js. */
+/* Envío Corea→México con tarifa fija por kg (pedido compartido): el peso
+   de todo lo de Corea redondeado al kilo completo hacia arriba × la
+   tarifa, sin la tabla de envíos. Con tarjeta, la tarifa sube el mismo %
+   que el resto. Igual en app.js. */
+const koreaKgCompletos = (parcels) => Math.ceil(parcels.reduce((s, x) => s + x, 0) - 1e-9);
 function koreaFlatMXN(state, parcels, porKgMXN, useTarjeta = false) {
-  const kg = parcels.reduce((s, x) => s + x, 0);
+  const kg = koreaKgCompletos(parcels);
   const pct = state.settings.transferDiscountPct || 0;
   const rate = useTarjeta ? ceilTo(porKgMXN * (1 + pct / 100), 1) : porKgMXN;
   return Math.round(kg * rate * 100) / 100;
