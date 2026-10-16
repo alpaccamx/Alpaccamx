@@ -157,15 +157,27 @@ async function readConfig(token, id) {
     if (!key || i === 0) return;
     config.push({ key, value: r[1] ?? "", formula: String((forms[i] || [])[1] ?? "").startsWith("="), row: i + 1 });
   });
+  for (const key of CREATABLE_CONFIG) {
+    if (!config.some((c) => c.key === key)) config.push({ key, value: "", formula: false, row: 0, nuevo: true });
+  }
   return { quoted, config };
 }
+
+// Ajustes que el admin puede crear si todavía no están en Config (se
+// agregan al final, así no se mueve ninguna fórmula que use celdas de arriba).
+const CREATABLE_CONFIG = ["Dólar que pagas a ABW"];
 
 async function updateConfig(token, id, changes) {
   const cur = await readConfig(token, id);
   if (cur.error) return jsonResponse(500, { error: cur.error });
   const data = [];
+  let nextRow = Math.max(1, ...cur.config.map((c) => c.row)) + 1;
   for (const ch of changes) {
-    const entry = cur.config.find((c) => c.key === String(ch.key || "").trim());
+    let entry = cur.config.find((c) => c.key === String(ch.key || "").trim() && !c.nuevo);
+    if (!entry && CREATABLE_CONFIG.includes(String(ch.key || "").trim())) {
+      entry = { key: String(ch.key).trim(), row: nextRow++, formula: false };
+      data.push({ range: `${cur.quoted}!A${entry.row}`, values: [[entry.key]] });
+    }
     if (!entry) return jsonResponse(400, { error: `No existe el ajuste "${ch.key}".` });
     if (entry.formula) return jsonResponse(400, { error: `"${entry.key}" tiene fórmula; cámbialo en el Sheet.` });
     const n = Number(String(ch.value).replace(",", "."));

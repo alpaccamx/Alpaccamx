@@ -50,7 +50,9 @@
   let cardSurchargePct = null;
   // Tipo de cambio, comisión y arancel de Config: para estimar el costo y
   // la ganancia de cada pedido, y el precio al editar el catálogo.
-  const pricingConfig = { exchangeRate: 0, comisionPct: 0, arancelPct: 0 };
+  // costRate: "Dólar que pagas a ABW" (Config). Si está, la ganancia usa
+  // ese dólar para el costo; exchangeRate es el que ven las clientas.
+  const pricingConfig = { exchangeRate: 0, costRate: 0, comisionPct: 0, arancelPct: 0 };
   // true en cuanto la usuaria escribe algo ELLA MISMA en "Precio tarjeta"
   // -- a partir de ahí se deja de autocompletar ese campo, para no pisar
   // un precio que decidió poner a mano. Se resetea al abrir/limpiar el
@@ -70,6 +72,7 @@
         if (["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"].includes(key)) pricingConfig.exchangeRate = num;
         if (key.startsWith("comisionkbeauty")) pricingConfig.comisionPct = num;
         if (key.startsWith("arancel")) pricingConfig.arancelPct = num;
+        if (key === "dolarquepagasaabw") pricingConfig.costRate = num;
       }
       if (currentView === "inicio") renderHome();
       // Para que las tarjetas de pedido ya muestren la ganancia.
@@ -3193,11 +3196,16 @@ ${itemLines}
   function itemUnitCost(it, o) {
     const c = pricingConfig;
     const aran = 1 + (c.arancelPct || 0) / 100;
-    const rate = (o && o.exchangeRate) || c.exchangeRate;
+    // Dólar del precio a la clienta (el del día del pedido) y dólar del
+    // costo (el que de verdad pagas, si lo pusiste en Config).
+    const saleRate = (o && o.exchangeRate) || c.exchangeRate;
+    const rate = c.costRate || saleRate;
     if (it.costoUSD > 0 && rate > 0) return it.costoUSD * rate * aran;
-    if (!it.enStock && it.precioBase > 0 && c.comisionPct > 0) return it.precioBase / (1 + c.comisionPct / 100);
+    if (!it.enStock && it.precioBase > 0 && c.comisionPct > 0) {
+      return (it.precioBase / (1 + c.comisionPct / 100)) * (c.costRate && saleRate ? c.costRate / saleRate : 1);
+    }
     const info = skuToInfo.get(it.sku) || {};
-    if (info.costoUSD > 0 && c.exchangeRate > 0) return info.costoUSD * c.exchangeRate * aran;
+    if (info.costoUSD > 0 && (c.costRate || c.exchangeRate) > 0) return info.costoUSD * (c.costRate || c.exchangeRate) * aran;
     if (info.costoMXN > 0) return info.costoMXN * aran;
     return null;
   }
@@ -3339,7 +3347,7 @@ ${itemLines}
       ${rows.map((m, i) => `<tr class="${i === 0 ? "now" : ""}"><td>${escapeHtml(m.label)}</td><td>${m.n}</td><td>${formatPrice(m.sales)}</td><td>${formatPrice(m.cost)}</td>
         <td class="g">${formatPrice(m.profit)}${m.cost ? ` <small>(${Math.round((m.profit / m.cost) * 100)}% s/costo)</small>` : ""}</td></tr>`).join("")}
       </tbody></table>
-      <p class="profit-note">Costo = Precio USD de ABW × tipo de cambio + arancel (${pricingConfig.arancelPct}%), con los precios del día de cada pedido. Tu ganancia es la comisión de Config (${pricingConfig.comisionPct}%). No cuenta envíos (los paga la clienta) ni la comisión de tarjeta.${anyMissing ? " Los productos de Stock MX con SKU propio (STOCK-…) no tienen costo en el Sheet, así que su venta no entra en la ganancia." : ""}</p>`;
+      <p class="profit-note">Costo = Precio USD de ABW × ${pricingConfig.costRate ? `el dólar que pagas a ABW ($${pricingConfig.costRate})` : "tipo de cambio"} + arancel (${pricingConfig.arancelPct}%). ${pricingConfig.costRate ? `A tus clientas les cobras el dólar a $${pricingConfig.exchangeRate}, así que tu ganancia es tu comisión (${pricingConfig.comisionPct}%) más esa diferencia.` : `Tu ganancia es la comisión de Config (${pricingConfig.comisionPct}%). Pon "Dólar que pagas a ABW" en Ajustes para contar también la diferencia del dólar.`} No cuenta envíos (los paga la clienta) ni la comisión de tarjeta.${anyMissing ? " Los productos de Stock MX con SKU propio (STOCK-…) no tienen costo en el Sheet, así que su venta no entra en la ganancia." : ""}</p>`;
   }
 
   /* ---------- Clientas ---------- */
@@ -3620,7 +3628,7 @@ ${itemLines}
   function renderSettings(msg) {
     const listEl = document.getElementById("settings-list");
     listEl.innerHTML = settingsData.map((c, i) => `
-      <label class="set-row"><span>${escapeHtml(c.key)}${c.formula ? ' <small style="color:#5f5866;font-weight:500;">(fórmula, cámbiala en el Sheet)</small>' : ""}</span>
+      <label class="set-row"><span>${escapeHtml(c.key)}${c.formula ? ' <small style="color:#5f5866;font-weight:500;">(fórmula, cámbiala en el Sheet)</small>' : ""}${c.key === "Dólar que pagas a ABW" ? ' <small style="color:#5f5866;font-weight:500;">(solo para calcular tu ganancia; no cambia precios)</small>' : ""}</span>
         <input type="number" step="0.01" min="0" data-set-idx="${i}" value="${escapeHtml(normalizeMoneyText(c.value))}" ${c.formula ? "disabled" : ""} /></label>`).join("")
       + (msg ? `<p style="color:#17803d;font-weight:700;margin:0;">${escapeHtml(msg)}</p>` : "");
     document.getElementById("settings-save").style.display = settingsData.length ? "inline-flex" : "none";
