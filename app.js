@@ -151,48 +151,88 @@ const CONFIG = {
   },
   SKIN_TYPE_DEFAULT_EMOJI: "🏷️",
 
-  // Quiz de tipo de piel. El "type" de cada opción debe coincidir con una
-  // etiqueta de SKIN_TYPE_EMOJI y con los valores que uses en la columna
-  // "TipoPiel" de tu Google Sheet. Agrega, quita o reordena preguntas y
-  // opciones libremente.
+  // Quiz de piel (ver renderSkinTypeSection). Cada pregunta guarda su
+  // respuesta en "key": "tipo" suma puntos a un tipo de piel (Seca, Normal,
+  // Grasa, Mixta -- deben coincidir con la columna "TipoPiel"), "sensible"
+  // es sí/no, "concerns" deja elegir hasta "max" (claves de SKIN_CONCERNS)
+  // y "uso" separa pieza individual/stock (para mí) de cajas (revender).
   SKIN_QUIZ: [
     {
-      question: "¿Cómo se siente tu piel unas horas después de lavarla (sin crema)?",
+      key: "tipo",
+      question: "Lávate la cara y no te pongas nada. Una hora después, ¿cómo la sientes?",
       options: [
-        { label: "Tirante y áspera", type: "Seca" },
-        { label: "Cómoda, ni grasosa ni tirante", type: "Normal" },
-        { label: "Brillante en toda la cara", type: "Grasa" },
-        { label: "Brillante solo en frente, nariz y mentón", type: "Mixta" },
+        { label: "Tirante o áspera, como que le falta crema", points: { Seca: 2 } },
+        { label: "Cómoda, ni grasosa ni tirante", points: { Normal: 2 } },
+        { label: "Con brillo en frente, nariz y mentón; mejillas normales", points: { Mixta: 2 } },
+        { label: "Con brillo en toda la cara", points: { Grasa: 2 } },
       ],
     },
     {
-      question: "¿Cómo reacciona tu piel a productos nuevos?",
+      key: "tipo",
+      question: "A media tarde, ¿cómo está tu cara?",
       options: [
-        { label: "Sin problema, aguanta todo", type: "Grasa" },
-        { label: "Se irrita o se pone roja fácil", type: "Sensible" },
-        { label: "Se reseca todavía más", type: "Seca" },
-        { label: "Depende de la zona de la cara", type: "Mixta" },
+        { label: "Sin brillo, y a veces con resequedad o pellejitos", points: { Seca: 1 } },
+        { label: "Casi igual que en la mañana", points: { Normal: 1 } },
+        { label: "Brilla la zona T (frente, nariz y mentón)", points: { Mixta: 1 } },
+        { label: "Brilla toda, el maquillaje se me corre", points: { Grasa: 1 } },
       ],
     },
     {
-      question: "¿Qué tan notorios son tus poros?",
+      key: "sensible",
+      question: "¿Tu piel se pone roja, arde o pica con productos nuevos, el sol o el clima?",
       options: [
-        { label: "Casi no se notan", type: "Seca" },
-        { label: "Se notan poco, parejos", type: "Normal" },
-        { label: "Se notan en toda la cara", type: "Grasa" },
-        { label: "Se notan solo en frente, nariz y mentón", type: "Mixta" },
+        { label: "Sí, seguido", value: true },
+        { label: "A veces, con algunos productos", value: true },
+        { label: "Casi nunca", value: false },
       ],
     },
     {
-      question: "¿Con qué frecuencia sientes brillo en el rostro durante el día?",
+      key: "concerns",
+      question: "¿Qué te gustaría mejorar? (elige hasta 2)",
+      max: 2,
       options: [
-        { label: "Casi nunca", type: "Seca" },
-        { label: "Rara vez", type: "Normal" },
-        { label: "Todo el día", type: "Grasa" },
-        { label: "Se pone roja o incómoda con sol o viento", type: "Sensible" },
+        { label: "🔴 Acné y granitos", value: "acne" },
+        { label: "✨ Manchas y tono disparejo", value: "manchas" },
+        { label: "🔍 Poros y brillo", value: "poros" },
+        { label: "🌿 Líneas y firmeza", value: "madura" },
+        { label: "💧 Resequedad y falta de luz", value: "hidratacion" },
+        { label: "🙂 Nada en especial", value: "" },
+      ],
+    },
+    {
+      key: "uso",
+      question: "¿Para qué es tu compra?",
+      options: [
+        { label: "💗 Para mí: piezas sueltas", value: "mi" },
+        { label: "📦 Para revender: cajas con precio por pieza", value: "revender" },
       ],
     },
   ],
+
+  // Pasos de la rutina que arma el quiz. Un producto entra a un paso si
+  // su nombre (en minúsculas y sin acentos) cumple "match" y no cumple
+  // "skip"; se revisan en este orden y se queda en el primero que cumpla.
+  SKIN_ROUTINE: [
+    { key: "sol", label: "Protector solar", emoji: "☀️", when: "Solo de día, al final", match: /\bsun\b|sunscreen|sun (cream|stick|milk|serum|essence|gel|block|fluid|lotion)|\bspf\b|protector solar|uv /, skip: /after sun|body|hair/ },
+    { key: "limpiador", label: "Limpiador", emoji: "🫧", when: "Mañana y noche", match: /cleans|cleanser|foam|face wash|facial wash|limpiador|micellar|cleansing/, skip: /body|hair|hand|lip|eye|mascara|brush|puff|pad/ },
+    { key: "tonico", label: "Tónico", emoji: "💦", when: "Después de limpiar", match: /toner|tonico|skin softener|refresher/, skip: /body|hair|cleans/ },
+    { key: "serum", label: "Sérum", emoji: "💧", when: "Unas gotas antes de la crema", match: /serum|ampoule|ampolla|essence|esencia|booster|concentrate|\bshot\b/, skip: /body|hair|eye|lip|toner|cleans|mask|pad|patch|sheet/ },
+    { key: "crema", label: "Crema", emoji: "🧴", when: "Para sellar la hidratación", match: /cream|crema|moisturi[sz]|gel cream|emulsion|lotion|soothing gel/, skip: /body|hand|foot|hair|lip|eye|sun|cleans|bb |cc |cushion|mask|pad|patch/ },
+  ],
+
+  // Frases cortas del resultado del quiz, por tipo de piel y preocupación.
+  SKIN_TIPS: {
+    Seca: "Tu piel produce poca grasa: busca texturas cremosas y no te saltes la crema ni de día.",
+    Normal: "Tu piel está en equilibrio: una rutina sencilla e hidratante es suficiente para mantenerla así.",
+    Mixta: "Tienes grasa en la zona T y mejillas más secas: usa texturas ligeras y en gel que hidraten sin engrasar.",
+    Grasa: "Tu piel produce mucha grasa: limpia bien sin resecar y usa cremas ligeras; saltarte la crema hace que produzca más grasa.",
+    sensible: "Como es sensible, elige ingredientes calmantes (centella, cica, aloe) y prueba cada producto nuevo en una zona chica primero.",
+    acne: "Para el acné ayudan el ácido salicílico (BHA), el árbol de té y la centella; no exprimas los granitos.",
+    manchas: "Para manchas: vitamina C o niacinamida y, sobre todo, protector solar todos los días.",
+    poros: "Para poros y brillo: limpieza doble en la noche y niacinamida o BHA.",
+    madura: "Para líneas y firmeza: péptidos, colágeno o retinol (de noche) y protector solar diario.",
+    hidratacion: "Para resequedad y piel apagada: ácido hialurónico, ceramidas y mucina de caracol.",
+  },
 
   // Tiles de "preocupación de piel" (acceso rápido, aparte del quiz de
   // arriba). Cada una hace match contra la columna "TipoPiel" de tu
@@ -3334,15 +3374,19 @@ function renderQuickIcons() {
 }
 
 /* ======================================================================
-   Quiz de tipo de piel. Preguntas en CONFIG.SKIN_QUIZ; cada opción apunta
-   a un tipo (debe coincidir con las etiquetas de la columna "TipoPiel" del
-   Google Sheet). Al terminar, se guarda el resultado en localStorage y se
-   muestran los productos de ese tipo. Se oculta si el catálogo no tiene
-   datos de TipoPiel, o si no hay preguntas configuradas.
+   Quiz de piel. Preguntas en CONFIG.SKIN_QUIZ: tipo de piel (2 preguntas
+   con puntos), si es sensible, qué quiere mejorar (hasta 2) y si compra
+   para ella o para revender. El resultado arma una rutina por pasos
+   (CONFIG.SKIN_ROUTINE) eligiendo los productos que mejor le quedan: que
+   sirvan para su tipo de piel, para lo que quiere mejorar y, si es para
+   ella, primero lo que hay en Stock en México. Se guarda en localStorage
+   (SKIN_QUIZ_KEY guarda solo el texto corto, que usa "Mi cuenta").
    ====================================================================== */
 const SKIN_QUIZ_KEY = "alpacca_skin_quiz_result_v1";
+const SKIN_PROFILE_KEY = "alpacca_skin_profile_v2";
 let quizIndex = 0;
 let quizAnswers = [];
+let quizRoutine = []; // [{ step, items }] del último resultado mostrado
 
 function renderSkinTypeSection() {
   const section = document.getElementById("skintype-section");
@@ -3355,14 +3399,23 @@ function renderSkinTypeSection() {
   }
   section.classList.remove("hidden");
 
-  const saved = localStorage.getItem(SKIN_QUIZ_KEY);
-  if (saved) {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(SKIN_PROFILE_KEY) || "null"); } catch (err) { saved = null; }
+  if (saved && saved.tipo) {
     showQuizResult(saved);
   } else {
-    quizIndex = 0;
-    quizAnswers = [];
-    renderQuizQuestion();
+    resetSkinQuiz();
   }
+}
+
+function resetSkinQuiz() {
+  try {
+    localStorage.removeItem(SKIN_QUIZ_KEY);
+    localStorage.removeItem(SKIN_PROFILE_KEY);
+  } catch (err) { /* sin localStorage */ }
+  quizIndex = 0;
+  quizAnswers = [];
+  renderQuizQuestion();
 }
 
 function renderQuizQuestion() {
@@ -3371,6 +3424,7 @@ function renderQuizQuestion() {
 
   const questions = CONFIG.SKIN_QUIZ;
   const q = questions[quizIndex];
+  const multi = q.key === "concerns";
 
   document.getElementById("quiz-progress").innerHTML = questions
     .map((_, i) => `<span class="w-6 h-1.5 rounded-full ${i <= quizIndex ? "bg-rose" : "bg-ink/15"}"></span>`)
@@ -3378,30 +3432,53 @@ function renderQuizQuestion() {
 
   const questionEl = document.getElementById("quiz-question");
   questionEl.textContent = q.question;
-  // Tras responder, el foco regresa a la pregunta nueva; el primero no se mueve.
   if (quizIndex > 0) questionEl.focus();
 
+  const picked = multi ? new Set(quizAnswers[quizIndex] || []) : null;
   const optionsWrap = document.getElementById("quiz-options");
+  const optClass = (on) => `rounded-xl border px-4 py-3 text-sm font-semibold text-ink text-left transition ${
+    on ? "border-rose bg-blush/40" : "border-ink/15 bg-white/60 hover:border-ink/40 hover:bg-white"
+  }`;
   optionsWrap.innerHTML = q.options
-    .map(
-      (opt, i) => `<button type="button" data-opt="${i}"
-        class="rounded-xl border border-ink/15 bg-white/60 px-4 py-3 text-sm font-semibold text-ink text-left hover:border-ink/40 hover:bg-white transition">
-        ${escapeHtml(opt.label)}
-      </button>`
-    )
-    .join("");
+    .map((opt, i) => `<button type="button" data-opt="${i}" ${multi ? `aria-pressed="${picked.has(opt.value)}"` : ""} class="${optClass(multi && picked.has(opt.value))}">${escapeHtml(opt.label)}</button>`)
+    .join("") + (multi ? `<button type="button" data-quiz-next class="sm:col-span-2 h-12 rounded-full bg-ink text-cream font-semibold hover:bg-ink/85 transition">Continuar</button>` : "");
+
+  const next = () => {
+    if (quizIndex < questions.length - 1) {
+      quizIndex += 1;
+      renderQuizQuestion();
+    } else {
+      const profile = computeQuizResult(quizAnswers);
+      try {
+        localStorage.setItem(SKIN_PROFILE_KEY, JSON.stringify(profile));
+        localStorage.setItem(SKIN_QUIZ_KEY, skinProfileLabel(profile));
+      } catch (err) { /* sin localStorage */ }
+      showQuizResult(profile);
+      document.getElementById("skintype-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+    }
+  };
+
   optionsWrap.querySelectorAll("[data-opt]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      quizAnswers[quizIndex] = q.options[Number(btn.dataset.opt)].type;
-      if (quizIndex < questions.length - 1) {
-        quizIndex += 1;
-        renderQuizQuestion();
-      } else {
-        const result = computeQuizResult(quizAnswers);
-        localStorage.setItem(SKIN_QUIZ_KEY, result);
-        showQuizResult(result);
+      const opt = q.options[Number(btn.dataset.opt)];
+      if (!multi) {
+        quizAnswers[quizIndex] = opt;
+        next();
+        return;
       }
+      // "Nada en especial" quita lo demás; elegir otra cosa lo quita a él.
+      if (!opt.value) picked.clear();
+      else picked.delete("");
+      if (picked.has(opt.value)) picked.delete(opt.value);
+      else if (!opt.value || picked.size < (q.max || 2)) picked.add(opt.value);
+      quizAnswers[quizIndex] = [...picked];
+      renderQuizQuestion();
     });
+  });
+  const nextBtn = optionsWrap.querySelector("[data-quiz-next]");
+  if (nextBtn) nextBtn.addEventListener("click", () => {
+    if (!quizAnswers[quizIndex]) quizAnswers[quizIndex] = [];
+    next();
   });
 
   const backBtn = document.getElementById("quiz-back");
@@ -3417,43 +3494,202 @@ function renderQuizQuestion() {
 }
 
 function computeQuizResult(answers) {
-  const counts = {};
-  answers.forEach((type) => {
-    counts[type] = (counts[type] || 0) + 1;
+  const points = {};
+  const profile = { tipo: "", sensible: false, concerns: [], uso: "mi" };
+  let firstTipo = "";
+  CONFIG.SKIN_QUIZ.forEach((q, i) => {
+    const a = answers[i];
+    if (a == null) return;
+    if (q.key === "tipo") {
+      Object.entries(a.points || {}).forEach(([t, n]) => {
+        points[t] = (points[t] || 0) + n;
+        if (!firstTipo) firstTipo = t;
+      });
+    } else if (q.key === "sensible") profile.sensible = Boolean(a.value);
+    else if (q.key === "concerns") profile.concerns = (a || []).filter(Boolean).slice(0, q.max || 2);
+    else if (q.key === "uso") profile.uso = a.value || "mi";
   });
-  let best = answers[0];
-  let bestCount = 0;
-  answers.forEach((type) => {
-    if (counts[type] > bestCount) {
-      best = type;
-      bestCount = counts[type];
-    }
-  });
-  return best;
+  // Empate: gana la primera pregunta (la más confiable).
+  const max = Math.max(0, ...Object.values(points));
+  profile.tipo = (points[firstTipo] === max ? firstTipo : Object.keys(points).find((t) => points[t] === max)) || "Normal";
+  return profile;
 }
 
-function showQuizResult(type) {
+function skinProfileLabel(profile) {
+  return `${profile.tipo}${profile.sensible ? " y sensible" : ""}`;
+}
+
+/* Qué tanto le queda un producto a esa piel; null si no sirve. */
+const SKIN_CONCERN_WORDS = {
+  acne: /acne|trouble|blemish|\bbha\b|salicyl|tea tree|teatree|spot|clear|a-solution|ac collection/,
+  manchas: /vitamin c|vita c|vit c|niacin|glutathione|bright|whiten|tone up|tone-up|dark spot|glow|rice|galactomyces|arbutin|tranexamic/,
+  poros: /pore|\bbha\b|clay|charcoal|sebum|oil control|matt/,
+  madura: /retin|peptide|collagen|firming|wrinkle|lift|anti-?aging|\bage\b|pdrn|bakuchiol|adenosine|elastic/,
+  hidratacion: /hyaluron|hyalu|ceramide|aqua|hydra|moist|water|snail|squalane|panthenol|barrier/,
+};
+const SKIN_CALMING_WORDS = /cica|centella|madeca|heartleaf|houttuynia|calming|soothing|sensitive|panthenol|aloe|mugwort|artemisia|chamomile|derma|mild/;
+const SKIN_HARSH_WORDS = /\baha\b|\bbha\b|\bpha\b|peel|retinol|retinal|vitamin c|exfoliat|scrub/;
+const SKIN_TYPE_WORDS = {
+  Grasa: /oil control|sebum|matt|fresh|light|gel|water|aqua/,
+  Mixta: /balanc|fresh|light|gel|water|aqua/,
+  Seca: /rich|nourish|ceramide|barrier|intens|deep|butter|oil/,
+  Normal: /hydra|moist|daily/,
+};
+
+function skinProductScore(p, profile) {
+  const tags = (p.tipoPiel || []).map((t) => normalizeForSearch(t));
+  const name = normalizeForSearch(p.nombre);
+  const tipo = normalizeForSearch(profile.tipo);
+  let score = 0;
+  const fitsType = tags.some((t) => t.includes(tipo));
+  const forAll = !tags.length || tags.some((t) => t.includes("todo tipo"));
+  if (fitsType) score += 3;
+  else if (forAll) score += 1;
+  else return null;
+  if (SKIN_TYPE_WORDS[profile.tipo] && SKIN_TYPE_WORDS[profile.tipo].test(name)) score += 1;
+  if (profile.sensible) {
+    if (tags.some((t) => t.includes("sensible")) || SKIN_CALMING_WORDS.test(name)) score += 2;
+    if (SKIN_HARSH_WORDS.test(name)) score -= 3;
+  }
+  (profile.concerns || []).forEach((c) => {
+    const concern = (CONFIG.SKIN_CONCERNS || []).find((x) => x.key === c);
+    if (concern && tags.some((t) => concern.keywords.some((k) => t.includes(k)))) score += 3;
+    if (SKIN_CONCERN_WORDS[c] && SKIN_CONCERN_WORDS[c].test(name)) score += 3;
+  });
+  if ((p.destacado || []).includes("Best Seller")) score += 2;
+  const reviews = reviewSummaries.get(p.stockSku || p.id);
+  if (reviews && reviews.count) score += Math.min(2, reviews.count / 3);
+  if (/\bmini\b|sachet|sample|trial|\bset\b|\bkit\b|duo|refill/.test(name)) score -= 3;
+  if (profile.uso === "mi" && p.enStock && p.stockPiezas > 0) score += 6;
+  // Para revender, mejor cajas que no cuesten una fortuna de golpe.
+  if (profile.uso === "revender") score -= Math.min(3, (p.precio || 0) / 4000);
+  return score;
+}
+
+function skinRoutineFor(profile) {
+  const steps = CONFIG.SKIN_ROUTINE || [];
+  const buckets = new Map(steps.map((st) => [st.key, []]));
+  products.forEach((p) => {
+    if (!p.disponible || normalizeForSearch(p.categoria) !== "skincare") return;
+    if (profile.uso === "revender") {
+      if (p.enStock || !isCajaPresentacion(p)) return;
+    } else if (p.enStock) {
+      if (!(p.stockPiezas > 0)) return;
+    } else if (p.presentacion && p.presentacion !== "Pieza individual") {
+      return;
+    }
+    const name = normalizeForSearch(p.nombre);
+    const step = steps.find((st) => st.match.test(name) && !(st.skip && st.skip.test(name)));
+    if (!step) return;
+    const score = skinProductScore(p, profile);
+    if (score == null) return;
+    buckets.get(step.key).push({ p, score });
+  });
+  return steps.map((step) => {
+    const seen = new Set();
+    const brands = new Map();
+    const items = [];
+    buckets.get(step.key)
+      .sort((a, b) => b.score - a.score || a.p.precio - b.p.precio)
+      .some(({ p }) => {
+        const fam = `${p.marca}|${splitBaseName(p).base}`.toLowerCase();
+        if (seen.has(fam) || (brands.get(p.marca) || 0) >= 1) return false;
+        seen.add(fam);
+        brands.set(p.marca, (brands.get(p.marca) || 0) + 1);
+        items.push(p);
+        return items.length >= 3;
+      });
+    return { step, items };
+  }).filter((r) => r.items.length);
+}
+
+function showQuizResult(profile) {
   document.getElementById("skin-quiz").classList.add("hidden");
   document.getElementById("skin-quiz-result").classList.remove("hidden");
 
-  document.getElementById("quiz-result-emoji").textContent = CONFIG.SKIN_TYPE_EMOJI[type] || CONFIG.SKIN_TYPE_DEFAULT_EMOJI;
-  document.getElementById("quiz-result-label").textContent = type;
+  const concernLabels = (profile.concerns || [])
+    .map((c) => ((CONFIG.SKIN_CONCERNS || []).find((x) => x.key === c) || {}).label)
+    .filter(Boolean);
+  document.getElementById("quiz-result-emoji").textContent = CONFIG.SKIN_TYPE_EMOJI[profile.tipo] || CONFIG.SKIN_TYPE_DEFAULT_EMOJI;
+  document.getElementById("quiz-result-label").textContent =
+    `${profile.tipo}${profile.sensible ? " y sensible" : ""}`;
+  document.getElementById("quiz-result-focus").textContent = concernLabels.length
+    ? `Enfocada en: ${concernLabels.join(", ").toLowerCase()}`
+    : "";
+  const tips = CONFIG.SKIN_TIPS || {};
+  document.getElementById("quiz-result-tips").innerHTML = [
+    tips[profile.tipo],
+    profile.sensible ? tips.sensible : "",
+    ...(profile.concerns || []).map((c) => tips[c]),
+  ].filter(Boolean).map((t) => `<li>${escapeHtml(t)}</li>`).join("");
 
-  const items = groupVariants(products.filter((p) => !p.enStock && (p.tipoPiel || []).includes(type)));
-  const row = document.getElementById("skintype-row");
+  quizRoutine = skinRoutineFor(profile);
+  const wrap = document.getElementById("skin-routine");
   const empty = document.getElementById("skintype-empty");
+  document.getElementById("quiz-result-note").textContent = profile.uso === "revender"
+    ? "Te mostramos cajas con precio por pieza para tu negocio."
+    : products.some((p) => p.enStock && p.stockPiezas > 0)
+      ? "Primero te mostramos lo que tenemos en Stock en México (entrega inmediata, sin mínimo). Lo demás se pide a Corea."
+      : "";
 
-  if (!items.length) {
-    row.innerHTML = "";
+  if (!quizRoutine.length) {
+    wrap.innerHTML = "";
     empty.classList.remove("hidden");
-  } else {
-    empty.classList.add("hidden");
-    row.innerHTML = items
-      .map((p) => `<div class="w-40 sm:w-48 flex-shrink-0 snap-start">${productCardHTML(p)}</div>`)
-      .join("");
-    wireAddButtons(row);
-    wireVariantSelectors(row);
+    document.getElementById("skin-routine-actions").classList.add("hidden");
+    return;
   }
+  empty.classList.add("hidden");
+  document.getElementById("skin-routine-actions").classList.remove("hidden");
+  wrap.innerHTML = quizRoutine
+    .map(({ step, items }, i) => `<div>
+        <div class="flex items-baseline gap-2 mb-3">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-ink text-cream text-sm font-bold shrink-0">${i + 1}</span>
+          <h4 class="font-display text-lg text-ink">${step.emoji} ${escapeHtml(step.label)}</h4>
+          <span class="text-xs text-ink/60">${escapeHtml(step.when || "")}</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          ${items.map((p, k) => `<div class="${k === 2 ? "hidden sm:block" : ""}">${productCardHTML(p)}</div>`).join("")}
+        </div>
+      </div>`)
+    .join("");
+  wireAddButtons(wrap);
+  wireVariantSelectors(wrap);
+}
+
+/* Agrega el primer producto de cada paso (uno de cada uno). */
+function addSkinRoutineToCart() {
+  const ids = quizRoutine.map((r) => r.items[0] && r.items[0].id).filter(Boolean);
+  if (!ids.length) return;
+  const before = Object.keys(cart).length;
+  ids.forEach((id) => {
+    const product = products.find((p) => p.id === id);
+    if (!product || !product.disponible) return;
+    const qty = cart[id] ? cart[id].qty : 0;
+    if (product.enStock && qty + 1 > product.stockPiezas) return;
+    if (cart[id]) cart[id].qty += 1;
+    else cart[id] = { product, qty: 1 };
+  });
+  if (Object.keys(americanoCart).length) {
+    americanoCart = {};
+    saveAmericanoCart();
+    renderAmericanoCart();
+  }
+  saveCart();
+  renderCart();
+  openCart();
+  const added = Object.keys(cart).length - before;
+  announce(`Agregaste tu rutina al carrito (${ids.length} productos${added < ids.length ? ", algunos ya estaban" : ""}).`);
+}
+
+function skinRoutineWhatsAppUrl() {
+  let profile = null;
+  try { profile = JSON.parse(localStorage.getItem(SKIN_PROFILE_KEY) || "null"); } catch (err) { profile = null; }
+  const lines = [`Mi rutina de Alpacca${profile ? ` (piel ${skinProfileLabel(profile).toLowerCase()})` : ""}:`];
+  quizRoutine.forEach(({ step, items }, i) => {
+    const p = items[0];
+    lines.push(`${i + 1}. ${step.label}: ${p.marca ? `${p.marca} ` : ""}${p.nombre} – ${formatPrice(p.precio)}`, `   ${productShareUrl(p)}`);
+  });
+  return `https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
 /* ======================================================================
@@ -6851,10 +7087,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("quote-success-close").addEventListener("click", closeQuoteSuccess);
 
   document.getElementById("quiz-retake").addEventListener("click", () => {
-    localStorage.removeItem(SKIN_QUIZ_KEY);
-    quizIndex = 0;
-    quizAnswers = [];
-    renderQuizQuestion();
+    resetSkinQuiz();
+    document.getElementById("skintype-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+  });
+  document.getElementById("skin-routine-add").addEventListener("click", addSkinRoutineToCart);
+  document.getElementById("skin-routine-wa").addEventListener("click", () => {
+    window.open(skinRoutineWhatsAppUrl(), "_blank", "noopener");
   });
 
   document.getElementById("brand-products-clear").addEventListener("click", () => {

@@ -598,11 +598,11 @@
   </div>
 </section>
 
-<!-- Explora por tipo de piel (herramienta de ayuda, no es el foco principal) -->
+<!-- Quiz de piel: tipo, sensibilidad, qué quiere mejorar y rutina por pasos -->
 <section id="skintype-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 hidden">
   <div class="text-center mb-6">
-    <h2 class="font-display text-2xl sm:text-3xl text-ink">¿Cuál es tu tipo de piel?</h2>
-    <p class="text-sm text-ink/75 mt-1">Solo toma un minuto.</p>
+    <h2 class="font-display text-2xl sm:text-3xl text-ink">Arma tu rutina coreana</h2>
+    <p class="text-sm text-ink/75 mt-1">5 preguntas rápidas sobre tu piel y te decimos qué usar en cada paso.</p>
   </div>
 
   <!-- Quiz -->
@@ -616,14 +616,22 @@
 
   <!-- Resultado -->
   <div id="skin-quiz-result" class="hidden">
-    <div class="text-center mb-8">
+    <div class="max-w-2xl mx-auto text-center mb-8">
       <span id="quiz-result-emoji" class="text-4xl block mb-2"></span>
-      <p class="text-sm text-ink/75">Tu tipo de piel es</p>
+      <p class="text-sm text-ink/75">Tu piel es</p>
       <h3 class="font-display text-2xl sm:text-3xl text-ink mt-0.5" id="quiz-result-label"></h3>
+      <p id="quiz-result-focus" class="text-sm font-semibold text-rose-ink mt-1"></p>
+      <ul id="quiz-result-tips" class="mt-4 text-sm text-ink/80 text-left list-disc pl-5 space-y-1.5"></ul>
+      <p id="quiz-result-note" class="mt-3 text-xs text-ink/60"></p>
       <button id="quiz-retake" type="button" class="tap mt-3 text-xs text-ink/75 hover:text-ink underline">Repetir el quiz</button>
     </div>
-    <div id="skintype-row" class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"></div>
+    <div id="skin-routine" class="flex flex-col gap-8"></div>
     <p id="skintype-empty" class="hidden text-center text-ink/75 py-6">Pronto agregaremos productos para tu tipo de piel.</p>
+    <div id="skin-routine-actions" class="hidden mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+      <button id="skin-routine-add" type="button" class="h-12 px-6 rounded-full bg-ink text-cream font-semibold hover:bg-ink/85 transition">🛒 Agregar mi rutina al carrito</button>
+      <button id="skin-routine-wa" type="button" class="h-12 px-6 rounded-full bg-[#dcf8e8] text-[#17803d] font-semibold hover:brightness-95 transition">💬 Mandármela por WhatsApp</button>
+    </div>
+    <p class="mt-2 text-center text-xs text-ink/60">Se agrega el primer producto de cada paso. Puedes cambiarlos por las otras opciones.</p>
   </div>
 </section>
 
