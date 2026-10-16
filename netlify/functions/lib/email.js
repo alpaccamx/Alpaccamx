@@ -16,7 +16,9 @@
 
 const RESEND_API = "https://api.resend.com/emails";
 
-async function sendEmail({ to, subject, html }) {
+// attachments (opcional): [{ filename, content: base64 }] -- p. ej. las
+// fotos del paquete que acaba de llegar a la dirección americana.
+async function sendEmail({ to, subject, html, attachments }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || !to) return { sent: false };
 
@@ -29,7 +31,7 @@ async function sendEmail({ to, subject, html }) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ from, to, subject, html }),
+      body: JSON.stringify({ from, to, subject, html, ...(attachments && attachments.length ? { attachments } : {}) }),
     });
     const resBody = await res.text();
     if (!res.ok) {

@@ -105,9 +105,9 @@ exports.handler = async (event) => {
         const hasta = new Date(new Date(rec.receivedAt || Date.now()).getTime() + ALMACENAJE_DIAS * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
         await avisar(rec.email, `llegó tu paquete ${rec.folio} 📦`, `
           <h2 style="margin:0 0 8px;font-size:20px;">¡Tu paquete llegó a nuestro almacén!</h2>
-          <p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · "))}${rec.cobrable ? ` · ${rec.cobrable} kg` : ""}${fotos.length ? " · con fotos en tu casillero" : ""}.</p>
+          <p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · "))}${rec.cobrable ? ` · ${rec.cobrable} kg` : ""}.${fotos.length ? ` Te adjuntamos ${fotos.length === 1 ? "la foto" : `las ${fotos.length} fotos`} de tu paquete (también las ves en tu casillero).` : ""}</p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
-          <p style="font-size:14px;">Lo guardamos gratis hasta el <b>${hasta}</b>. Cuando quieras, entra a tu casillero y pide tu envío a México (puedes juntarlo con otros paquetes).</p>`);
+          <p style="font-size:14px;">Lo guardamos gratis hasta el <b>${hasta}</b>. Cuando quieras, entra a tu casillero y pide tu envío a México (puedes juntarlo con otros paquetes).</p>`, fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
         return json(200, { paquete: rec });
       }
 
@@ -307,8 +307,8 @@ exports.handler = async (event) => {
         if (!rec) return json(404, { error: "No existe ese paquete." });
         await avisar(rec.email, `revisamos tu paquete ${rec.folio} 📸`, `
           <h2 style="margin:0 0 8px;font-size:20px;">Ya revisamos tu paquete</h2>
-          <p style="font-size:14px;">Abrimos ${esc(rec.folio)} y le tomamos ${rec.revision.fotos.length} foto${rec.revision.fotos.length === 1 ? "" : "s"} al contenido. Las ves en tu casillero.</p>
-          ${rec.revision.nota ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.revision.nota)}</p>` : ""}`);
+          <p style="font-size:14px;">Abrimos ${esc(rec.folio)} y le tomamos ${rec.revision.fotos.length} foto${rec.revision.fotos.length === 1 ? "" : "s"} al contenido. Te las adjuntamos (también las ves en tu casillero).</p>
+          ${rec.revision.nota ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.revision.nota)}</p>` : ""}`, fotosAdjuntas(b.fotos, `revision-${rec.folio}`));
         return json(200, { paquete: rec });
       }
 
@@ -419,6 +419,20 @@ function leerItems(lista) {
   return (Array.isArray(lista) ? lista : []).slice(0, 60)
     .map((x) => ({ nombre: clip(x.nombre, 200), tono: clip(x.tono, 100), cantidad: Math.max(1, Math.floor(num(x.cantidad)) || 1), precio: round2(num(x.precio)) }))
     .filter((x) => x.nombre && x.precio > 0);
+}
+
+/* Las mismas fotos que se guardan, como adjuntos del correo a la clienta. */
+function fotosAdjuntas(lista, prefijo) {
+  const out = [];
+  for (const f of (Array.isArray(lista) ? lista : []).slice(0, 6)) {
+    const buf = Buffer.from(String(f.dataBase64 || ""), "base64");
+    if (!buf.length || buf.length > 5 * 1024 * 1024) continue;
+    const t = detectFileType(buf);
+    if (!t || t === "pdf") continue;
+    const ext = /png/i.test(f.contentType || "") ? "png" : /webp/i.test(f.contentType || "") ? "webp" : "jpg";
+    out.push({ filename: `${prefijo}-${out.length + 1}.${ext}`, content: buf.toString("base64") });
+  }
+  return out;
 }
 
 async function guardarFotos(lista) {

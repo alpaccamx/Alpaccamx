@@ -109,10 +109,11 @@ async function aplicarPago(kind, id, { metodo, paymentId, monto } = {}) {
   return rec;
 }
 
-async function avisar(to, subject, html) {
+async function avisar(to, subject, html, attachments) {
   if (!to) return;
   await sendEmail({
     to,
+    attachments,
     subject: `Shop with Mae · ${subject}`,
     html: baseEmailHTML(`${html}
       <p style="margin-top:18px;"><a href="https://alpacca.mx/?ver=shopwithmae" style="background:#c4466e;color:#fff;padding:10px 16px;border-radius:999px;text-decoration:none;font-weight:600;">Ver mi casillero</a></p>`),
