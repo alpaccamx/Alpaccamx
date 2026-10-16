@@ -1940,10 +1940,114 @@ ${itemLines}
         </div>
         <div class="inv-actions">
           <button type="button" class="btn-primary inv-save">💾 Guardar</button>
+          <button type="button" class="btn-secondary inv-variant-toggle">🎨 Agregar tono/variación</button>
           <button type="button" class="btn-danger inv-delete">🗑️ Quitar</button>
           <span class="inv-status"></span>
         </div>
+        ${inventoryVariantHTML(p)}
       </div>`;
+  }
+
+  /* "Agregar tono/variación" en un producto que ya está en Stock: crea
+     otra fila con la misma marca/precio/categoría/peso/descripción y el
+     nombre "Base (#Variación)", para que la tienda los junte en una sola
+     tarjeta con selector (groupVariants() en app.js). Si el producto
+     original todavía no tiene su tono entre paréntesis, también se le
+     pone, porque si no la tienda no los junta. */
+  const INV_VARIANT_RE = /^(.*)\s\((#[^)]*)\)$/;
+
+  function inventoryVariantHTML(p) {
+    const m = INV_VARIANT_RE.exec(p.nombre || "");
+    const base = m ? m[1] : p.nombre || "";
+    const actual = m ? m[2].replace(/^#/, "") : "";
+    return `
+        <div class="inv-variant">
+          <p class="inv-var-help">Se crea otro producto con la misma marca, precio, categoría y peso. En la tienda salen juntos en una sola tarjeta para elegir el tono.</p>
+          <div class="inv-var-fields">
+            <input type="text" class="inv-var-base" aria-label="Nombre (sin el tono)" value="${escapeHtml(base)}" placeholder="Nombre sin el tono" style="flex:2 1 220px;" />
+            <input type="text" class="inv-var-actual" aria-label="Tono/variación de este producto" value="${escapeHtml(actual)}" placeholder="Tono de este (ej. Gingerbread)"${m ? " readonly" : ""} />
+          </div>
+          <div class="inv-var-fields">
+            <input type="text" class="inv-var-label" aria-label="Nuevo tono/variación" placeholder="Nuevo tono (ej. Peppermint) *" />
+            <input type="number" class="inv-var-piezas" aria-label="Piezas" placeholder="Piezas *" min="1" step="1" style="flex:0 1 100px;" />
+          </div>
+          <div class="inv-var-fields">
+            <input type="text" class="inv-var-imagen" aria-label="Link de la foto del nuevo tono" placeholder="Link de la foto del nuevo tono (si lo dejas vacío usa la misma)" style="flex:1 1 100%;" />
+          </div>
+          <div class="inv-actions">
+            <button type="button" class="btn-primary inv-var-save">➕ Agregar este tono</button>
+            <span class="inv-var-status"></span>
+          </div>
+        </div>`;
+  }
+
+  async function addInventoryVariant(sku, row, btn) {
+    const statusEl = row.querySelector(".inv-var-status");
+    statusEl.style.color = "#b03a2e";
+    statusEl.textContent = "";
+    const product = inventoryProducts.find((p) => p.sku === sku);
+    if (!product) return;
+    const base = row.querySelector(".inv-var-base").value.trim();
+    let actual = row.querySelector(".inv-var-actual").value.trim().replace(/^#/, "");
+    let label = row.querySelector(".inv-var-label").value.trim().replace(/^#/, "");
+    const piezas = Number(row.querySelector(".inv-var-piezas").value);
+    const imagen = row.querySelector(".inv-var-imagen").value.trim();
+    if (!base) { statusEl.textContent = "Falta el nombre sin el tono."; return; }
+    if (!actual) { statusEl.textContent = "Escribe el tono de este producto para que la tienda los junte."; return; }
+    if (!label) { statusEl.textContent = "Falta el nuevo tono/variación."; return; }
+    if (!piezas || piezas <= 0) { statusEl.textContent = "Las piezas deben ser un número mayor a 0."; return; }
+    if (label.toLowerCase() === actual.toLowerCase()) { statusEl.textContent = "El nuevo tono es igual al de este producto."; return; }
+
+    // Se usan los valores que estén escritos en la fila (aunque no se
+    // hayan guardado todavía), igual que haría "Guardar".
+    const shared = {
+      marca: row.querySelector(".inv-marca").value.trim(),
+      precio: Number(row.querySelector(".inv-precio").value) || 0,
+      precioTarjeta: Number(row.querySelector(".inv-precio-tarjeta").value) || 0,
+      categoria: row.querySelector(".inv-categoria").value.trim(),
+      peso: Number(row.querySelector(".inv-peso").value) || 0,
+      descripcion: product.descripcion || "",
+    };
+    if (!shared.precio) { statusEl.textContent = "Este producto no tiene precio; ponle precio y guarda primero."; return; }
+
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Agregando...";
+    try {
+      const nombreActual = `${base} (#${actual})`;
+      if (nombreActual !== product.nombre) {
+        const res = await fetch("/.netlify/functions/admin-update-stock-product", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ sku, nombre: nombreActual }),
+        });
+        const data = await res.json();
+        if (!res.ok) { statusEl.textContent = data.error || "No se pudo renombrar este producto."; return; }
+        product.nombre = nombreActual;
+      }
+      const nuevo = {
+        ...shared,
+        nombre: `${base} (#${label})`,
+        piezas,
+        imagen: imagen || row.querySelector(".inv-imagen").value.trim(),
+      };
+      const { ok, data } = await addStockProductRequest({ ...nuevo, precioTarjeta: nuevo.precioTarjeta || undefined, peso: nuevo.peso || undefined });
+      if (!ok) { statusEl.textContent = data.error || "No se pudo agregar el tono."; return; }
+      inventoryProducts.unshift({ sku: data.sku, ...nuevo });
+      renderInventoryList();
+      const newRow = document.querySelector(`[data-inv-row="${CSS.escape(data.sku)}"]`);
+      if (newRow) {
+        newRow.scrollIntoView({ block: "center" });
+        const st = newRow.querySelector(".inv-status");
+        st.style.color = "#17803d";
+        st.textContent = `✅ Tono agregado (SKU ${data.sku})`;
+      }
+    } catch (err) {
+      statusEl.textContent = "No se pudo conectar con el servidor.";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   }
 
   function matchesInventorySearch(p, query) {
@@ -2020,6 +2124,15 @@ ${itemLines}
       });
       row.querySelector(".inv-save").addEventListener("click", (e) => saveInventoryRow(sku, row, e.currentTarget));
       row.querySelector(".inv-delete").addEventListener("click", (e) => deleteInventoryRow(sku, row, e.currentTarget));
+      row.querySelector(".inv-variant-toggle").addEventListener("click", () => {
+        const panel = row.querySelector(".inv-variant");
+        panel.classList.toggle("open");
+        if (panel.classList.contains("open")) {
+          const first = panel.querySelector(".inv-var-actual:not([readonly])") || panel.querySelector(".inv-var-label");
+          first.focus();
+        }
+      });
+      row.querySelector(".inv-var-save").addEventListener("click", (e) => addInventoryVariant(sku, row, e.currentTarget));
     });
   }
 
