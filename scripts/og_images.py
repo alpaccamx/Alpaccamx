@@ -120,5 +120,33 @@ def main(csv_path, fdir):
             print(tipo, name, n)
 
 
+def stock_main(csv_path, fdir):
+    """Miniatura de alpacca.mx/?ver=stock con fotos de lo que hay en Stock."""
+    rows = []
+    for r in csv.DictReader(open(csv_path, encoding="utf-8")):
+        nombre = r.get("Nombre (solo si es producto nuevo)", "")
+        img = r.get("Imagen (opcional, URL)", "")
+        try:
+            piezas = float(r.get("Piezas Disponibles") or 0)
+        except ValueError:
+            piezas = 0
+        # Lotes, geles y bolsas no lucen en la miniatura.
+        if nombre and img and piezas > 0 and not re.search(r"lote|gel antibacterial|tote|bag", nombre, re.I):
+            try:
+                precio = float(r.get("Precio MXN") or 0)
+            except ValueError:
+                precio = 0
+            rows.append({"Nombre": nombre, "Imagen": img, "Presentacion": "Pieza individual", "_p": precio})
+    rows.sort(key=lambda r: -r["_p"])  # los de más valor primero
+    n = len({re.sub(r"\s*\(.*\)$", "", r["Nombre"]) for r in rows})
+    os.makedirs(OUT, exist_ok=True)
+    card(pick_photos(rows), "Stock en México", "Entrega inmediata · sin mínimo de compra", fdir, os.path.join(OUT, "ver-stock.jpg"))
+    print("stock", n)
+
+
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    # python3 scripts/og_images.py --stock stock.csv FUENTES  (alpacca.mx/stock.csv)
+    if sys.argv[1] == "--stock":
+        stock_main(sys.argv[2], sys.argv[3])
+    else:
+        main(sys.argv[1], sys.argv[2])
