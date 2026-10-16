@@ -140,9 +140,13 @@ async function listingMeta(q) {
     const image = await ogImage("ver", "stock");
     return { title: "Stock en México, entrega inmediata — Alpacca", desc: "Productos que ya están en México: se envían de inmediato, sin pedido mínimo.", url: `${SITE}/?ver=stock`, image, ogSize: Boolean(image) };
   }
-  if (q.ver === "catalogo") return { title: "Catálogo completo — Alpacca", desc: "Todo el skincare y maquillaje coreano y asiático: pieza individual o caja, envíos a todo México.", url: `${SITE}/?ver=catalogo` };
+  if (q.ver === "catalogo") {
+    const image = await ogImage("ver", "catalogo");
+    return { title: "Catálogo completo — Alpacca", desc: "Todo el skincare y maquillaje coreano y asiático: pieza individual o caja, envíos a todo México.", url: `${SITE}/?ver=catalogo`, image, ogSize: Boolean(image) };
+  }
   if (q.ver === "shopwithmae" || q.ver === "direccion-americana") {
-    return { title: "Dirección americana — Shop with Mae · Alpacca", desc: "Compra en tiendas de EE.UU. (Sephora, Ulta, Amazon...) con tu dirección americana y recíbelo en México.", url: `${SITE}/?ver=shopwithmae` };
+    const image = await ogImage("ver", "shopwithmae");
+    return { title: "Dirección americana — Shop with Mae · Alpacca", desc: "Compra en tiendas de EE.UU. (Sephora, Ulta, Amazon...) con tu dirección americana y recíbelo en México.", url: `${SITE}/?ver=shopwithmae`, image, ogSize: Boolean(image) };
   }
   if (q.q) return { title: `"${String(q.q).slice(0, 60)}" — Alpacca`, desc: `Resultados de "${String(q.q).slice(0, 60)}" en Alpacca: skincare coreano y asiático con envíos a todo México.`, url: `${SITE}/?q=${encodeURIComponent(q.q)}` };
   return null;
