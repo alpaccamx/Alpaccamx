@@ -1530,6 +1530,14 @@ function applyStockData() {
       clone.stockPiezas = stockPiezas;
       // En stock manda tu inventario, no si ABW lo tiene agotado.
       clone.disponible = true;
+      // Si en la hoja de Stock le pusiste otro nombre, foto o descripción
+      // (por ejemplo "1 mascarilla" en vez del set del catálogo), mandan esos.
+      if (entry.nombre && entry.nombre !== original.nombre) {
+        clone.nombre = entry.nombre;
+        clone.capacidad = "";
+      }
+      if (entry.imagen) clone.imagen = entry.imagen;
+      if (entry.descripcion) clone.descripcion = entry.descripcion;
       clone.precio = entry.precioMXN || original.precio;
       clone.precioTarjeta = entry.precioTarjetaMXN || clone.precio;
       if (entry.pesoKg) clone.peso = entry.pesoKg;
