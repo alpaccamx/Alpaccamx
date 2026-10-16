@@ -4501,6 +4501,18 @@ ${itemLines}
   const swmPillA = (t, cls = "") => `<span class="swm-pill ${cls}">${t}</span>`;
   const swmCancelBtn = (kind, r) => (["cancelado", "entregado", "comprado", "enviado"].includes(r.status) ? "" : `<button type="button" class="btn-secondary" data-swm-cancel="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">Cancelar</button>`);
 
+  /* "≈ $1,080 MXN" del valor declarado con el tipo de cambio de Ajustes y,
+     si paga el cruce con el 15%, cuánto le toca. */
+  function swmValorPesosHTML(p) {
+    const rates = swmData.tiposCambio || {};
+    const rate = p.moneda === "MXN" ? 1 : rates[p.moneda];
+    if (!(Number(p.valorTotal) > 0) || !p.moneda) return "";
+    if (!rate) return ` · <span style="color:#b33660">falta el tipo de cambio de ${escapeHtml(p.moneda)} en Ajustes</span>`;
+    const pesos = Number(p.valorTotal) * rate;
+    const cruce = Math.ceil(pesos * (swmData.comisionPct || 15) / 100);
+    return `${p.moneda === "MXN" ? "" : ` ≈ <b>${formatPrice(pesos)}</b>`}${p.cobro === "comision" && !p.crucePagado ? ` → cruce (${swmData.comisionPct || 15}%): <b>${formatPrice(cruce)}</b>` : ""}`;
+  }
+
   function swmPaqueteCard(p) {
     const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : "📥 En almacén", en_envio: "📦 En un envío", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
     const hasta = p.receivedAt ? new Date(new Date(p.receivedAt).getTime() + swmData.almacenajeDias * 864e5) : null;
@@ -4518,7 +4530,7 @@ ${itemLines}
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">${fotosHtml(p)}<button type="button" class="btn-secondary" data-swm-cancel="paquete:${escapeHtml(p.id)}" style="padding:6px 12px;font-size:13px;">Ya dispuse de él</button></div>
     </div>` : ""}${sinDuena ? "" : `
       <div class="meta">${swmWho(p)}<br>${p.origen === "sin_registro" ? `⚠️ Llegó sin registrar (cargo ${formatPrice(p.cargoSinRegistro || 0)})${p.datosPendientes ? " · <b>ella todavía no dice qué trae</b>" : ""} · ` : ""}${p.origen === "compra" ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "comision" ? (p.valorTotal && p.moneda ? `15% de ${Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${escapeHtml(p.moneda)}` : `15% de US$${Number(p.valorUSD || 0).toFixed(2)}`) : "por peso"}${p.contenido ? ` · ${escapeHtml(p.contenido)}` : ""}
-        ${p.valorTotal ? `<br>Valor declarado (con tax, sin envío): <b>${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}</b>` : ""}
+        ${p.valorTotal ? `<br>Valor declarado (con tax, sin envío): <b>${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}</b>` : ""}${swmValorPesosHTML(p)}
         ${p.factura ? ` <button type="button" class="btn-secondary" data-swm-file="factura/paquete/${escapeHtml(p.id)}" style="padding:4px 10px;font-size:12px;">📄 Ver factura</button>` : ""}
         ${p.receivedAt ? `<br>Llegó ${swmFecha(p.receivedAt)} · almacenaje gratis ${vence > 0 ? `${vence} días más` : "<b style='color:#b33660'>vencido</b>"}` : ""}</div>
       ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}
