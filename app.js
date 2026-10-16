@@ -1528,6 +1528,8 @@ function applyStockData() {
       }
       clone.enStock = true;
       clone.stockPiezas = stockPiezas;
+      // En stock manda tu inventario, no si ABW lo tiene agotado.
+      clone.disponible = true;
       clone.precio = entry.precioMXN || original.precio;
       clone.precioTarjeta = entry.precioTarjetaMXN || clone.precio;
       if (entry.pesoKg) clone.peso = entry.pesoKg;
@@ -2299,7 +2301,13 @@ function groupVariants(list) {
   // Si de una familia solo quedó un tono, se muestra ese producto tal cual,
   // con su tono en el nombre ("... (M204 Rose Mousse)"), en vez del nombre
   // base sin tono.
-  return order.map((entry) => (entry.variants && entry.variants.length === 1 ? entry.variants[0].product : entry));
+  // Sin el "- 40 Colores" del nombre base, que ya no aplica.
+  return order.map((entry) => {
+    if (!(entry.variants && entry.variants.length === 1)) return entry;
+    const v = entry.variants[0];
+    if (!v.label || v.label === v.product.nombre) return v.product;
+    return { ...v.product, nombre: `${entry.nombre.replace(/\s*-\s*\d+\s+[A-Za-zÀ-ÿ]+$/, "")} (${v.label})` };
+  });
 }
 
 function wireVariantSelectors(container) {
