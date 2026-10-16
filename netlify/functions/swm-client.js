@@ -15,6 +15,8 @@
 //                     → con Mercado Pago regresa { redirectUrl }
 //   comprobante       { kind, id, filename, contentType, dataBase64 }
 //   completar_paquete { id, articulos[], valorTotal, moneda, facturas?, cobro }  (paquete que llegó sin registrar)
+//   editar_paquete    { id, tienda?, rastreo?, articulos[], valorTotal, moneda, facturas?, quitarArchivos?, cobro }
+//                     (mientras va en camino, o cuando Mae le pidió corregir sus datos)
 //   cancelar          { kind, id }
 //   pedir_revision    { id }  (abrir el paquete y mandar fotos del contenido; cargo REVISION_FOTOS)
 //   aplicar_cupon     { kind, id, code }  (descuento sobre una cotización sin pagar)
@@ -25,9 +27,9 @@ const { getCustomerByEmail } = require("./lib/customer-store.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
 const { detectFileType } = require("./lib/file-signature.js");
-const { nextFolio, saveRecord, getRecord, mutateRecord, saveFile, casilleroDe } = require("./lib/swm-store.js");
-const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe } = require("./lib/swm-core.js");
-const { REVISION_FOTOS, SEPARAR } = require("./lib/swm-pricing.js");
+const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, casilleroDe } = require("./lib/swm-store.js");
+const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe, tiposDeCambio } = require("./lib/swm-core.js");
+const { REVISION_FOTOS, SEPARAR, COMISION_PCT } = require("./lib/swm-pricing.js");
 const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/coupons.js");
 
 const COBROS = ["peso", "comision"];
@@ -43,7 +45,7 @@ const MAX_TOTAL = 4.2 * 1024 * 1024;
    de la factura/resumen de compra o, si no sube nada, la lista de
    artículos con su costo; más el valor total de los artículos (con tax, sin envío)
    en su moneda. Regresa { error } o { datos, facturas }. */
-function leerDeclaracion(b, cobro) {
+function leerDeclaracion(b, cobro, previos = 0) {
   const rows = (Array.isArray(b.articulos) ? b.articulos : []).slice(0, 60).map((a) => ({
     desc: clip(a && a.desc, 120),
     cant: Math.max(1, Math.min(999, parseInt(a && a.cant, 10) || 1)),
@@ -51,7 +53,7 @@ function leerDeclaracion(b, cobro) {
   })).filter((a) => a.desc || a.costo);
   if (rows.some((a) => !a.desc || !(a.costo > 0))) return { error: "A cada artículo ponle qué es y cuánto costó." };
   const lista = Array.isArray(b.facturas) ? b.facturas : b.factura ? [b.factura] : [];
-  if (lista.length > MAX_ARCHIVOS) return { error: `Puedes subir hasta ${MAX_ARCHIVOS} capturas o archivos.` };
+  if (lista.length + previos > MAX_ARCHIVOS) return { error: `Puedes tener hasta ${MAX_ARCHIVOS} capturas o archivos${previos ? ` (ya tienes ${previos})` : ""}.` };
   const facturas = [];
   let total = 0;
   for (const f of lista) {
@@ -66,7 +68,7 @@ function leerDeclaracion(b, cobro) {
     const ct = real === "pdf" ? "application/pdf" : /^image\/[a-z0-9.+-]+$/i.test(f.contentType || "") ? f.contentType : "image/jpeg";
     facturas.push({ buf, ct, nombre: clip(f.filename, 120) });
   }
-  if (!rows.length && !facturas.length) return { error: "Sube capturas o la factura de tu compra, o escribe cada artículo con lo que costó." };
+  if (!rows.length && !facturas.length && !previos) return { error: "Sube capturas o la factura de tu compra, o escribe cada artículo con lo que costó." };
   const valorTotal = Math.max(0, Math.min(1e9, parseFloat(b.valorTotal) || 0));
   const moneda = MONEDAS.includes(b.moneda) ? b.moneda : "";
   if (!(valorTotal > 0) || !moneda) return { error: "Escribe el valor total de los artículos (con tax, sin envío) y en qué moneda." };
@@ -76,21 +78,39 @@ function leerDeclaracion(b, cobro) {
   const fmt = (n) => Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
   const contenido = clip(rows.length
     ? rows.map((a) => `${a.cant > 1 ? `${a.cant}× ` : ""}${a.desc} (${fmt(a.costo)} ${moneda})`).join(", ")
-    : `Ver ${facturas.length === 1 ? "captura" : `${facturas.length} capturas`}`, 300);
+    : `Ver ${facturas.length + previos === 1 ? "captura" : `${facturas.length + previos} capturas`}`, 300);
   return { datos: { articulos: rows, valorTotal, moneda, contenido, valorUSD }, facturas };
 }
 
 /* Guarda las capturas/PDF en factura/paquete/<id>/<n> y regresa su lista
    (vacía si no subió nada). */
-async function guardarFacturas(id, facturas) {
+async function guardarFacturas(id, facturas, desde = 0) {
   const at = now();
   const out = [];
-  for (const [n, f] of facturas.entries()) {
+  for (const [i, f] of facturas.entries()) {
+    const n = desde + i;
     await saveFile(`factura/paquete/${id}/${n}`, f.buf, f.ct);
     out.push({ n, tipo: f.ct, nombre: f.nombre, at });
   }
   return out;
 }
+
+/* ¿Ya hay otro paquete (no cancelado) con esa guía? Se comparan sin
+   espacios ni guiones y sin importar mayúsculas. */
+const normGuia = (g) => String(g || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+async function guiaRepetida(rastreo, me, exceptId) {
+  const g = normGuia(rastreo);
+  if (g.length < 6) return null;
+  const otro = (await listRecords("paquete")).find((p) => p.id !== exceptId && p.status !== "cancelado" && normGuia(p.rastreo) === g);
+  if (!otro) return null;
+  return otro.email === me
+    ? `Ya registraste esta guía en ${otro.folio}. Si te equivocaste, edita ese paquete.`
+    : "Esta guía ya está registrada en otro casillero. Revisa el número; si es tuya, escríbele a Mae.";
+}
+
+// Puede editar mientras va en camino, o si Mae le pidió corregir.
+const puedeEditar = (p) => p.origen !== "compra" && !p.datosPendientes
+  && (p.status === "registrado" || (p.correccion && p.correccion.estado === "pedida" && p.status === "recibido"));
 
 exports.handler = async (event) => {
   const email = verifyCustomerToken(event);
@@ -106,6 +126,7 @@ exports.handler = async (event) => {
         casillero,
         paquetes: all.paquetes.map(publico), compras: all.compras.map(publico), envios: all.envios.map(publico),
         name: customer.name || "", phone: customer.phone || "", almacenajeDias: ALMACENAJE_DIAS,
+        tiposCambio: await tiposDeCambio(), comisionPct: COMISION_PCT,
         precios: { revision: REVISION_FOTOS, separar: SEPARAR },
       });
     } catch (err) {
@@ -131,6 +152,8 @@ exports.handler = async (event) => {
         const cobro = COBROS.includes(b.cobro) ? b.cobro : "peso";
         const dec = leerDeclaracion(b, cobro);
         if (dec.error) return json(400, { error: dec.error });
+        const repetida = await guiaRepetida(rastreo, me);
+        if (repetida) return json(409, { error: repetida });
         const id = randomUUID();
         const facturas = await guardarFacturas(id, dec.facturas);
         const rec = {
@@ -158,6 +181,37 @@ exports.handler = async (event) => {
           p.cobro = cobro;
           p.datosPendientes = false;
           p.history = [...(p.history || []), { at: now(), status: "datos_completados" }];
+          return p;
+        });
+        return json(200, { paquete: publico(updated) });
+      }
+
+      case "editar_paquete": {
+        const rec = await getRecord("paquete", String(b.id || ""));
+        if (!rec || rec.email !== me) return json(404, { error: "No encontramos ese paquete." });
+        if (!puedeEditar(rec)) return json(409, { error: "Este paquete ya no se puede editar desde aquí; escríbele a Mae." });
+        const cobro = rec.crucePagado ? rec.cobro : COBROS.includes(b.cobro) ? b.cobro : rec.cobro;
+        const anteriores = b.quitarArchivos ? [] : (rec.facturas || []);
+        const dec = leerDeclaracion(b, cobro, anteriores.length + (!b.quitarArchivos && rec.factura ? 1 : 0));
+        if (dec.error) return json(400, { error: dec.error });
+        let rastreo = rec.rastreo;
+        if (rec.status === "registrado" && b.rastreo != null) {
+          rastreo = clip(b.rastreo, 80);
+          if (!rastreo) return json(400, { error: "Pon el número de rastreo (guía) de tu paquete." });
+          const repetida = await guiaRepetida(rastreo, me, rec.id);
+          if (repetida) return json(409, { error: repetida });
+        }
+        const desde = Math.max(-1, ...anteriores.map((f) => Number(f.n) || 0)) + 1;
+        const nuevas = await guardarFacturas(rec.id, dec.facturas, desde);
+        const updated = await mutateRecord("paquete", rec.id, (p) => {
+          Object.assign(p, dec.datos);
+          if (b.tienda != null) p.tienda = clip(b.tienda, 80);
+          p.rastreo = rastreo;
+          p.cobro = cobro;
+          p.facturas = [...anteriores, ...nuevas];
+          if (b.quitarArchivos) delete p.factura;
+          if (p.correccion && p.correccion.estado === "pedida") p.correccion = { ...p.correccion, estado: "hecha", hechaAt: now() };
+          p.history = [...(p.history || []), { at: now(), status: "datos_editados" }];
           return p;
         });
         return json(200, { paquete: publico(updated) });
@@ -194,6 +248,8 @@ exports.handler = async (event) => {
         }
         const separando = paquetes.find((p) => p.separar && p.separar.estado === "pedida");
         if (separando) return json(409, { error: `Estamos separando ${separando.folio}; en cuanto quede listo lo puedes enviar.` });
+        const corregir = paquetes.find((p) => p.correccion && p.correccion.estado === "pedida");
+        if (corregir) return json(409, { error: `Antes de enviar, corrige los datos de ${corregir.folio} (Mae te lo pidió).` });
         const pendiente = paquetes.find((p) => p.datosPendientes);
         if (pendiente) return json(409, { error: `Antes de enviar, completa los datos de ${pendiente.folio} (qué trae y cuánto costó).` });
         const consolidar = !!b.consolidar && paquetes.length > 1;
