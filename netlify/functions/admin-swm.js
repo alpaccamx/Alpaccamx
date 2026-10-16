@@ -70,7 +70,7 @@ exports.handler = async (event) => {
     }
     const key = qs.archivo;
     if (key) {
-      if (!/^(foto\/[0-9a-f-]{36}|comprobante\/(compra|envio)\/[0-9a-f-]{36}|factura\/paquete\/[0-9a-f-]{36})$/.test(key)) return json(400, { error: "Archivo inválido." });
+      if (!/^(foto\/[0-9a-f-]{36}|comprobante\/(compra|envio)\/[0-9a-f-]{36}|factura\/paquete\/[0-9a-f-]{36}(\/\d{1,2})?)$/.test(key)) return json(400, { error: "Archivo inválido." });
       const f = await getFile(key);
       if (!f) return json(404, { error: "No existe." });
       return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
