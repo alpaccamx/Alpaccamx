@@ -115,6 +115,24 @@ async function ogImage(tipo, name) {
 }
 const fam = (n) => String(n || "").replace(/\s*\(.*\)$/, "").toLowerCase();
 
+/* País de la MARCA (el que más se repite en sus productos), igual que
+   brandCountry() en app.js -- "?pais=" agrupa por marca, no por dónde se
+   fabricó cada producto. */
+const COUNTRY_BRAND_OVERRIDES = { Shiseido: "Japón", "SK-II": "Japón", "Ishizawa-Lab": "Japón", "Bath & Body Works": "Estados Unidos" };
+function brandCountryMap(rows) {
+  const votes = new Map();
+  rows.forEach((r) => {
+    if (!r.Marca || !r["País"]) return;
+    const v = votes.get(r.Marca) || new Map();
+    v.set(r["País"], (v.get(r["País"]) || 0) + 1);
+    votes.set(r.Marca, v);
+  });
+  const map = new Map();
+  votes.forEach((v, m) => map.set(m, [...v.entries()].sort((a, b) => b[1] - a[1])[0][0]));
+  Object.entries(COUNTRY_BRAND_OVERRIDES).forEach(([m, c]) => map.set(m, c));
+  return map;
+}
+
 /* Título, descripción e imagen de un listado (marca, categoría, país...). */
 async function listingMeta(q) {
   const norm = (s) => String(s || "").trim().toLowerCase();
@@ -123,15 +141,23 @@ async function listingMeta(q) {
   if (hit) {
     const [tipo, col] = hit;
     let rows = [];
-    try { rows = (await loadCatalog()).rows.filter((r) => r.Nombre && norm(r[col]) === norm(q[tipo])); } catch (err) { console.error("product-page: catálogo", err); }
+    try {
+      const all = (await loadCatalog()).rows;
+      if (tipo === "pais") {
+        const bc = brandCountryMap(all);
+        rows = all.filter((r) => r.Nombre && norm(bc.get(r.Marca) || "Corea del Sur") === norm(q.pais)).map((r) => ({ ...r, "País": bc.get(r.Marca) || "Corea del Sur" }));
+      } else {
+        rows = all.filter((r) => r.Nombre && norm(r[col]) === norm(q[tipo]));
+      }
+    } catch (err) { console.error("product-page: catálogo", err); }
     if (!rows.length) return null;
     const name = rows[0][col];
     const pieces = rows.filter((r) => r.Presentacion === "Pieza individual");
     const n = new Set((pieces.length ? pieces : rows).map((r) => fam(r.Nombre))).size;
     const min = Math.min(...(pieces.length ? pieces : rows).map((r) => price(r.Precio)).filter((v) => v > 0));
     const desde = isFinite(min) ? ` desde $${min.toLocaleString("es-MX")} MXN` : "";
-    const title = tipo === "marca" ? `${name} en México — Alpacca` : tipo === "categoria" ? `${name} coreano y asiático — Alpacca` : `Productos de ${name} — Alpacca`;
-    const desc = `${n} producto${n === 1 ? "" : "s"} de ${name}${desde}. Pieza individual o caja, compra en línea y envíos a todo México.`;
+    const title = tipo === "marca" ? `${name} en México — Alpacca` : tipo === "categoria" ? `${name} coreano y asiático — Alpacca` : `Marcas de ${name} — Alpacca`;
+    const desc = `${n} producto${n === 1 ? "" : "s"} ${tipo === "pais" ? "de marcas de" : "de"} ${name}${desde}. Pieza individual o caja, compra en línea y envíos a todo México.`;
     const sample = rows.find((r) => r.Imagen && String(r.Disponible || "SI").toUpperCase() !== "NO") || rows.find((r) => r.Imagen);
     const image = (await ogImage(tipo, name)) || (sample ? absUrl(sample.Imagen) : null);
     return { title, desc, image, url: `${SITE}/?${tipo}=${encodeURIComponent(name)}`, ogSize: Boolean(image && image.includes("/assets/og/")) };

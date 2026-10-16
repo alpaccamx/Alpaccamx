@@ -3557,29 +3557,55 @@ function showBrandProducts(marca, { restore = false } = {}) {
 }
 
 /* ======================================================================
-   País de origen -- se toma de la columna "País" de cada producto. Si
-   viene vacía (por ejemplo, un producto que solo está en la hoja de
-   Stock), se usa el país de la marca: estas son las que no son coreanas.
+   País de origen -- el menú "País" agrupa por el país de la MARCA, no por
+   dónde se fabricó cada producto (Shiseido sale en Japón aunque un
+   producto se haga en Francia). El país de la marca es el que más se
+   repite en la columna "País" de sus productos; las de abajo se fijan a
+   mano porque su columna no lo refleja (o no tienen productos con país).
+   La ficha de cada producto sí sigue mostrando su propio país.
    ====================================================================== */
 const COUNTRY_BRAND_OVERRIDES = {
-  Japón: ["Shiseido", "SK-II"],
+  Japón: ["Shiseido", "SK-II", "Ishizawa-Lab"],
   "Estados Unidos": ["Bath & Body Works"],
 };
 const COUNTRY_ORDER = ["Corea del Sur", "Japón"];
+
+let brandCountryCache = null; // Map marca -> país, se recalcula si cambia el catálogo
+let brandCountryCacheSize = -1;
 
 function brandCountry(marca) {
   for (const [country, brands] of Object.entries(COUNTRY_BRAND_OVERRIDES)) {
     if (brands.includes(marca)) return country;
   }
-  return "Corea del Sur";
+  if (!brandCountryCache || brandCountryCacheSize !== products.length) {
+    const counts = new Map();
+    products.forEach((p) => {
+      if (!p.marca || !p.pais) return;
+      const c = counts.get(p.marca) || new Map();
+      c.set(p.pais, (c.get(p.pais) || 0) + 1);
+      counts.set(p.marca, c);
+    });
+    brandCountryCache = new Map();
+    counts.forEach((c, m) => {
+      brandCountryCache.set(m, [...c.entries()].sort((a, b) => b[1] - a[1])[0][0]);
+    });
+    brandCountryCacheSize = products.length;
+  }
+  return brandCountryCache.get(marca) || "Corea del Sur";
 }
 
+// Dónde se hizo el producto (ficha del producto).
 function productCountry(p) {
   return (p && p.pais) || brandCountry(p && p.marca);
 }
 
+// País de la marca (menú y listado "País").
+function productBrandCountry(p) {
+  return p && p.marca ? brandCountry(p.marca) : productCountry(p);
+}
+
 function getCountryOptions() {
-  const present = new Set(products.filter((p) => !p.enStock).map((p) => productCountry(p)).filter(Boolean));
+  const present = new Set(products.filter((p) => !p.enStock).map((p) => productBrandCountry(p)).filter(Boolean));
   const ordered = COUNTRY_ORDER.filter((c) => present.has(c));
   const rest = [...present].filter((c) => !COUNTRY_ORDER.includes(c)).sort();
   return [...ordered, ...rest];
@@ -3587,7 +3613,7 @@ function getCountryOptions() {
 
 function showCountryProducts(pais, { restore = false } = {}) {
   document.getElementById("country-products-title").textContent = `Marcas de ${pais}`;
-  mountListing("country", products.filter((p) => !p.enStock && productCountry(p) === pais), { restore, id: pais });
+  mountListing("country", products.filter((p) => !p.enStock && productBrandCountry(p) === pais), { restore, id: pais });
   showHomeView("country", { pais });
   if (!restore) document.getElementById("country-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }

@@ -106,7 +106,19 @@ def pick_photos(rows, n=3):
 def main(csv_path, fdir):
     rows = [r for r in csv.DictReader(open(csv_path, encoding="utf-8")) if r.get("Nombre")]
     os.makedirs(OUT, exist_ok=True)
-    groups = [("marca", "Marca"), ("categoria", "Categoria"), ("pais", "País")]
+    # "País" agrupa por el país de la marca (el que más se repite en sus
+    # productos), igual que el menú de la tienda (brandCountry en app.js).
+    overrides = {"Shiseido": "Japón", "SK-II": "Japón", "Ishizawa-Lab": "Japón", "Bath & Body Works": "Estados Unidos"}
+    votes = {}
+    for r in rows:
+        if r.get("Marca") and r.get("País"):
+            v = votes.setdefault(r["Marca"].strip(), {})
+            v[r["País"].strip()] = v.get(r["País"].strip(), 0) + 1
+    brand_country = {m: max(v, key=v.get) for m, v in votes.items()}
+    brand_country.update(overrides)
+    for r in rows:
+        r["_PaisMarca"] = brand_country.get((r.get("Marca") or "").strip(), "Corea del Sur")
+    groups = [("marca", "Marca"), ("categoria", "Categoria"), ("pais", "_PaisMarca")]
     for tipo, col in groups:
         by = {}
         for r in rows:
@@ -114,7 +126,7 @@ def main(csv_path, fdir):
                 by.setdefault(r[col].strip(), []).append(r)
         for name, rr in sorted(by.items()):
             n = len({re.sub(r"\s*\(.*\)$", "", r["Nombre"]) for r in rr if r.get("Presentacion") == "Pieza individual"}) or len(rr)
-            title = name if tipo != "pais" else f"Hecho en {name}"
+            title = name if tipo != "pais" else f"Marcas de {name}"
             sub = f"{n} producto{'s' if n != 1 else ''} · Envíos a todo México"
             card(pick_photos(rr), title, sub, fdir, os.path.join(OUT, f"{tipo}-{slug(name)}.jpg"))
             print(tipo, name, n)
