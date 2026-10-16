@@ -2296,10 +2296,10 @@ function groupVariants(list) {
       groups.set(key, p);
     }
   }
-  for (const entry of order) {
-    if (entry.variants && entry.variants.length <= 1) delete entry.variants;
-  }
-  return order;
+  // Si de una familia solo quedó un tono, se muestra ese producto tal cual,
+  // con su tono en el nombre ("... (M204 Rose Mousse)"), en vez del nombre
+  // base sin tono.
+  return order.map((entry) => (entry.variants && entry.variants.length === 1 ? entry.variants[0].product : entry));
 }
 
 function wireVariantSelectors(container) {
