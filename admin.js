@@ -4347,6 +4347,7 @@ ${itemLines}
       <div class="meta">${swmWho(p)}<br>${p.origen === "sin_registro" ? `⚠️ Llegó sin registrar (cargo ${formatPrice(p.cargoSinRegistro || 0)})${p.datosPendientes ? " · <b>ella todavía no dice qué trae</b>" : ""} · ` : ""}${p.origen === "compra" ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "comision" ? `15% de US$${Number(p.valorUSD || 0).toFixed(2)}` : "por peso"}${p.contenido ? ` · ${escapeHtml(p.contenido)}` : ""}
         ${p.receivedAt ? `<br>Llegó ${swmFecha(p.receivedAt)} · almacenaje gratis ${vence > 0 ? `${vence} días más` : "<b style='color:#b33660'>vencido</b>"}` : ""}</div>
       ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}
+      ${p.status === "recibido" && p.phone ? `<div style="margin-top:8px;"><a class="btn-primary" href="${escapeHtml(swmPaqueteWa(p))}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;padding:8px 16px;font-size:13px;background:#25D366;border-radius:999px;color:#fff;font-weight:600;">💬 Avisar por WhatsApp (y mandarle las fotos)</a></div>` : ""}
       ${swmExtrasAdmin(p)}`}
       ${editable ? `<div class="grid">
         <label>Peso (kg)<input data-f="kg" type="number" step="0.01" min="0" value="${p.kg || ""}"></label>
@@ -4364,6 +4365,16 @@ ${itemLines}
         ${swmCancelBtn("paquete", p)}
       </div>` : ""}
     ${sinDuena ? "" : "</div>"}`;
+  }
+
+  /* Mensaje de "ya llegó tu paquete" para mandar por WhatsApp con las
+     fotos (WhatsApp no deja adjuntarlas desde un link: Mae las agrega). */
+  function swmPaqueteWa(p) {
+    const nombre = String(p.name || "").split(/\s+/)[0];
+    const hasta = p.receivedAt ? new Date(new Date(p.receivedAt).getTime() + (swmData.almacenajeDias || 30) * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" }) : "";
+    const que = [p.tienda, p.rastreo && `guía ${p.rastreo}`].filter(Boolean).join(", ");
+    const txt = `¡Hola${nombre ? ` ${nombre}` : ""}! 📦 Ya llegó tu paquete ${p.folio}${que ? ` (${que})` : ""} a nuestro almacén. Te mando las fotos 👇${hasta ? `\n\nLo guardamos gratis hasta el ${hasta}.` : ""} Cuando quieras, pide tu envío a México en tu casillero: https://alpacca.mx/?ver=shopwithmae`;
+    return `${waLinkFromPhone(p.phone)}?text=${encodeURIComponent(txt)}`;
   }
 
   /* Revisión con fotos y separar paquete (los pide la clienta). */
