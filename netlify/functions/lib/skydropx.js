@@ -7,7 +7,8 @@
 //   SKYDROPX_CLIENT_ID
 //   SKYDROPX_CLIENT_SECRET
 //   SKYDROPX_ORIGIN -> JSON con los datos de origen (remitente), ej:
-//     {"zip":"12345","state":"Tu estado","city":"Tu municipio o ciudad"}
+//     {"zip":"12345","state":"Tu estado","city":"Tu municipio o ciudad","neighborhood":"Tu colonia"}
+//     (si falta "neighborhood" se usa la colonia de ENVIOS_PERROS_ORIGIN)
 
 const BASE_URL = "https://pro.skydropx.com";
 
@@ -47,7 +48,17 @@ async function getToken() {
 function getOrigin() {
   const raw = process.env.SKYDROPX_ORIGIN;
   if (!raw) throw new Error("Falta configurar SKYDROPX_ORIGIN en Netlify.");
-  return JSON.parse(raw);
+  const origin = JSON.parse(raw);
+  // Skydropx ahora pide la colonia de origen (area_level3). Si no viene en
+  // SKYDROPX_ORIGIN, se toma la de ENVIOS_PERROS_ORIGIN (es la misma dirección).
+  if (!origin.neighborhood) {
+    try {
+      origin.neighborhood = JSON.parse(process.env.ENVIOS_PERROS_ORIGIN || "{}").neighborhood || "";
+    } catch (err) {
+      origin.neighborhood = "";
+    }
+  }
+  return origin;
 }
 
 async function apiRequest(path, options) {
@@ -90,13 +101,14 @@ async function createQuotation({ weight, destination }) {
           postal_code: origin.zip,
           area_level1: origin.state,
           area_level2: origin.city,
+          area_level3: origin.neighborhood || origin.city,
         },
         address_to: {
           country_code: "MX",
           postal_code: destination.zipCode,
           area_level1: destination.state,
           area_level2: destination.city,
-          area_level3: destination.neighborhood,
+          area_level3: destination.neighborhood || destination.city,
         },
         parcel: { weight, height: 2, width: 2, length: 2 },
       },
