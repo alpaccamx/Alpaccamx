@@ -136,7 +136,10 @@ async function listingMeta(q) {
     const image = (await ogImage(tipo, name)) || (sample ? absUrl(sample.Imagen) : null);
     return { title, desc, image, url: `${SITE}/?${tipo}=${encodeURIComponent(name)}`, ogSize: Boolean(image && image.includes("/assets/og/")) };
   }
-  if (q.ver === "stock") return { title: "Stock en México, entrega inmediata — Alpacca", desc: "Productos que ya están en México: se envían de inmediato, sin pedido mínimo.", url: `${SITE}/?ver=stock` };
+  if (q.ver === "stock") {
+    const image = await ogImage("ver", "stock");
+    return { title: "Stock en México, entrega inmediata — Alpacca", desc: "Productos que ya están en México: se envían de inmediato, sin pedido mínimo.", url: `${SITE}/?ver=stock`, image, ogSize: Boolean(image) };
+  }
   if (q.ver === "catalogo") return { title: "Catálogo completo — Alpacca", desc: "Todo el skincare y maquillaje coreano y asiático: pieza individual o caja, envíos a todo México.", url: `${SITE}/?ver=catalogo` };
   if (q.ver === "shopwithmae" || q.ver === "direccion-americana") {
     return { title: "Dirección americana — Shop with Mae · Alpacca", desc: "Compra en tiendas de EE.UU. (Sephora, Ulta, Amazon...) con tu dirección americana y recíbelo en México.", url: `${SITE}/?ver=shopwithmae` };
