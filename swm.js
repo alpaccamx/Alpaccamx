@@ -454,14 +454,12 @@ const swmDeclaracionHTML = () => `<div data-decl class="space-y-3 rounded-2xl bg
       <input data-decl-file type="file" accept="application/pdf,image/*" class="text-xs font-normal file:mr-2 file:rounded-full file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-cream" /></label>
     <div>
       <p class="text-xs font-semibold">Valor total de los artículos *</p>
-      <p class="text-xs text-ink/65">Solo lo que costaron los artículos: <b>sin envío, sin impuestos (tax) ni otros cargos.</b></p>
+      <p class="text-xs text-ink/65">Lo que costaron los artículos <b>con tax (impuestos), sin envío</b> ni otros cargos. Si pagas el cruce con el 15%, escríbelo en dólares.</p>
       <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0.5rem;" class="mt-1">
         <input data-decl-total type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 85.50" aria-label="Valor total de los artículos" class="rounded-xl border border-ink/15 px-3 py-2 text-sm min-w-0" />
         <select data-decl-moneda aria-label="Moneda" class="rounded-xl border border-ink/15 px-2 py-2 text-sm bg-white">${SWM_MONEDAS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
       </div>
     </div>
-    <label class="flex flex-col gap-1 text-xs font-semibold">Solo si pagas el cruce con el 15%: valor de tus productos <b>con tax</b> en dólares (USD)
-      <input data-decl-usd type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 92.40" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>
   </div>`;
 
 /* Las fotos grandes se achican antes de subirlas (las capturas de iPhone
@@ -495,16 +493,15 @@ async function swmLeerDeclaracion(root, cobro) {
   if (!articulos.length && !file) throw new Error("Escribe qué trae tu paquete con el costo de cada artículo, o sube la factura o captura del resumen de tu compra.");
   const valorTotal = box.querySelector("[data-decl-total]").value;
   const moneda = box.querySelector("[data-decl-moneda]").value;
-  if (!(parseFloat(valorTotal) > 0)) throw new Error("Escribe el valor total de los artículos (sin envío ni impuestos).");
-  const valorUSD = box.querySelector("[data-decl-usd]").value;
-  if (cobro === "comision" && !(parseFloat(valorUSD) > 0)) throw new Error("Para pagar el cruce con el 15%, escribe el valor de tus productos con tax en dólares (USD).");
+  if (!(parseFloat(valorTotal) > 0)) throw new Error("Escribe el valor total de los artículos (con tax, sin envío).");
+  if (cobro === "comision" && moneda !== "USD") throw new Error("Para pagar el cruce con el 15%, escribe el valor total en dólares (USD).");
   let factura = null;
   if (file) {
     file = await swmShrinkImage(file);
     if (file.size > 4 * 1024 * 1024) throw new Error("La factura o captura debe pesar menos de 4 MB.");
     factura = { filename: file.name, contentType: file.type, dataBase64: await swmFileToBase64(file) };
   }
-  return { articulos, valorTotal, moneda, factura, valorUSD };
+  return { articulos, valorTotal, moneda, factura };
 }
 
 const swmAcepta = () => `<label class="flex gap-2 text-sm"><input id="swm-acepta" type="checkbox" class="mt-0.5 accent-[#c4466e]" /><span>Confirmo que no trae <b>nada ilegal</b> ni artículos de cristal (velas, jarrones, etc.), muebles ni pallets.</span></label>`;
