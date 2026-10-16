@@ -2,7 +2,7 @@
 // "x-admin-key".
 //
 // GET                 → { paquetes, compras, envios, almacenajeDias }
-// GET ?archivo=<key>  → el archivo (foto de paquete o comprobante)
+// GET ?archivo=<key>  → el archivo (foto de paquete, comprobante o factura de un paquete)
 // GET ?buscarClienta=<texto> → { clientas: [{ email, name, phone, casillero }] }  (acepta "ALP-ANA L")
 // POST { accion, ... }:
 //   recibir_paquete   { id, kg, alto, ancho, largo, fotos?: [{ dataBase64, contentType }], notaClienta? }
@@ -70,7 +70,7 @@ exports.handler = async (event) => {
     }
     const key = qs.archivo;
     if (key) {
-      if (!/^(foto\/[0-9a-f-]{36}|comprobante\/(compra|envio)\/[0-9a-f-]{36})$/.test(key)) return json(400, { error: "Archivo inválido." });
+      if (!/^(foto\/[0-9a-f-]{36}|comprobante\/(compra|envio)\/[0-9a-f-]{36}|factura\/paquete\/[0-9a-f-]{36})$/.test(key)) return json(400, { error: "Archivo inválido." });
       const f = await getFile(key);
       if (!f) return json(404, { error: "No existe." });
       return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
