@@ -672,26 +672,6 @@ function renderHomeReviews() {
     .join("");
 }
 
-/* Dos entradas en la portada: comprar para revender (cajas, precio por
-   pieza, pedido mínimo) o para ti (Stock en México sin mínimo, quiz). */
-function renderShopPaths() {
-  const el = document.getElementById("shop-paths");
-  if (!el) return;
-  const hasStock = products.some((p) => p.enStock && p.disponible);
-  const min = CONFIG.MIN_ORDER_MXN ? formatPrice(CONFIG.MIN_ORDER_MXN) : "";
-  const card = (href, emoji, title, text, cls) => `<a href="${href}" class="group flex items-center gap-4 rounded-2xl ${cls} p-4 sm:p-5 hover:-translate-y-0.5 transition">
-      <span class="text-3xl sm:text-4xl" aria-hidden="true">${emoji}</span>
-      <span class="min-w-0 flex-1"><span class="block font-display text-lg text-ink">${title}</span><span class="block text-sm text-ink/75 mt-0.5">${text}</span></span>
-      <span class="text-ink/60 group-hover:text-ink text-xl" aria-hidden="true">›</span></a>`;
-  el.innerHTML = `<div class="grid gap-3 sm:grid-cols-2">
-      ${card("?ver=catalogo&pres=caja", "📦", "Compro para revender", `Cajas con precio por pieza para tu negocio.${min ? ` Pedido mínimo de ${min} en productos de Corea.` : ""}`, "bg-lilac/15 border border-lilac/40")}
-      ${hasStock
-        ? card("?ver=stock", "💗", "Compro para mí", "Stock en México: sin pedido mínimo y entrega inmediata.", "bg-blush/30 border border-rose/30")
-        : card("#skintype-section", "💗", "Compro para mí", "Descubre tu tipo de piel y los productos para ti.", "bg-blush/30 border border-rose/30")}
-    </div>
-    <p class="mt-3 text-xs text-ink/70">Los precios que ves son por transferencia. Con tarjeta (Mercado Pago) cuestan un poco más; los dos precios aparecen en la ficha de cada producto y en tu carrito.</p>`;
-}
-
 async function loadReviewSummaries() {
   try {
     const res = await fetch("/.netlify/functions/product-reviews", { cache: "no-store" });
@@ -4372,7 +4352,6 @@ function renderAll() {
   renderConcernTiles();
   renderSkinTypeSection();
   renderBrands();
-  renderShopPaths();
   renderHomeReviews();
   renderQuickIcons();
   renderMobileMenu();
