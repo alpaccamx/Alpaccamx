@@ -2879,6 +2879,7 @@ function renderSuggestions() {
   let matches = searchMatches(q);
   let fuzzy = false;
   if (!matches.length) { matches = fuzzyMatches(q); fuzzy = matches.length > 0; }
+  matches = rankByRelevance(matches, q);
   const brandCounts = new Map();
   products.forEach((p) => { if (p.marca && normalizeForSearch(p.marca).includes(nq.split(/\s+/)[0])) brandCounts.set(p.marca, (brandCounts.get(p.marca) || 0) + 1); });
   const brands = [...brandCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
@@ -3894,7 +3895,46 @@ function listingItems(key, { ignoreFilters = false, keepFiltersExceptDisp = fals
   else if (st.sort === "precio-desc") items.sort((a, b) => b.precio - a.precio);
   else if (st.sort === "nombre") items.sort(byName);
   else if (st.sort === "marca") items.sort(compareByMarcaThenNombre);
+  else if (key === "search" && st.id) items = rankByRelevance(items, st.id);
   return items;
+}
+
+/* Orden de "recomendados" en la búsqueda: primero lo que más se parece a
+   lo que escribió (nombre igual, luego que empieza igual, luego que lo
+   contiene, luego que trae todas las palabras), y a igual parecido el
+   nombre más corto ("Reedle Shot 100" antes que "Black Truffle Reedle
+   Shot 100"). Lo de Stock en México gana los empates. */
+const SEARCH_ACCESSORY_RE = /\b(pad|pads|puff|puffs|case|refill|muestra|sample|mini|brush|pouch|bag|spatula|holder)\b/;
+function searchRelevance(p, nq, words) {
+  const name = normalizeForSearch(splitBaseName(p).base).replace(/[^a-z0-9&+.-]+/g, " ").trim();
+  const marca = normalizeForSearch(p.marca || "").replace(/[^a-z0-9&+.-]+/g, " ").trim();
+  // Buscó solo la marca ("tirtir"): se respeta el orden normal de la tienda.
+  if (marca && nq === marca) return 50;
+  const full = `${marca} ${name}`.trim();
+  const pad = (t) => ` ${t} `;
+  let score = 0;
+  if (name === nq || full === nq) score = 100;
+  else if (pad(name).includes(pad(nq)) || pad(full).includes(pad(nq))) {
+    score = 60;
+    if (name.startsWith(nq + " ") || full.startsWith(nq + " ")) score += 10;
+    if (name.endsWith(" " + nq)) score += 10; // "Mask Fit Red Cushion" sí es un cushion
+  } else if (words.every((w) => pad(full).includes(pad(w)))) {
+    score = 45;
+    if (words.some((w) => name.endsWith(" " + w) || name === w)) score += 5; // "... Toner" es un tónico
+  } else if (words.every((w) => full.includes(w))) score = 35;
+  // Accesorios y muestras al final, salvo que eso sea lo que busca.
+  const acc = name.match(SEARCH_ACCESSORY_RE);
+  if (acc && !pad(nq).includes(pad(acc[1]))) score -= 8;
+  return score - Math.min(name.length, 120) / 200;
+}
+
+function rankByRelevance(items, query) {
+  const nq = normalizeForSearch(query).replace(/[^a-z0-9&+.-]+/g, " ").trim();
+  const words = nq.split(" ").filter((w) => w && !SEARCH_STOPWORDS.has(w));
+  return items
+    .map((it, i) => ({ it, i, s: searchRelevance(it, nq, words) + (it.enStock ? 0.001 : 0) }))
+    .sort((a, b) => b.s - a.s || a.i - b.i)
+    .map((x) => x.it);
 }
 
 function listingSelectHTML(name, label, options, value) {
