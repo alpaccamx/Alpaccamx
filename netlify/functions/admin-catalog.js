@@ -165,7 +165,7 @@ async function readConfig(token, id) {
 
 // Ajustes que el admin puede crear si todavía no están en Config (se
 // agregan al final, así no se mueve ninguna fórmula que use celdas de arriba).
-const CREATABLE_CONFIG = ["Dólar que pagas a ABW"];
+const CREATABLE_CONFIG = ["Dólar que pagas a ABW", "Pesos por 1 won", "Pesos por 1 euro", "Pesos por 1 yen", "Pesos por 1 yuan"];
 
 async function updateConfig(token, id, changes) {
   const cur = await readConfig(token, id);

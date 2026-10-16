@@ -13,30 +13,44 @@ const TOLERANCIA_MXN = 1;
 
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
-async function tipoDeCambio() {
+/* Pesos por 1 unidad de cada moneda (de Config: "Tipo de cambio" para el
+   dólar y "Pesos por 1 won/euro/yen/yuan" para las demás). */
+async function tiposDeCambio() {
   try {
     const data = await loadPricingData();
-    return (data && data.state && data.state.settings && data.state.settings.exchangeRate) || 0;
+    const st = (data && data.state && data.state.settings) || {};
+    return { MXN: 1, USD: st.exchangeRate || 0, KRW: st.krwRate || 0, EUR: st.eurRate || 0, JPY: st.jpyRate || 0, CNY: st.cnyRate || 0 };
   } catch (err) {
     console.error("swm: no se pudo leer el tipo de cambio", err);
-    return 0;
+    return { MXN: 1 };
   }
 }
 
-/* Cruce de un paquete: por peso con la tabla, o 15% de su valor (USD con
-   tax, convertido con el tipo de cambio de Config). Si el cruce ya se
-   pagó con la compra (Mae compró, por comisión), es 0. */
-function crucePaquete(p, rate) {
+async function tipoDeCambio() {
+  return (await tiposDeCambio()).USD || 0;
+}
+
+/* Cruce de un paquete: por peso con la tabla, o 15% de su valor declarado
+   (con tax) convertido a pesos con el tipo de cambio de su moneda. Los
+   paquetes de antes solo traen valorUSD. Si el cruce ya se pagó con la
+   compra (Mae compró, por comisión), es 0. */
+function valorEnPesos(p, rates) {
+  if (Number(p.valorTotal) > 0 && p.moneda) return Number(p.valorTotal) * (rates[p.moneda] || 0);
+  return (Number(p.valorUSD) || 0) * (rates.USD || 0);
+}
+
+function crucePaquete(p, rates) {
   if (p.crucePagado) return 0;
-  if (p.cobro === "comision") return crucePorComision((Number(p.valorUSD) || 0) * (rate || 0));
+  if (p.cobro === "comision") return crucePorComision(valorEnPesos(p, rates));
   return crucePorPeso(p.cobrable || 0);
 }
 
 /* Cobro sugerido de un envío (Mae solo pone el envío nacional; puede
    cambiar cruce y consolidación si quiere). */
 async function cotizacionSugerida(paquetes, consolidar) {
-  const rate = await tipoDeCambio();
-  const cruce = paquetes.reduce((t, p) => t + crucePaquete(p, rate), 0);
+  const rates = await tiposDeCambio();
+  const rate = rates.USD || 0;
+  const cruce = paquetes.reduce((t, p) => t + crucePaquete(p, rates), 0);
   const kg = paquetes.reduce((t, p) => t + (p.cobrable || 0), 0);
   const consolidacion = consolidar && paquetes.length > 1 ? consolidacionPorPeso(kg) : 0;
   // Paquetes que llegaron sin que la clienta registrara su guía.
@@ -139,6 +153,6 @@ async function todoDe(email) {
 }
 
 module.exports = {
-  ALMACENAJE_DIAS, round2, tipoDeCambio, crucePaquete, cotizacionSugerida, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
+  ALMACENAJE_DIAS, round2, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
   formatPriceMXN,
 };

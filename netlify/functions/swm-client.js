@@ -8,7 +8,7 @@
 //                     articulos = [{ desc, cant, costo }] escritos a mano y/o factura =
 //                     { filename, contentType, dataBase64 } (PDF o captura del resumen);
 //                     valorTotal/moneda = lo que costaron los artículos con tax, sin envío
-//                     (si es en USD también es la base del 15% del cobro "comision").
+//                     (también es la base del 15% del cobro "comision", convertida a pesos).
 //   solicitar_compra  { links, notas, cobro, aceptaRestricciones }
 //   solicitar_envio   { paqueteIds[], consolidar, direccion{...} }
 //   pagar             { kind: "compra"|"envio", id, metodo: "mercadopago"|"transferencia" }
@@ -34,7 +34,7 @@ const COBROS = ["peso", "comision"];
 const MAX_BYTES = 5 * 1024 * 1024;
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
 const now = () => new Date().toISOString();
-const MONEDAS = ["USD", "MXN", "KRW", "EUR", "JPY", "CAD", "GBP", "CNY"];
+const MONEDAS = ["USD", "MXN", "KRW", "EUR", "JPY", "CNY"];
 const MAX_FACTURA = 4 * 1024 * 1024;
 
 /* Lo que la clienta declara que trae su paquete: la lista de artículos con
@@ -62,8 +62,8 @@ function leerDeclaracion(b, cobro) {
   const valorTotal = Math.max(0, Math.min(1e9, parseFloat(b.valorTotal) || 0));
   const moneda = MONEDAS.includes(b.moneda) ? b.moneda : "";
   if (!(valorTotal > 0) || !moneda) return { error: "Escribe el valor total de los artículos (con tax, sin envío) y en qué moneda." };
-  // El 15% se cobra sobre este mismo valor, así que debe venir en USD.
-  if (cobro === "comision" && moneda !== "USD") return { error: "Para pagar el cruce con el 15%, escribe el valor total en dólares (USD)." };
+  // El 15% se cobra sobre este mismo valor, convertido a pesos con el tipo
+  // de cambio de su moneda (ver valorEnPesos en swm-core.js).
   const valorUSD = moneda === "USD" ? valorTotal : 0;
   const fmt = (n) => Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
   const contenido = clip(rows.length
