@@ -714,10 +714,11 @@ Variables de entorno necesarias en Netlify:
 - `SKYDROPX_CLIENT_ID` y `SKYDROPX_CLIENT_SECRET` — de la sección de API
   de tu cuenta de Skydropx.
 - `SKYDROPX_ORIGIN` — un JSON de una sola línea con tu código postal,
-  estado y municipio como remitente, por ejemplo:
+  estado, municipio y colonia como remitente, por ejemplo:
   ```json
-  {"zip":"12345","state":"Tu estado","city":"Tu municipio o ciudad"}
+  {"zip":"12345","state":"Tu estado","city":"Tu municipio o ciudad","neighborhood":"Tu colonia"}
   ```
+  Si no pones `neighborhood`, se usa la colonia de `ENVIOS_PERROS_ORIGIN`.
 
 ### Avisos automáticos por WhatsApp
 
