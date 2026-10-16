@@ -60,6 +60,11 @@ const IMAGEN_ALIASES = ["imagen", "image", "foto", "imagen url"];
 const DESCRIPCION_ALIASES = ["descripcion", "descripción", "description"];
 const CATEGORIA_ALIASES = ["categoria", "categoría", "category"];
 const PESO_ALIASES = ["peso", "peso (kg)", "peso kg", "weight", "pesokg"];
+// Foto de la tarjeta cuando un producto tiene varios tonos en Stock (la
+// que se ve antes de elegir uno). Si la columna no existe, se crea sola
+// la primera vez que se guarda una (ver ensureStockColumn).
+const IMAGEN_GENERAL_ALIASES = ["imagen general", "foto general"];
+const IMAGEN_GENERAL_HEADER = "Imagen general (opcional, URL)";
 
 let cachedToken = null; // { token, expiresAt } -- se reusa mientras no venza
 
@@ -228,6 +233,34 @@ function generateStockSku(existingSkus) {
   return `STOCK-${Date.now().toString(36).toUpperCase()}`;
 }
 
+/* Regresa el índice de la columna; si no existe, escribe su encabezado
+   en la primera columna libre y actualiza sheet.headers. -1 si falla. */
+async function ensureStockColumn(sheet, aliases, title) {
+  const existing = findColumnIndex(sheet.headers, aliases);
+  if (existing >= 0) return existing;
+  const index = sheet.headers.length;
+  try {
+    const range = `${sheet.tab}!${columnIndexToLetter(index)}1`;
+    const res = await fetch(
+      `${SHEETS_API}/${sheet.spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${sheet.token}` },
+        body: JSON.stringify({ values: [[title]] }),
+      }
+    );
+    if (!res.ok) {
+      console.error(`No se pudo crear la columna "${title}" en Stock:`, await res.text());
+      return -1;
+    }
+  } catch (err) {
+    console.error(`Error de red creando la columna "${title}" en Stock:`, err);
+    return -1;
+  }
+  sheet.headers = [...sheet.headers, title];
+  return index;
+}
+
 /* Agrega un producto nuevo como fila al final de la pestaña de Stock --
    ver admin-add-stock-product.js. "fields" trae las mismas columnas que
    ya lee csvToStockData en app.js (sku, piezas, precio, precioTarjeta,
@@ -241,6 +274,7 @@ async function appendStockProduct(fields) {
   if (!sheet) {
     return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
   }
+  if (fields.imagenGeneral) await ensureStockColumn(sheet, IMAGEN_GENERAL_ALIASES, IMAGEN_GENERAL_HEADER);
   const { spreadsheetId, tab, token, headers, rows } = sheet;
 
   const iSku = findColumnIndex(headers, SKU_ALIASES);
@@ -270,6 +304,7 @@ async function appendStockProduct(fields) {
     [findColumnIndex(headers, DESCRIPCION_ALIASES)]: fields.descripcion || "",
     [findColumnIndex(headers, CATEGORIA_ALIASES)]: fields.categoria || "",
     [findColumnIndex(headers, PESO_ALIASES)]: fields.peso || "",
+    [findColumnIndex(headers, IMAGEN_GENERAL_ALIASES)]: fields.imagenGeneral || "",
   };
   delete columnValues["-1"]; // columnas que no existen en esta pestaña -- se ignoran
 
@@ -356,6 +391,7 @@ async function listStockProducts() {
   const iDescripcion = findColumnIndex(headers, DESCRIPCION_ALIASES);
   const iCategoria = findColumnIndex(headers, CATEGORIA_ALIASES);
   const iPeso = findColumnIndex(headers, PESO_ALIASES);
+  const iImagenGeneral = findColumnIndex(headers, IMAGEN_GENERAL_ALIASES);
 
   const get = (row, i) => (i >= 0 && row[i] != null ? String(row[i]).trim() : "");
   const products = [];
@@ -374,6 +410,7 @@ async function listStockProducts() {
       peso: parseFloat(get(row, iPeso).replace(/[^0-9.]/g, "")) || 0,
       imagen: get(row, iImagen),
       descripcion: get(row, iDescripcion),
+      imagenGeneral: get(row, iImagenGeneral),
     });
   });
   return { ok: true, products };
@@ -388,6 +425,7 @@ async function listStockProducts() {
 async function updateStockProductFields(sku, fields) {
   const sheet = await readStockTab();
   if (!sheet) return { ok: false, error: "No se pudo conectar con tu Google Sheet (revisa la configuración de Google Sheets)." };
+  if (fields.imagenGeneral) await ensureStockColumn(sheet, IMAGEN_GENERAL_ALIASES, IMAGEN_GENERAL_HEADER);
   const { spreadsheetId, tab, token, headers, rows } = sheet;
 
   const iSku = findColumnIndex(headers, SKU_ALIASES);
@@ -406,6 +444,7 @@ async function updateStockProductFields(sku, fields) {
     descripcion: findColumnIndex(headers, DESCRIPCION_ALIASES),
     categoria: findColumnIndex(headers, CATEGORIA_ALIASES),
     peso: findColumnIndex(headers, PESO_ALIASES),
+    imagenGeneral: findColumnIndex(headers, IMAGEN_GENERAL_ALIASES),
   };
 
   const currentRow = rows[rowIndex].slice();

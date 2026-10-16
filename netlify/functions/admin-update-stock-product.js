@@ -11,7 +11,7 @@
 const { updateStockProductFields } = require("./lib/google-sheets.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
-const EDITABLE_FIELDS = ["piezas", "precio", "precioTarjeta", "nombre", "marca", "imagen", "descripcion", "categoria", "peso"];
+const EDITABLE_FIELDS = ["piezas", "precio", "precioTarjeta", "nombre", "marca", "imagen", "descripcion", "categoria", "peso", "imagenGeneral"];
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {

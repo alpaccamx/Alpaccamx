@@ -64,6 +64,7 @@ exports.handler = async (event) => {
     descripcion: String(body.descripcion || "").trim(),
     peso: body.peso ? Number(body.peso) : "",
     imagen: String(body.imagen || "").trim(),
+    imagenGeneral: String(body.imagenGeneral || "").trim(),
   };
 
   const result = await appendStockProduct(fields);

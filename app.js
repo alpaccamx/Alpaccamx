@@ -1464,6 +1464,8 @@ function csvToStockData(text) {
   const iCategoria = findCol(headers, ["categoria", "categoría", "category"]);
   const iPeso = findCol(headers, ["peso", "peso (kg)", "peso kg", "weight", "pesokg"]);
   const iPais = findCol(headers, ["país", "pais", "país (opcional)", "pais (opcional)", "country"]);
+  // Foto de la tarjeta cuando hay varios tonos (antes de elegir uno).
+  const iImagenGeneral = findCol(headers, ["imagen general", "foto general"]);
   if (iSku < 0) return map;
 
   rows.slice(1).forEach((r) => {
@@ -1482,6 +1484,7 @@ function csvToStockData(text) {
         nombre: get(iNombre),
         marca: get(iMarca),
         imagen: get(iImagen),
+        imagenGeneral: get(iImagenGeneral),
         descripcion: get(iDescripcion),
         categoria: normalizeCategoria(get(iCategoria)),
         pais: get(iPais),
@@ -1537,6 +1540,7 @@ function applyStockData() {
         clone.capacidad = "";
       }
       if (entry.imagen) clone.imagen = entry.imagen;
+      clone.imagenGeneral = entry.imagenGeneral || "";
       if (entry.descripcion) clone.descripcion = entry.descripcion;
       clone.precio = entry.precioMXN || original.precio;
       clone.precioTarjeta = entry.precioTarjetaMXN || clone.precio;
@@ -1558,6 +1562,7 @@ function applyStockData() {
       if (entry.categoria) existingStockOnly.categoria = entry.categoria;
       if (entry.marca) existingStockOnly.marca = entry.marca;
       if (entry.imagen) existingStockOnly.imagen = entry.imagen;
+      existingStockOnly.imagenGeneral = entry.imagenGeneral || "";
       if (entry.descripcion) existingStockOnly.descripcion = entry.descripcion;
       if (entry.pesoKg) existingStockOnly.peso = entry.pesoKg;
       if (entry.pais) existingStockOnly.pais = entry.pais;
@@ -1575,6 +1580,7 @@ function applyStockData() {
       peso: entry.pesoKg,
       presentacion: "",
       imagen: entry.imagen,
+      imagenGeneral: entry.imagenGeneral || "",
       descripcion: entry.descripcion,
       disponible: true,
       destacado: [],
@@ -2318,6 +2324,12 @@ function groupVariants(list) {
     const total = entry.variants && /\s*-\s*(\d+)\s+[A-Za-zÀ-ÿ]+$/.exec(entry.nombre || "");
     if (total && entry.variants.length > 1 && entry.variants.length < Number(total[1])) {
       entry.nombre = entry.nombre.slice(0, total.index);
+    }
+    // Varios tonos: la tarjeta muestra la foto general (la de todos los
+    // tonos juntos) si alguno la tiene; al elegir un tono cambia a la suya.
+    if (entry.variants && entry.variants.length > 1) {
+      const general = entry.variants.map((v) => v.product.imagenGeneral).find(Boolean);
+      if (general) entry.imagen = general;
     }
     if (!(entry.variants && entry.variants.length === 1)) return entry;
     const v = entry.variants[0];

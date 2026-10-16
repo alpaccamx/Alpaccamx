@@ -1926,6 +1926,7 @@ ${itemLines}
           <span class="inv-sku">SKU: ${escapeHtml(p.sku)}</span>
         </div>
         <input type="text" class="inv-imagen" aria-label="Link de la foto" value="${escapeHtml(p.imagen)}" placeholder="https://…" style="flex:1 1 100%;" />
+        ${INV_VARIANT_RE.test(p.nombre || "") ? `<input type="text" class="inv-imagen-general" aria-label="Foto general (la de todos los tonos juntos, sale en la tarjeta antes de elegir)" value="${escapeHtml(p.imagenGeneral || "")}" placeholder="https://… (opcional)" style="flex:1 1 100%;" />` : ""}
         <div class="inv-fields">
           <div class="inventory-qty" role="group" aria-label="Piezas disponibles">
             <span class="inv-qty-label">Piezas</span>
@@ -1956,6 +1957,40 @@ ${itemLines}
      pone, porque si no la tienda no los junta. */
   const INV_VARIANT_RE = /^(.*)\s\((#[^)]*)\)$/;
 
+  // Los demás tonos del mismo producto (misma marca y nombre sin el tono).
+  function inventoryFamily(nombre, marca) {
+    const m = INV_VARIANT_RE.exec(nombre || "");
+    if (!m) return [];
+    return inventoryProducts.filter((p) => {
+      const pm = INV_VARIANT_RE.exec(p.nombre || "");
+      return pm && pm[1] === m[1] && (p.marca || "") === (marca || "");
+    });
+  }
+
+  /* La foto general vive en cada fila de la familia (la tienda toma la
+     primera que encuentre); al cambiarla en un tono se copia a los demás
+     para que no queden distintas. */
+  async function syncFamilyImagenGeneral(nombre, marca, imagenGeneral, skipSku) {
+    const failed = [];
+    for (const p of inventoryFamily(nombre, marca)) {
+      if (p.sku === skipSku || (p.imagenGeneral || "") === imagenGeneral) continue;
+      try {
+        const res = await fetch("/.netlify/functions/admin-update-stock-product", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ sku: p.sku, imagenGeneral }),
+        });
+        if (res.ok) p.imagenGeneral = imagenGeneral;
+        else failed.push(p.sku);
+      } catch (err) {
+        failed.push(p.sku);
+      }
+      const input = document.querySelector(`[data-inv-row="${CSS.escape(p.sku)}"] .inv-imagen-general`);
+      if (input && p.imagenGeneral === imagenGeneral) input.value = imagenGeneral;
+    }
+    return failed;
+  }
+
   function inventoryVariantHTML(p) {
     const m = INV_VARIANT_RE.exec(p.nombre || "");
     const base = m ? m[1] : p.nombre || "";
@@ -1970,6 +2005,9 @@ ${itemLines}
           <div class="inv-var-fields">
             <input type="text" class="inv-var-label" aria-label="Nuevo tono/variación" placeholder="Nuevo tono (ej. Peppermint) *" />
             <input type="number" class="inv-var-piezas" aria-label="Piezas" placeholder="Piezas *" min="1" step="1" style="flex:0 1 100px;" />
+          </div>
+          <div class="inv-var-fields">
+            <input type="text" class="inv-var-general" aria-label="Foto general (opcional, la de todos los tonos juntos)" value="${escapeHtml(p.imagenGeneral || "")}" placeholder="https://… sale en la tarjeta antes de elegir tono" style="flex:1 1 100%;" />
           </div>
           <div class="inv-var-fields">
             <input type="text" class="inv-var-imagen" aria-label="Link de la foto del nuevo tono" placeholder="Link de la foto del nuevo tono (si lo dejas vacío usa la misma)" style="flex:1 1 100%;" />
@@ -1992,6 +2030,7 @@ ${itemLines}
     let label = row.querySelector(".inv-var-label").value.trim().replace(/^#/, "");
     const piezas = Number(row.querySelector(".inv-var-piezas").value);
     const imagen = row.querySelector(".inv-var-imagen").value.trim();
+    const imagenGeneral = row.querySelector(".inv-var-general").value.trim();
     if (!base) { statusEl.textContent = "Falta el nombre sin el tono."; return; }
     if (!actual) { statusEl.textContent = "Escribe el tono de este producto para que la tienda los junte."; return; }
     if (!label) { statusEl.textContent = "Falta el nuevo tono/variación."; return; }
@@ -2015,21 +2054,26 @@ ${itemLines}
     btn.textContent = "Agregando...";
     try {
       const nombreActual = `${base} (#${actual})`;
-      if (nombreActual !== product.nombre) {
+      const cambios = {};
+      if (nombreActual !== product.nombre) cambios.nombre = nombreActual;
+      if (imagenGeneral && imagenGeneral !== (product.imagenGeneral || "")) cambios.imagenGeneral = imagenGeneral;
+      if (Object.keys(cambios).length) {
         const res = await fetch("/.netlify/functions/admin-update-stock-product", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-          body: JSON.stringify({ sku, nombre: nombreActual }),
+          body: JSON.stringify({ sku, ...cambios }),
         });
         const data = await res.json();
-        if (!res.ok) { statusEl.textContent = data.error || "No se pudo renombrar este producto."; return; }
-        product.nombre = nombreActual;
+        if (!res.ok) { statusEl.textContent = data.error || "No se pudo actualizar este producto."; return; }
+        Object.assign(product, cambios);
       }
+      if (imagenGeneral) await syncFamilyImagenGeneral(nombreActual, shared.marca, imagenGeneral, sku);
       const nuevo = {
         ...shared,
         nombre: `${base} (#${label})`,
         piezas,
         imagen: imagen || row.querySelector(".inv-imagen").value.trim(),
+        imagenGeneral: imagenGeneral || product.imagenGeneral || "",
       };
       const { ok, data } = await addStockProductRequest({ ...nuevo, precioTarjeta: nuevo.precioTarjeta || undefined, peso: nuevo.peso || undefined });
       if (!ok) { statusEl.textContent = data.error || "No se pudo agregar el tono."; return; }
@@ -2152,6 +2196,8 @@ ${itemLines}
       peso: Number(row.querySelector(".inv-peso").value) || 0,
       imagen: row.querySelector(".inv-imagen").value.trim(),
     };
+    const generalInput = row.querySelector(".inv-imagen-general");
+    if (generalInput) body.imagenGeneral = generalInput.value.trim();
 
     const originalText = btn.textContent;
     btn.disabled = true;
@@ -2169,7 +2215,17 @@ ${itemLines}
         return;
       }
       const product = inventoryProducts.find((p) => p.sku === sku);
+      const anteriorGeneral = product ? product.imagenGeneral || "" : "";
       if (product) Object.assign(product, body);
+      let fallaronTonos = [];
+      if (generalInput && body.imagenGeneral !== anteriorGeneral) {
+        fallaronTonos = await syncFamilyImagenGeneral(body.nombre, body.marca, body.imagenGeneral, sku);
+      }
+      if (fallaronTonos.length) {
+        statusEl.style.color = "#b03a2e";
+        statusEl.textContent = `Guardado, pero no se pudo copiar la foto general a: ${fallaronTonos.join(", ")}`;
+        return;
+      }
       statusEl.style.color = "#17803d";
       statusEl.textContent = "✅ Guardado";
       setTimeout(() => { statusEl.textContent = ""; }, 2000);
