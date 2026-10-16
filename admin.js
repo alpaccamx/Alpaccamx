@@ -3222,8 +3222,9 @@ ${itemLines}
     if (o.status === "cancelled" || o.status === "failed" || !pricingConfig.exchangeRate || !skuToInfo.size) return "";
     const p = orderProfit(o);
     if (!p.known) return "";
-    const pct = p.known ? Math.round((p.profit / p.known) * 100) : 0;
-    return `<div class="profit-box">💵 Ganancia estimada: <b>${formatPrice(p.profit)}</b> (${pct}%)<br/>
+    // % sobre el costo (como se pone la comisión), no sobre lo cobrado.
+    const pct = p.cost ? Math.round((p.profit / p.cost) * 100) : 0;
+    return `<div class="profit-box">💵 Ganancia estimada: <b>${formatPrice(p.profit)}</b> (${pct}% sobre costo)<br/>
       <small>Productos ${formatPrice(p.known)} − costo ABW ${formatPrice(p.cost)}${p.missing ? ` · ${p.missing} pieza${p.missing === 1 ? "" : "s"} de Stock MX sin costo en el Sheet (no incluida${p.missing === 1 ? "" : "s"})` : ""}</small></div>`;
   }
 
@@ -3336,7 +3337,7 @@ ${itemLines}
     el.innerHTML = `<h2>📈 Ganancia por mes (estimada)</h2>
       <table class="profit-table"><thead><tr><th>Mes</th><th>Pedidos</th><th>Productos</th><th>Costo</th><th>Ganancia</th></tr></thead><tbody>
       ${rows.map((m, i) => `<tr class="${i === 0 ? "now" : ""}"><td>${escapeHtml(m.label)}</td><td>${m.n}</td><td>${formatPrice(m.sales)}</td><td>${formatPrice(m.cost)}</td>
-        <td class="g">${formatPrice(m.profit)}${m.known ? ` <small>(${Math.round((m.profit / m.known) * 100)}%)</small>` : ""}</td></tr>`).join("")}
+        <td class="g">${formatPrice(m.profit)}${m.cost ? ` <small>(${Math.round((m.profit / m.cost) * 100)}% s/costo)</small>` : ""}</td></tr>`).join("")}
       </tbody></table>
       <p class="profit-note">Costo = Precio USD de ABW × tipo de cambio + arancel (${pricingConfig.arancelPct}%), con los precios del día de cada pedido. Tu ganancia es la comisión de Config (${pricingConfig.comisionPct}%). No cuenta envíos (los paga la clienta) ni la comisión de tarjeta.${anyMissing ? " Los productos de Stock MX con SKU propio (STOCK-…) no tienen costo en el Sheet, así que su venta no entra en la ganancia." : ""}</p>`;
   }
