@@ -431,12 +431,12 @@ function swmEnvioCardHTML(e) {
 const swmInput = (id, label, attrs = "") => `<label class="flex flex-col gap-1 text-xs font-semibold">${label}<input id="${id}" ${attrs} class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>`;
 const swmCobroRadios = () => `<fieldset class="grid gap-2 sm:grid-cols-2"><legend class="text-xs font-semibold mb-1">¿Cómo quieres pagar el cruce?</legend>
     <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="peso" checked class="accent-[#c4466e]"><span><b>Por peso o medidas</b><span class="block text-xs text-ink/65">Según mi tabla; se paga al enviar.</span></span></label>
-    <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="comision" class="accent-[#c4466e]"><span><b>15% del valor</b><span class="block text-xs text-ink/65">Del valor de los productos con tax.</span></span></label>
+    <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="comision" class="accent-[#c4466e]"><span><b>15% del valor</b><span class="block text-xs text-ink/65">Del valor de los productos con tax, cobrado en pesos.</span></span></label>
   </fieldset>`;
 /* Qué trae el paquete: artículos con su costo (a mano) y/o la factura o
    captura del resumen de compra, más el valor total de los artículos sin
    envío ni impuestos. Lo usan "Registrar paquete" y "completar datos". */
-const SWM_MONEDAS = [["USD", "Dólares (USD)"], ["MXN", "Pesos (MXN)"], ["KRW", "Wones (KRW)"], ["EUR", "Euros (EUR)"], ["JPY", "Yenes (JPY)"], ["CAD", "Dólares canadienses (CAD)"], ["GBP", "Libras (GBP)"], ["CNY", "Yuanes (CNY)"]];
+const SWM_MONEDAS = [["USD", "Dólares (USD)"], ["MXN", "Pesos (MXN)"], ["KRW", "Wones (KRW)"], ["EUR", "Euros (EUR)"], ["JPY", "Yenes (JPY)"], ["CNY", "Yuanes (CNY)"]];
 const swmDeclRow = () => `<div data-decl-row style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class="">
     <input data-d="desc" maxlength="120" placeholder="Ej. Crema Laneige" aria-label="Artículo" class="rounded-xl border border-ink/15 px-3 py-2 text-sm min-w-0" />
     <input data-d="cant" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Cantidad" class="rounded-xl border border-ink/15 px-2 py-2 text-sm min-w-0" />
@@ -454,7 +454,7 @@ const swmDeclaracionHTML = () => `<div data-decl class="space-y-3 rounded-2xl bg
       <input data-decl-file type="file" accept="application/pdf,image/*" class="text-xs font-normal file:mr-2 file:rounded-full file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-cream" /></label>
     <div>
       <p class="text-xs font-semibold">Valor total de los artículos *</p>
-      <p class="text-xs text-ink/65">Lo que costaron los artículos <b>con tax (impuestos), sin envío</b> ni otros cargos. Si pagas el cruce con el 15%, escríbelo en dólares.</p>
+      <p class="text-xs text-ink/65">Lo que costaron los artículos <b>con tax (impuestos), sin envío</b> ni otros cargos.</p>
       <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0.5rem;" class="mt-1">
         <input data-decl-total type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 85.50" aria-label="Valor total de los artículos" class="rounded-xl border border-ink/15 px-3 py-2 text-sm min-w-0" />
         <select data-decl-moneda aria-label="Moneda" class="rounded-xl border border-ink/15 px-2 py-2 text-sm bg-white">${SWM_MONEDAS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
@@ -494,7 +494,6 @@ async function swmLeerDeclaracion(root, cobro) {
   const valorTotal = box.querySelector("[data-decl-total]").value;
   const moneda = box.querySelector("[data-decl-moneda]").value;
   if (!(parseFloat(valorTotal) > 0)) throw new Error("Escribe el valor total de los artículos (con tax, sin envío).");
-  if (cobro === "comision" && moneda !== "USD") throw new Error("Para pagar el cruce con el 15%, escribe el valor total en dólares (USD).");
   let factura = null;
   if (file) {
     file = await swmShrinkImage(file);

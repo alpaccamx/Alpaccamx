@@ -84,6 +84,11 @@ function normalizeKey(s) {
 const SHIPPING_SETTING_ALIASES = {
   exchangeRate: ["tipodecambio", "tipocambio", "exchangerate", "dolar", "usdmxn"],
   transferDiscountPct: ["descuentoportransferencia", "descuentotransferencia", "descuentoportransferenciaporciento"],
+  // Para el 15% de la dirección americana cuando la clienta declara en otra moneda.
+  krwRate: ["pesospor1won", "pesosporwon"],
+  eurRate: ["pesospor1euro", "pesosporeuro"],
+  jpyRate: ["pesospor1yen", "pesosporyen"],
+  cnyRate: ["pesospor1yuan", "pesosporyuan"],
 };
 
 /* ======================================================================
