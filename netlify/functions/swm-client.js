@@ -5,8 +5,8 @@
 // GET  → { paquetes, compras, envios, name, almacenajeDias, casillero }
 // POST { accion, ... }:
 //   registrar_paquete { tienda, rastreo, articulos[], valorTotal, moneda, facturas?, cobro, aceptaRestricciones }
-//                     articulos = [{ desc, cant, costo }] (obligatorio) y facturas = hasta 10
-//                     { filename, contentType, dataBase64 } (capturas o PDF, opcional);
+//                     facturas = hasta 10 { filename, contentType, dataBase64 } (capturas o PDF)
+//                     y/o articulos = [{ desc, cant, costo }] (obligatorio si no sube nada);
 //                     valorTotal/moneda = lo que costaron los artículos con tax, sin envío
 //                     (también es la base del 15% del cobro "comision", convertida a pesos).
 //   solicitar_compra  { links, notas, cobro, aceptaRestricciones }
@@ -39,9 +39,9 @@ const MAX_ARCHIVOS = 10;
 const MAX_ARCHIVO = 1.6 * 1024 * 1024; // 1.5 MB en la página, con margen
 const MAX_TOTAL = 4.2 * 1024 * 1024;
 
-/* Lo que la clienta declara que trae su paquete: la lista de artículos con
-   su costo (obligatoria), hasta 10 capturas o PDF de la factura/resumen de
-   compra (opcional) y el valor total de los artículos (con tax, sin envío)
+/* Lo que la clienta declara que trae su paquete: hasta 10 capturas o PDF
+   de la factura/resumen de compra o, si no sube nada, la lista de
+   artículos con su costo; más el valor total de los artículos (con tax, sin envío)
    en su moneda. Regresa { error } o { datos, facturas }. */
 function leerDeclaracion(b, cobro) {
   const rows = (Array.isArray(b.articulos) ? b.articulos : []).slice(0, 60).map((a) => ({
@@ -49,7 +49,6 @@ function leerDeclaracion(b, cobro) {
     cant: Math.max(1, Math.min(999, parseInt(a && a.cant, 10) || 1)),
     costo: Math.max(0, Math.min(1e9, parseFloat(a && a.costo) || 0)),
   })).filter((a) => a.desc || a.costo);
-  if (!rows.length) return { error: "Escribe cada artículo que trae tu paquete con lo que costó." };
   if (rows.some((a) => !a.desc || !(a.costo > 0))) return { error: "A cada artículo ponle qué es y cuánto costó." };
   const lista = Array.isArray(b.facturas) ? b.facturas : b.factura ? [b.factura] : [];
   if (lista.length > MAX_ARCHIVOS) return { error: `Puedes subir hasta ${MAX_ARCHIVOS} capturas o archivos.` };
@@ -67,6 +66,7 @@ function leerDeclaracion(b, cobro) {
     const ct = real === "pdf" ? "application/pdf" : /^image\/[a-z0-9.+-]+$/i.test(f.contentType || "") ? f.contentType : "image/jpeg";
     facturas.push({ buf, ct, nombre: clip(f.filename, 120) });
   }
+  if (!rows.length && !facturas.length) return { error: "Sube capturas o la factura de tu compra, o escribe cada artículo con lo que costó." };
   const valorTotal = Math.max(0, Math.min(1e9, parseFloat(b.valorTotal) || 0));
   const moneda = MONEDAS.includes(b.moneda) ? b.moneda : "";
   if (!(valorTotal > 0) || !moneda) return { error: "Escribe el valor total de los artículos (con tax, sin envío) y en qué moneda." };
@@ -74,7 +74,9 @@ function leerDeclaracion(b, cobro) {
   // de cambio de su moneda (ver valorEnPesos en swm-core.js).
   const valorUSD = moneda === "USD" ? valorTotal : 0;
   const fmt = (n) => Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
-  const contenido = clip(rows.map((a) => `${a.cant > 1 ? `${a.cant}× ` : ""}${a.desc} (${fmt(a.costo)} ${moneda})`).join(", "), 300);
+  const contenido = clip(rows.length
+    ? rows.map((a) => `${a.cant > 1 ? `${a.cant}× ` : ""}${a.desc} (${fmt(a.costo)} ${moneda})`).join(", ")
+    : `Ver ${facturas.length === 1 ? "captura" : `${facturas.length} capturas`}`, 300);
   return { datos: { articulos: rows, valorTotal, moneda, contenido, valorUSD }, facturas };
 }
 

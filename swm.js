@@ -433,9 +433,9 @@ const swmCobroRadios = () => `<fieldset class="grid gap-2 sm:grid-cols-2"><legen
     <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="peso" checked class="accent-[#c4466e]"><span><b>Por peso o medidas</b><span class="block text-xs text-ink/65">Según mi tabla; se paga al enviar.</span></span></label>
     <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="comision" class="accent-[#c4466e]"><span><b>15% del valor</b><span class="block text-xs text-ink/65">Del valor de los productos con tax, cobrado en pesos.</span></span></label>
   </fieldset>`;
-/* Qué trae el paquete: artículos con su costo escritos uno por uno
-   (obligatorio), hasta 10 capturas o PDF de la factura/resumen (opcional)
-   y el valor total de los artículos con tax, sin envío. Lo usan
+/* Qué trae el paquete: hasta 10 capturas o PDF de la factura/resumen o,
+   si no sube nada, cada artículo con su costo escrito uno por uno; más el
+   valor total de los artículos con tax, sin envío. Lo usan
    "Registrar paquete" y "completar datos". */
 const SWM_MAX_ARCHIVOS = 10;
 const SWM_MAX_ARCHIVO = 1.5 * 1024 * 1024; // por archivo, ya achicado
@@ -449,15 +449,16 @@ const swmDeclRow = () => `<div data-decl-row style="display:grid;grid-template-c
 const swmDeclaracionHTML = () => `<div data-decl class="space-y-3 rounded-2xl bg-pill/50 p-3">
     <div>
       <p class="text-xs font-semibold">¿Qué trae tu paquete? *</p>
-      <p class="text-xs text-ink/65">Escribe <b>cada artículo</b> con lo que costó cada uno.</p>
+      <p class="text-xs text-ink/65">Sube capturas o la factura de tu compra. <b>Si no tienes, escribe cada artículo</b> con lo que costó.</p>
     </div>
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class=" text-[11px] font-semibold text-ink/60"><span>Artículo</span><span>Cant.</span><span>Costo c/u</span></div>
-    <div data-decl-rows class="space-y-2">${swmDeclRow()}${swmDeclRow()}</div>
-    <button type="button" data-decl-add class="text-xs font-semibold text-rose-ink underline">+ Agregar otro artículo</button>
-    <label class="flex flex-col gap-1 text-xs font-semibold">📄 Capturas o factura de tu compra (opcional, hasta ${SWM_MAX_ARCHIVOS})
+    <label class="flex flex-col gap-1 text-xs font-semibold">📄 Capturas o factura de tu compra (hasta ${SWM_MAX_ARCHIVOS})
       <span class="font-normal text-ink/65">Imágenes o PDF. Las fotos se achican solas; cada PDF debe pesar menos de 1.5 MB.</span>
       <input data-decl-file type="file" multiple accept="application/pdf,image/*" class="text-xs font-normal file:mr-2 file:rounded-full file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-cream" /></label>
     <p data-decl-files class="text-xs text-ink/65"></p>
+    <p class="text-xs font-semibold pt-1">✍️ O escribe cada artículo</p>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class=" text-[11px] font-semibold text-ink/60"><span>Artículo</span><span>Cant.</span><span>Costo c/u</span></div>
+    <div data-decl-rows class="space-y-2">${swmDeclRow()}${swmDeclRow()}</div>
+    <button type="button" data-decl-add class="text-xs font-semibold text-rose-ink underline">+ Agregar otro artículo</button>
     <div>
       <p class="text-xs font-semibold">Valor total de los artículos *</p>
       <p class="text-xs text-ink/65">Lo que costaron los artículos <b>con tax (impuestos), sin envío</b> ni otros cargos.</p>
@@ -495,9 +496,9 @@ async function swmLeerDeclaracion(root, cobro) {
     cant: r.querySelector('[data-d="cant"]').value,
     costo: r.querySelector('[data-d="costo"]').value,
   })).filter((a) => a.desc || parseFloat(a.costo) > 0);
-  if (!articulos.length) throw new Error("Escribe cada artículo que trae tu paquete con lo que costó.");
   if (articulos.some((a) => !a.desc || !(parseFloat(a.costo) > 0))) throw new Error("A cada artículo ponle qué es y cuánto costó.");
   const files = [...(box.querySelector("[data-decl-file]").files || [])];
+  if (!articulos.length && !files.length) throw new Error("Sube capturas o la factura de tu compra, o escribe cada artículo con lo que costó.");
   if (files.length > SWM_MAX_ARCHIVOS) throw new Error(`Puedes subir hasta ${SWM_MAX_ARCHIVOS} capturas o archivos.`);
   const valorTotal = box.querySelector("[data-decl-total]").value;
   const moneda = box.querySelector("[data-decl-moneda]").value;
