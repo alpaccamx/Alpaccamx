@@ -303,7 +303,7 @@ function swmPaqueteCardHTML(p) {
     ${p.status === "cancelado" ? "" : swmStepsHTML("paquete", p.status)}
     <p class="text-sm mt-2">${escapeHtml(desc || "Paquete")}${p.origen === "compra" ? ' <span class="text-xs text-lilac-ink">(compra de Mae)</span>' : ""}</p>
     ${p.contenido ? `<p class="text-xs text-ink/65">${escapeHtml(p.contenido)}</p>` : ""}
-    ${p.valorTotal ? `<p class="text-xs text-ink/65">Valor declarado: ${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}${p.factura ? " · 📄 factura recibida" : ""}</p>` : ""}
+    ${p.valorTotal ? `<p class="text-xs text-ink/65">Valor declarado: ${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}${swmNumArchivos(p) ? ` · 📄 ${swmNumArchivos(p)} archivo${swmNumArchivos(p) === 1 ? "" : "s"} recibido${swmNumArchivos(p) === 1 ? "" : "s"}` : ""}</p>` : ""}
     <p class="text-xs text-ink/65 mt-1">Cruce: ${p.crucePagado ? "ya pagado con tu compra" : p.cobro === "comision" ? "15% del valor" : "por peso"}${p.cobrable ? ` · ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → ${swmMXN(swmCrucePeso(p.cobrable))}` : ""}` : ""}</p>
     ${extra}
     ${fotos ? `<div class="mt-2 flex flex-wrap gap-2">${fotos}</div>` : ""}
@@ -433,9 +433,13 @@ const swmCobroRadios = () => `<fieldset class="grid gap-2 sm:grid-cols-2"><legen
     <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="peso" checked class="accent-[#c4466e]"><span><b>Por peso o medidas</b><span class="block text-xs text-ink/65">Según mi tabla; se paga al enviar.</span></span></label>
     <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="comision" class="accent-[#c4466e]"><span><b>15% del valor</b><span class="block text-xs text-ink/65">Del valor de los productos con tax, cobrado en pesos.</span></span></label>
   </fieldset>`;
-/* Qué trae el paquete: artículos con su costo (a mano) y/o la factura o
-   captura del resumen de compra, más el valor total de los artículos sin
-   envío ni impuestos. Lo usan "Registrar paquete" y "completar datos". */
+/* Qué trae el paquete: hasta 10 capturas o PDF de la factura/resumen o,
+   si no sube nada, cada artículo con su costo escrito uno por uno; más el
+   valor total de los artículos con tax, sin envío. Lo usan
+   "Registrar paquete" y "completar datos". */
+const SWM_MAX_ARCHIVOS = 10;
+const SWM_MAX_ARCHIVO = 1.5 * 1024 * 1024; // por archivo, ya achicado
+const SWM_MAX_TOTAL = 4 * 1024 * 1024; // todos juntos
 const SWM_MONEDAS = [["USD", "Dólares (USD)"], ["MXN", "Pesos (MXN)"], ["KRW", "Wones (KRW)"], ["EUR", "Euros (EUR)"], ["JPY", "Yenes (JPY)"], ["CNY", "Yuanes (CNY)"]];
 const swmDeclRow = () => `<div data-decl-row style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class="">
     <input data-d="desc" maxlength="120" placeholder="Ej. Crema Laneige" aria-label="Artículo" class="rounded-xl border border-ink/15 px-3 py-2 text-sm min-w-0" />
@@ -445,13 +449,16 @@ const swmDeclRow = () => `<div data-decl-row style="display:grid;grid-template-c
 const swmDeclaracionHTML = () => `<div data-decl class="space-y-3 rounded-2xl bg-pill/50 p-3">
     <div>
       <p class="text-xs font-semibold">¿Qué trae tu paquete? *</p>
-      <p class="text-xs text-ink/65">Escribe cada artículo con lo que costó, <b>o</b> sube la factura o captura del resumen de tu compra (puedes hacer las dos).</p>
+      <p class="text-xs text-ink/65">Sube capturas o la factura de tu compra. <b>Si no tienes, escribe cada artículo</b> con lo que costó.</p>
     </div>
+    <label class="flex flex-col gap-1 text-xs font-semibold">📄 Capturas o factura de tu compra (hasta ${SWM_MAX_ARCHIVOS})
+      <span class="font-normal text-ink/65">Imágenes o PDF. Las fotos se achican solas; cada PDF debe pesar menos de 1.5 MB.</span>
+      <input data-decl-file type="file" multiple accept="application/pdf,image/*" class="text-xs font-normal file:mr-2 file:rounded-full file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-cream" /></label>
+    <p data-decl-files class="text-xs text-ink/65"></p>
+    <p class="text-xs font-semibold pt-1">✍️ O escribe cada artículo</p>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class=" text-[11px] font-semibold text-ink/60"><span>Artículo</span><span>Cant.</span><span>Costo c/u</span></div>
     <div data-decl-rows class="space-y-2">${swmDeclRow()}${swmDeclRow()}</div>
     <button type="button" data-decl-add class="text-xs font-semibold text-rose-ink underline">+ Agregar otro artículo</button>
-    <label class="flex flex-col gap-1 text-xs font-semibold">📄 Factura o captura del resumen (PDF o imagen, opcional si escribiste los artículos)
-      <input data-decl-file type="file" accept="application/pdf,image/*" class="text-xs font-normal file:mr-2 file:rounded-full file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-cream" /></label>
     <div>
       <p class="text-xs font-semibold">Valor total de los artículos *</p>
       <p class="text-xs text-ink/65">Lo que costaron los artículos <b>con tax (impuestos), sin envío</b> ni otros cargos.</p>
@@ -465,20 +472,22 @@ const swmDeclaracionHTML = () => `<div data-decl class="space-y-3 rounded-2xl bg
 /* Las fotos grandes se achican antes de subirlas (las capturas de iPhone
    pesan varios MB); los PDF se mandan tal cual. */
 async function swmShrinkImage(file) {
-  if (!/^image\//.test(file.type) || file.size < 1.5 * 1024 * 1024) return file;
+  if (!/^image\//.test(file.type) || file.size < 300 * 1024) return file;
   try {
     const bmp = await createImageBitmap(file);
-    const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(bmp.width * scale);
     canvas.height = Math.round(bmp.height * scale);
     canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.85));
-    return blob ? new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file;
+    const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.8));
+    return blob && blob.size < file.size ? new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file;
   } catch (err) {
     return file;
   }
 }
+
+const swmNumArchivos = (p) => (p.facturas || []).length || (p.factura ? 1 : 0);
 
 async function swmLeerDeclaracion(root, cobro) {
   const box = root.querySelector("[data-decl]");
@@ -488,19 +497,22 @@ async function swmLeerDeclaracion(root, cobro) {
     costo: r.querySelector('[data-d="costo"]').value,
   })).filter((a) => a.desc || parseFloat(a.costo) > 0);
   if (articulos.some((a) => !a.desc || !(parseFloat(a.costo) > 0))) throw new Error("A cada artículo ponle qué es y cuánto costó.");
-  const fileInput = box.querySelector("[data-decl-file]");
-  let file = fileInput.files && fileInput.files[0];
-  if (!articulos.length && !file) throw new Error("Escribe qué trae tu paquete con el costo de cada artículo, o sube la factura o captura del resumen de tu compra.");
+  const files = [...(box.querySelector("[data-decl-file]").files || [])];
+  if (!articulos.length && !files.length) throw new Error("Sube capturas o la factura de tu compra, o escribe cada artículo con lo que costó.");
+  if (files.length > SWM_MAX_ARCHIVOS) throw new Error(`Puedes subir hasta ${SWM_MAX_ARCHIVOS} capturas o archivos.`);
   const valorTotal = box.querySelector("[data-decl-total]").value;
   const moneda = box.querySelector("[data-decl-moneda]").value;
   if (!(parseFloat(valorTotal) > 0)) throw new Error("Escribe el valor total de los artículos (con tax, sin envío).");
-  let factura = null;
-  if (file) {
-    file = await swmShrinkImage(file);
-    if (file.size > 4 * 1024 * 1024) throw new Error("La factura o captura debe pesar menos de 4 MB.");
-    factura = { filename: file.name, contentType: file.type, dataBase64: await swmFileToBase64(file) };
+  const facturas = [];
+  let total = 0;
+  for (const original of files) {
+    const file = await swmShrinkImage(original);
+    if (file.size > SWM_MAX_ARCHIVO) throw new Error(`"${original.name}" pesa mucho (máximo 1.5 MB). Si es PDF, mejor sube una captura.`);
+    total += file.size;
+    if (total > SWM_MAX_TOTAL) throw new Error("Tus archivos juntos pesan mucho (máximo 4 MB). Sube menos o capturas más ligeras.");
+    facturas.push({ filename: file.name, contentType: file.type, dataBase64: await swmFileToBase64(file) });
   }
-  return { articulos, valorTotal, moneda, factura };
+  return { articulos, valorTotal, moneda, facturas };
 }
 
 const swmAcepta = () => `<label class="flex gap-2 text-sm"><input id="swm-acepta" type="checkbox" class="mt-0.5 accent-[#c4466e]" /><span>Confirmo que no trae <b>nada ilegal</b> ni artículos de cristal (velas, jarrones, etc.), muebles ni pallets.</span></label>`;
@@ -709,6 +721,13 @@ function initSwm() {
   const waHref = whatsappHref("Hola Mae! Tengo una duda sobre Shop with Mae (compras en EE.UU.).");
   if (waHref) { wa.href = waHref; wa.target = "_blank"; wa.rel = "noopener"; }
 
+  sec.addEventListener("change", (e) => {
+    const input = e.target.closest("[data-decl-file]");
+    if (!input) return;
+    const n = (input.files || []).length;
+    const out = input.closest("[data-decl]").querySelector("[data-decl-files]");
+    out.textContent = n > SWM_MAX_ARCHIVOS ? `Elegiste ${n}; el máximo es ${SWM_MAX_ARCHIVOS}.` : n ? `${n} archivo${n === 1 ? "" : "s"} listo${n === 1 ? "" : "s"} para subir.` : "";
+  });
   sec.addEventListener("click", (e) => {
     const addRow = e.target.closest("[data-decl-add]");
     if (addRow) {

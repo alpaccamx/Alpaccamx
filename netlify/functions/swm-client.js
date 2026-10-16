@@ -4,9 +4,9 @@
 //
 // GET  → { paquetes, compras, envios, name, almacenajeDias, casillero }
 // POST { accion, ... }:
-//   registrar_paquete { tienda, rastreo, articulos[], valorTotal, moneda, factura?, cobro, aceptaRestricciones }
-//                     articulos = [{ desc, cant, costo }] escritos a mano y/o factura =
-//                     { filename, contentType, dataBase64 } (PDF o captura del resumen);
+//   registrar_paquete { tienda, rastreo, articulos[], valorTotal, moneda, facturas?, cobro, aceptaRestricciones }
+//                     facturas = hasta 10 { filename, contentType, dataBase64 } (capturas o PDF)
+//                     y/o articulos = [{ desc, cant, costo }] (obligatorio si no sube nada);
 //                     valorTotal/moneda = lo que costaron los artículos con tax, sin envío
 //                     (también es la base del 15% del cobro "comision", convertida a pesos).
 //   solicitar_compra  { links, notas, cobro, aceptaRestricciones }
@@ -14,7 +14,7 @@
 //   pagar             { kind: "compra"|"envio", id, metodo: "mercadopago"|"transferencia" }
 //                     → con Mercado Pago regresa { redirectUrl }
 //   comprobante       { kind, id, filename, contentType, dataBase64 }
-//   completar_paquete { id, articulos[], valorTotal, moneda, factura?, cobro }  (paquete que llegó sin registrar)
+//   completar_paquete { id, articulos[], valorTotal, moneda, facturas?, cobro }  (paquete que llegó sin registrar)
 //   cancelar          { kind, id }
 //   pedir_revision    { id }  (abrir el paquete y mandar fotos del contenido; cargo REVISION_FOTOS)
 //   aplicar_cupon     { kind, id, code }  (descuento sobre una cotización sin pagar)
@@ -35,12 +35,14 @@ const MAX_BYTES = 5 * 1024 * 1024;
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
 const now = () => new Date().toISOString();
 const MONEDAS = ["USD", "MXN", "KRW", "EUR", "JPY", "CNY"];
-const MAX_FACTURA = 4 * 1024 * 1024;
+const MAX_ARCHIVOS = 10;
+const MAX_ARCHIVO = 1.6 * 1024 * 1024; // 1.5 MB en la página, con margen
+const MAX_TOTAL = 4.2 * 1024 * 1024;
 
-/* Lo que la clienta declara que trae su paquete: la lista de artículos con
-   su costo (a mano) y/o la factura o captura del resumen de compra, más el
-   valor total de los artículos (con tax, sin envío) en su moneda.
-   Regresa { error } o { datos, factura }. */
+/* Lo que la clienta declara que trae su paquete: hasta 10 capturas o PDF
+   de la factura/resumen de compra o, si no sube nada, la lista de
+   artículos con su costo; más el valor total de los artículos (con tax, sin envío)
+   en su moneda. Regresa { error } o { datos, facturas }. */
 function leerDeclaracion(b, cobro) {
   const rows = (Array.isArray(b.articulos) ? b.articulos : []).slice(0, 60).map((a) => ({
     desc: clip(a && a.desc, 120),
@@ -48,17 +50,23 @@ function leerDeclaracion(b, cobro) {
     costo: Math.max(0, Math.min(1e9, parseFloat(a && a.costo) || 0)),
   })).filter((a) => a.desc || a.costo);
   if (rows.some((a) => !a.desc || !(a.costo > 0))) return { error: "A cada artículo ponle qué es y cuánto costó." };
-  let factura = null;
-  if (b.factura && b.factura.dataBase64) {
+  const lista = Array.isArray(b.facturas) ? b.facturas : b.factura ? [b.factura] : [];
+  if (lista.length > MAX_ARCHIVOS) return { error: `Puedes subir hasta ${MAX_ARCHIVOS} capturas o archivos.` };
+  const facturas = [];
+  let total = 0;
+  for (const f of lista) {
+    if (!f || !f.dataBase64) continue;
     let buf;
-    try { buf = Buffer.from(String(b.factura.dataBase64), "base64"); } catch { return { error: "La factura no se pudo leer." }; }
-    if (!buf.length || buf.length > MAX_FACTURA) return { error: "La factura o captura debe pesar menos de 4 MB." };
+    try { buf = Buffer.from(String(f.dataBase64), "base64"); } catch { return { error: "Un archivo no se pudo leer." }; }
+    if (!buf.length || buf.length > MAX_ARCHIVO) return { error: "Cada captura o archivo debe pesar menos de 1.5 MB." };
+    total += buf.length;
+    if (total > MAX_TOTAL) return { error: "Tus archivos juntos deben pesar menos de 4 MB." };
     const real = detectFileType(buf);
-    if (!real) return { error: "La factura debe ser PDF o imagen (captura)." };
-    const ct = real === "pdf" ? "application/pdf" : /^image\/[a-z0-9.+-]+$/i.test(b.factura.contentType || "") ? b.factura.contentType : "image/jpeg";
-    factura = { buf, ct, nombre: clip(b.factura.filename, 120) };
+    if (!real) return { error: "Los archivos deben ser imágenes (capturas) o PDF." };
+    const ct = real === "pdf" ? "application/pdf" : /^image\/[a-z0-9.+-]+$/i.test(f.contentType || "") ? f.contentType : "image/jpeg";
+    facturas.push({ buf, ct, nombre: clip(f.filename, 120) });
   }
-  if (!rows.length && !factura) return { error: "Escribe qué trae tu paquete con el costo de cada artículo, o sube la factura o captura del resumen de tu compra." };
+  if (!rows.length && !facturas.length) return { error: "Sube capturas o la factura de tu compra, o escribe cada artículo con lo que costó." };
   const valorTotal = Math.max(0, Math.min(1e9, parseFloat(b.valorTotal) || 0));
   const moneda = MONEDAS.includes(b.moneda) ? b.moneda : "";
   if (!(valorTotal > 0) || !moneda) return { error: "Escribe el valor total de los artículos (con tax, sin envío) y en qué moneda." };
@@ -68,17 +76,20 @@ function leerDeclaracion(b, cobro) {
   const fmt = (n) => Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
   const contenido = clip(rows.length
     ? rows.map((a) => `${a.cant > 1 ? `${a.cant}× ` : ""}${a.desc} (${fmt(a.costo)} ${moneda})`).join(", ")
-    : "Ver factura / captura", 300);
-  return {
-    datos: { articulos: rows, valorTotal, moneda, contenido, valorUSD },
-    factura,
-  };
+    : `Ver ${facturas.length === 1 ? "captura" : `${facturas.length} capturas`}`, 300);
+  return { datos: { articulos: rows, valorTotal, moneda, contenido, valorUSD }, facturas };
 }
 
-async function guardarFactura(id, factura) {
-  if (!factura) return null;
-  await saveFile(`factura/paquete/${id}`, factura.buf, factura.ct);
-  return { tipo: factura.ct, nombre: factura.nombre, at: now() };
+/* Guarda las capturas/PDF en factura/paquete/<id>/<n> y regresa su lista
+   (vacía si no subió nada). */
+async function guardarFacturas(id, facturas) {
+  const at = now();
+  const out = [];
+  for (const [n, f] of facturas.entries()) {
+    await saveFile(`factura/paquete/${id}/${n}`, f.buf, f.ct);
+    out.push({ n, tipo: f.ct, nombre: f.nombre, at });
+  }
+  return out;
 }
 
 exports.handler = async (event) => {
@@ -121,10 +132,10 @@ exports.handler = async (event) => {
         const dec = leerDeclaracion(b, cobro);
         if (dec.error) return json(400, { error: dec.error });
         const id = randomUUID();
-        const factura = await guardarFactura(id, dec.factura);
+        const facturas = await guardarFacturas(id, dec.facturas);
         const rec = {
           id, folio: await nextFolio("paquete"), ...base, origen: "propio",
-          tienda, rastreo, ...dec.datos, factura,
+          tienda, rastreo, ...dec.datos, facturas,
           cobro, status: "registrado",
           kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0, fotos: [], notaClienta: "", notaPrivada: "",
           history: [{ at: now(), status: "registrado" }], createdAt: now(), updatedAt: now(),
@@ -140,10 +151,10 @@ exports.handler = async (event) => {
         const cobro = COBROS.includes(b.cobro) ? b.cobro : rec.cobro;
         const dec = leerDeclaracion(b, cobro);
         if (dec.error) return json(400, { error: dec.error });
-        const factura = await guardarFactura(rec.id, dec.factura);
+        const facturas = await guardarFacturas(rec.id, dec.facturas);
         const updated = await mutateRecord("paquete", rec.id, (p) => {
           Object.assign(p, dec.datos);
-          if (factura) p.factura = factura;
+          if (facturas.length) { p.facturas = facturas; delete p.factura; }
           p.cobro = cobro;
           p.datosPendientes = false;
           p.history = [...(p.history || []), { at: now(), status: "datos_completados" }];
