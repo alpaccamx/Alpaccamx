@@ -4389,6 +4389,8 @@ ${itemLines}
       // Servicios extra que pidió la clienta (revisión con fotos solo
       // cuando el paquete ya llegó).
       extras: swmData.paquetes.filter((p) => p.status === "recibido" && ((p.revision && p.revision.estado === "pedida") || (p.separar && p.separar.estado === "pedida"))),
+      // La clienta ya corrigió lo que Mae le pidió: falta revisarlo.
+      correcciones: swmData.paquetes.filter((p) => p.correccion && p.correccion.estado === "hecha"),
     };
   }
 
@@ -4401,7 +4403,7 @@ ${itemLines}
       if (!res.ok) { if (!quiet) setStatus(data.error || "No se pudo cargar Shop with Mae."); return; }
       swmData = data;
       const pend = swmPendientes();
-      swmNewCount = pend.cotizarCompra.length + pend.comprar.length + pend.cotizarEnvio.length + pend.enviar.length + pend.pagos.length + pend.sinDuena.length + pend.extras.length;
+      swmNewCount = pend.cotizarCompra.length + pend.comprar.length + pend.cotizarEnvio.length + pend.enviar.length + pend.pagos.length + pend.sinDuena.length + pend.extras.length + pend.correcciones.length;
       const badge = document.getElementById("swm-badge");
       badge.textContent = swmNewCount ? String(swmNewCount) : "";
       badge.style.display = swmNewCount ? "inline-flex" : "none";
@@ -4471,7 +4473,8 @@ ${itemLines}
         + sec("🚚 Envíos por cotizar", pend.cotizarEnvio.filter(swmMatches), swmEnvioCard)
         + sec("📦 Envíos pagados: hay que mandar", pend.enviar.filter(swmMatches), swmEnvioCard)
         + sec("❓ Paquetes sin dueña", pend.sinDuena.filter(swmMatches), swmPaqueteCard)
-        + sec("📸 Revisiones y separaciones pedidas", pend.extras.filter(swmMatches), swmPaqueteCard);
+        + sec("📸 Revisiones y separaciones pedidas", pend.extras.filter(swmMatches), swmPaqueteCard)
+        + sec("✏️ Ya corrigieron sus datos: revísalos", pend.correcciones.filter(swmMatches), swmPaqueteCard);
       if (!html) html = `<p style="color:#5f5866;font-size:14px;">No hay nada pendiente 🎉</p>`;
     } else if (swmTab === "llegar") {
       html = P.filter((p) => p.status === "registrado" && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes por llegar.</p>`;
@@ -4503,6 +4506,15 @@ ${itemLines}
 
   /* "≈ $1,080 MXN" del valor declarado con el tipo de cambio de Ajustes y,
      si paga el cruce con el 15%, cuánto le toca. */
+  // Paquetes que valen más de 1,000 dólares (en pesos, con el tipo de cambio de Ajustes).
+  const SWM_VALOR_ALTO_USD = 1000;
+  function swmValorAlto(p) {
+    const rates = swmData.tiposCambio || {};
+    const rate = p.moneda === "MXN" ? 1 : rates[p.moneda];
+    const pesos = Number(p.valorTotal) > 0 && rate ? Number(p.valorTotal) * rate : (Number(p.valorUSD) || 0) * (rates.USD || 0);
+    return rates.USD > 0 && pesos >= SWM_VALOR_ALTO_USD * rates.USD;
+  }
+
   function swmValorPesosHTML(p) {
     const rates = swmData.tiposCambio || {};
     const rate = p.moneda === "MXN" ? 1 : rates[p.moneda];
@@ -4510,7 +4522,7 @@ ${itemLines}
     if (!rate) return ` · <span style="color:#b33660">falta el tipo de cambio de ${escapeHtml(p.moneda)} en Ajustes</span>`;
     const pesos = Number(p.valorTotal) * rate;
     const cruce = Math.ceil(pesos * (swmData.comisionPct || 15) / 100);
-    return `${p.moneda === "MXN" ? "" : ` ≈ <b>${formatPrice(pesos)}</b>`}${p.cobro === "comision" && !p.crucePagado ? ` → cruce (${swmData.comisionPct || 15}%): <b>${formatPrice(cruce)}</b>` : ""}`;
+    return `${p.moneda === "MXN" ? "" : ` ≈ <b>${formatPrice(pesos)}</b>`}${swmValorAlto(p) ? ` <b style="color:#b33660">⚠️ Valor alto: revísalo bien antes de cruzarlo</b>` : ""}${p.cobro === "comision" && !p.crucePagado ? ` → cruce (${swmData.comisionPct || 15}%): <b>${formatPrice(cruce)}</b>` : ""}`;
   }
 
   function swmPaqueteCard(p) {
@@ -4523,7 +4535,7 @@ ${itemLines}
     const diasAqui = p.receivedAt ? Math.floor((Date.now() - new Date(p.receivedAt)) / 864e5) : 0;
     const limite = swmData.diasSinDuena || 7;
     return `<div class="swm-card" data-swm-id="${escapeHtml(p.id)}" data-kind="paquete">
-      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}</span>${swmPillA(st, ["registrado", "sin_dueña"].includes(p.status) || p.datosPendientes ? "new" : "")}</h4>
+      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}</span>${swmValorAlto(p) ? swmPillA("⚠️ Valor alto", "new") : ""}${swmPillA(st, ["registrado", "sin_dueña"].includes(p.status) || p.datosPendientes ? "new" : "")}</h4>
       ${sinDuena ? `<div class="meta">Etiqueta: <b>${escapeHtml(p.etiqueta || "—")}</b> · ${p.cobrable || "?"} kg · llegó ${swmFecha(p.receivedAt)} · <b style="color:${diasAqui >= limite ? "#b33660" : "inherit"}">${diasAqui} día${diasAqui === 1 ? "" : "s"}${diasAqui >= limite ? ` (ya pasaron ${limite}: puedes disponer de él)` : ` de ${limite}`}</b></div>
       <div class="grid" style="grid-template-columns:1fr auto;align-items:end;"><label>Buscar a la dueña (nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Ej. Ana López"></label></div>
       <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
@@ -4536,6 +4548,7 @@ ${itemLines}
         ${p.receivedAt ? `<br>Llegó ${swmFecha(p.receivedAt)} · almacenaje gratis ${vence > 0 ? `${vence} días más` : "<b style='color:#b33660'>vencido</b>"}` : ""}</div>
       ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}
       ${p.status === "recibido" && p.phone ? `<div style="margin-top:8px;"><a class="btn-primary" href="${escapeHtml(swmPaqueteWa(p))}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;padding:8px 16px;font-size:13px;background:#25D366;border-radius:999px;color:#fff;font-weight:600;">💬 Avisar por WhatsApp (y mandarle las fotos)</a></div>` : ""}
+      ${swmCorreccionAdmin(p)}
       ${swmExtrasAdmin(p)}`}
       ${editable ? `<div class="grid">
         <label>Peso (kg)<input data-f="kg" type="number" step="0.01" min="0" value="${p.kg || ""}"></label>
@@ -4553,6 +4566,17 @@ ${itemLines}
         ${swmCancelBtn("paquete", p)}
       </div>` : ""}
     ${sinDuena ? "" : "</div>"}`;
+  }
+
+  /* Pedirle a la clienta que corrija lo que declaró (no puede pedir envío
+     hasta hacerlo) y ver si ya lo corrigió. */
+  function swmCorreccionAdmin(p) {
+    if (p.origen === "compra" || !["registrado", "recibido"].includes(p.status)) return "";
+    const c = p.correccion;
+    const id = escapeHtml(p.id);
+    if (c && c.estado === "pedida") return `<div class="meta" style="margin-top:6px;background:#fdf2f6;border-radius:8px;padding:6px 8px;">✏️ Le pediste corregir: <i>${escapeHtml(c.motivo || "")}</i> · ${swmFecha(c.at)} <button type="button" class="btn-secondary" data-swm-quitar-correccion="${id}" style="padding:2px 8px;font-size:12px;">Ya no hace falta</button></div>`;
+    if (c && c.estado === "hecha") return `<div class="meta" style="margin-top:6px;background:#eef8f2;border-radius:8px;padding:6px 8px;">✅ Ya corrigió sus datos (${swmFecha(c.hechaAt)}). Lo que pediste: <i>${escapeHtml(c.motivo || "")}</i> <button type="button" class="btn-secondary" data-swm-quitar-correccion="${id}" style="padding:2px 8px;font-size:12px;">Ya lo revisé</button> <button type="button" class="btn-secondary" data-swm-pedir-correccion="${id}" style="padding:2px 8px;font-size:12px;">Pedir otra corrección</button></div>`;
+    return `<div style="margin-top:6px;"><button type="button" class="btn-secondary" data-swm-pedir-correccion="${id}" style="padding:4px 10px;font-size:12px;">✏️ Pedir corrección a la clienta</button></div>`;
   }
 
   /* Mensaje de "ya llegó tu paquete" para mandar por WhatsApp con las
@@ -4883,6 +4907,14 @@ ${itemLines}
     }
     const file = t.closest("[data-swm-file]");
     if (file) { swmOpenFile(file.dataset.swmFile); return; }
+    const pc = t.closest("[data-swm-pedir-correccion]");
+    if (pc) {
+      const motivo = prompt("¿Qué tiene que corregir? (se lo mandamos por correo)", "El valor que registraste no coincide con lo que trae el paquete.");
+      if (motivo && motivo.trim()) swmAct({ accion: "pedir_correccion", id: pc.dataset.swmPedirCorreccion, motivo: motivo.trim() }, pc);
+      return;
+    }
+    const qc = t.closest("[data-swm-quitar-correccion]");
+    if (qc) { swmAct({ accion: "quitar_correccion", id: qc.dataset.swmQuitarCorreccion }, qc); return; }
     const ap = t.closest("[data-swm-aprobar]");
     if (ap) { const [kind, id] = ap.dataset.swmAprobar.split(":"); if (confirm("¿Ya verificaste que el dinero llegó a tu cuenta?")) swmAct({ accion: "aprobar_pago", kind, id }, ap); return; }
     const re = t.closest("[data-swm-rechazar]");

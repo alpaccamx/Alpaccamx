@@ -27,6 +27,8 @@
 //   marcar_entregado  { id }
 //   cancelar          { kind, id, motivo? }
 //   notas             { kind, id, notaClienta?, notaPrivada? }
+//   pedir_correccion  { id, motivo }  (la clienta debe corregir lo que declaró; no puede pedir envío hasta hacerlo)
+//   quitar_correccion { id }          (ya está bien / ya lo revisaste)
 
 const { randomUUID } = require("crypto");
 const { checkAdminKey } = require("./lib/admin-auth.js");
@@ -393,6 +395,32 @@ exports.handler = async (event) => {
         }
         if (motivo) await avisar(rec.email, `${rec.folio} fue cancelado`, `<p style="font-size:14px;">${esc(motivo)}</p>`);
         return json(200, { [kind]: rec });
+      }
+
+      case "pedir_correccion": {
+        const motivo = clip(b.motivo, 500);
+        if (!motivo) return json(400, { error: "Dile qué tiene que corregir." });
+        const rec = await mutateRecord("paquete", id, (p) => {
+          p.correccion = { estado: "pedida", motivo, at: now() };
+          push(p, "correccion_pedida");
+          return p;
+        });
+        if (!rec) return json(404, { error: "No existe ese paquete." });
+        await avisar(rec.email, `corrige los datos de tu paquete ${rec.folio}`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">Necesito que corrijas tu paquete</h2>
+          <p style="font-size:14px;">Revisé ${esc(rec.folio)}${rec.tienda ? ` (${esc(rec.tienda)})` : ""} y hay algo que no coincide con lo que registraste:</p>
+          <p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(motivo)}</p>
+          <p style="font-size:14px;">Entra a tu casillero y pica <b>"Corregir mis datos"</b>. Hasta que lo corrijas no podrás pedir el envío de este paquete.</p>`);
+        return json(200, { paquete: rec });
+      }
+
+      case "quitar_correccion": {
+        const rec = await mutateRecord("paquete", id, (p) => {
+          delete p.correccion;
+          push(p, "correccion_cerrada");
+          return p;
+        });
+        return rec ? json(200, { paquete: rec }) : json(404, { error: "No existe ese paquete." });
       }
 
       case "notas": {

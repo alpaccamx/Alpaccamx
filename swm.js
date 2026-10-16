@@ -52,7 +52,7 @@ const SWM_ENVIO_STATUS = {
   cancelado: ["Cancelado", "bg-pill text-ink/50"],
 };
 
-let swm = { loaded: false, loading: false, error: "", name: "", phone: "", casillero: "", precios: { revision: 50, separar: 50 }, paquetes: [], compras: [], envios: [], tab: "paquetes", form: "", almacenajeDias: 30 };
+let swm = { loaded: false, loading: false, error: "", name: "", phone: "", casillero: "", precios: { revision: 50, separar: 50 }, paquetes: [], compras: [], envios: [], tab: "paquetes", form: "", almacenajeDias: 30, tiposCambio: {}, comisionPct: 15, editando: "" };
 
 const swmMXN = (n) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
 const swmDate = (iso, opts = { day: "numeric", month: "short" }) => (iso ? new Date(iso).toLocaleDateString("es-MX", opts) : "");
@@ -261,6 +261,7 @@ function renderSwmCasillero() {
     <div id="swm-form-box" class="mt-4">${swmFormHTML()}</div>
     <div class="mt-6 flex gap-1.5 overflow-x-auto" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" aria-selected="${swm.tab === k}" data-swm-tab="${k}" class="shrink-0 rounded-full px-4 py-2 text-sm font-semibold ${swm.tab === k ? "bg-ink text-cream" : "bg-pill text-ink/75"}">${l}</button>`).join("")}</div>
     <div class="mt-4 space-y-3">${swmTabHTML()}</div>`;
+  el.querySelectorAll("[data-swm-editar]").forEach(swmActualizarEstimado);
 }
 
 /* Línea de avance ("Registrado → En almacén → ..."), como en Delivered. */
@@ -304,11 +305,15 @@ function swmPaqueteCardHTML(p) {
     <p class="text-sm mt-2">${escapeHtml(desc || "Paquete")}${p.origen === "compra" ? ' <span class="text-xs text-lilac-ink">(compra de Mae)</span>' : ""}</p>
     ${p.contenido ? `<p class="text-xs text-ink/65">${escapeHtml(p.contenido)}</p>` : ""}
     ${p.valorTotal ? `<p class="text-xs text-ink/65">Valor declarado: ${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}${swmNumArchivos(p) ? ` · 📄 ${swmNumArchivos(p)} archivo${swmNumArchivos(p) === 1 ? "" : "s"} recibido${swmNumArchivos(p) === 1 ? "" : "s"}` : ""}</p>` : ""}
-    <p class="text-xs text-ink/65 mt-1">Cruce: ${p.crucePagado ? "ya pagado con tu compra" : p.cobro === "comision" ? "15% del valor" : "por peso"}${p.cobrable ? ` · ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → ${swmMXN(swmCrucePeso(p.cobrable))}` : ""}` : ""}</p>
+    <p class="text-xs text-ink/65 mt-1">Cruce: ${p.crucePagado ? "ya pagado con tu compra" : p.cobro === "comision" ? `15% del valor${swmValorPesos(Number(p.valorTotal) || 0, p.moneda) ? ` (≈ ${swmMXN(swmCruceComision(swmValorPesos(Number(p.valorTotal), p.moneda)))})` : ""}` : "por peso"}${p.cobrable ? ` · ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → ${swmMXN(swmCrucePeso(p.cobrable))}` : ""}` : ""}</p>
     ${extra}
     ${fotos ? `<div class="mt-2 flex flex-wrap gap-2">${fotos}</div>` : ""}
     ${p.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(p.notaClienta)}</p>` : ""}
     ${swmExtrasHTML(p)}
+    ${p.correccion && p.correccion.estado === "pedida" ? `<div class="mt-3 rounded-xl bg-sale/[0.06] border border-sale/30 p-3 text-sm"><b>✏️ Mae te pidió corregir tus datos:</b><p class="mt-1">${escapeHtml(p.correccion.motivo || "")}</p><p class="mt-1 text-xs text-ink/65">Hasta que lo corrijas no puedes pedir el envío de este paquete.</p></div>` : ""}
+    ${swmPuedeEditar(p) ? (swm.editando === p.id || (p.correccion && p.correccion.estado === "pedida")
+      ? swmEditarFormHTML(p)
+      : `<button type="button" data-swm-editar-toggle="${escapeHtml(p.id)}" class="mt-2 mr-3 text-xs font-semibold text-rose-ink underline">✏️ Editar mis datos</button>`) : ""}
     ${p.status === "registrado" && p.origen !== "compra" ? `<button type="button" data-swm-cancel="paquete:${escapeHtml(p.id)}" class="mt-2 text-xs text-ink/60 underline">Cancelar registro</button>` : ""}
     ${p.datosPendientes ? `<form data-swm-completar="${escapeHtml(p.id)}" class="mt-3 rounded-xl bg-sale/[0.06] border border-sale/30 p-3 space-y-2" novalidate>
       <p class="text-sm"><b>⚠️ Este paquete llegó sin registrar.</b> Dime qué trae y cuánto costó para poder enviártelo. Se suma un cargo de <b>${swmMXN(p.cargoSinRegistro || 80)}</b> a tu envío.</p>
@@ -441,12 +446,12 @@ const SWM_MAX_ARCHIVOS = 10;
 const SWM_MAX_ARCHIVO = 1.5 * 1024 * 1024; // por archivo, ya achicado
 const SWM_MAX_TOTAL = 4 * 1024 * 1024; // todos juntos
 const SWM_MONEDAS = [["USD", "Dólares (USD)"], ["MXN", "Pesos (MXN)"], ["KRW", "Wones (KRW)"], ["EUR", "Euros (EUR)"], ["JPY", "Yenes (JPY)"], ["CNY", "Yuanes (CNY)"]];
-const swmDeclRow = () => `<div data-decl-row style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class="">
-    <input data-d="desc" maxlength="120" placeholder="Ej. Crema Laneige" aria-label="Artículo" class="rounded-xl border border-ink/15 px-3 py-2 text-sm min-w-0" />
-    <input data-d="cant" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Cantidad" class="rounded-xl border border-ink/15 px-2 py-2 text-sm min-w-0" />
-    <input data-d="costo" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Costo c/u" aria-label="Costo de cada uno" class="rounded-xl border border-ink/15 px-2 py-2 text-sm min-w-0" />
+const swmDeclRow = (a = {}) => `<div data-decl-row style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class="">
+    <input data-d="desc" maxlength="120" placeholder="Ej. Crema Laneige" value="${escapeHtml(a.desc || "")}" aria-label="Artículo" class="rounded-xl border border-ink/15 px-3 py-2 text-sm min-w-0" />
+    <input data-d="cant" type="number" min="1" step="1" value="${Number(a.cant) || 1}" inputmode="numeric" aria-label="Cantidad" class="rounded-xl border border-ink/15 px-2 py-2 text-sm min-w-0" />
+    <input data-d="costo" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Costo c/u" value="${a.costo || ""}" aria-label="Costo de cada uno" class="rounded-xl border border-ink/15 px-2 py-2 text-sm min-w-0" />
   </div>`;
-const swmDeclaracionHTML = () => `<div data-decl class="space-y-3 rounded-2xl bg-pill/50 p-3">
+const swmDeclaracionHTML = (p = {}) => `<div data-decl class="space-y-3 rounded-2xl bg-pill/50 p-3">
     <div>
       <p class="text-xs font-semibold">¿Qué trae tu paquete? *</p>
       <p class="text-xs text-ink/65">Sube capturas o la factura de tu compra. <b>Si no tienes, escribe cada artículo</b> con lo que costó.</p>
@@ -457,15 +462,16 @@ const swmDeclaracionHTML = () => `<div data-decl class="space-y-3 rounded-2xl bg
     <p data-decl-files class="text-xs text-ink/65"></p>
     <p class="text-xs font-semibold pt-1">✍️ O escribe cada artículo</p>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class=" text-[11px] font-semibold text-ink/60"><span>Artículo</span><span>Cant.</span><span>Costo c/u</span></div>
-    <div data-decl-rows class="space-y-2">${swmDeclRow()}${swmDeclRow()}</div>
+    <div data-decl-rows class="space-y-2">${(p.articulos || []).length ? p.articulos.map(swmDeclRow).join("") : swmDeclRow() + swmDeclRow()}</div>
     <button type="button" data-decl-add class="text-xs font-semibold text-rose-ink underline">+ Agregar otro artículo</button>
     <div>
       <p class="text-xs font-semibold">Valor total de los artículos *</p>
       <p class="text-xs text-ink/65">Lo que costaron los artículos <b>con tax (impuestos), sin envío</b> ni otros cargos.</p>
       <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0.5rem;" class="mt-1">
-        <input data-decl-total type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 85.50" aria-label="Valor total de los artículos" class="rounded-xl border border-ink/15 px-3 py-2 text-sm min-w-0" />
-        <select data-decl-moneda aria-label="Moneda" class="rounded-xl border border-ink/15 px-2 py-2 text-sm bg-white">${SWM_MONEDAS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
+        <input data-decl-total type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 85.50" value="${p.valorTotal || ""}" aria-label="Valor total de los artículos" class="rounded-xl border border-ink/15 px-3 py-2 text-sm min-w-0" />
+        <select data-decl-moneda aria-label="Moneda" class="rounded-xl border border-ink/15 px-2 py-2 text-sm bg-white">${SWM_MONEDAS.map(([v, l]) => `<option value="${v}"${p.moneda === v ? " selected" : ""}>${l}</option>`).join("")}</select>
       </div>
+      <p data-decl-estimado class="mt-1 text-xs font-semibold text-ink/75"></p>
     </div>
   </div>`;
 
@@ -488,6 +494,47 @@ async function swmShrinkImage(file) {
 }
 
 const swmNumArchivos = (p) => (p.facturas || []).length || (p.factura ? 1 : 0);
+
+/* Valor declarado en pesos con los tipos de cambio de Mae, y el cruce del
+   15% si eligió esa forma de pago. */
+function swmValorPesos(valor, moneda) {
+  const rate = moneda === "MXN" ? 1 : (swm.tiposCambio || {})[moneda];
+  return valor > 0 && rate ? valor * rate : 0;
+}
+const swmCruceComision = (pesos) => Math.ceil(pesos * (swm.comisionPct || 15) / 100);
+
+function swmActualizarEstimado(root) {
+  const box = root && root.querySelector("[data-decl]");
+  if (!box) return;
+  const out = box.querySelector("[data-decl-estimado]");
+  const moneda = box.querySelector("[data-decl-moneda]").value;
+  const pesos = swmValorPesos(parseFloat(box.querySelector("[data-decl-total]").value) || 0, moneda);
+  const radio = root.querySelector('input[name="swm-cobro"]:checked');
+  const check = root.querySelector('[data-c="comision"]');
+  const comision = radio ? radio.value === "comision" : !!(check && check.checked);
+  if (!pesos) { out.textContent = ""; return; }
+  out.textContent = `${moneda === "MXN" ? "" : `≈ ${swmMXN(pesos)} · `}${comision ? `tu cruce con el ${swm.comisionPct || 15}%: ${swmMXN(swmCruceComision(pesos))}` : "el cruce se cobra por peso cuando llegue"}`;
+}
+
+/* Editar lo registrado (mientras va en camino) o corregirlo cuando Mae lo pide. */
+const swmPuedeEditar = (p) => p.origen !== "compra" && !p.datosPendientes
+  && (p.status === "registrado" || (p.correccion && p.correccion.estado === "pedida" && p.status === "recibido"));
+
+function swmEditarFormHTML(p) {
+  const n = swmNumArchivos(p);
+  return `<form data-swm-editar="${escapeHtml(p.id)}" class="mt-3 rounded-xl border border-ink/15 p-3 space-y-3" novalidate>
+      ${p.status === "registrado" ? `<div class="grid gap-3 sm:grid-cols-2">
+        <label class="flex flex-col gap-1 text-xs font-semibold">Tienda<input data-e="tienda" maxlength="80" value="${escapeHtml(p.tienda || "")}" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>
+        <label class="flex flex-col gap-1 text-xs font-semibold">Número de rastreo (guía) *<input data-e="rastreo" maxlength="80" value="${escapeHtml(p.rastreo || "")}" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>
+      </div>` : ""}
+      ${swmDeclaracionHTML(p)}
+      ${n ? `<label class="flex items-center gap-2 text-xs"><input type="checkbox" data-e="quitar" class="accent-[#c4466e]" /> Quitar mis ${n} archivo${n === 1 ? "" : "s"} anterior${n === 1 ? "" : "es"} (si no, se suman los nuevos)</label>` : ""}
+      ${p.crucePagado ? "" : `<label class="flex items-center gap-2 text-xs"><input type="checkbox" data-c="comision" class="accent-[#c4466e]"${p.cobro === "comision" ? " checked" : ""} /> Pagar el cruce con el 15% del valor (en vez de por peso)</label>`}
+      <p data-c-err class="hidden text-xs text-sale"></p>
+      <div class="flex gap-2"><button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Guardar cambios</button>
+      ${p.correccion && p.correccion.estado === "pedida" ? "" : `<button type="button" data-swm-editar-toggle="${escapeHtml(p.id)}" class="rounded-full px-4 py-2 text-xs font-semibold text-ink/70">Cancelar</button>`}</div>
+    </form>`;
+}
 
 async function swmLeerDeclaracion(root, cobro) {
   const box = root.querySelector("[data-decl]");
@@ -598,7 +645,7 @@ async function loadSwm() {
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) swm.error = "Tu sesión venció. Vuelve a iniciar sesión.";
     else if (!res.ok) swm.error = data.error || "No se pudo cargar tu casillero.";
-    else Object.assign(swm, { paquetes: data.paquetes || [], compras: data.compras || [], envios: data.envios || [], name: data.name || "", phone: data.phone || "", casillero: data.casillero || "", precios: data.precios || swm.precios, almacenajeDias: data.almacenajeDias || 30, error: "" });
+    else Object.assign(swm, { paquetes: data.paquetes || [], compras: data.compras || [], envios: data.envios || [], name: data.name || "", phone: data.phone || "", casillero: data.casillero || "", precios: data.precios || swm.precios, almacenajeDias: data.almacenajeDias || 30, tiposCambio: data.tiposCambio || {}, comisionPct: data.comisionPct || 15, error: "" });
   } catch (err) {
     swm.error = "No se pudo cargar tu casillero. Revisa tu conexión.";
   }
@@ -721,6 +768,13 @@ function initSwm() {
   const waHref = whatsappHref("Hola Mae! Tengo una duda sobre Shop with Mae (compras en EE.UU.).");
   if (waHref) { wa.href = waHref; wa.target = "_blank"; wa.rel = "noopener"; }
 
+  const estimado = (e) => {
+    if (e.target.closest("[data-decl-total], [data-decl-moneda], input[name='swm-cobro'], [data-c='comision']")) {
+      swmActualizarEstimado(e.target.closest("form") || e.target.closest("[data-decl]").parentElement);
+    }
+  };
+  sec.addEventListener("input", estimado);
+  sec.addEventListener("change", estimado);
   sec.addEventListener("change", (e) => {
     const input = e.target.closest("[data-decl-file]");
     if (!input) return;
@@ -729,6 +783,14 @@ function initSwm() {
     out.textContent = n > SWM_MAX_ARCHIVOS ? `Elegiste ${n}; el máximo es ${SWM_MAX_ARCHIVOS}.` : n ? `${n} archivo${n === 1 ? "" : "s"} listo${n === 1 ? "" : "s"} para subir.` : "";
   });
   sec.addEventListener("click", (e) => {
+    const editToggle = e.target.closest("[data-swm-editar-toggle]");
+    if (editToggle) {
+      swm.editando = swm.editando === editToggle.dataset.swmEditarToggle ? "" : editToggle.dataset.swmEditarToggle;
+      renderSwmCasillero();
+      const form = document.querySelector(`[data-swm-editar="${CSS.escape(swm.editando)}"]`);
+      if (form) { swmActualizarEstimado(form); form.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+      return;
+    }
     const addRow = e.target.closest("[data-decl-add]");
     if (addRow) {
       const rows = addRow.closest("[data-decl]").querySelector("[data-decl-rows]");
@@ -819,6 +881,44 @@ function initSwm() {
       const btn = sep.querySelector('button[type="submit"]');
       btn.disabled = true;
       swmPost({ accion: "pedir_separar", id: sep.dataset.swmSeparar, nota }).then(loadSwm, (ex) => { err.textContent = ex.message; err.classList.remove("hidden"); btn.disabled = false; });
+      return;
+    }
+    const edit = e.target.closest("[data-swm-editar]");
+    if (edit) {
+      e.preventDefault();
+      const err = edit.querySelector("[data-c-err]");
+      const btn = edit.querySelector('button[type="submit"]');
+      const chk = edit.querySelector('[data-c="comision"]');
+      const cobro = chk ? (chk.checked ? "comision" : "peso") : undefined;
+      const extra = {};
+      const tienda = edit.querySelector('[data-e="tienda"]');
+      const rastreo = edit.querySelector('[data-e="rastreo"]');
+      if (tienda) extra.tienda = tienda.value.trim();
+      if (rastreo) {
+        extra.rastreo = rastreo.value.trim();
+        if (!extra.rastreo) { err.textContent = "Pon el número de rastreo (guía) de tu paquete."; err.classList.remove("hidden"); return; }
+      }
+      const quitar = edit.querySelector('[data-e="quitar"]');
+      if (quitar && quitar.checked) extra.quitarArchivos = true;
+      const p = swm.paquetes.find((x) => x.id === edit.dataset.swmEditar) || {};
+      const yaTiene = swmNumArchivos(p) && !extra.quitarArchivos;
+      btn.disabled = true;
+      // Si ya tiene capturas, no le pedimos volver a escribir ni subir nada.
+      const leer = yaTiene
+        ? swmLeerDeclaracion(edit, cobro).catch((ex) => {
+          if (/^Sube capturas/.test(ex.message)) {
+            const box = edit.querySelector("[data-decl]");
+            return { articulos: [], valorTotal: box.querySelector("[data-decl-total]").value, moneda: box.querySelector("[data-decl-moneda]").value, facturas: [] };
+          }
+          throw ex;
+        })
+        : swmLeerDeclaracion(edit, cobro);
+      leer
+        .then((dec) => {
+          if (!(parseFloat(dec.valorTotal) > 0)) throw new Error("Escribe el valor total de los artículos (con tax, sin envío).");
+          return swmPost({ accion: "editar_paquete", id: edit.dataset.swmEditar, cobro, ...extra, ...dec });
+        })
+        .then(() => { swm.editando = ""; return loadSwm(); }, (ex) => { err.textContent = ex.message; err.classList.remove("hidden"); btn.disabled = false; });
       return;
     }
     const comp = e.target.closest("[data-swm-completar]");
