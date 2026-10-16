@@ -98,8 +98,17 @@ exports.handler = async (event) => {
 
   rates.sort((a, b) => (Number(a.total) || Infinity) - (Number(b.total) || Infinity));
 
+  // Motivo corto de por qué falló cada paquetería, para mostrarlo en el
+  // panel (solo lo ve la admin) y saber si es la cuenta, el origen o el CP.
+  const providerErrorDetail = {};
+  if (epResult.status === "rejected") providerErrorDetail.enviosperros = errorDetail(epResult.reason);
+  if (sdResult.status === "rejected") providerErrorDetail.skydropx = errorDetail(sdResult.reason);
+
   if (!rates.length) {
-    return jsonResponse(502, { error: "No se pudo cotizar con ninguna paquetería. Revisa el código postal o intenta de nuevo." });
+    return jsonResponse(502, {
+      error: "No se pudo cotizar con ninguna paquetería. Revisa el código postal o intenta de nuevo.",
+      providerErrorDetail,
+    });
   }
 
   return jsonResponse(200, {
@@ -108,8 +117,20 @@ exports.handler = async (event) => {
       enviosperros: epResult.status === "rejected",
       skydropx: sdResult.status === "rejected",
     },
+    providerErrorDetail,
   });
 };
+
+function errorDetail(err) {
+  if (!err) return "Error desconocido";
+  let msg = err.message || String(err);
+  if (err.status) msg += ` (HTTP ${err.status})`;
+  if (err.body) {
+    const b = typeof err.body === "string" ? err.body : JSON.stringify(err.body);
+    msg += `: ${b.slice(0, 300)}`;
+  }
+  return msg;
+}
 
 function jsonResponse(statusCode, obj) {
   return {

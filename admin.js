@@ -867,11 +867,15 @@
         body: JSON.stringify({ orderId, weight, destinationZipCode, destinationState, destinationCity, destinationNeighborhood }),
       });
       const data = await res.json();
+      const fallas = Object.entries(data.providerErrorDetail || {})
+        .map(([p, msg]) => `${p === "skydropx" ? "Skydropx" : "Envíos Perros"} no respondió: ${msg}`)
+        .join(" · ");
       if (!res.ok) {
         ratesEl.innerHTML = "";
-        errorEl.textContent = data.error || "No se pudo cotizar el envío.";
+        errorEl.textContent = [data.error || "No se pudo cotizar el envío.", fallas].filter(Boolean).join(" · ");
         return;
       }
+      errorEl.textContent = fallas;
       const rates = data.rates || [];
       if (!rates.length) {
         ratesEl.innerHTML = "";
