@@ -4518,7 +4518,7 @@ ${itemLines}
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">${fotosHtml(p)}<button type="button" class="btn-secondary" data-swm-cancel="paquete:${escapeHtml(p.id)}" style="padding:6px 12px;font-size:13px;">Ya dispuse de él</button></div>
     </div>` : ""}${sinDuena ? "" : `
       <div class="meta">${swmWho(p)}<br>${p.origen === "sin_registro" ? `⚠️ Llegó sin registrar (cargo ${formatPrice(p.cargoSinRegistro || 0)})${p.datosPendientes ? " · <b>ella todavía no dice qué trae</b>" : ""} · ` : ""}${p.origen === "compra" ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "comision" ? `15% de US$${Number(p.valorUSD || 0).toFixed(2)}` : "por peso"}${p.contenido ? ` · ${escapeHtml(p.contenido)}` : ""}
-        ${p.valorTotal ? `<br>Valor declarado (sin envío ni impuestos): <b>${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}</b>` : ""}
+        ${p.valorTotal ? `<br>Valor declarado (con tax, sin envío): <b>${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}</b>` : ""}
         ${p.factura ? ` <button type="button" class="btn-secondary" data-swm-file="factura/paquete/${escapeHtml(p.id)}" style="padding:4px 10px;font-size:12px;">📄 Ver factura</button>` : ""}
         ${p.receivedAt ? `<br>Llegó ${swmFecha(p.receivedAt)} · almacenaje gratis ${vence > 0 ? `${vence} días más` : "<b style='color:#b33660'>vencido</b>"}` : ""}</div>
       ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}

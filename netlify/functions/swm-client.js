@@ -7,8 +7,8 @@
 //   registrar_paquete { tienda, rastreo, articulos[], valorTotal, moneda, factura?, cobro, aceptaRestricciones }
 //                     articulos = [{ desc, cant, costo }] escritos a mano y/o factura =
 //                     { filename, contentType, dataBase64 } (PDF o captura del resumen);
-//                     valorTotal/moneda = lo que costaron los artículos, sin envío ni impuestos;
-//                     valorUSD = valor con tax en USD (solo para cobro "comision", el 15%).
+//                     valorTotal/moneda = lo que costaron los artículos con tax, sin envío
+//                     (si es en USD también es la base del 15% del cobro "comision").
 //   solicitar_compra  { links, notas, cobro, aceptaRestricciones }
 //   solicitar_envio   { paqueteIds[], consolidar, direccion{...} }
 //   pagar             { kind: "compra"|"envio", id, metodo: "mercadopago"|"transferencia" }
@@ -39,7 +39,7 @@ const MAX_FACTURA = 4 * 1024 * 1024;
 
 /* Lo que la clienta declara que trae su paquete: la lista de artículos con
    su costo (a mano) y/o la factura o captura del resumen de compra, más el
-   valor total de los artículos (sin envío ni impuestos) en su moneda.
+   valor total de los artículos (con tax, sin envío) en su moneda.
    Regresa { error } o { datos, factura }. */
 function leerDeclaracion(b, cobro) {
   const rows = (Array.isArray(b.articulos) ? b.articulos : []).slice(0, 60).map((a) => ({
@@ -61,10 +61,10 @@ function leerDeclaracion(b, cobro) {
   if (!rows.length && !factura) return { error: "Escribe qué trae tu paquete con el costo de cada artículo, o sube la factura o captura del resumen de tu compra." };
   const valorTotal = Math.max(0, Math.min(1e9, parseFloat(b.valorTotal) || 0));
   const moneda = MONEDAS.includes(b.moneda) ? b.moneda : "";
-  if (!(valorTotal > 0) || !moneda) return { error: "Escribe el valor total de los artículos (sin envío ni impuestos) y en qué moneda." };
-  // El 15% se cobra sobre el valor con tax en USD (aparte del valor declarado).
-  const valorUSD = Math.max(0, Math.min(100000, parseFloat(b.valorUSD) || 0)) || (moneda === "USD" ? valorTotal : 0);
-  if (cobro === "comision" && !(valorUSD > 0)) return { error: "Para pagar el cruce con el 15%, escribe el valor de tus productos con tax en dólares (USD)." };
+  if (!(valorTotal > 0) || !moneda) return { error: "Escribe el valor total de los artículos (con tax, sin envío) y en qué moneda." };
+  // El 15% se cobra sobre este mismo valor, así que debe venir en USD.
+  if (cobro === "comision" && moneda !== "USD") return { error: "Para pagar el cruce con el 15%, escribe el valor total en dólares (USD)." };
+  const valorUSD = moneda === "USD" ? valorTotal : 0;
   const fmt = (n) => Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
   const contenido = clip(rows.length
     ? rows.map((a) => `${a.cant > 1 ? `${a.cant}× ` : ""}${a.desc} (${fmt(a.costo)} ${moneda})`).join(", ")
