@@ -2270,7 +2270,9 @@ function groupVariants(list) {
   const order = [];
   const groups = new Map();
   for (const { p, baseName, shadeLabel } of parsed) {
-    const key = `${p.marca}||${baseName}||${p.presentacion || ""}`;
+    // Lo que solo está en Stock no trae presentación; cuenta como pieza
+    // individual para juntarse con sus tonos que sí vienen del catálogo.
+    const key = `${p.marca}||${baseName}||${p.presentacion || (p.enStock ? "Pieza individual" : "")}`;
 
     let entry = groups.get(key);
     const isNewFamily = !entry;
@@ -2303,6 +2305,12 @@ function groupVariants(list) {
   // base sin tono.
   // Sin el "- 40 Colores" del nombre base, que ya no aplica.
   return order.map((entry) => {
+    // "- 23 Colores" solo si de verdad están todos; si hay menos (como en
+    // Stock), se quita para no confundir.
+    const total = entry.variants && /\s*-\s*(\d+)\s+[A-Za-zÀ-ÿ]+$/.exec(entry.nombre || "");
+    if (total && entry.variants.length > 1 && entry.variants.length < Number(total[1])) {
+      entry.nombre = entry.nombre.slice(0, total.index);
+    }
     if (!(entry.variants && entry.variants.length === 1)) return entry;
     const v = entry.variants[0];
     if (!v.label || v.label === v.product.nombre) return v.product;
