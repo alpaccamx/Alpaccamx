@@ -23,6 +23,7 @@ const enviosPerros = require("./lib/enviosperros.js");
 const skydropx = require("./lib/skydropx.js");
 const { notifyCustomerOrderShipped } = require("./lib/whatsapp.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
@@ -107,8 +108,8 @@ exports.handler = async (event) => {
     });
 
     // Igual que en admin-add-tracking.js: solo se manda si la clienta
-    // tiene cuenta con ese teléfono (los pedidos no guardan correo).
-    const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+    // tiene cuenta con ese teléfono (se usa el correo de la cuenta con la que compró).
+    const customer = await cuentaDelPedido(order);
     if (customer?.email) {
       await sendEmail({
         to: customer.email,

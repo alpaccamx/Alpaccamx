@@ -13,7 +13,7 @@ const { notifySellerOrderPaid, notifyCustomerOrderConfirmed } = require("./lib/w
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { sendEmail, orderConfirmedEmailHTML, orderCancelledEmailHTML } = require("./lib/email.js");
-const { avisarPedido, numeroPedido } = require("./lib/order-notify.js");
+const { avisarPedido, numeroPedido, cuentaDelPedido } = require("./lib/order-notify.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
@@ -55,9 +55,8 @@ exports.handler = async (event) => {
         await notifyCustomerOrderConfirmed(order);
 
         // Igual que al mandar la guía o cancelar: solo se manda si la
-        // clienta tiene cuenta con ese teléfono (los pedidos no guardan
-        // correo).
-        const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+        // clienta tiene cuenta con ese teléfono (se usa el correo de la cuenta).
+        const customer = await cuentaDelPedido(order);
         if (customer?.email) {
           await sendEmail({
             to: customer.email,
@@ -77,8 +76,8 @@ exports.handler = async (event) => {
     await avisarPedido(order, { asunto: `Tu pedido ${n} se canceló`, texto: `tu pedido ${n} se canceló. Si tienes dudas, escríbenos por WhatsApp`, soloWhatsApp: true });
 
     // Igual que al mandar la guía: solo se manda si la clienta tiene
-    // cuenta con ese teléfono (los pedidos no guardan correo).
-    const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+    // cuenta con ese teléfono (se usa el correo de la cuenta con la que compró).
+    const customer = await cuentaDelPedido(order);
     if (customer?.email) {
       await sendEmail({
         to: customer.email,

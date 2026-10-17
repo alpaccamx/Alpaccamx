@@ -15,6 +15,7 @@ const { notifySellerOrderPaid, notifyCustomerOrderConfirmed, notifySellerPayment
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { TOLERANCE_MXN } = require("./lib/pricing.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderConfirmedEmailHTML } = require("./lib/email.js");
 
 const { aplicarPago: aplicarPagoSwm } = require("./lib/swm-core.js");
@@ -124,8 +125,8 @@ exports.handler = async (event) => {
       await notifyCustomerOrderConfirmed(order);
 
       // Igual que en admin-confirm-order.js: solo se manda si la clienta
-      // tiene cuenta con ese teléfono (los pedidos no guardan correo).
-      const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+      // tiene cuenta con ese teléfono (se usa el correo de la cuenta con la que compró).
+      const customer = await cuentaDelPedido(order);
       if (customer?.email) {
         await sendEmail({
           to: customer.email,
