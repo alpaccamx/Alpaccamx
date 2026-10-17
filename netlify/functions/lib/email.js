@@ -56,7 +56,7 @@ function formatPriceMXN(n) {
 // correos -- tiene que ser una URL absoluta (no una ruta relativa como
 // "./assets/...") porque el correo se ve fuera del sitio, en el cliente
 // de correo de quien lo recibe.
-const MASCOT_URL = "https://alpacca.mx/assets/email/alpaca-correo.png";
+const MASCOT_URL = "https://alpacca.mx/assets/email/alpaca-ayuda.png";
 const HEADER_URL = "https://alpacca.mx/assets/email/encabezado-correo.png";
 const WHATSAPP_URL = "https://wa.me/5216571920559";
 
@@ -78,7 +78,7 @@ function baseEmailHTML(bodyHTML) {
         ${bodyHTML}
       </td></tr>
       <tr><td style="padding:22px 10px 6px;text-align:center;">
-        <img src="${MASCOT_URL}" alt="" width="54" style="width:54px;height:auto;display:inline-block;margin:0 0 6px;" />
+        <img src="${MASCOT_URL}" alt="" width="96" style="width:96px;height:auto;display:inline-block;margin:0 0 6px;" />
         <p style="margin:0 0 10px;font-size:13px;color:#6f6474;">¿Dudas? Estamos para ayudarte 💗</p>
         <a href="${WHATSAPP_URL}" style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:10px 20px;border-radius:999px;">💬 Escríbenos por WhatsApp</a>
         <p style="margin:16px 0 0;font-size:12px;color:#9a8f9e;">Alpacca · Skincare coreano · Ciudad Juárez<br><a href="https://alpacca.mx" style="color:#c4466e;text-decoration:none;">alpacca.mx</a></p>
