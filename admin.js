@@ -631,6 +631,9 @@
     container.querySelectorAll("[data-edit-save]").forEach((btn) => {
       btn.addEventListener("click", () => saveOrderEdit(btn.dataset.editSave, btn));
     });
+    container.querySelectorAll("[data-cancel-paid]").forEach((btn) => {
+      btn.addEventListener("click", () => confirmOrCancel(btn.dataset.cancelPaid, "cancel_paid"));
+    });
     container.querySelectorAll('[id^="edit-form-"]').forEach((form) => {
       const orderId = form.id.replace("edit-form-", "");
       wireEditItemRowRemovers(form);
@@ -1519,6 +1522,8 @@ ${itemLines}
           ${stockHint}
           <div class="guide-error" id="edit-error-${o.id}"></div>
           <button type="button" class="btn-primary" data-edit-save="${o.id}">💾 Guardar cambios</button>
+          <p class="edit-hint">A la clienta le llega un aviso con lo que cambió y, si ya pagó, si le debes un reembolso o le falta pagar.</p>
+          ${o.status === "paid" ? `<button type="button" class="btn-danger" data-cancel-paid="${o.id}" style="margin-top:8px;">✕ Cancelar todo el pedido (reembolso)</button>` : ""}
         </div>
       </div>`;
   }
@@ -2954,6 +2959,12 @@ ${itemLines}
       const o = allOrders.find((x) => x.id === orderId);
       const who = o && o.customer && o.customer.name ? ` de ${o.customer.name}` : "";
       if (!window.confirm(`¿Cancelar el pedido${who}? Se marcará como NO pagado.`)) return;
+    }
+    if (action === "cancel_paid") {
+      const o = allOrders.find((x) => x.id === orderId);
+      const who = o && o.customer && o.customer.name ? ` de ${o.customer.name}` : "";
+      const pagado = o ? (o.montoPagado != null ? o.montoPagado : o.grandTotal) : 0;
+      if (!window.confirm(`¿Cancelar TODO el pedido${who}? Ya pagó ${formatPrice(pagado)}: le avisamos por correo y WhatsApp que te escriba para su reembolso, y las piezas en stock regresan a tu inventario. El reembolso lo haces tú.`)) return;
     }
     setStatus(action === "confirm" ? "Confirmando..." : "Cancelando...");
     try {

@@ -99,6 +99,7 @@ exports.handler = async (event) => {
     const { order: current } = await transitionOrder(orderId, "paid", {
       paidAt: new Date().toISOString(),
       paymentId: payment.id,
+      montoPagado: Number(payment.transaction_amount) || Number(existing.grandTotal) || 0,
     });
 
     // El pedido no estaba pendiente (cancelado, fallido, en revisión). Se
