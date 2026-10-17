@@ -4493,6 +4493,7 @@ function openRouteView(params, restore) {
   else if (ver === "favoritos") openWishlistSection();
   else if ((ver === "shopwithmae" || ver === "direccion-americana") && typeof openSwmSection === "function") openSwmSection({ restore });
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
+  else if (ver === "mis-pedidos") { showHomeView("home"); if (!restore) openAccountPanel(); }
   else showHomeView("home");
 }
 
