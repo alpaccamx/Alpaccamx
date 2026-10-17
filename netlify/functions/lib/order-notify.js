@@ -6,6 +6,7 @@
 const { sendEmail, baseEmailHTML } = require("./email.js");
 const { getCustomerByPhone } = require("./customer-store.js");
 const { notifyCustomerTemplate } = require("./whatsapp.js");
+const { loadCatalog } = require("./catalog-source.js");
 
 const SITE = "https://alpacca.mx";
 const numeroPedido = (order) => String(order.id || "").slice(0, 8).toUpperCase();
@@ -45,10 +46,50 @@ const fmtMXN = (v) => (Number(v) || 0).toLocaleString("es-MX", { style: "currenc
    pedido viejo sin ese dato, su total antes del cambio. */
 const montoPagado = (order) => (order.montoPagado != null ? Number(order.montoPagado) : Number(order.grandTotal) || 0);
 
+/* Nombre completo y claro de un artículo: marca, nombre, tono, capacidad
+   (ml, g...) y si es pieza individual o caja. El tono y la presentación
+   vienen en el nombre del pedido ("... (#21 Beige) (Pieza individual)");
+   la capacidad sale del catálogo por SKU. */
+const PRESENTACION_RE = /^(pieza individual|caja (con|de) \d+ piezas?)$/i;
+function describirArticulo(it, fila) {
+  let nombre = String(it.nombre || "").trim();
+  const extras = [];
+  let presentacion = "";
+  let tono = "";
+  // Quita del final los paréntesis de presentación y tono.
+  for (let i = 0; i < 3; i++) {
+    const m = /\s*\(([^()]*)\)\s*$/.exec(nombre);
+    if (!m) break;
+    if (PRESENTACION_RE.test(m[1])) presentacion = m[1];
+    else if (/^#/.test(m[1])) tono = m[1];
+    else break;
+    nombre = nombre.slice(0, m.index).trim();
+  }
+  nombre = nombre.replace(/\s*-\s*\d+\s+(colores|tonos|versiones|tipos)$/i, "");
+  const capacidad = fila && fila.Capacidad;
+  if (tono) extras.push(`Tono ${tono}`);
+  if (capacidad && !nombre.toLowerCase().includes(String(capacidad).toLowerCase())) extras.push(capacidad);
+  presentacion = presentacion || (fila && fila.Presentacion) || "";
+  if (presentacion) extras.push(presentacion.charAt(0).toUpperCase() + presentacion.slice(1));
+  return `${it.marca ? `${it.marca} ` : ""}${nombre}${extras.length ? ` (${extras.join(", ")})` : ""}`;
+}
+
+/* Agrega "detalle" (el nombre claro de arriba) a cada artículo. */
+async function conDetalle(items) {
+  let porSku = new Map();
+  try {
+    const { rows } = await loadCatalog();
+    porSku = new Map(rows.filter((r) => r.SKU).map((r) => [r.SKU, r]));
+  } catch (err) {
+    console.error("No se pudo leer el catálogo para el aviso:", err);
+  }
+  return (items || []).map((it) => ({ ...it, detalle: describirArticulo(it, porSku.get(it.sku) || porSku.get(String(it.sku || "").replace(/__stock$/, ""))) }));
+}
+
 /* Qué cambió entre los productos de antes y los de ahora. */
 function cambiosProductos(antes, ahora) {
   const key = (it) => String(it.sku || it.nombre).toLowerCase();
-  const nombre = (it) => `${it.marca ? `${it.marca} ` : ""}${it.nombre}`;
+  const nombre = (it) => it.detalle || `${it.marca ? `${it.marca} ` : ""}${it.nombre}`;
   const piezas = (n) => `${n} pieza${n === 1 ? "" : "s"}`;
   const prev = new Map((antes || []).map((it) => [key(it), it]));
   const next = new Map((ahora || []).map((it) => [key(it), it]));
@@ -85,7 +126,7 @@ function avisoCambioPedido(order, items, nuevoTotal, pagado, envio = 0) {
     : [
       ["Ya pagaste", fmtMXN(pagado), ""],
       ["Total nuevo de tu pedido", fmtMXN(nuevoTotal), ""],
-      reembolso ? ["✅ Te vamos a reembolsar", fmtMXN(dif), "#17803d"]
+      reembolso ? ["✅ Te reembolsaremos", fmtMXN(dif), "#17803d"]
         : debe ? ["⚠️ Te falta pagar", fmtMXN(-dif), "#b33660"]
           : ["Diferencia", "$0.00 (no tienes que hacer nada)", ""],
     ];
@@ -94,7 +135,7 @@ function avisoCambioPedido(order, items, nuevoTotal, pagado, envio = 0) {
     : debe ? "Escríbenos por WhatsApp para pagar la diferencia."
       : pagado == null ? "Paga el total nuevo para que confirmemos tu pedido." : "";
 
-  const asunto = reembolso ? `Cambiamos tu pedido ${n}: te reembolsamos ${fmtMXN(dif)}`
+  const asunto = reembolso ? `Cambiamos tu pedido ${n}: te reembolsaremos ${fmtMXN(dif)}`
     : debe ? `Cambiamos tu pedido ${n}: falta pagar ${fmtMXN(-dif)}`
       : `Cambiamos tu pedido ${n}`;
 
@@ -117,7 +158,7 @@ function avisoCambioPedido(order, items, nuevoTotal, pagado, envio = 0) {
     </table>
     ${sigue ? `<p style="font-size:15px;margin:16px 0 6px;"><b>¿Qué sigue?</b></p><p style="font-size:14px;margin:0;">${reembolso || debe ? `<a href="https://wa.me/${WHATSAPP_MAE}" style="color:#c4466e;font-weight:700;">${esc(sigue)}</a>` : esc(sigue)}</p>` : ""}
     <p style="font-size:15px;margin:16px 0 6px;"><b>Así quedó tu pedido</b></p>
-    <ul style="font-size:14px;margin:0;padding-left:20px;">${(items || []).map((it) => li(`${it.marca ? `${it.marca} ` : ""}${it.nombre} · ${it.qty} pieza${it.qty === 1 ? "" : "s"} · ${fmtMXN(it.precio * it.qty)}`)).join("")}${extrasLista(items, nuevoTotal, envio).map(li).join("")}</ul>
+    <ul style="font-size:14px;margin:0;padding-left:20px;">${(items || []).map((it) => li(`${it.detalle || `${it.marca ? `${it.marca} ` : ""}${it.nombre}`} · ${it.qty} pieza${it.qty === 1 ? "" : "s"} · ${fmtMXN(it.precio * it.qty)}`)).join("")}${extrasLista(items, nuevoTotal, envio).map(li).join("")}</ul>
     <p style="font-size:14px;margin:6px 0 0;"><b>Total: ${fmtMXN(nuevoTotal)}</b></p>`;
   return { asunto, texto, html, intro: "" };
 }
@@ -136,13 +177,14 @@ function extrasLista(items, total, envio) {
 function avisoCancelacionPagada(order) {
   const n = numeroPedido(order);
   const pagado = montoPagado(order);
-  const asunto = `Cancelamos tu pedido ${n}: te reembolsamos ${fmtMXN(pagado)}`;
-  const texto = [`cancelamos tu pedido ${n} completo`, `Ya pagaste: ${fmtMXN(pagado)}`, `✅ Te vamos a reembolsar: ${fmtMXN(pagado)} (todo)`, "Escríbenos por WhatsApp para hacerte tu reembolso"].join(" · ");
+  const asunto = `Cancelamos tu pedido ${n}: te reembolsaremos ${fmtMXN(pagado)}`;
+  const texto = [`cancelamos tu pedido ${n} completo`, `Ya pagaste: ${fmtMXN(pagado)}`, `✅ Te reembolsaremos: ${fmtMXN(pagado)} (todo)`, "Escríbenos por WhatsApp para hacerte tu reembolso"].join(" · ");
   const html = `
-    <p style="font-size:14px;">Cancelamos tu pedido <b>${esc(n)}</b> completo.</p>
+    <p style="font-size:14px;">Cancelamos tu pedido <b>${esc(n)}</b> completo. Tenía:</p>
+    <ul style="font-size:14px;margin:0 0 10px;padding-left:20px;">${(order.items || []).map((it) => `<li style="margin:2px 0;">${esc(it.detalle || `${it.marca ? `${it.marca} ` : ""}${it.nombre}`)} · ${it.qty} pieza${it.qty === 1 ? "" : "s"}</li>`).join("")}</ul>
     <table style="font-size:14px;border-collapse:collapse;width:100%;max-width:420px;">
       <tr><td style="padding:6px 0;border-bottom:1px solid #eee;">Ya pagaste</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;">${fmtMXN(pagado)}</td></tr>
-      <tr><td style="padding:6px 0;border-bottom:1px solid #eee;">✅ Te vamos a reembolsar</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#17803d;">${fmtMXN(pagado)} (todo)</td></tr>
+      <tr><td style="padding:6px 0;border-bottom:1px solid #eee;">✅ Te reembolsaremos</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#17803d;">${fmtMXN(pagado)} (todo)</td></tr>
     </table>
     <p style="font-size:15px;margin:16px 0 6px;"><b>¿Qué sigue?</b></p>
     <p style="font-size:14px;margin:0;"><a href="https://wa.me/${WHATSAPP_MAE}" style="color:#c4466e;font-weight:700;">Escríbenos por WhatsApp para hacerte tu reembolso.</a></p>`;
@@ -153,4 +195,4 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 }
 
-module.exports = { avisarPedido, numeroPedido, cuentaDelPedido, esc, fmtMXN, montoPagado, cambiosProductos, avisoCambioPedido, avisoCancelacionPagada, WHATSAPP_MAE };
+module.exports = { avisarPedido, numeroPedido, cuentaDelPedido, esc, fmtMXN, montoPagado, cambiosProductos, avisoCambioPedido, avisoCancelacionPagada, conDetalle, describirArticulo, WHATSAPP_MAE };
