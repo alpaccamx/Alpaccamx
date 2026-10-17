@@ -57,18 +57,30 @@ function formatPriceMXN(n) {
 // "./assets/...") porque el correo se ve fuera del sitio, en el cliente
 // de correo de quien lo recibe.
 const LOGO_URL = "https://alpacca.mx/assets/logo-wordmark.png";
+const MASCOT_URL = "https://alpacca.mx/assets/mascot.png";
+const WHATSAPP_URL = "https://wa.me/5216571920559";
 
+/* Plantilla de todos los correos: franja rosa con la alpaca y el logo,
+   tarjeta blanca redondeada y pie con botón de WhatsApp. Va en tablas
+   (no divs con flex) porque así se ve igual en Gmail, Outlook y Apple Mail. */
 function baseEmailHTML(bodyHTML) {
   return `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; color: #2b2b2b;">
-      <div style="text-align: center; padding: 20px 0 4px;">
-        <img src="${LOGO_URL}" alt="Alpacca" width="160" style="width: 160px; height: auto; display: inline-block;" />
-      </div>
-      <div style="background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08);">
+  <div style="background:#fdf0f5;padding:24px 10px;margin:0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#2b2430;">
+      <tr><td style="background:#f6cadb;border-radius:20px 20px 0 0;padding:18px 20px 14px;text-align:center;">
+        <img src="${MASCOT_URL}" alt="" width="56" height="56" style="width:56px;height:56px;vertical-align:middle;display:inline-block;" />
+        <img src="${LOGO_URL}" alt="Alpacca" width="150" style="width:150px;height:auto;vertical-align:middle;display:inline-block;margin-left:6px;" />
+      </td></tr>
+      <tr><td style="background:#ffffff;border-radius:0 0 20px 20px;padding:26px 24px 28px;box-shadow:0 2px 10px rgba(196,70,110,.08);font-size:15px;line-height:1.5;">
         ${bodyHTML}
-      </div>
-      <p style="text-align: center; font-size: 12px; color: #999; margin-top: 20px;">Alpacca · alpacca.mx</p>
-    </div>`;
+      </td></tr>
+      <tr><td style="padding:22px 10px 6px;text-align:center;">
+        <p style="margin:0 0 10px;font-size:13px;color:#6f6474;">¿Dudas? Estamos para ayudarte 💗</p>
+        <a href="${WHATSAPP_URL}" style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:10px 20px;border-radius:999px;">💬 Escríbenos por WhatsApp</a>
+        <p style="margin:16px 0 0;font-size:12px;color:#9a8f9e;">Alpacca · Skincare coreano · Ciudad Juárez<br><a href="https://alpacca.mx" style="color:#c4466e;text-decoration:none;">alpacca.mx</a></p>
+      </td></tr>
+    </table>
+  </div>`;
 }
 
 function resetPasswordEmailHTML(name, resetUrl) {
