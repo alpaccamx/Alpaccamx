@@ -15,7 +15,7 @@ const { notifySellerOrderPaid, notifyCustomerOrderConfirmed } = require("./lib/w
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { sendEmail, orderConfirmedEmailHTML, orderCancelledEmailHTML } = require("./lib/email.js");
-const { avisarPedido, numeroPedido, cuentaDelPedido, fmtMXN, montoPagado, WHATSAPP_MAE } = require("./lib/order-notify.js");
+const { avisarPedido, numeroPedido, cuentaDelPedido, avisoCancelacionPagada } = require("./lib/order-notify.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
@@ -85,13 +85,7 @@ exports.handler = async (event) => {
       (order.items || []).forEach((it) => { if (it.enStock && it.sku && it.qty > 0) devolver[it.sku] = (devolver[it.sku] || 0) - it.qty; });
       await adjustStockSold(devolver).catch((err) => console.error("No se pudo regresar el stock vendido:", err));
       await applySheetStockDelta(devolver).catch((err) => console.error("Sheet de stock no actualizado (revisar a mano):", err));
-      const n = numeroPedido(order);
-      const pagado = montoPagado(order);
-      await avisarPedido(order, {
-        asunto: `Tu pedido ${n} se canceló: tienes un reembolso`,
-        texto: `cancelamos tu pedido ${n}. Pagaste ${fmtMXN(pagado)} y te los vamos a reembolsar completos: escríbenos por WhatsApp para hacerte tu reembolso`,
-        html: `<p style="font-size:14px;background:#eef8f2;border-radius:10px;padding:10px 12px;">Pagaste <b>${fmtMXN(pagado)}</b>. <a href="https://wa.me/${WHATSAPP_MAE}">Escríbenos por WhatsApp</a> para hacerte tu reembolso completo.</p>`,
-      });
+      await avisarPedido(order, avisoCancelacionPagada(order));
       return jsonResponse(200, { order });
     }
 
