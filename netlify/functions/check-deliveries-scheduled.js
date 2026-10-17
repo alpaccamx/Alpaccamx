@@ -16,6 +16,7 @@
 const { listOrders, updateOrderFields } = require("./lib/blob-store.js");
 const { getTrackingStatus } = require("./lib/shippo.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderDeliveredEmailHTML } = require("./lib/email.js");
 const { notifyCustomerOrderDelivered } = require("./lib/whatsapp.js");
 
@@ -45,7 +46,7 @@ exports.handler = async () => {
       deliveryFollowupSentAt: new Date().toISOString(),
     });
 
-    const customer = await getCustomerByPhone(updated.customer?.phone).catch(() => null);
+    const customer = await cuentaDelPedido(updated);
     if (customer?.email) {
       await sendEmail({
         to: customer.email,

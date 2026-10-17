@@ -8,6 +8,7 @@
 
 const { getOrder, updateOrderFields } = require("./lib/blob-store.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
 const { notifyCustomerOrderShipped } = require("./lib/whatsapp.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
@@ -50,7 +51,7 @@ exports.handler = async (event) => {
     // Solo se manda si la clienta tiene cuenta con ese teléfono (los
     // pedidos no guardan correo) -- si no, Mae le avisa a mano por el
     // link de WhatsApp que ya arma /admin.html con esta misma guía.
-    const customer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+    const customer = await cuentaDelPedido(order);
     if (customer?.email) {
       await sendEmail({
         to: customer.email,

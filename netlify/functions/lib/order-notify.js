@@ -1,6 +1,6 @@
 // Avisos a la clienta cuando Mae mueve algo de su pedido de la tienda en
 // /admin.html (etapa, productos, entrega personal, cancelación...): correo
-// (si tiene cuenta con ese teléfono; los pedidos no guardan correo) y
+// (el de la cuenta con la que compró) y
 // WhatsApp con la plantilla "aviso_pedido" (ver README).
 
 const { sendEmail, baseEmailHTML } = require("./email.js");
@@ -10,6 +10,14 @@ const { notifyCustomerTemplate } = require("./whatsapp.js");
 const SITE = "https://alpacca.mx";
 const numeroPedido = (order) => String(order.id || "").slice(0, 8).toUpperCase();
 
+/* Correo de la clienta de un pedido: el de la cuenta con la que compró
+   (los pedidos lo guardan en customerEmail, porque comprar pide iniciar
+   sesión). Los pedidos viejos sin ese dato se buscan por teléfono. */
+async function cuentaDelPedido(order) {
+  if (order && order.customerEmail) return { email: order.customerEmail };
+  return getCustomerByPhone(order && order.customer && order.customer.phone).catch(() => null);
+}
+
 /* texto = aviso corto (WhatsApp y resumen del correo); html = detalle
    extra opcional para el correo. */
 async function avisarPedido(order, { asunto, texto, html = "", soloWhatsApp = false }) {
@@ -17,7 +25,7 @@ async function avisarPedido(order, { asunto, texto, html = "", soloWhatsApp = fa
   const c = order.customer || {};
   await notifyCustomerTemplate("aviso_pedido", { phone: c.phone, name: c.name, texto }).catch((err) => console.error("aviso_pedido:", err));
   if (soloWhatsApp) return;
-  const cuenta = await getCustomerByPhone(c.phone).catch(() => null);
+  const cuenta = await cuentaDelPedido(order);
   if (!cuenta || !cuenta.email) return;
   await sendEmail({
     to: cuenta.email,
@@ -34,4 +42,4 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 }
 
-module.exports = { avisarPedido, numeroPedido, esc };
+module.exports = { avisarPedido, numeroPedido, cuentaDelPedido, esc };

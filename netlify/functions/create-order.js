@@ -44,6 +44,7 @@ const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/cou
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { notifySellerOrderCreated, notifyCustomerOrderPending } = require("./lib/whatsapp.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
+const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderPendingEmailHTML } = require("./lib/email.js");
 const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
@@ -51,11 +52,11 @@ const MP_API = "https://api.mercadopago.com";
 
 // Aviso a la CLIENTA de que su pedido ya se recibió y está pendiente de
 // confirmación -- el correo solo se manda si tiene cuenta con ese teléfono
-// (los pedidos no guardan correo); el de WhatsApp (plantilla
+// (se usa el correo de la cuenta con la que compró); el de WhatsApp (plantilla
 // "pedido_recibido") se intenta de todos modos, sin depender de que tenga
 // cuenta. Ninguno de los dos revienta si falla.
 async function notifyCustomerOrderReceived(order) {
-  const pendingCustomer = await getCustomerByPhone(order.customer?.phone).catch(() => null);
+  const pendingCustomer = await cuentaDelPedido(order);
   if (pendingCustomer?.email) {
     await sendEmail({
       to: pendingCustomer.email,
