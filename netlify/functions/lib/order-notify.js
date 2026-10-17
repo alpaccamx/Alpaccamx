@@ -96,11 +96,11 @@ function cambiosProductos(antes, ahora) {
   const out = { agregados: [], quitados: [], cantidad: [], precio: [] };
   next.forEach((it, k) => {
     const old = prev.get(k);
-    if (!old) { out.agregados.push(`${nombre(it)} (${piezas(it.qty)}, ${fmtMXN(it.precio)} c/u)`); return; }
+    if (!old) { out.agregados.push(`${nombre(it)} · ${piezas(it.qty)} · ${fmtMXN(it.precio)} c/u`); return; }
     if (old.qty !== it.qty) out.cantidad.push(`${nombre(it)}: antes ${piezas(old.qty)}, ahora ${piezas(it.qty)}`);
     if (Math.round(old.precio * 100) !== Math.round(it.precio * 100)) out.precio.push(`${nombre(it)}: antes ${fmtMXN(old.precio)}, ahora ${fmtMXN(it.precio)} c/u`);
   });
-  prev.forEach((it, k) => { if (!next.has(k)) out.quitados.push(`${nombre(it)} (${piezas(it.qty)})`); });
+  prev.forEach((it, k) => { if (!next.has(k)) out.quitados.push(`${nombre(it)} · ${piezas(it.qty)}`); });
   return out;
 }
 
@@ -140,13 +140,26 @@ function avisoCambioPedido(order, items, nuevoTotal, pagado, envio = 0) {
       : `Cambiamos tu pedido ${n}`;
 
   // WhatsApp: Meta no deja saltos de línea en las variables, así que va en
-  // bloques cortos separados por " · ".
-  const texto = [
+  // bloques cortos separados por " · ". Las cuentas y "qué sigue" siempre
+  // van completos; si no cabe, primero se acortan los nombres y si aún no
+  // cabe, se resume cuántos productos cambiaron (el detalle va en el correo).
+  const armar = (gs) => [
     `cambiamos tu pedido ${n}`,
-    ...grupos.map(([t, l]) => `${t}: ${l.join(", ")}`),
+    ...gs.map(([t, l]) => `${t}: ${l.join(", ")}`),
     ...cuentas.map(([t, v]) => `${t}: ${v}`),
     sigue.replace(/\.$/, ""),
   ].filter(Boolean).join(" · ");
+  let texto = armar(grupos);
+  if (texto.length > 800) {
+    const corto = cambiosProductos(
+      (order.items || []).map((it) => ({ ...it, detalle: `${it.marca ? `${it.marca} ` : ""}${String(it.nombre || "").replace(/\s*\(.*$/, "")}` })),
+      (items || []).map((it) => ({ ...it, detalle: `${it.marca ? `${it.marca} ` : ""}${String(it.nombre || "").replace(/\s*\(.*$/, "")}` })),
+    );
+    texto = armar(grupos.map(([t]) => [t, corto[{ "❌ Quitamos": "quitados", "➕ Agregamos": "agregados", "🔁 Cambiamos la cantidad": "cantidad", "🏷️ Cambiamos el precio": "precio" }[t]]]));
+  }
+  if (texto.length > 800) {
+    texto = armar(grupos.map(([t, l]) => [t, [`${l.length} producto${l.length === 1 ? "" : "s"} (detalle en tu correo)`]]));
+  }
 
   const li = (t) => `<li style="margin:2px 0;">${esc(t)}</li>`;
   const html = `

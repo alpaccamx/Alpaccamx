@@ -436,7 +436,8 @@ async function notifyCustomerTemplate(template, { phone, name, texto }) {
           language: { code: "es_MX" },
           components: [{ type: "body", parameters: [
             { type: "text", text: limpio(name || "", 40).split(" ")[0] || "hola" },
-            { type: "text", text: limpio(texto, 400) },
+            // La plantilla completa no puede pasar de 1024 caracteres.
+            { type: "text", text: limpio(texto, 850) },
           ] }],
         },
       }),
