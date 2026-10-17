@@ -610,12 +610,29 @@
     computedEl.textContent = formatPrice(subtotal + shipping);
   }
 
+  /* Pedido ya pagado: cuánto hay que reembolsarle o cuánto le falta pagar
+     con el "Total cobrado" que está escrito (lo mismo que se le avisa). */
+  function updateEditSaldo(orderId) {
+    const el = document.getElementById(`edit-saldo-${orderId}`);
+    const totalInput = document.getElementById(`edit-total-${orderId}`);
+    if (!el || !totalInput) return;
+    const pagado = Number(el.dataset.pagado) || 0;
+    const dif = Math.round((pagado - (Number(totalInput.value) || 0)) * 100) / 100;
+    el.style.color = dif > 0.5 ? "#17803d" : dif < -0.5 ? "#b33660" : "#5f5866";
+    el.textContent = dif > 0.5
+      ? `Pagó ${formatPrice(pagado)} → le debes reembolsar ${formatPrice(dif)}`
+      : dif < -0.5
+        ? `Pagó ${formatPrice(pagado)} → te debe ${formatPrice(-dif)} más`
+        : `Pagó ${formatPrice(pagado)} → sin diferencia`;
+  }
+
   function useComputedTotal(orderId) {
     const computedEl = document.getElementById(`edit-computed-${orderId}`);
     const totalInput = document.getElementById(`edit-total-${orderId}`);
     if (!computedEl || !totalInput) return;
     const num = Number(String(computedEl.textContent).replace(/[^0-9.-]/g, "")) || 0;
     totalInput.value = num;
+    updateEditSaldo(orderId);
   }
 
   function wireEditButtons(container) {
@@ -641,8 +658,10 @@
         if (e.target.matches(".edit-item-qty, .edit-item-precio") || e.target.id === `edit-shipping-${orderId}`) {
           updateEditComputedTotal(orderId);
         }
+        if (e.target.id === `edit-total-${orderId}`) updateEditSaldo(orderId);
       });
       updateEditComputedTotal(orderId);
+      updateEditSaldo(orderId);
     });
   }
 
@@ -1518,6 +1537,7 @@ ${itemLines}
           <input type="number" min="0" step="1" id="edit-total-${o.id}" value="${o.grandTotal || 0}" />
           <p class="edit-hint">Subtotal + envío = <span id="edit-computed-${o.id}">$0.00</span> ·
             <button type="button" data-edit-use-computed="${o.id}">usar este total</button></p>
+          ${o.status === "paid" ? `<p class="edit-hint" id="edit-saldo-${o.id}" data-pagado="${o.montoPagado != null ? o.montoPagado : o.grandTotal || 0}" style="font-weight:700;"></p>` : ""}
           ${mpWarning}
           ${stockHint}
           <div class="guide-error" id="edit-error-${o.id}"></div>
