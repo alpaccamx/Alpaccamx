@@ -6,14 +6,16 @@
 // Requiere el header "x-admin-key" con el valor de ADMIN_KEY (Netlify →
 // Site settings → Environment variables).
 //
-// Body esperado (JSON): { orderId, action: "confirm" | "cancel" }
+// Body esperado (JSON): { orderId, action: "confirm" | "cancel" | "cancel_paid" }
+//   cancel_paid = cancelar completo un pedido YA pagado: regresa al stock lo
+//   vendido y le avisa a la clienta que escriba para su reembolso.
 
-const { transitionOrder, applyStockDecrement } = require("./lib/blob-store.js");
+const { transitionOrder, transitionOrderFrom, applyStockDecrement, adjustStockSold, getOrder } = require("./lib/blob-store.js");
 const { notifySellerOrderPaid, notifyCustomerOrderConfirmed } = require("./lib/whatsapp.js");
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { sendEmail, orderConfirmedEmailHTML, orderCancelledEmailHTML } = require("./lib/email.js");
-const { avisarPedido, numeroPedido, cuentaDelPedido } = require("./lib/order-notify.js");
+const { avisarPedido, numeroPedido, cuentaDelPedido, fmtMXN, montoPagado, WHATSAPP_MAE } = require("./lib/order-notify.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
@@ -37,15 +39,17 @@ exports.handler = async (event) => {
   }
 
   const { orderId, action } = body;
-  if (!orderId || (action !== "confirm" && action !== "cancel")) {
+  if (!orderId || !["confirm", "cancel", "cancel_paid"].includes(action)) {
     return jsonResponse(400, { error: "Faltan orderId o action ('confirm'/'cancel')." });
   }
 
   try {
     if (action === "confirm") {
+      const before = await getOrder(orderId);
       const { order, transitioned } = await transitionOrder(orderId, "paid", {
         paidAt: new Date().toISOString(),
         confirmedBy: "admin",
+        montoPagado: before ? Number(before.grandTotal) || 0 : undefined,
       });
       if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
       if (transitioned) {
@@ -65,6 +69,29 @@ exports.handler = async (event) => {
           });
         }
       }
+      return jsonResponse(200, { order });
+    }
+
+    // Un pedido ya pagado también se puede cancelar completo: regresa al
+    // stock lo que se había descontado y se le avisa de su reembolso.
+    if (action === "cancel_paid") {
+      const { order, transitioned } = await transitionOrderFrom(orderId, "paid", "cancelled", {
+        cancelledAt: new Date().toISOString(),
+        cancelledAfterPayment: true,
+      });
+      if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
+      if (!transitioned) return jsonResponse(409, { error: "Ese pedido ya no está pagado." });
+      const devolver = {};
+      (order.items || []).forEach((it) => { if (it.enStock && it.sku && it.qty > 0) devolver[it.sku] = (devolver[it.sku] || 0) - it.qty; });
+      await adjustStockSold(devolver).catch((err) => console.error("No se pudo regresar el stock vendido:", err));
+      await applySheetStockDelta(devolver).catch((err) => console.error("Sheet de stock no actualizado (revisar a mano):", err));
+      const n = numeroPedido(order);
+      const pagado = montoPagado(order);
+      await avisarPedido(order, {
+        asunto: `Tu pedido ${n} se canceló: tienes un reembolso`,
+        texto: `cancelamos tu pedido ${n}. Pagaste ${fmtMXN(pagado)} y te los vamos a reembolsar completos: escríbenos por WhatsApp para hacerte tu reembolso`,
+        html: `<p style="font-size:14px;background:#eef8f2;border-radius:10px;padding:10px 12px;">Pagaste <b>${fmtMXN(pagado)}</b>. <a href="https://wa.me/${WHATSAPP_MAE}">Escríbenos por WhatsApp</a> para hacerte tu reembolso completo.</p>`,
+      });
       return jsonResponse(200, { order });
     }
 

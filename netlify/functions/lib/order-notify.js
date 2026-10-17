@@ -38,8 +38,31 @@ async function avisarPedido(order, { asunto, texto, html = "", soloWhatsApp = fa
   }).catch((err) => console.error("correo de aviso de pedido:", err));
 }
 
+const WHATSAPP_MAE = "5216571920559";
+const fmtMXN = (v) => (Number(v) || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+
+/* Cuánto pagó la clienta: lo que se guardó al confirmar el pago; si es un
+   pedido viejo sin ese dato, su total antes del cambio. */
+const montoPagado = (order) => (order.montoPagado != null ? Number(order.montoPagado) : Number(order.grandTotal) || 0);
+
+/* Qué cambió entre los productos de antes y los de ahora. */
+function cambiosProductos(antes, ahora) {
+  const key = (it) => String(it.sku || it.nombre).toLowerCase();
+  const nombre = (it) => `${it.marca ? `${it.marca} ` : ""}${it.nombre}`;
+  const prev = new Map((antes || []).map((it) => [key(it), it]));
+  const next = new Map((ahora || []).map((it) => [key(it), it]));
+  const out = { agregados: [], quitados: [], cantidad: [] };
+  next.forEach((it, k) => {
+    const old = prev.get(k);
+    if (!old) out.agregados.push(`${nombre(it)}${it.qty > 1 ? ` (×${it.qty})` : ""}`);
+    else if (old.qty !== it.qty) out.cantidad.push(`${nombre(it)}: de ${old.qty} a ${it.qty}`);
+  });
+  prev.forEach((it, k) => { if (!next.has(k)) out.quitados.push(`${nombre(it)}${it.qty > 1 ? ` (×${it.qty})` : ""}`); });
+  return out;
+}
+
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 }
 
-module.exports = { avisarPedido, numeroPedido, cuentaDelPedido, esc };
+module.exports = { avisarPedido, numeroPedido, cuentaDelPedido, esc, fmtMXN, montoPagado, cambiosProductos, WHATSAPP_MAE };
