@@ -2646,7 +2646,7 @@ function renderProductSheet(p) {
             : `<button type="button" data-sheet-add="${escapeAttr(p.id)}" class="h-12 rounded-full bg-ink text-cream font-semibold hover:bg-ink/85 transition">Agregar al carrito</button>`}
           <div class="flex gap-2">
             <a href="https://wa.me/?text=${encodeURIComponent(shareText)}" target="_blank" rel="noopener"
-              class="flex-1 h-11 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#dcf8e8] text-[#17803d] text-sm font-semibold hover:brightness-95">Compartir por WhatsApp</a>
+              class="flex-1 h-11 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#dcf8e8] text-[#11632d] text-sm font-semibold hover:brightness-95">Compartir por WhatsApp</a>
             <button type="button" data-sheet-copy="${escapeAttr(url)}" class="h-11 px-4 rounded-full border border-ink/20 text-sm font-semibold text-ink hover:bg-ink/5">Copiar link</button>
           </div>
         </div>
@@ -6417,7 +6417,7 @@ function myStepperHTML(o) {
       const now = i === curIdx;
       return `<li class="flex-1 flex flex-col items-center text-center relative" ${now ? 'aria-current="step"' : ""}>
         ${i > 0 ? `<span class="absolute top-[11px] right-1/2 w-full h-1 -z-0 rounded ${i <= curIdx ? "bg-rose" : "bg-ink/10"}"></span>` : ""}
-        <span class="relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${done ? "bg-rose text-cream" : "bg-white border-2 border-ink/15 text-ink/40"} ${now ? "ring-4 ring-rose/25" : ""}">${done ? "✓" : i + 1}</span>
+        <span class="relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${done ? "bg-rose-deep text-cream" : "bg-white border-2 border-ink/15 text-ink/40"} ${now ? "ring-4 ring-rose/25" : ""}">${done ? "✓" : i + 1}</span>
         <span class="mt-1 text-[11px] leading-tight ${now ? "font-bold text-ink" : done ? "text-ink/80" : "text-ink/50"}">${s.label}</span>
       </li>`;
     })
@@ -6651,7 +6651,7 @@ function myOrderCardHTML(o) {
         <input type="file" accept="image/*,application/pdf" data-my-proof-file="${escapeAttr(o.id)}"
           aria-label="Comprobante de transferencia de este pedido" class="text-xs w-full" />
         <button type="button" data-my-proof-btn="${escapeAttr(o.id)}"
-          class="tap w-full rounded-full bg-rose text-cream text-xs font-semibold py-2 hover:bg-rose/90 transition">📤 Subir comprobante</button>
+          class="tap w-full rounded-full bg-rose-deep text-cream text-xs font-semibold py-2 hover:bg-rose-ink transition">📤 Subir comprobante</button>
         <p data-my-proof-status="${escapeAttr(o.id)}" class="text-xs"></p>
       </div>`
     : "";

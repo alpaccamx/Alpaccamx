@@ -4,11 +4,16 @@
 //   IG_VERIFY_TOKEN       -> una palabra secreta que tú inventas, se usa solo para que Meta
 //                            confirme que este webhook es tuyo.
 //   IG_PAGE_ACCESS_TOKEN  -> el token que te da Meta al conectar tu cuenta de Instagram.
+//   IG_APP_SECRET         -> (recomendada) la "Clave secreta de la app" de Meta. Con ella
+//                            solo se responden mensajes que de verdad mandó Meta; sin ella,
+//                            cualquiera podría hacer que el bot mande mensajes desde tu cuenta.
 //
 // URL del webhook una vez publicado el sitio:
 //   https://TU-SITIO.netlify.app/.netlify/functions/instagram-webhook
 
+const crypto = require("crypto");
 const { buscarRespuesta } = require("./faq-data.js");
+const { safeCompare } = require("./lib/secure-compare.js");
 
 const GRAPH_API_VERSION = "v21.0";
 
@@ -28,8 +33,10 @@ exports.handler = async (event) => {
 
   // Meta llama con POST cada vez que llega un mensaje nuevo.
   if (event.httpMethod === "POST") {
+    const raw = event.isBase64Encoded ? Buffer.from(event.body || "", "base64").toString("utf8") : event.body || "";
+    if (!firmaValida(event, raw)) return { statusCode: 401, body: "Firma inválida" };
     try {
-      const body = JSON.parse(event.body || "{}");
+      const body = JSON.parse(raw || "{}");
       const entries = body.entry || [];
 
       for (const entry of entries) {
@@ -58,6 +65,18 @@ exports.handler = async (event) => {
 
   return { statusCode: 405, body: "Method Not Allowed" };
 };
+
+// Meta firma cada aviso con la clave secreta de la app (header
+// X-Hub-Signature-256). Si IG_APP_SECRET no está puesta, se deja pasar
+// como antes para no apagar el bot.
+function firmaValida(event, raw) {
+  const secret = process.env.IG_APP_SECRET;
+  if (!secret) return true;
+  const headers = event.headers || {};
+  const firma = String(headers["x-hub-signature-256"] || headers["X-Hub-Signature-256"] || "");
+  const esperada = "sha256=" + crypto.createHmac("sha256", secret).update(raw, "utf8").digest("hex");
+  return safeCompare(firma, esperada);
+}
 
 async function enviarMensaje(recipientId, texto) {
   const accessToken = process.env.IG_PAGE_ACCESS_TOKEN;
