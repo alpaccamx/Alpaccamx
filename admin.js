@@ -4828,15 +4828,15 @@ ${itemLines}
     });
   }
 
+  // Se muestra en el mismo visor de los comprobantes de la tienda. Abrir
+  // una pestaña nueva con blob: se quedaba en about:blank en el iPhone.
   async function swmOpenFile(key) {
-    const w = window.open("", "_blank");
     try {
       const res = await fetch(`/.netlify/functions/admin-swm?archivo=${encodeURIComponent(key)}`, { headers: { "x-admin-key": adminKey } });
       if (!res.ok) throw new Error("HTTP " + res.status);
-      const url = URL.createObjectURL(await res.blob());
-      if (w) w.location.href = url; else window.location.href = url;
+      const blob = await res.blob();
+      openProofViewer(URL.createObjectURL(blob), blob.type);
     } catch (err) {
-      if (w) w.close();
       alert("No se pudo abrir el archivo.");
     }
   }
