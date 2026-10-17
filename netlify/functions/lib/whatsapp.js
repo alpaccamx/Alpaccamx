@@ -409,7 +409,14 @@ async function notifyCustomerOrderDelivered(order) {
    nombre y el texto del aviso. Mismo número de PRODUCCIÓN que los demás
    avisos al cliente. Si falta configuración o el teléfono no tiene 10
    dígitos, no hace nada. */
-async function notifyCustomerSwm({ phone, name, texto }) {
+async function notifyCustomerSwm(aviso) {
+  return notifyCustomerTemplate("aviso_casillero", aviso);
+}
+
+/* Igual que arriba pero para cualquier plantilla de aviso con 2 variables
+   (nombre y texto): "aviso_casillero" (dirección americana) y
+   "aviso_pedido" (pedidos de la tienda). */
+async function notifyCustomerTemplate(template, { phone, name, texto }) {
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_CUSTOMER_PHONE_NUMBER_ID;
   const digits = String(phone || "").replace(/[^0-9]/g, "").replace(/^(?:52)?1?(\d{10})$/, "$1");
@@ -425,7 +432,7 @@ async function notifyCustomerSwm({ phone, name, texto }) {
         to: `52${digits}`,
         type: "template",
         template: {
-          name: "aviso_casillero",
+          name: template,
           language: { code: "es_MX" },
           components: [{ type: "body", parameters: [
             { type: "text", text: limpio(name || "", 40).split(" ")[0] || "hola" },
@@ -435,14 +442,15 @@ async function notifyCustomerSwm({ phone, name, texto }) {
       }),
     });
     const body = await res.text();
-    if (!res.ok) console.error("Error mandando aviso_casillero:", res.status, body);
+    if (!res.ok) console.error(`Error mandando ${template}:`, res.status, body);
   } catch (err) {
-    console.error("Error de red mandando aviso_casillero:", err);
+    console.error(`Error de red mandando ${template}:`, err);
   }
 }
 
 module.exports = {
   notifyCustomerSwm,
+  notifyCustomerTemplate,
   notifySellerOrderCreated,
   notifySellerOrderPaid,
   notifyCustomerOrderPending,

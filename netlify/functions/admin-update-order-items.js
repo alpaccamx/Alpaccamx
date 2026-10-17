@@ -35,6 +35,7 @@
 const { getOrder, updateOrderFields, adjustStockSold } = require("./lib/blob-store.js");
 const { applySheetStockDelta } = require("./lib/google-sheets.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
+const { avisarPedido, numeroPedido, esc } = require("./lib/order-notify.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -127,6 +128,18 @@ exports.handler = async (event) => {
       editedAt: new Date().toISOString(),
     });
     if (!updated) return jsonResponse(404, { error: "Pedido no encontrado." });
+    // Avisarle a la clienta qué quedó en su pedido (solo si cambió algo).
+    const firma = (list, total) => JSON.stringify([(list || []).map((it) => [it.sku || it.nombre, it.qty, it.precio]), Math.round(Number(total) || 0)]);
+    if (firma(order.items, order.grandTotal) !== firma(cleanItems, grandTotalNum)) {
+      const n = numeroPedido(updated);
+      const fmt = (v) => (Number(v) || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+      await avisarPedido(updated, {
+        asunto: `Actualizamos tu pedido ${n}`,
+        texto: `actualizamos los productos de tu pedido ${n}. Ahora son ${cleanItems.reduce((t, it) => t + it.qty, 0)} piezas y el total queda en ${fmt(grandTotalNum)}`,
+        html: `<ul style="font-size:14px;padding-left:18px;">${cleanItems.map((it) => `<li>${esc(it.marca ? `${it.marca} ` : "")}${esc(it.nombre)} × ${it.qty}</li>`).join("")}</ul>
+          <p style="font-size:14px;">Total: <b>${fmt(grandTotalNum)}</b></p>`,
+      });
+    }
     return jsonResponse(200, { ok: true });
   } catch (err) {
     console.error("Error guardando los cambios del pedido:", err);

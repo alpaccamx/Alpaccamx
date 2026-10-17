@@ -852,6 +852,22 @@ Para activarlo:
    un teléfono de 10 dígitos, sigue funcionando el botón manual de
    WhatsApp como respaldo.
 
+### Avisos de cambios en pedidos de la tienda
+
+Cuando mueves un pedido de la tienda en `/admin.html`, a la clienta le
+llega un **WhatsApp** (y un **correo** si tiene cuenta con ese teléfono):
+cambio de etapa (pedido a Corea, llegó a México, en camino, entregado),
+cambios en sus productos o total, entrega personal en Juárez y
+cancelación. La guía y la entrega detectada por la paquetería ya se
+avisaban con sus propias plantillas y no se repiten.
+
+Plantilla de WhatsApp (mismo número de producción), categoría
+"Utilidad", idioma "Spanish (MEX)", nombre exactamente **`aviso_pedido`**:
+
+`Hola {{1}}, te informamos el estado de tu pedido de Alpacca: {{2}}. Puedes ver los detalles en tu cuenta: alpacca.mx/?ver=mis-pedidos`
+
+Ejemplos: {{1}} = Ana, {{2}} = los productos de tu pedido ABCDEF12 ya llegaron a México y estamos preparando tu envío.
+
 ### Avisos de la dirección americana (Shop with Mae) a la clienta
 
 Cada vez que cambias algo de un paquete, compra o envío de la dirección

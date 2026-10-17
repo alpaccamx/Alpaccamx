@@ -1,7 +1,9 @@
 // Cambia la ETAPA de surtido de uno o varios pedidos ya pagados:
 //   pagado -> pedido_abw -> llego -> enviado -> entregado
-// Es solo para la organización de Mae en /admin.html (no cambia el estado
-// de pago ni el stock, ni le avisa nada a la clienta).
+// No cambia el estado de pago ni el stock. Cada cambio de etapa (y marcar
+// o quitar la entrega personal) le avisa a la clienta por correo y
+// WhatsApp (ver lib/order-notify.js), salvo lo que ya se avisa por otro
+// lado (la guía al enviar y la entrega detectada por la paquetería).
 //
 // Requiere el header "x-admin-key" con el valor de ADMIN_KEY.
 //
@@ -15,6 +17,26 @@
 
 const { getOrder, updateOrderFields } = require("./lib/blob-store.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
+const { avisarPedido, numeroPedido } = require("./lib/order-notify.js");
+
+/* Aviso a la clienta por etapa (null = no se avisa). */
+function avisoEtapa(order, stage) {
+  const n = numeroPedido(order);
+  const personal = order.customer && order.customer.entregaPersonal;
+  if (stage === "pedido_abw") return { asunto: `Ya pedimos tus productos a Corea 🇰🇷 (pedido ${n})`, texto: `ya pedimos a Corea los productos de tu pedido ${n}. Te avisamos cuando lleguen a México` };
+  if (stage === "llego") return { asunto: `Tus productos ya llegaron a México 🇲🇽 (pedido ${n})`, texto: `los productos de tu pedido ${n} ya llegaron a México y estamos preparando ${personal ? "tu entrega" : "tu envío"}` };
+  if (stage === "enviado") {
+    if (order.trackingNumber) return null; // ya se le avisó con la guía
+    return personal
+      ? { asunto: `Tu pedido ${n} está listo para entregártelo`, texto: `tu pedido ${n} está listo para entregártelo en persona en Ciudad Juárez; te contactamos para ponernos de acuerdo` }
+      : { asunto: `Tu pedido ${n} va en camino 🚚`, texto: `tu pedido ${n} ya va en camino` };
+  }
+  if (stage === "entregado") {
+    if (order.deliveredAt) return null; // ya se le avisó al detectar la entrega
+    return { asunto: `Tu pedido ${n} fue entregado 🎁`, texto: `tu pedido ${n} fue entregado. ¡Gracias por tu compra!` };
+  }
+  return null;
+}
 
 const STAGES = ["pagado", "pedido_abw", "llego", "enviado", "entregado"];
 const MAX_ORDERS = 100;
@@ -47,7 +69,14 @@ exports.handler = async (event) => {
       const existing = await getOrder(ids[0]);
       if (!existing) return jsonResponse(404, { error: "Ese pedido no existe." });
       const customer = { ...(existing.customer || {}), entregaPersonal: body.entregaPersonal };
-      return jsonResponse(200, { orders: [await updateOrderFields(ids[0], { customer })] });
+      const saved = await updateOrderFields(ids[0], { customer });
+      if (!!(existing.customer && existing.customer.entregaPersonal) !== body.entregaPersonal) {
+        const n = numeroPedido(saved);
+        await avisarPedido(saved, body.entregaPersonal
+          ? { asunto: `Tu pedido ${n} se entrega en persona`, texto: `tu pedido ${n} se entregará en persona en Ciudad Juárez, sin envío por paquetería. Te contactamos para ponernos de acuerdo` }
+          : { asunto: `Tu pedido ${n} se enviará por paquetería`, texto: `tu pedido ${n} ya no se entregará en persona: te lo enviaremos por paquetería` });
+      }
+      return jsonResponse(200, { orders: [saved] });
     } catch (err) {
       console.error("Error marcando entrega personal:", err);
       return jsonResponse(500, { error: "No se pudo guardar." });
@@ -76,7 +105,12 @@ exports.handler = async (event) => {
       history.push({ stage, at });
       const patch = { stage, stageUpdatedAt: at, stageHistory: history };
       if (supplierOrderNumber) patch.supplierOrderNumber = supplierOrderNumber;
-      updated.push(await updateOrderFields(id, patch));
+      const aviso = existing.stage !== stage ? avisoEtapa(existing, stage) : null;
+      // Así la revisión automática de entregas ya no lo vuelve a avisar.
+      if (stage === "entregado" && !existing.deliveredAt) patch.deliveredAt = at;
+      const saved = await updateOrderFields(id, patch);
+      updated.push(saved);
+      if (aviso) await avisarPedido(saved, aviso);
     }
     return jsonResponse(200, { orders: updated, skipped });
   } catch (err) {

@@ -13,6 +13,7 @@ const { notifySellerOrderPaid, notifyCustomerOrderConfirmed } = require("./lib/w
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { sendEmail, orderConfirmedEmailHTML, orderCancelledEmailHTML } = require("./lib/email.js");
+const { avisarPedido, numeroPedido } = require("./lib/order-notify.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
@@ -72,6 +73,8 @@ exports.handler = async (event) => {
       cancelledAt: new Date().toISOString(),
     });
     if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
+    const n = numeroPedido(order);
+    await avisarPedido(order, { asunto: `Tu pedido ${n} se canceló`, texto: `tu pedido ${n} se canceló. Si tienes dudas, escríbenos por WhatsApp`, soloWhatsApp: true });
 
     // Igual que al mandar la guía: solo se manda si la clienta tiene
     // cuenta con ese teléfono (los pedidos no guardan correo).
