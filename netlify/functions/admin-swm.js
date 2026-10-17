@@ -95,7 +95,9 @@ exports.handler = async (event) => {
     switch (b.accion) {
       case "recibir_paquete": {
         const fotos = await guardarFotos(b.fotos);
+        let yaEstaba = false;
         const rec = await mutateRecord("paquete", id, (p) => {
+          yaEstaba = p.status !== "registrado";
           p.kg = num(b.kg); p.alto = num(b.alto); p.ancho = num(b.ancho); p.largo = num(b.largo);
           p.cobrable = pesoCobrable(p.kg, p.alto, p.ancho, p.largo);
           p.fotos = [...(p.fotos || []), ...fotos];
@@ -105,8 +107,8 @@ exports.handler = async (event) => {
         });
         if (!rec) return json(404, { error: "No existe ese paquete." });
         const hasta = new Date(new Date(rec.receivedAt || Date.now()).getTime() + ALMACENAJE_DIAS * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
-        await avisar(rec.email, `llegó tu paquete ${rec.folio} 📦`, `
-          <h2 style="margin:0 0 8px;font-size:20px;">¡Tu paquete llegó a nuestro almacén!</h2>
+        await avisar(rec, yaEstaba ? `actualicé tu paquete ${rec.folio} (peso, fotos o nota)` : `llegó tu paquete ${rec.folio} 📦`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">${yaEstaba ? "Actualicé tu paquete" : "¡Tu paquete llegó a nuestro almacén!"}</h2>
           <p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · "))}${rec.cobrable ? ` · ${rec.cobrable} kg` : ""}.${fotos.length ? ` Te adjuntamos ${fotos.length === 1 ? "la foto" : `las ${fotos.length} fotos`} de tu paquete (también las ves en tu casillero).` : ""}</p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
           <p style="font-size:14px;">Lo guardamos gratis hasta el <b>${hasta}</b>. Cuando quieras, entra a tu casillero y pide tu envío a México (puedes juntarlo con otros paquetes).</p>`, fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
@@ -150,6 +152,7 @@ exports.handler = async (event) => {
       }
 
       case "editar_paquete": {
+        const antes = await getRecord("paquete", id);
         const rec = await mutateRecord("paquete", id, (p) => {
           ["tienda", "rastreo"].forEach((k) => { if (b[k] != null) p[k] = clip(b[k], 80); });
           if (b.contenido != null) p.contenido = clip(b.contenido, 300);
@@ -163,7 +166,9 @@ exports.handler = async (event) => {
           if (b.notaPrivada != null) p.notaPrivada = clip(b.notaPrivada, 2000);
           return p;
         });
-        return rec ? json(200, { paquete: rec }) : json(404, { error: "No existe ese paquete." });
+        if (!rec) return json(404, { error: "No existe ese paquete." });
+        await avisarCambios(rec, antes, "tu paquete");
+        return json(200, { paquete: rec });
       }
 
       case "crear_compra":
@@ -196,7 +201,7 @@ exports.handler = async (event) => {
             return c;
           });
           if (!rec || error) return json(409, { error: error || "No se pudo editar." });
-          await avisar(rec.email, `actualicé tu cotización ${rec.folio}`, `
+          await avisar(rec, `actualicé tu cotización ${rec.folio}`, `
             <h2 style="margin:0 0 8px;font-size:20px;">Actualicé tu cotización</h2>
             <p style="font-size:14px;">${rec.cotizacion.items.map((x) => `${x.cantidad} × ${esc(x.nombre)}${x.tono ? ` · ${esc(x.tono)}` : ""}`).join("<br>")}</p>
             <p style="font-size:14px;">Total a pagar: <b>${formatPriceMXN(rec.cotizacion.total)}</b></p>
@@ -217,7 +222,7 @@ exports.handler = async (event) => {
           history: [{ at: now(), status: "cotizado", por: "whatsapp" }], createdAt: now(), updatedAt: now(),
         };
         await saveRecord("compra", rec);
-        await avisar(rec.email, `tu cotización ${rec.folio} está lista`, `
+        await avisar(rec, `tu cotización ${rec.folio} está lista`, `
           <h2 style="margin:0 0 8px;font-size:20px;">Tu cotización está lista</h2>
           <p style="font-size:14px;">${rec.tienda ? `${esc(rec.tienda)} · ` : ""}${items.length} artículo${items.length > 1 ? "s" : ""}</p>
           <p style="font-size:14px;">Productos: <b>${formatPriceMXN(productos)}</b>${cruce ? `<br>Cruce a México (15%): <b>${formatPriceMXN(cruce)}</b>` : ""}<br>Total a pagar: <b>${formatPriceMXN(rec.cotizacion.total)}</b></p>
@@ -238,7 +243,7 @@ exports.handler = async (event) => {
           return c;
         });
         if (!rec) return json(404, { error: "No existe esa compra." });
-        await avisar(rec.email, `tu cotización ${rec.folio} está lista`, `
+        await avisar(rec, `tu cotización ${rec.folio} está lista`, `
           <h2 style="margin:0 0 8px;font-size:20px;">Tu cotización está lista</h2>
           <p style="font-size:14px;">Productos: <b>${formatPriceMXN(rec.cotizacion.productos)}</b>${rec.cotizacion.cruce ? `<br>Cruce a México (15%): <b>${formatPriceMXN(rec.cotizacion.cruce)}</b>` : ""}<br>Total a pagar: <b>${formatPriceMXN(rec.cotizacion.total)}</b></p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
@@ -263,7 +268,7 @@ exports.handler = async (event) => {
           ids.push(p.id);
         }
         const rec = await mutateRecord("compra", id, (c) => { c.paqueteIds = [...(c.paqueteIds || []), ...ids]; c.status = "comprado"; push(c, "comprado"); return c; });
-        await avisar(rec.email, `ya hice tu compra ${rec.folio} 🛍️`, `
+        await avisar(rec, `ya hice tu compra ${rec.folio} 🛍️`, `
           <h2 style="margin:0 0 8px;font-size:20px;">¡Compra hecha!</h2>
           <p style="font-size:14px;">Ya compré tus productos. Va${lista.length > 1 ? "n" : ""} en camino a nuestro almacén ${lista.length} paquete${lista.length > 1 ? "s" : ""}; te aviso cuando llegue${lista.length > 1 ? "n" : ""}.</p>`);
         return json(200, { compra: rec });
@@ -289,7 +294,7 @@ exports.handler = async (event) => {
           return e;
         });
         const c = rec.cotizacion;
-        await avisar(rec.email, `tu envío ${rec.folio} está cotizado`, `
+        await avisar(rec, `tu envío ${rec.folio} está cotizado`, `
           <h2 style="margin:0 0 8px;font-size:20px;">Tu envío a México está cotizado</h2>
           <p style="font-size:14px;">${c.cruce ? `Cruce a México: <b>${formatPriceMXN(c.cruce)}</b><br>` : ""}${c.consolidacion ? `Consolidación: <b>${formatPriceMXN(c.consolidacion)}</b><br>` : ""}${c.sinRegistro ? `Paquete(s) sin registrar: <b>${formatPriceMXN(c.sinRegistro)}</b><br>` : ""}${c.extras ? `Servicios extra (revisión / separar): <b>${formatPriceMXN(c.extras)}</b><br>` : ""}Envío nacional: <b>${formatPriceMXN(c.envio)}</b><br>Total a pagar: <b>${formatPriceMXN(c.total)}</b></p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
@@ -307,7 +312,7 @@ exports.handler = async (event) => {
           return p;
         });
         if (!rec) return json(404, { error: "No existe ese paquete." });
-        await avisar(rec.email, `revisamos tu paquete ${rec.folio} 📸`, `
+        await avisar(rec, `revisamos tu paquete ${rec.folio} 📸`, `
           <h2 style="margin:0 0 8px;font-size:20px;">Ya revisamos tu paquete</h2>
           <p style="font-size:14px;">Abrimos ${esc(rec.folio)} y le tomamos ${rec.revision.fotos.length} foto${rec.revision.fotos.length === 1 ? "" : "s"} al contenido. Te las adjuntamos (también las ves en tu casillero).</p>
           ${rec.revision.nota ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.revision.nota)}</p>` : ""}`, fotosAdjuntas(b.fotos, `revision-${rec.folio}`));
@@ -340,7 +345,7 @@ exports.handler = async (event) => {
           push(p, "separado");
           return p;
         });
-        await avisar(orig.email, `separamos tu paquete ${orig.folio}`, `
+        await avisar(orig, `separamos tu paquete ${orig.folio}`, `
           <h2 style="margin:0 0 8px;font-size:20px;">Ya separamos tu paquete</h2>
           <p style="font-size:14px;">Lo que pediste quedó en el paquete <b>${esc(nuevo.folio)}</b> (${nuevo.cobrable} kg), listo para que pidas su envío. El resto sigue guardado en <b>${esc(orig.folio)}</b>.</p>`);
         return json(200, { paquete: rec, nuevo });
@@ -359,7 +364,7 @@ exports.handler = async (event) => {
           if (!r.pago || r.pago.status === "pagado") return null;
           r.pago = { ...r.pago, status: "pendiente", rechazo: motivo }; r.notaClienta = motivo; push(r, "pago_rechazado"); return r;
         });
-        if (rec) await avisar(rec.email, `revisa tu pago de ${rec.folio}`, `<h2 style="margin:0 0 8px;font-size:20px;">No pudimos validar tu pago</h2><p style="font-size:14px;">${esc(motivo)}</p><p style="font-size:14px;">Puedes volver a subir tu comprobante o pagar con tarjeta desde tu casillero.</p>`);
+        if (rec) await avisar(rec, `revisa tu pago de ${rec.folio}: ${motivo}`, `<h2 style="margin:0 0 8px;font-size:20px;">No pudimos validar tu pago</h2><p style="font-size:14px;">${esc(motivo)}</p><p style="font-size:14px;">Puedes volver a subir tu comprobante o pagar con tarjeta desde tu casillero.</p>`);
         return rec ? json(200, { [kind]: rec }) : json(404, { error: "No existe." });
       }
 
@@ -370,7 +375,7 @@ exports.handler = async (event) => {
         });
         if (!rec) return json(404, { error: "No existe ese envío." });
         await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => { p.status = "enviado"; push(p, "enviado"); return p; })));
-        await avisar(rec.email, `tu envío ${rec.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${esc(rec.paqueteria)}</b>${rec.guia ? `<br>Guía: <b>${esc(rec.guia)}</b>` : ""}</p>`);
+        await avisar(rec, `tu envío ${rec.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${esc(rec.paqueteria)}</b>${rec.guia ? `<br>Guía: <b>${esc(rec.guia)}</b>` : ""}</p>`);
         return json(200, { envio: rec });
       }
 
@@ -378,6 +383,7 @@ exports.handler = async (event) => {
         const rec = await mutateRecord("envio", id, (e) => { e.status = "entregado"; e.entregadoAt = now(); push(e, "entregado"); return e; });
         if (!rec) return json(404, { error: "No existe ese envío." });
         await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => { p.status = "entregado"; push(p, "entregado"); return p; })));
+        await avisar(rec, `tu envío ${rec.folio} fue entregado 🎁`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío fue entregado!</h2><p style="font-size:14px;">Esperamos que te encante todo 💗 Si algo llegó mal, escríbenos por WhatsApp.</p>`);
         return json(200, { envio: rec });
       }
 
@@ -393,7 +399,7 @@ exports.handler = async (event) => {
             p.status = "recibido"; p.envioId = null; return p;
           })));
         }
-        if (motivo) await avisar(rec.email, `${rec.folio} fue cancelado`, `<p style="font-size:14px;">${esc(motivo)}</p>`);
+        await avisar(rec, `${rec.folio} fue cancelado`, `<h2 style="margin:0 0 8px;font-size:20px;">${esc(rec.folio)} fue cancelado</h2>${motivo ? `<p style="font-size:14px;">${esc(motivo)}</p>` : ""}<p style="font-size:14px;">Si tienes dudas, escríbenos por WhatsApp.</p>`, null, `${rec.folio} fue cancelado${motivo ? `: ${motivo}` : ""}`);
         return json(200, { [kind]: rec });
       }
 
@@ -406,31 +412,40 @@ exports.handler = async (event) => {
           return p;
         });
         if (!rec) return json(404, { error: "No existe ese paquete." });
-        await avisar(rec.email, `corrige los datos de tu paquete ${rec.folio}`, `
+        await avisar(rec, `corrige los datos de tu paquete ${rec.folio}`, `
           <h2 style="margin:0 0 8px;font-size:20px;">Necesito que corrijas tu paquete</h2>
           <p style="font-size:14px;">Revisé ${esc(rec.folio)}${rec.tienda ? ` (${esc(rec.tienda)})` : ""} y hay algo que no coincide con lo que registraste:</p>
           <p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(motivo)}</p>
-          <p style="font-size:14px;">Entra a tu casillero y pica <b>"Corregir mis datos"</b>. Hasta que lo corrijas no podrás pedir el envío de este paquete.</p>`);
+          <p style="font-size:14px;">Entra a tu casillero y corrige tus datos ahí mismo. Hasta que lo corrijas no podrás pedir el envío de este paquete.</p>`, null,
+          `necesito que corrijas los datos de tu paquete ${rec.folio}: ${motivo}`);
         return json(200, { paquete: rec });
       }
 
       case "quitar_correccion": {
+        let estaba = "";
         const rec = await mutateRecord("paquete", id, (p) => {
+          estaba = p.correccion ? p.correccion.estado : "";
           delete p.correccion;
           push(p, "correccion_cerrada");
           return p;
         });
+        if (rec && estaba === "pedida") await avisar(rec, `ya no necesitas corregir tu paquete ${rec.folio}`, `<p style="font-size:14px;">Ya revisé ${esc(rec.folio)} y todo está bien; no tienes que corregir nada. Ya puedes pedir su envío cuando quieras.</p>`);
         return rec ? json(200, { paquete: rec }) : json(404, { error: "No existe ese paquete." });
       }
 
       case "notas": {
         const kind = KINDS.includes(b.kind) ? b.kind : null;
         if (!kind) return json(400, { error: "Inválido." });
+        let notaAntes = "";
         const rec = await mutateRecord(kind, id, (r) => {
+          notaAntes = r.notaClienta || "";
           if (b.notaClienta != null) r.notaClienta = clip(b.notaClienta, 1000);
           if (b.notaPrivada != null) r.notaPrivada = clip(b.notaPrivada, 2000);
           return r;
         });
+        if (rec && rec.notaClienta && rec.notaClienta !== notaAntes) {
+          await avisar(rec, `tienes un mensaje de Mae sobre ${rec.folio}`, `<h2 style="margin:0 0 8px;font-size:20px;">Mensaje de Mae</h2><p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>`, null, `mensaje de Mae sobre ${rec.folio}: ${rec.notaClienta}`);
+        }
         return rec ? json(200, { [kind]: rec }) : json(404, { error: "No existe." });
       }
 
@@ -477,8 +492,23 @@ async function guardarFotos(lista) {
   return fotos;
 }
 
+/* Mae editó un paquete: si cambió algo que la clienta ve, se le avisa
+   qué cambió. */
+async function avisarCambios(rec, antes, que) {
+  if (!antes) return;
+  const etiquetas = { tienda: "tienda", rastreo: "guía", contenido: "contenido", valorUSD: "valor", cobro: "forma de pagar el cruce", cobrable: "peso cobrado", notaClienta: "mensaje de Mae" };
+  const cambios = Object.keys(etiquetas).filter((k) => String(antes[k] ?? "") !== String(rec[k] ?? ""));
+  if (!cambios.length) return;
+  const lista = cambios.map((k) => etiquetas[k]).join(", ");
+  await avisar(rec, `actualicé ${que} ${rec.folio}`, `
+    <h2 style="margin:0 0 8px;font-size:20px;">Actualicé ${esc(que)} ${esc(rec.folio)}</h2>
+    <p style="font-size:14px;">Cambié: <b>${esc(lista)}</b>.</p>
+    ${rec.notaClienta && cambios.includes("notaClienta") ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}`,
+    null, `actualicé ${que} ${rec.folio} (${lista})${rec.notaClienta && cambios.includes("notaClienta") ? `: ${rec.notaClienta}` : ""}`);
+}
+
 async function avisarSinRegistro(p) {
-  await avisar(p.email, `llegó un paquete tuyo sin registrar (${p.folio})`, `
+  await avisar(p, `llegó un paquete tuyo sin registrar (${p.folio})`, `
     <h2 style="margin:0 0 8px;font-size:20px;">Llegó un paquete a tu nombre que no registraste</h2>
     <p style="font-size:14px;">${esc([p.tienda, p.rastreo && `rastreo ${p.rastreo}`].filter(Boolean).join(" · ") || "Paquete")}${p.cobrable ? ` · ${p.cobrable} kg` : ""}.</p>
     <p style="font-size:14px;">Entra a tu casillero y dime <b>qué trae y cuánto costó</b> para poder enviártelo. Por no haber registrado la guía antes de que llegara se cobra un cargo de <b>${formatPriceMXN(p.cargoSinRegistro)}</b>, que se suma a tu envío.</p>

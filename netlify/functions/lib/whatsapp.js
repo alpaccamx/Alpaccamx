@@ -403,7 +403,46 @@ async function notifyCustomerOrderDelivered(order) {
   }
 }
 
+/* Aviso de la dirección americana (Shop with Mae) para la CLIENTA: cada
+   vez que Mae cambia algo de su paquete, compra o envío. Plantilla
+   "aviso_casillero" aprobada por Meta (ver README), con 2 variables:
+   nombre y el texto del aviso. Mismo número de PRODUCCIÓN que los demás
+   avisos al cliente. Si falta configuración o el teléfono no tiene 10
+   dígitos, no hace nada. */
+async function notifyCustomerSwm({ phone, name, texto }) {
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_CUSTOMER_PHONE_NUMBER_ID;
+  const digits = String(phone || "").replace(/[^0-9]/g, "").replace(/^(?:52)?1?(\d{10})$/, "$1");
+  if (!accessToken || !phoneNumberId || digits.length !== 10 || !texto) return;
+  // Meta no acepta saltos de línea ni muchos espacios seguidos en las variables.
+  const limpio = (t, n) => String(t).replace(/\s+/g, " ").trim().slice(0, n);
+  try {
+    const res = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: `52${digits}`,
+        type: "template",
+        template: {
+          name: "aviso_casillero",
+          language: { code: "es_MX" },
+          components: [{ type: "body", parameters: [
+            { type: "text", text: limpio(name || "", 40).split(" ")[0] || "hola" },
+            { type: "text", text: limpio(texto, 400) },
+          ] }],
+        },
+      }),
+    });
+    const body = await res.text();
+    if (!res.ok) console.error("Error mandando aviso_casillero:", res.status, body);
+  } catch (err) {
+    console.error("Error de red mandando aviso_casillero:", err);
+  }
+}
+
 module.exports = {
+  notifyCustomerSwm,
   notifySellerOrderCreated,
   notifySellerOrderPaid,
   notifyCustomerOrderPending,
