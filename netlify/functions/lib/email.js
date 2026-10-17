@@ -81,7 +81,7 @@ function baseEmailHTML(bodyHTML) {
         <img src="${MASCOT_URL}" alt="" width="96" style="width:96px;height:auto;display:inline-block;margin:0 0 6px;" />
         <p style="margin:0 0 10px;font-size:13px;color:#6f6474;">¿Dudas? Estamos para ayudarte 💗</p>
         <a href="${WHATSAPP_URL}" style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:10px 20px;border-radius:999px;">💬 Escríbenos por WhatsApp</a>
-        <p style="margin:16px 0 0;font-size:12px;color:#9a8f9e;">Alpacca · Skincare coreano · Ciudad Juárez<br><a href="https://alpacca.mx" style="color:#c4466e;text-decoration:none;">alpacca.mx</a></p>
+        <p style="margin:16px 0 0;font-size:12px;color:#9a8f9e;">Alpacca · Skincare coreano<br><a href="https://alpacca.mx" style="color:#c4466e;text-decoration:none;">alpacca.mx</a></p>
       </td></tr>
     </table>
   </div>`;
