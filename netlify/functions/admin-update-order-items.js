@@ -35,7 +35,7 @@
 const { getOrder, updateOrderFields, adjustStockSold } = require("./lib/blob-store.js");
 const { applySheetStockDelta } = require("./lib/google-sheets.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
-const { avisarPedido, numeroPedido, esc, fmtMXN, montoPagado, cambiosProductos, WHATSAPP_MAE } = require("./lib/order-notify.js");
+const { avisarPedido, montoPagado, avisoCambioPedido } = require("./lib/order-notify.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -130,39 +130,13 @@ exports.handler = async (event) => {
       ...(order.status === "paid" && order.montoPagado == null ? { montoPagado: Number(order.grandTotal) || 0 } : {}),
     });
     if (!updated) return jsonResponse(404, { error: "Pedido no encontrado." });
-    // Avisarle a la clienta qué cambió en su pedido (solo si cambió algo):
-    // qué se agregó, quitó o cambió de cantidad, el total nuevo y, si ya
-    // había pagado, si se le debe un reembolso o falta pagar la diferencia.
+    // Avisarle a la clienta qué cambió en su pedido (solo si cambió algo),
+    // con sus cuentas: lo que pagó, el total nuevo y si se le reembolsa o
+    // le falta pagar (ver avisoCambioPedido en lib/order-notify.js).
     const firma = (list, total) => JSON.stringify([(list || []).map((it) => [it.sku || it.nombre, it.qty, it.precio]), Math.round(Number(total) || 0)]);
     if (firma(order.items, order.grandTotal) !== firma(cleanItems, grandTotalNum)) {
-      const n = numeroPedido(updated);
-      const c = cambiosProductos(order.items, cleanItems);
-      const partes = [
-        c.quitados.length ? `se quitó ${c.quitados.join(", ")}` : "",
-        c.agregados.length ? `se agregó ${c.agregados.join(", ")}` : "",
-        c.cantidad.length ? `cambió la cantidad de ${c.cantidad.join(", ")}` : "",
-      ].filter(Boolean);
-      let saldo = "";
-      let saldoHTML = "";
-      if (order.status === "paid") {
-        const pagado = montoPagado(order);
-        const dif = Math.round((pagado - grandTotalNum) * 100) / 100;
-        if (dif > 0.5) {
-          saldo = `Pagaste ${fmtMXN(pagado)} y ahora tu pedido es de ${fmtMXN(grandTotalNum)}: te debemos ${fmtMXN(dif)}. Escríbenos por WhatsApp para hacerte tu reembolso`;
-          saldoHTML = `<p style="font-size:14px;background:#eef8f2;border-radius:10px;padding:10px 12px;">Pagaste <b>${fmtMXN(pagado)}</b> y ahora tu pedido es de <b>${fmtMXN(grandTotalNum)}</b>: <b>te debemos ${fmtMXN(dif)}</b>. <a href="https://wa.me/${WHATSAPP_MAE}">Escríbenos por WhatsApp</a> para hacerte tu reembolso.</p>`;
-        } else if (dif < -0.5) {
-          saldo = `Pagaste ${fmtMXN(pagado)} y ahora tu pedido es de ${fmtMXN(grandTotalNum)}: faltan ${fmtMXN(-dif)}. Escríbenos por WhatsApp para pagar la diferencia`;
-          saldoHTML = `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">Pagaste <b>${fmtMXN(pagado)}</b> y ahora tu pedido es de <b>${fmtMXN(grandTotalNum)}</b>: <b>faltan ${fmtMXN(-dif)}</b>. <a href="https://wa.me/${WHATSAPP_MAE}">Escríbenos por WhatsApp</a> para pagar la diferencia.</p>`;
-        }
-      }
-      await avisarPedido(updated, {
-        asunto: saldo && saldo.includes("te debemos") ? `Cambiamos tu pedido ${n}: tienes un reembolso` : `Cambiamos tu pedido ${n}`,
-        texto: `cambiamos tu pedido ${n}${partes.length ? `: ${partes.join("; ")}` : ""}. Total nuevo: ${fmtMXN(grandTotalNum)}.${saldo ? ` ${saldo}` : ""}`,
-        html: `${partes.length ? `<ul style="font-size:14px;padding-left:18px;">${partes.map((x) => `<li>${esc(x.charAt(0).toUpperCase() + x.slice(1))}</li>`).join("")}</ul>` : ""}
-          <p style="font-size:14px;margin-bottom:4px;"><b>Tu pedido ahora:</b></p>
-          <ul style="font-size:14px;padding-left:18px;">${cleanItems.map((it) => `<li>${esc(it.marca ? `${it.marca} ` : "")}${esc(it.nombre)} × ${it.qty}</li>`).join("")}</ul>
-          <p style="font-size:14px;">Total nuevo: <b>${fmtMXN(grandTotalNum)}</b></p>${saldoHTML}`,
-      });
+      const pagado = order.status === "paid" ? montoPagado(order) : null;
+      await avisarPedido(updated, avisoCambioPedido(order, cleanItems, grandTotalNum, pagado, shippingMXNNum));
     }
     return jsonResponse(200, { ok: true });
   } catch (err) {
