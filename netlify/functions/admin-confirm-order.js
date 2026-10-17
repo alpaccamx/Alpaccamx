@@ -15,7 +15,7 @@ const { notifySellerOrderPaid, notifyCustomerOrderConfirmed } = require("./lib/w
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { sendEmail, orderConfirmedEmailHTML, orderCancelledEmailHTML } = require("./lib/email.js");
-const { avisarPedido, numeroPedido, cuentaDelPedido, avisoCancelacionPagada } = require("./lib/order-notify.js");
+const { avisarPedido, numeroPedido, cuentaDelPedido, avisoCancelacionPagada, conDetalle } = require("./lib/order-notify.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
@@ -85,7 +85,7 @@ exports.handler = async (event) => {
       (order.items || []).forEach((it) => { if (it.enStock && it.sku && it.qty > 0) devolver[it.sku] = (devolver[it.sku] || 0) - it.qty; });
       await adjustStockSold(devolver).catch((err) => console.error("No se pudo regresar el stock vendido:", err));
       await applySheetStockDelta(devolver).catch((err) => console.error("Sheet de stock no actualizado (revisar a mano):", err));
-      await avisarPedido(order, avisoCancelacionPagada(order));
+      await avisarPedido(order, avisoCancelacionPagada({ ...order, items: await conDetalle(order.items) }));
       return jsonResponse(200, { order });
     }
 

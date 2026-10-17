@@ -35,7 +35,7 @@
 const { getOrder, updateOrderFields, adjustStockSold } = require("./lib/blob-store.js");
 const { applySheetStockDelta } = require("./lib/google-sheets.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
-const { avisarPedido, montoPagado, avisoCambioPedido } = require("./lib/order-notify.js");
+const { avisarPedido, montoPagado, avisoCambioPedido, conDetalle } = require("./lib/order-notify.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -136,7 +136,8 @@ exports.handler = async (event) => {
     const firma = (list, total) => JSON.stringify([(list || []).map((it) => [it.sku || it.nombre, it.qty, it.precio]), Math.round(Number(total) || 0)]);
     if (firma(order.items, order.grandTotal) !== firma(cleanItems, grandTotalNum)) {
       const pagado = order.status === "paid" ? montoPagado(order) : null;
-      await avisarPedido(updated, avisoCambioPedido(order, cleanItems, grandTotalNum, pagado, shippingMXNNum));
+      const [antes, ahora] = await Promise.all([conDetalle(order.items), conDetalle(cleanItems)]);
+      await avisarPedido(updated, avisoCambioPedido({ ...order, items: antes }, ahora, grandTotalNum, pagado, shippingMXNNum));
     }
     return jsonResponse(200, { ok: true });
   } catch (err) {
