@@ -64,9 +64,13 @@ const WHATSAPP_URL = "https://wa.me/5216571920559";
    tarjeta blanca redondeada y pie con botón de WhatsApp. Va en tablas
    (no divs con flex) porque así se ve igual en Gmail, Outlook y Apple Mail. */
 function baseEmailHTML(bodyHTML) {
+  // Nunito (redondeada, va con la alpaca). Gmail no carga fuentes externas
+  // y usa Helvetica/Arial; Apple Mail, iPhone y Outlook sí la muestran.
   return `
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"); .alp, .alp td, .alp p, .alp a, .alp h2, .alp span, .alp b { font-family: 'Nunito', Helvetica, Arial, sans-serif; }</style>
   <div style="background:#fdf0f5;padding:24px 10px;margin:0;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#2b2430;">
+    <table class="alp" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;font-family:'Nunito',Helvetica,Arial,sans-serif;color:#2b2430;">
       <tr><td style="background:#f6cadb;border-radius:20px 20px 0 0;padding:18px 20px 14px;text-align:center;">
         <img src="${MASCOT_URL}" alt="" width="56" height="56" style="width:56px;height:56px;vertical-align:middle;display:inline-block;" />
         <img src="${LOGO_URL}" alt="Alpacca" width="150" style="width:150px;height:auto;vertical-align:middle;display:inline-block;margin-left:6px;" />
