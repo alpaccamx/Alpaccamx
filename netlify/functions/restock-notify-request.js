@@ -7,10 +7,17 @@
 
 const { randomUUID } = require("crypto");
 const { saveRestockRequest } = require("./lib/blob-store.js");
+const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
+  }
+
+  // Sin límite, un script podría llenar la lista de "Avísame" del admin.
+  const rateLimit = await checkRateLimit(`restock:${getClientIp(event)}`, { max: 20, windowMs: 60 * 60 * 1000 });
+  if (!rateLimit.allowed) {
+    return jsonResponse(429, { error: "Demasiadas solicitudes. Espera un poco e intenta de nuevo." });
   }
 
   let body;

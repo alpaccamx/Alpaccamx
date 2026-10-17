@@ -629,7 +629,7 @@
     <p id="skintype-empty" class="hidden text-center text-ink/75 py-6">Pronto agregaremos productos para tu tipo de piel.</p>
     <div id="skin-routine-actions" class="hidden mt-8 flex flex-col sm:flex-row gap-3 justify-center">
       <button id="skin-routine-add" type="button" class="h-12 px-6 rounded-full bg-ink text-cream font-semibold hover:bg-ink/85 transition">🛒 Agregar mi rutina al carrito</button>
-      <button id="skin-routine-wa" type="button" class="h-12 px-6 rounded-full bg-[#dcf8e8] text-[#17803d] font-semibold hover:brightness-95 transition">💬 Mandármela por WhatsApp</button>
+      <button id="skin-routine-wa" type="button" class="h-12 px-6 rounded-full bg-[#dcf8e8] text-[#11632d] font-semibold hover:brightness-95 transition">💬 Mandármela por WhatsApp</button>
     </div>
     <p class="mt-2 text-center text-xs text-ink/60">Se agrega el primer producto de cada paso. Puedes cambiarlos por las otras opciones.</p>
   </div>
@@ -814,7 +814,7 @@
     <div id="cart-login-required" class="hidden rounded-lg border border-rose/30 bg-blush/20 p-4 text-center space-y-3">
       <p class="text-sm text-ink/75">Para continuar tu compra, inicia sesión o crea una cuenta gratis — así puedes ver y rastrear tus pedidos después.</p>
       <button type="button" id="cart-login-cta"
-        class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition">
+        class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition">
         Iniciar sesión / Crear cuenta
       </button>
     </div>
@@ -949,21 +949,21 @@
 
       <div id="pay-transfer-panel" class="hidden space-y-3 rounded-xl border border-rose/30 bg-blush/20 p-3">
         <div>
-          <p class="text-sm font-semibold text-ink"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose text-cream text-xs mr-1">1</span> Transfiere exactamente <span id="pay-transfer-amount" class="tabular-nums"></span></p>
+          <p class="text-sm font-semibold text-ink"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-deep text-cream text-xs mr-1">1</span> Transfiere exactamente <span id="pay-transfer-amount" class="tabular-nums"></span></p>
           <div id="cart-bank-details" class="hidden mt-2 rounded-lg bg-white border border-ink/10 p-3">
             <div id="cart-bank-details-body" class="text-sm text-ink/80 leading-relaxed"></div>
           </div>
         </div>
         <div>
-          <label for="proof-file-input" class="block text-sm font-semibold text-ink mb-1"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose text-cream text-xs mr-1">2</span> Sube la captura de tu transferencia</label>
+          <label for="proof-file-input" class="block text-sm font-semibold text-ink mb-1"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-deep text-cream text-xs mr-1">2</span> Sube la captura de tu transferencia</label>
           <input id="proof-file-input" type="file" accept="image/*,application/pdf"
-            class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
+            class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose-deep file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
           <p class="text-xs text-ink/75 mt-1">Una foto o captura de pantalla del comprobante de tu banco (o PDF), hasta 4 MB.</p>
         </div>
         <div>
-          <p class="text-sm font-semibold text-ink mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose text-cream text-xs mr-1">3</span> Envía tu pedido</p>
+          <p class="text-sm font-semibold text-ink mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-deep text-cream text-xs mr-1">3</span> Envía tu pedido</p>
           <button id="send-quote" type="submit"
-            class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose text-cream font-semibold py-3 hover:bg-rose/90 transition active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed">
+            class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose-deep text-cream font-semibold py-3 hover:bg-rose-ink transition active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed">
             <span>✅ Enviar pedido con mi comprobante</span>
           </button>
           <p class="text-xs text-ink/75 mt-2">Revisamos tu comprobante y te avisamos por correo cuando tu pago quede confirmado. No pagues también con tarjeta.</p>
@@ -986,10 +986,10 @@
       <div id="proof-retry-block" class="hidden">
         <p class="text-xs text-rose-ink mb-1">⚠️ Tu pedido se registró, pero no se pudo subir el comprobante. Vuelve a intentarlo:</p>
         <input id="proof-retry-file-input" type="file" accept="image/*,application/pdf"
-          class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
+          class="w-full text-xs text-ink/75 rounded-lg border border-ink/20 bg-white/70 px-2 py-2 file:mr-2 file:rounded-full file:border-0 file:bg-rose-deep file:text-cream file:px-3 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer" />
         <p id="proof-retry-status" role="status" class="text-xs text-ink/75 mt-1"></p>
         <button id="proof-retry-btn" type="button"
-          class="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose text-cream font-semibold py-2.5 text-sm hover:bg-rose/90 transition disabled:opacity-40 disabled:cursor-not-allowed">
+          class="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose-deep text-cream font-semibold py-2.5 text-sm hover:bg-rose-ink transition disabled:opacity-40 disabled:cursor-not-allowed">
           <span>📤 Reintentar subir comprobante</span>
         </button>
       </div>
@@ -1047,7 +1047,7 @@
         </div>
         <p id="login-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="login-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Iniciar sesión</span>
         </button>
       </form>
@@ -1095,7 +1095,7 @@
         </div>
         <p id="signup-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="signup-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Crear cuenta</span>
         </button>
       </form>
@@ -1115,7 +1115,7 @@
             class="w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 coarse:py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lilac" />
         </div>
         <button id="forgot-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Mandar link de recuperación</span>
         </button>
       </form>
@@ -1136,7 +1136,7 @@
         </div>
         <p id="reset-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="reset-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Cambiar contraseña</span>
         </button>
       </form>
@@ -1219,7 +1219,7 @@
         <p id="settings-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <p id="settings-success" role="status" class="hidden text-xs text-green-700 font-semibold"></p>
         <button id="settings-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Guardar cambios</span>
         </button>
       </form>
@@ -1333,7 +1333,7 @@
         </div>
         <p id="restock-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="restock-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Avísame</span>
         </button>
       </div>
@@ -1364,7 +1364,7 @@
         </div>
         <p id="review-error" role="alert" class="hidden text-xs text-rose-ink"></p>
         <button id="review-submit" type="submit"
-          class="w-full inline-flex items-center justify-center rounded-full bg-rose text-cream font-semibold py-2.5 hover:bg-rose/90 transition disabled:opacity-40">
+          class="w-full inline-flex items-center justify-center rounded-full bg-rose-deep text-cream font-semibold py-2.5 hover:bg-rose-ink transition disabled:opacity-40">
           <span>Enviar calificación</span>
         </button>
       </div>
