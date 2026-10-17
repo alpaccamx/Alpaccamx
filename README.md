@@ -867,7 +867,7 @@ necesita una plantilla aprobada por Meta:
    mensajes → Crear plantilla**, categoría "Utilidad", idioma "Spanish
    (MEX)", nombre exactamente **`aviso_casillero`**.
 2. Cuerpo, con 2 variables (nombre y el aviso):
-   `Hola {{1}} 👋 Hay una novedad en tu dirección americana de Alpacca: {{2}}. Ve los detalles en tu casillero: alpacca.mx/?ver=shopwithmae`
+   `Hola {{1}} 👋 Hay una novedad en tu dirección americana de Alpacca: {{2}}. Ve los detalles en tu casillero: alpacca.mx/?ver=direccion-americana`
 3. Espera a que Meta la apruebe. No hace falta otro deploy.
 
 Mientras la plantilla no esté aprobada, o si la clienta no tiene un

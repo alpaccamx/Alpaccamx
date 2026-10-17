@@ -79,9 +79,9 @@ async function crearPreferenciaMP(kind, rec, event) {
     external_reference: `swm|${kind}|${rec.id}`,
     payer: rec.name ? { name: rec.name, email: rec.email } : { email: rec.email },
     back_urls: {
-      success: `${site}/?ver=shopwithmae&pago=ok`,
-      failure: `${site}/?ver=shopwithmae&pago=error`,
-      pending: `${site}/?ver=shopwithmae&pago=pendiente`,
+      success: `${site}/?ver=direccion-americana&pago=ok`,
+      failure: `${site}/?ver=direccion-americana&pago=error`,
+      pending: `${site}/?ver=direccion-americana&pago=pendiente`,
     },
     auto_return: "approved",
     notification_url: `${site}/.netlify/functions/mp-webhook`,
@@ -139,7 +139,7 @@ async function avisar(to, subject, html, attachments, texto) {
     attachments,
     subject: `Shop with Mae · ${subject}`,
     html: baseEmailHTML(`${html}
-      <p style="margin-top:18px;"><a href="https://alpacca.mx/?ver=shopwithmae" style="background:#c4466e;color:#fff;padding:10px 16px;border-radius:999px;text-decoration:none;font-weight:600;">Ver mi casillero</a></p>`),
+      <p style="margin-top:18px;"><a href="https://alpacca.mx/?ver=direccion-americana" style="background:#c4466e;color:#fff;padding:10px 16px;border-radius:999px;text-decoration:none;font-weight:600;">Ver mi casillero</a></p>`),
   }).catch((err) => console.error("swm: correo", err));
 }
 

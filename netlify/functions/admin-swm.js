@@ -205,7 +205,7 @@ exports.handler = async (event) => {
             <h2 style="margin:0 0 8px;font-size:20px;">Actualicé tu cotización</h2>
             <p style="font-size:14px;">${rec.cotizacion.items.map((x) => `${x.cantidad} × ${esc(x.nombre)}${x.tono ? ` · ${esc(x.tono)}` : ""}`).join("<br>")}</p>
             <p style="font-size:14px;">Total a pagar: <b>${formatPriceMXN(rec.cotizacion.total)}</b></p>
-            <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=shopwithmae&compra=${rec.id}">Ver y pagar mi cotización</a></p>`).catch(() => {});
+            <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=direccion-americana&compra=${rec.id}">Ver y pagar mi cotización</a></p>`).catch(() => {});
           return json(200, { compra: rec });
         }
         const email = clip(b.email, 200).toLowerCase();
@@ -227,7 +227,7 @@ exports.handler = async (event) => {
           <p style="font-size:14px;">${rec.tienda ? `${esc(rec.tienda)} · ` : ""}${items.length} artículo${items.length > 1 ? "s" : ""}</p>
           <p style="font-size:14px;">Productos: <b>${formatPriceMXN(productos)}</b>${cruce ? `<br>Cruce a México (15%): <b>${formatPriceMXN(cruce)}</b>` : ""}<br>Total a pagar: <b>${formatPriceMXN(rec.cotizacion.total)}</b></p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
-          <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=shopwithmae&compra=${rec.id}">Ver y pagar mi cotización</a></p>`).catch(() => {});
+          <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=direccion-americana&compra=${rec.id}">Ver y pagar mi cotización</a></p>`).catch(() => {});
         return json(200, { compra: rec, tieneCuenta: Boolean(cuenta) });
       }
 
