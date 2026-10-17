@@ -21,7 +21,7 @@ async function cuentaDelPedido(order) {
 
 /* texto = aviso corto (WhatsApp y resumen del correo); html = detalle
    extra opcional para el correo. */
-async function avisarPedido(order, { asunto, texto, html = "", soloWhatsApp = false, intro }) {
+async function avisarPedido(order, { asunto, titulo, texto, html = "", soloWhatsApp = false, intro }) {
   if (!order) return;
   const c = order.customer || {};
   await notifyCustomerTemplate("aviso_pedido", { phone: c.phone, name: c.name, texto }).catch((err) => console.error("aviso_pedido:", err));
@@ -32,10 +32,11 @@ async function avisarPedido(order, { asunto, texto, html = "", soloWhatsApp = fa
     to: cuenta.email,
     subject: asunto,
     html: baseEmailHTML(`
-      <h2 style="margin:0 0 8px;font-size:20px;">${esc(asunto)}</h2>
-      ${intro != null ? intro : `<p style="font-size:14px;">${esc(texto.charAt(0).toUpperCase() + texto.slice(1))}.</p>`}
+      <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#c4466e;letter-spacing:.3px;text-transform:uppercase;">Pedido ${esc(numeroPedido(order))}</p>
+      <h2 style="margin:0 0 14px;font-size:22px;line-height:1.25;color:#2b2430;">${esc(titulo || asunto)}</h2>
+      ${intro != null ? intro : `<p style="font-size:15px;margin:0 0 12px;">${esc(texto.charAt(0).toUpperCase() + texto.slice(1))}.</p>`}
       ${html}
-      <p style="margin-top:18px;"><a href="${SITE}/?ver=mis-pedidos" style="background:#c4466e;color:#fff;padding:10px 16px;border-radius:999px;text-decoration:none;font-weight:600;">Ver mis pedidos</a></p>`),
+      <p style="margin:24px 0 0;text-align:center;"><a href="${SITE}/?ver=mis-pedidos" style="display:inline-block;background:#c4466e;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;">Ver mis pedidos</a></p>`),
   }).catch((err) => console.error("correo de aviso de pedido:", err));
 }
 
@@ -83,7 +84,11 @@ async function conDetalle(items) {
   } catch (err) {
     console.error("No se pudo leer el catálogo para el aviso:", err);
   }
-  return (items || []).map((it) => ({ ...it, detalle: describirArticulo(it, porSku.get(it.sku) || porSku.get(String(it.sku || "").replace(/__stock$/, ""))) }));
+  return (items || []).map((it) => {
+    const fila = porSku.get(it.sku) || porSku.get(String(it.sku || "").replace(/__stock$/, ""));
+    const img = (fila && fila.Imagen) || it.imagen || "";
+    return { ...it, detalle: describirArticulo(it, fila), imagen: /^https?:/.test(img) ? img : img ? `${SITE}/${img.replace(/^\.?\//, "")}` : "" };
+  });
 }
 
 /* Qué cambió entre los productos de antes y los de ahora. */
@@ -93,15 +98,72 @@ function cambiosProductos(antes, ahora) {
   const piezas = (n) => `${n} pieza${n === 1 ? "" : "s"}`;
   const prev = new Map((antes || []).map((it) => [key(it), it]));
   const next = new Map((ahora || []).map((it) => [key(it), it]));
-  const out = { agregados: [], quitados: [], cantidad: [], precio: [] };
+  const out = { agregados: [], quitados: [], cantidad: [], precio: [], agregadosIt: [], quitadosIt: [], cantidadIt: [], precioIt: [] };
+  // "It" = lo mismo pero con el artículo, para pintarlo con foto en el correo.
+  const add = (k, it, texto, nota) => { out[k].push(texto); out[`${k}It`].push({ it, nota }); };
   next.forEach((it, k) => {
     const old = prev.get(k);
-    if (!old) { out.agregados.push(`${nombre(it)} · ${piezas(it.qty)} · ${fmtMXN(it.precio)} c/u`); return; }
-    if (old.qty !== it.qty) out.cantidad.push(`${nombre(it)}: antes ${piezas(old.qty)}, ahora ${piezas(it.qty)}`);
-    if (Math.round(old.precio * 100) !== Math.round(it.precio * 100)) out.precio.push(`${nombre(it)}: antes ${fmtMXN(old.precio)}, ahora ${fmtMXN(it.precio)} c/u`);
+    if (!old) { add("agregados", it, `${nombre(it)} · ${piezas(it.qty)} · ${fmtMXN(it.precio)} c/u`, `${piezas(it.qty)} · ${fmtMXN(it.precio)} c/u`); return; }
+    if (old.qty !== it.qty) add("cantidad", it, `${nombre(it)}: antes ${piezas(old.qty)}, ahora ${piezas(it.qty)}`, `Antes ${piezas(old.qty)} → ahora <b>${piezas(it.qty)}</b>`);
+    if (Math.round(old.precio * 100) !== Math.round(it.precio * 100)) add("precio", it, `${nombre(it)}: antes ${fmtMXN(old.precio)}, ahora ${fmtMXN(it.precio)} c/u`, `Antes ${fmtMXN(old.precio)} → ahora <b>${fmtMXN(it.precio)}</b> c/u`);
   });
-  prev.forEach((it, k) => { if (!next.has(k)) out.quitados.push(`${nombre(it)} · ${piezas(it.qty)}`); });
+  prev.forEach((it, k) => { if (!next.has(k)) add("quitados", it, `${nombre(it)} · ${piezas(it.qty)}`, piezas(it.qty)); });
   return out;
+}
+
+/* ---- Piezas visuales de los correos de pedido ---- */
+const PLACEHOLDER_IMG = `${SITE}/assets/mascot.png`;
+const COLORES_SECCION = { "❌": "#fdecef", "➕": "#eef8f2", "🔁": "#eef3ff", "🏷️": "#fff6e5" };
+
+function fotoArticulo(it) {
+  return `<img src="${esc(it.imagen || PLACEHOLDER_IMG)}" alt="" width="52" height="52" style="width:52px;height:52px;border-radius:10px;object-fit:cover;background:#f6f1f4;display:block;" />`;
+}
+
+function seccion(titulo, lista) {
+  const fondo = COLORES_SECCION[Object.keys(COLORES_SECCION).find((k) => titulo.startsWith(k))] || "#f6f1f4";
+  return `<p style="font-size:15px;font-weight:700;margin:18px 0 8px;">${esc(titulo)}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${fondo};border-radius:14px;">
+      ${lista.map(({ it, nota }) => `<tr>
+        <td style="padding:10px 0 10px 12px;width:52px;vertical-align:top;">${fotoArticulo(it)}</td>
+        <td style="padding:10px 12px;vertical-align:top;font-size:14px;line-height:1.4;">
+          <b>${esc(it.detalle || `${it.marca ? `${it.marca} ` : ""}${it.nombre}`)}</b><br>
+          <span style="color:#6f6474;">${nota}</span>
+        </td></tr>`).join("")}
+    </table>`;
+}
+
+function tablaProductos(items, conPrecios) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #f0e6ec;">
+    ${(items || []).map((it) => `<tr>
+      <td style="padding:10px 0;width:52px;vertical-align:top;border-bottom:1px solid #f0e6ec;">${fotoArticulo(it)}</td>
+      <td style="padding:10px 10px;vertical-align:top;font-size:14px;line-height:1.4;border-bottom:1px solid #f0e6ec;">${esc(it.detalle || `${it.marca ? `${it.marca} ` : ""}${it.nombre}`)}<br><span style="color:#6f6474;">${it.qty} pieza${it.qty === 1 ? "" : "s"}</span></td>
+      <td style="padding:10px 0;vertical-align:top;text-align:right;font-size:14px;font-weight:700;white-space:nowrap;border-bottom:1px solid #f0e6ec;">${conPrecios ? fmtMXN(it.precio * it.qty) : ""}</td>
+    </tr>`).join("")}
+  </table>`;
+}
+
+function filaSimple(t, v, fuerte) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td style="padding:10px 0;font-size:${fuerte ? 16 : 14}px;${fuerte ? "font-weight:700;" : ""}">${esc(t)}</td>
+    <td style="padding:10px 0;text-align:right;font-size:${fuerte ? 18 : 14}px;font-weight:700;${fuerte ? "color:#c4466e;" : ""}">${esc(v)}</td>
+  </tr></table>`;
+}
+
+function tablaCuentas(cuentas) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#faf6f8;border-radius:14px;">
+    ${cuentas.map(([t, v, color], i) => `<tr>
+      <td style="padding:12px 14px;font-size:14px;${i < cuentas.length - 1 ? "border-bottom:1px solid #efe5eb;" : "font-weight:700;"}">${esc(t)}</td>
+      <td style="padding:12px 14px;text-align:right;font-size:${i === cuentas.length - 1 ? 17 : 14}px;font-weight:700;${color ? `color:${color};` : ""}${i < cuentas.length - 1 ? "border-bottom:1px solid #efe5eb;" : ""}">${esc(v)}</td>
+    </tr>`).join("")}
+  </table>`;
+}
+
+/* Recuadro grande de arriba con el resultado (reembolso / falta pagar). */
+function heroSaldo(pagado, nuevoTotal, dif) {
+  if (pagado == null) return `<div style="background:#faf6f8;border-radius:16px;padding:16px;text-align:center;margin:0 0 6px;"><p style="margin:0;font-size:13px;color:#6f6474;">Total nuevo de tu pedido</p><p style="margin:4px 0 0;font-size:28px;font-weight:800;color:#2b2430;">${fmtMXN(nuevoTotal)}</p></div>`;
+  if (dif > 0.5) return `<div style="background:#eef8f2;border:1px solid #bfe5cd;border-radius:16px;padding:16px;text-align:center;margin:0 0 6px;"><p style="margin:0;font-size:13px;color:#17803d;font-weight:700;">✅ TE REEMBOLSAREMOS</p><p style="margin:4px 0 2px;font-size:32px;font-weight:800;color:#17803d;">${fmtMXN(dif)}</p><p style="margin:0;font-size:13px;color:#4c6b57;">Pagaste ${fmtMXN(pagado)} · tu pedido ahora es de ${fmtMXN(nuevoTotal)}</p></div>`;
+  if (dif < -0.5) return `<div style="background:#fdecef;border:1px solid #f3c2cf;border-radius:16px;padding:16px;text-align:center;margin:0 0 6px;"><p style="margin:0;font-size:13px;color:#b33660;font-weight:700;">⚠️ TE FALTA PAGAR</p><p style="margin:4px 0 2px;font-size:32px;font-weight:800;color:#b33660;">${fmtMXN(-dif)}</p><p style="margin:0;font-size:13px;color:#7a4a5a;">Pagaste ${fmtMXN(pagado)} · tu pedido ahora es de ${fmtMXN(nuevoTotal)}</p></div>`;
+  return `<div style="background:#faf6f8;border-radius:16px;padding:16px;text-align:center;margin:0 0 6px;"><p style="margin:0;font-size:13px;color:#6f6474;">Tu total sigue igual</p><p style="margin:4px 0 0;font-size:28px;font-weight:800;">${fmtMXN(nuevoTotal)}</p><p style="margin:2px 0 0;font-size:13px;color:#6f6474;">No tienes que hacer nada</p></div>`;
 }
 
 /* Aviso de "cambiamos tu pedido", ordenado y sin ambigüedad:
@@ -112,10 +174,10 @@ function avisoCambioPedido(order, items, nuevoTotal, pagado, envio = 0) {
   const n = numeroPedido(order);
   const c = cambiosProductos(order.items, items);
   const grupos = [
-    ["❌ Quitamos", c.quitados],
-    ["➕ Agregamos", c.agregados],
-    ["🔁 Cambiamos la cantidad", c.cantidad],
-    ["🏷️ Cambiamos el precio", c.precio],
+    ["❌ Quitamos", c.quitados, c.quitadosIt],
+    ["➕ Agregamos", c.agregados, c.agregadosIt],
+    ["🔁 Cambiamos la cantidad", c.cantidad, c.cantidadIt],
+    ["🏷️ Cambiamos el precio", c.precio, c.precioIt],
   ].filter(([, l]) => l.length);
   const dif = pagado == null ? 0 : Math.round((pagado - nuevoTotal) * 100) / 100;
   const debe = dif < -0.5;
@@ -161,29 +223,19 @@ function avisoCambioPedido(order, items, nuevoTotal, pagado, envio = 0) {
     texto = armar(grupos.map(([t, l]) => [t, [`${l.length} producto${l.length === 1 ? "" : "s"} (detalle en tu correo)`]]));
   }
 
-  const li = (t) => `<li style="margin:2px 0;">${esc(t)}</li>`;
+  const tarjeta = order.source === "mercadopago";
   const html = `
-    <p style="font-size:14px;">Hicimos estos cambios en tu pedido <b>${esc(n)}</b>:</p>
-    ${grupos.map(([t, l]) => `<p style="font-size:14px;margin:10px 0 2px;"><b>${esc(t)}</b></p><ul style="font-size:14px;margin:0;padding-left:20px;">${l.map(li).join("")}</ul>`).join("")}
-    <p style="font-size:15px;margin:16px 0 6px;"><b>Tus cuentas</b></p>
-    <table style="font-size:14px;border-collapse:collapse;width:100%;max-width:420px;">
-      ${cuentas.map(([t, v, color]) => `<tr><td style="padding:6px 0;border-bottom:1px solid #eee;">${esc(t)}</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;${color ? `color:${color};` : ""}">${esc(v)}</td></tr>`).join("")}
-    </table>
-    ${sigue ? `<p style="font-size:15px;margin:16px 0 6px;"><b>¿Qué sigue?</b></p><p style="font-size:14px;margin:0;">${reembolso || debe ? `<a href="https://wa.me/${WHATSAPP_MAE}" style="color:#c4466e;font-weight:700;">${esc(sigue)}</a>` : esc(sigue)}</p>` : ""}
-    <p style="font-size:15px;margin:16px 0 6px;"><b>Así quedó tu pedido</b></p>
-    <ul style="font-size:14px;margin:0;padding-left:20px;">${(items || []).map((it) => li(`${it.detalle || `${it.marca ? `${it.marca} ` : ""}${it.nombre}`} · ${it.qty} pieza${it.qty === 1 ? "" : "s"} · ${fmtMXN(it.precio * it.qty)}`)).join("")}${extrasLista(items, nuevoTotal, envio).map(li).join("")}</ul>
-    <p style="font-size:14px;margin:6px 0 0;"><b>Total: ${fmtMXN(nuevoTotal)}</b></p>`;
-  return { asunto, texto, html, intro: "" };
-}
-
-/* Envío y comisión de tarjeta, para que la lista sume el total. */
-function extrasLista(items, total, envio) {
-  const sub = (items || []).reduce((t, it) => t + it.precio * it.qty, 0);
-  const comision = Math.round((Number(total) - sub - (Number(envio) || 0)) * 100) / 100;
-  return [
-    Number(envio) > 0 ? `Envío · ${fmtMXN(envio)}` : "",
-    comision > 0.5 ? `Comisión por pagar con tarjeta · ${fmtMXN(comision)}` : "",
-  ].filter(Boolean);
+    ${heroSaldo(pagado, nuevoTotal, dif)}
+    ${grupos.map(([t, l, items2]) => seccion(t, items2)).join("")}
+    ${pagado == null ? "" : `<p style="font-size:16px;font-weight:700;margin:22px 0 8px;">🧾 Tus cuentas</p>${tablaCuentas(cuentas)}`}
+    ${sigue ? `<p style="font-size:16px;font-weight:700;margin:22px 0 8px;">👉 ¿Qué sigue?</p>
+      ${reembolso || debe ? `<p style="margin:0;"><a href="https://wa.me/${WHATSAPP_MAE}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-weight:700;padding:11px 20px;border-radius:999px;">💬 ${esc(sigue.replace(/\.$/, ""))}</a></p>` : `<p style="margin:0;">${esc(sigue)}</p>`}` : ""}
+    <p style="font-size:16px;font-weight:700;margin:22px 0 8px;">📦 Así quedó tu pedido</p>
+    ${tablaProductos(items, !tarjeta)}
+    ${(!tarjeta && Number(envio) > 0) ? filaSimple("🚚 Envío", fmtMXN(envio)) : ""}
+    ${filaSimple("Total", fmtMXN(nuevoTotal), true)}`;
+  const titulo = reembolso ? "Hicimos cambios en tu pedido" : debe ? "Hicimos cambios en tu pedido" : "Actualizamos tu pedido";
+  return { asunto, titulo, texto, html, intro: "" };
 }
 
 /* Pedido pagado cancelado por completo. */
@@ -193,15 +245,12 @@ function avisoCancelacionPagada(order) {
   const asunto = `Cancelamos tu pedido ${n}: te reembolsaremos ${fmtMXN(pagado)}`;
   const texto = [`cancelamos tu pedido ${n} completo`, `Ya pagaste: ${fmtMXN(pagado)}`, `✅ Te reembolsaremos: ${fmtMXN(pagado)} (todo)`, "Escríbenos por WhatsApp para hacerte tu reembolso"].join(" · ");
   const html = `
-    <p style="font-size:14px;">Cancelamos tu pedido <b>${esc(n)}</b> completo. Tenía:</p>
-    <ul style="font-size:14px;margin:0 0 10px;padding-left:20px;">${(order.items || []).map((it) => `<li style="margin:2px 0;">${esc(it.detalle || `${it.marca ? `${it.marca} ` : ""}${it.nombre}`)} · ${it.qty} pieza${it.qty === 1 ? "" : "s"}</li>`).join("")}</ul>
-    <table style="font-size:14px;border-collapse:collapse;width:100%;max-width:420px;">
-      <tr><td style="padding:6px 0;border-bottom:1px solid #eee;">Ya pagaste</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;">${fmtMXN(pagado)}</td></tr>
-      <tr><td style="padding:6px 0;border-bottom:1px solid #eee;">✅ Te reembolsaremos</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#17803d;">${fmtMXN(pagado)} (todo)</td></tr>
-    </table>
-    <p style="font-size:15px;margin:16px 0 6px;"><b>¿Qué sigue?</b></p>
-    <p style="font-size:14px;margin:0;"><a href="https://wa.me/${WHATSAPP_MAE}" style="color:#c4466e;font-weight:700;">Escríbenos por WhatsApp para hacerte tu reembolso.</a></p>`;
-  return { asunto, texto, html, intro: "" };
+    <div style="background:#eef8f2;border:1px solid #bfe5cd;border-radius:16px;padding:16px;text-align:center;margin:0 0 6px;"><p style="margin:0;font-size:13px;color:#17803d;font-weight:700;">✅ TE REEMBOLSAREMOS (TODO)</p><p style="margin:4px 0 2px;font-size:32px;font-weight:800;color:#17803d;">${fmtMXN(pagado)}</p><p style="margin:0;font-size:13px;color:#4c6b57;">Cancelamos tu pedido completo</p></div>
+    <p style="font-size:16px;font-weight:700;margin:22px 0 8px;">👉 ¿Qué sigue?</p>
+    <p style="margin:0;"><a href="https://wa.me/${WHATSAPP_MAE}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-weight:700;padding:11px 20px;border-radius:999px;">💬 Escríbenos por WhatsApp para hacerte tu reembolso</a></p>
+    <p style="font-size:16px;font-weight:700;margin:22px 0 8px;">📦 Lo que tenía tu pedido</p>
+    ${tablaProductos(order.items, false)}`;
+  return { asunto, titulo: "Cancelamos tu pedido", texto, html, intro: "" };
 }
 
 function esc(s) {
