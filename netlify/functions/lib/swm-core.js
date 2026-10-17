@@ -6,6 +6,7 @@ const { getRecord, mutateRecord, listRecords } = require("./swm-store.js");
 const { crucePorPeso, crucePorComision, consolidacionPorPeso } = require("./swm-pricing.js");
 const { sendEmail, baseEmailHTML, formatPriceMXN } = require("./email.js");
 const { loadPricingData } = require("./pricing.js");
+const { notifyCustomerSwm } = require("./whatsapp.js");
 
 const MP_API = "https://api.mercadopago.com";
 const ALMACENAJE_DIAS = 30;
@@ -115,7 +116,7 @@ async function aplicarPago(kind, id, { metodo, paymentId, monto } = {}) {
     return r;
   });
   if (changed && rec) {
-    await avisar(rec.email, `${rec.folio}: recibimos tu pago 💗`, `
+    await avisar(rec, `${rec.folio}: recibimos tu pago 💗`, `
       <h2 style="margin:0 0 8px;font-size:20px;">¡Pago recibido!</h2>
       <p style="font-size:14px;">Recibimos tu pago de ${formatPriceMXN(rec.pago.monto || (rec.cotizacion && rec.cotizacion.total))} de ${rec.folio}.
       ${kind === "compra" ? "Ya voy a hacer tu compra; te aviso cuando la registre." : "Ya preparo tu envío; te mando la guía en cuanto salga."}</p>`);
@@ -123,10 +124,18 @@ async function aplicarPago(kind, id, { metodo, paymentId, monto } = {}) {
   return rec;
 }
 
-async function avisar(to, subject, html, attachments) {
-  if (!to) return;
+/* Avisa a la clienta por correo y por WhatsApp. "to" es el registro
+   (paquete, compra o envío, con email/phone/name) o solo un correo.
+   "texto" es el aviso corto de WhatsApp; si no se da, se usa el asunto. */
+async function avisar(to, subject, html, attachments, texto) {
+  const email = typeof to === "string" ? to : to && to.email;
+  if (!email) return;
+  if (to && typeof to === "object" && to.phone) {
+    const t = texto || subject;
+    await notifyCustomerSwm({ phone: to.phone, name: to.name, texto: t.charAt(0).toUpperCase() + t.slice(1) });
+  }
   await sendEmail({
-    to,
+    to: email,
     attachments,
     subject: `Shop with Mae · ${subject}`,
     html: baseEmailHTML(`${html}

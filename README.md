@@ -852,6 +852,27 @@ Para activarlo:
    un teléfono de 10 dígitos, sigue funcionando el botón manual de
    WhatsApp como respaldo.
 
+### Avisos de la dirección americana (Shop with Mae) a la clienta
+
+Cada vez que cambias algo de un paquete, compra o envío de la dirección
+americana en `/admin.html`, a la clienta le llega un **correo** y un
+**WhatsApp** automático: llegó su paquete, lo actualizaste, le dejaste un
+mensaje, le pediste corregir sus datos, cotización lista, pago recibido o
+rechazado, envío en camino o entregado, cancelación, etc.
+
+El WhatsApp usa el mismo número de producción que los avisos de arriba y
+necesita una plantilla aprobada por Meta:
+
+1. En **business.facebook.com → Administrador de WhatsApp → Plantillas de
+   mensajes → Crear plantilla**, categoría "Utilidad", idioma "Spanish
+   (MEX)", nombre exactamente **`aviso_casillero`**.
+2. Cuerpo, con 2 variables (nombre y el aviso):
+   `Hola {{1}} 👋 Hay una novedad en tu dirección americana de Alpacca: {{2}}. Ve los detalles en tu casillero: alpacca.mx/?ver=shopwithmae`
+3. Espera a que Meta la apruebe. No hace falta otro deploy.
+
+Mientras la plantilla no esté aprobada, o si la clienta no tiene un
+teléfono de 10 dígitos en su cuenta, solo le llega el correo.
+
 ### Aviso automático de "pedido recibido" al cliente
 
 Se manda justo cuando el cliente hace su pedido, **antes** de que tú lo
