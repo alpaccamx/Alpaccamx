@@ -15,6 +15,7 @@ exports.handler = async () => {
     { loc: BASE, pri: "1.0" },
     { loc: `${BASE}?ver=catalogo`, pri: "0.8" },
     { loc: `${BASE}?ver=stock`, pri: "0.8" },
+    { loc: `${BASE}?ver=tipo-de-piel`, pri: "0.7" },
   ];
   try {
     const { rows } = await loadCatalog();
