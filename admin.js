@@ -4396,6 +4396,30 @@ ${itemLines}
   let swmNuevaCompraOpen = false;
   let swmConsolidarEmail = ""; // clienta con el formulario "Juntar en una caja" abierto
   const swmGuiaState = {}; // envioId -> { rates, selected }
+  const swmCliOpen = new Set(); // clientas desplegadas (se conservan al recargar la lista)
+
+  /* Agrupa tarjetas por clienta en un desplegable con su nombre, para que
+     la lista no ocupe tanto. "items" pueden ser registros o [tipo, registro]. */
+  function swmPorClienta(items, fn, scope) {
+    const grupos = new Map();
+    items.forEach((x) => {
+      const r = Array.isArray(x) ? x[1] : x;
+      const k = r.email || `sin:${r.id}`;
+      if (!grupos.has(k)) grupos.set(k, []);
+      grupos.get(k).push(x);
+    });
+    const buscando = !!swmSearch.trim();
+    return [...grupos.entries()].map(([email, xs]) => {
+      const r0 = Array.isArray(xs[0]) ? xs[0][1] : xs[0];
+      const cas = r0.email && swmData.casilleros && swmData.casilleros[r0.email];
+      const key = `${scope}|${email}`;
+      const open = buscando || grupos.size === 1 || swmCliOpen.has(key);
+      return `<details class="swm-cli" data-cli="${escapeHtml(key)}"${open ? " open" : ""}>
+        <summary><span>👤 <b>${escapeHtml(r0.name || r0.email || "Sin dueña")}</b>${cas ? ` · ${escapeHtml(cas)}` : ""}</span><span class="swm-cli-n">${xs.length}</span></summary>
+        <div class="swm-cli-body">${xs.map(fn).join("")}</div>
+      </details>`;
+    }).join("");
+  }
   let swmEditCompraId = "";
 
   function swmCobrable(kg, alto, ancho, largo) {
@@ -4556,7 +4580,8 @@ ${itemLines}
       <div id="swm-nc-box" style="width:100%;">${swmNuevaCompraOpen ? swmNuevaCompraForm() : ""}</div>
       <div id="swm-sinreg-box" style="width:100%;">${swmSinRegistroOpen ? swmSinRegistroForm() : ""}</div>`;
     let html = "";
-    const sec = (title, items, fn) => (items.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">${title} (${items.length})</h4>${items.map(fn).join("")}` : "");
+    const sec = (title, items, fn) => (items.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">${title} (${items.length})</h4>${swmPorClienta(items, fn, title)}` : "");
+    const lista = (items, fn, vacio) => (items.length ? swmPorClienta(items, fn, swmTab) : `<p style="color:#5f5866;font-size:14px;">${vacio}</p>`);
     if (swmSearch.trim()) {
       html = sec("Paquetes", P.filter(swmMatches), swmPaqueteCard) + sec("Compras", swmData.compras.filter(swmMatches), swmCompraCard) + sec("Envíos", swmData.envios.filter(swmMatches), swmEnvioCard)
         || `<p style="color:#5f5866;font-size:14px;">No encontré nada con "${escapeHtml(swmSearch)}".</p>`;
@@ -4571,20 +4596,20 @@ ${itemLines}
         + sec("✏️ Ya corrigieron sus datos: revísalos", pend.correcciones.filter(swmMatches), swmPaqueteCard);
       if (!html) html = `<p style="color:#5f5866;font-size:14px;">No hay nada pendiente 🎉</p>`;
     } else if (swmTab === "llegar") {
-      html = P.filter((p) => p.status === "registrado" && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes por llegar.</p>`;
+      html = lista(P.filter((p) => p.status === "registrado" && swmMatches(p)), swmPaqueteCard, "No hay paquetes por llegar.");
     } else if (swmTab === "sindueña") {
       html = P.filter((p) => p.status === "sin_dueña").map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes sin dueña.</p>`;
     } else if (swmTab === "almacen") {
-      html = P.filter((p) => p.status === "recibido" && !p.enMexicoAt && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes en el almacén.</p>`;
+      html = lista(P.filter((p) => p.status === "recibido" && !p.enMexicoAt && swmMatches(p)), swmPaqueteCard, "No hay paquetes en el almacén.");
     } else if (swmTab === "mexico") {
       const mx = P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt && swmMatches(p));
       const porClienta = new Map();
       mx.forEach((p) => { const k = p.email || "—"; if (!porClienta.has(k)) porClienta.set(k, []); porClienta.get(k).push(p); });
       html = [...porClienta.entries()].map(([email, ps]) => swmMexicoGrupo(email, ps)).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes cruzados a México.</p>`;
     } else if (swmTab === "compras") {
-      html = swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status) && swmMatches(c)).map(swmCompraCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay compras activas.</p>`;
+      html = lista(swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status) && swmMatches(c)), swmCompraCard, "No hay compras activas.");
     } else if (swmTab === "envios") {
-      html = swmData.envios.filter((e) => !["entregado", "cancelado"].includes(e.status) && swmMatches(e)).map(swmEnvioCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay envíos activos.</p>`;
+      html = lista(swmData.envios.filter((e) => !["entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard, "No hay envíos activos.");
     } else {
       html = sec("Envíos", swmData.envios.filter((e) => ["entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard)
         + sec("Compras", swmData.compras.filter((c) => ["comprado", "cancelado"].includes(c.status) && swmMatches(c)), swmCompraCard)
@@ -4863,11 +4888,15 @@ ${itemLines}
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-cons-save>📦 Crear envío en una sola caja</button><button type="button" class="btn-secondary" data-cons-toggle="">Cancelar</button></div>
         <div class="meta">Después lo cotizas en "Envíos" como siempre y a ella le llega para pagar.</div>
       </div>` : "";
-    return `<div style="margin:0 0 18px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-        <b>${escapeHtml(p0.name || email)} · ${ps.length} paquete${ps.length === 1 ? "" : "s"} en México</b>
-        ${libres.length && !abierto ? `<button type="button" class="btn-primary" data-cons-toggle="${escapeHtml(email)}" style="padding:8px 14px;font-size:13px;">📦 ${libres.length > 1 ? "Juntar en una caja y crear envío" : "Crear envío"}</button>` : ""}
-      </div>${form}${ps.map(swmPaqueteCard).join("")}</div>`;
+    const cas = swmData.casilleros && swmData.casilleros[email];
+    const key = `mexico|${email}`;
+    const open = abierto || !!swmSearch.trim() || swmCliOpen.has(key);
+    return `<details class="swm-cli" data-cli="${escapeHtml(key)}"${open ? " open" : ""}>
+      <summary><span>👤 <b>${escapeHtml(p0.name || email)}</b>${cas ? ` · ${escapeHtml(cas)}` : ""}</span><span class="swm-cli-n">${ps.length}</span></summary>
+      <div class="swm-cli-body">
+        ${libres.length && !abierto ? `<button type="button" class="btn-primary" data-cons-toggle="${escapeHtml(email)}" style="padding:8px 14px;font-size:13px;margin-bottom:8px;">📦 ${libres.length > 1 ? "Juntar en una caja y crear envío" : "Crear envío"}</button>` : ""}
+        ${form}${ps.map(swmPaqueteCard).join("")}
+      </div></details>`;
   }
 
   /* Guía real para un envío de Dirección americana (Envíos Perros /
@@ -4953,6 +4982,12 @@ ${itemLines}
       alert("No se pudo abrir el archivo.");
     }
   }
+
+  document.getElementById("swm-panel").addEventListener("toggle", (e) => {
+    const d = e.target;
+    if (!d.matches || !d.matches("details[data-cli]")) return;
+    if (d.open) swmCliOpen.add(d.dataset.cli); else swmCliOpen.delete(d.dataset.cli);
+  }, true);
 
   document.getElementById("swm-panel").addEventListener("click", async (e) => {
     const t = e.target;
