@@ -4653,7 +4653,8 @@ ${itemLines}
 
   function swmPaqueteCard(p) {
     const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : p.enMexicoAt ? "🇲🇽 En México" : "📥 En almacén", en_envio: "📦 En un envío", en_mexico: "🇲🇽 En México", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
-    const hasta = p.receivedAt ? new Date(new Date(p.receivedAt).getTime() + swmData.almacenajeDias * 864e5) : null;
+    // El almacenaje gratis corre desde que el paquete llega a México.
+    const hasta = p.enMexicoAt ? new Date(new Date(p.enMexicoAt).getTime() + swmData.almacenajeDias * 864e5) : null;
     const vence = hasta ? Math.ceil((hasta - Date.now()) / 864e5) : null;
     const fotos = (p.fotos || []).map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:4px 10px;font-size:12px;">📷 Foto</button>`).join(" ");
     const editable = ["registrado", "recibido"].includes(p.status);
@@ -4671,7 +4672,7 @@ ${itemLines}
         ${p.valorTotal ? `<br>Valor declarado (con tax, sin envío): <b>${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}</b>` : ""}${swmValorPesosHTML(p)}
         ${p.factura ? ` <button type="button" class="btn-secondary" data-swm-file="factura/paquete/${escapeHtml(p.id)}" style="padding:4px 10px;font-size:12px;">📄 Ver factura</button>` : ""}
         ${(p.facturas || []).length ? `<br>${p.facturas.map((f, i) => `<button type="button" class="btn-secondary" data-swm-file="factura/paquete/${escapeHtml(p.id)}/${Number(f.n ?? i)}" style="padding:4px 10px;font-size:12px;margin:2px 4px 2px 0;">📄 ${f.tipo === "application/pdf" ? "PDF" : "Captura"} ${i + 1}</button>`).join("")}` : ""}
-        ${p.receivedAt ? `<br>Llegó ${swmFecha(p.receivedAt)} · almacenaje gratis ${vence > 0 ? `${vence} días más` : "<b style='color:#b33660'>vencido</b>"}` : ""}</div>
+        ${p.receivedAt ? `<br>Llegó ${swmFecha(p.receivedAt)}${p.enMexicoAt ? ` · en México desde ${swmFecha(p.enMexicoAt)} · almacenaje gratis ${vence > 0 ? `${vence} días más` : "<b style='color:#b33660'>vencido</b>"}` : ""}` : ""}</div>
       ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}
       ${p.status === "recibido" && p.phone ? `<div style="margin-top:8px;"><a class="btn-primary" href="${escapeHtml(swmPaqueteWa(p))}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;padding:8px 16px;font-size:13px;background:#25D366;border-radius:999px;color:#fff;font-weight:600;">💬 Avisar por WhatsApp (y mandarle las fotos)</a></div>` : ""}
       ${swmCorreccionAdmin(p)}
@@ -4714,9 +4715,8 @@ ${itemLines}
      fotos (WhatsApp no deja adjuntarlas desde un link: Mae las agrega). */
   function swmPaqueteWa(p) {
     const nombre = String(p.name || "").split(/\s+/)[0];
-    const hasta = p.receivedAt ? new Date(new Date(p.receivedAt).getTime() + (swmData.almacenajeDias || 30) * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" }) : "";
     const que = [p.tienda, p.rastreo && `guía ${p.rastreo}`].filter(Boolean).join(", ");
-    const txt = `¡Hola${nombre ? ` ${nombre}` : ""}! 📦 Ya llegó tu paquete ${p.folio}${que ? ` (${que})` : ""} a nuestro almacén. Te mando las fotos 👇${hasta ? `\n\nLo guardamos gratis hasta el ${hasta}.` : ""} Cuando quieras, pide tu envío a México en tu casillero: https://alpacca.mx/?ver=shopwithmae`;
+    const txt = `¡Hola${nombre ? ` ${nombre}` : ""}! 📦 Ya llegó tu paquete ${p.folio}${que ? ` (${que})` : ""} a nuestro almacén. Te mando las fotos 👇\n\nTe aviso en cuanto cruce a México y ahí pides tu envío a casa en tu casillero: https://alpacca.mx/?ver=shopwithmae`;
     return `${waLinkFromPhone(p.phone)}?text=${encodeURIComponent(txt)}`;
   }
 
