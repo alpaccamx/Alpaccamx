@@ -3,7 +3,7 @@
 // La usan swm-client.js (clienta), admin-swm.js (Mae) y mp-webhook.js.
 
 const { getRecord, mutateRecord, listRecords } = require("./swm-store.js");
-const { crucePorPeso, crucePorComision, consolidacionPorPeso, LEALTAD_CADA, REFERIDO_MXN } = require("./swm-pricing.js");
+const { crucePorPeso, crucePorComision, consolidacionPorPeso, LEALTAD_CADA, LEALTAD_PCT, REFERIDO_MXN } = require("./swm-pricing.js");
 const { getCoupon, saveCoupon, listCoupons, normCode } = require("./coupons.js");
 const { sendEmail, baseEmailHTML, formatPriceMXN } = require("./email.js");
 const { loadPricingData } = require("./pricing.js");
@@ -74,7 +74,7 @@ async function crearPreferenciaMP(kind, rec, event) {
   const token = process.env.MP_ACCESS_TOKEN;
   if (!token) throw new Error("Mercado Pago no está configurado todavía en el sitio.");
   const site = siteUrlFrom(event);
-  const titulo = kind === "compra" ? `Shop with Mae ${rec.folio}: compra de productos` : `Shop with Mae ${rec.folio}: cruce y envío`;
+  const titulo = kind === "compra" ? `Dirección americana ${rec.folio}: compra de productos` : `Dirección americana ${rec.folio}: cruce y envío`;
   const body = {
     items: [{ title: titulo, quantity: 1, unit_price: round2(rec.cotizacion.total), currency_id: "MXN" }],
     external_reference: `swm|${kind}|${rec.id}`,
@@ -126,11 +126,11 @@ async function aplicarPago(kind, id, { metodo, paymentId, monto } = {}) {
   return rec;
 }
 
-/* Lealtad: cada LEALTAD_CADA envíos entregados, un cruce gratis. */
+/* Lealtad: cada LEALTAD_CADA envíos entregados, un cruce con LEALTAD_PCT % de descuento. */
 function lealtadDe(envios) {
   const entregados = envios.filter((e) => e.status === "entregado").length;
   const usados = envios.filter((e) => e.premioLealtad && e.status !== "cancelado").length;
-  return { cada: LEALTAD_CADA, entregados, avance: entregados % LEALTAD_CADA, disponibles: Math.max(0, Math.floor(entregados / LEALTAD_CADA) - usados) };
+  return { cada: LEALTAD_CADA, pct: LEALTAD_PCT, entregados, avance: entregados % LEALTAD_CADA, disponibles: Math.max(0, Math.floor(entregados / LEALTAD_CADA) - usados) };
 }
 
 /* Código "invita a una amiga" de la clienta (se crea la primera vez). */
@@ -183,7 +183,7 @@ async function avisar(to, subject, html, attachments, texto) {
   await sendEmail({
     to: email,
     attachments,
-    subject: `Shop with Mae · ${subject}`,
+    subject: `Dirección americana · ${subject}`,
     html: baseEmailHTML(`${html}
       <p style="margin-top:18px;"><a href="https://alpacca.mx/?ver=direccion-americana" style="background:#c4466e;color:#fff;padding:10px 16px;border-radius:999px;text-decoration:none;font-weight:600;">Ver mi casillero</a></p>`),
   }).catch((err) => console.error("swm: correo", err));

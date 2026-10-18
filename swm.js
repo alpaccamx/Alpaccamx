@@ -1,11 +1,11 @@
 /* ======================================================================
-   Shop with Mae (alpacca.mx/?ver=shopwithmae): casillero en EE.UU.,
+   Dirección americana (alpacca.mx/?ver=direccion-americana): casillero en EE.UU.,
    personal shopper y cruce a México, al estilo de Delivered -- todo se
    registra y se paga aquí (tarjeta con Mercado Pago o transferencia
    subiendo el comprobante). Usa la sesión de la tienda y los helpers de
    app.js (escapeHtml, getCustomerToken, whatsappHref, shippingSettings,
    showHomeView, openAccountPanelDefault). Backend: swm-client.js; Mae lo
-   maneja en /admin.html → Más → Shop with Mae.
+   maneja en /admin.html → Más → Dirección americana.
    ====================================================================== */
 
 /* Misma tarifa que netlify/functions/lib/swm-pricing.js y admin.js. */
@@ -299,18 +299,18 @@ function swmBeneficiosHTML() {
   if (!L && !R) return "";
   const puntos = L ? Array.from({ length: L.cada }, (_, i) => `<span class="w-5 h-5 rounded-full border-2 ${i < L.avance ? "bg-rose-deep border-rose-deep" : "bg-white border-ink/20"}"></span>`).join("") : "";
   const faltan = L ? L.cada - L.avance : 0;
-  const waTxt = R ? `Te recomiendo la dirección americana de Alpacca (Shop with Mae) para traer tus compras de EE.UU. 💗 Usa mi código ${R.code} y tienes $${R.monto} de descuento en tu primer envío: https://alpacca.mx/?ver=direccion-americana` : "";
+  const waTxt = R ? `Te recomiendo la dirección americana de Alpacca para traer tus compras de EE.UU. 💗 Usa mi código ${R.code} y tienes $${R.monto} de descuento en tu primer envío: https://alpacca.mx/?ver=direccion-americana` : "";
   return `<details class="mt-4 group rounded-3xl border border-ink/10 bg-white"${swm.benefOpen ? " open" : ""} data-swm-benef>
     <summary class="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3">
-      <span class="text-sm"><b>💗 Tus beneficios</b>${L && L.disponibles ? ` · <span class="text-[#2f8f5b] font-semibold">🎁 ${L.disponibles} cruce${L.disponibles > 1 ? "s" : ""} gratis</span>` : ""}${(swm.premios || []).length ? ` · <span class="text-rose-ink font-semibold">${swm.premios.length} cupón${swm.premios.length > 1 ? "es" : ""}</span>` : ""}</span>
+      <span class="text-sm"><b>💗 Tus beneficios</b>${L && L.disponibles ? ` · <span class="text-[#2f8f5b] font-semibold">🎁 cruce al ${L.pct || 50}%</span>` : ""}${(swm.premios || []).length ? ` · <span class="text-rose-ink font-semibold">${swm.premios.length} cupón${swm.premios.length > 1 ? "es" : ""}</span>` : ""}</span>
       <span class="text-ink/50 group-open:rotate-180 transition" aria-hidden="true">⌄</span>
     </summary>
     <div class="px-4 pb-4 space-y-4 text-sm">
       ${traidos ? `<p>🎉 Con Mae ya trajiste <b>${traidos} paquete${traidos === 1 ? "" : "s"}</b> a México. ¡Gracias por tu confianza!</p>` : ""}
       ${L ? `<div>
-        <p class="font-semibold">🎁 Cada ${L.cada} envíos, tu siguiente cruce va gratis</p>
+        <p class="font-semibold">🎁 Cada ${L.cada} envíos, el cruce del siguiente va al ${L.pct || 50}%</p>
         <div class="mt-2 flex gap-1.5" aria-label="${L.avance} de ${L.cada}">${puntos}</div>
-        <p class="mt-1 text-xs text-ink/70">${L.disponibles ? `<b class="text-[#2f8f5b]">Tienes ${L.disponibles} cruce${L.disponibles > 1 ? "s" : ""} gratis</b>: se aplica en tu próximo envío. ` : ""}Te falta${faltan === 1 ? "" : "n"} ${faltan} envío${faltan === 1 ? "" : "s"} entregado${faltan === 1 ? "" : "s"} para el siguiente.</p>
+        <p class="mt-1 text-xs text-ink/70">${L.disponibles ? `<b class="text-[#2f8f5b]">Ya ganaste tu cruce al ${L.pct || 50}%</b>${L.disponibles > 1 ? ` (${L.disponibles})` : ""}: se aplica en tu próximo envío. ` : ""}Te falta${faltan === 1 ? "" : "n"} ${faltan} envío${faltan === 1 ? "" : "s"} entregado${faltan === 1 ? "" : "s"} para el siguiente.</p>
       </div>` : ""}
       ${R ? `<div>
         <p class="font-semibold">👭 Invita a una amiga</p>
@@ -499,7 +499,7 @@ function swmEnvioCardHTML(e) {
     <p class="text-xs text-ink/65 mt-2">${swmDate(e.createdAt)} · ${pk.length} paquete${pk.length === 1 ? "" : "s"}: ${escapeHtml(pk.map((p) => p.folio).join(", "))}${e.consolidar ? " · consolidado" : ""}</p>
     <p class="text-xs text-ink/65">A: ${escapeHtml([d.nombre, d.ciudad, d.cp].filter(Boolean).join(" · "))}</p>
     ${e.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(e.notaClienta)}</p>` : ""}
-    ${q ? `<div class="mt-2 text-sm space-y-0.5">${q.premioLealtad ? `<div class="flex justify-between text-[#2f8f5b] font-semibold"><span>Cruce a México</span><span>¡Gratis! 🎁</span></div>` : ""}${line("Cruce a México", q.cruce)}${line("Consolidación", q.consolidacion)}${line("Paquete(s) sin registrar", q.sinRegistro)}${line("Servicios extra", q.extras)}${q.descuento ? `<div class="flex justify-between text-rose-ink"><span>Cupón ${escapeHtml(q.cupon)}</span><span class="tabular-nums">−${swmMXN(q.descuento)}</span></div>` : ""}${line("Envío nacional", q.envio)}
+    ${q ? `<div class="mt-2 text-sm space-y-0.5">${line(q.premioLealtad ? `Cruce a México <span class="text-[#2f8f5b] font-semibold">(${q.lealtadPct || 50}% por lealtad 🎁)</span>` : "Cruce a México", q.cruce)}${line("Consolidación", q.consolidacion)}${line("Paquete(s) sin registrar", q.sinRegistro)}${line("Servicios extra", q.extras)}${q.descuento ? `<div class="flex justify-between text-rose-ink"><span>Cupón ${escapeHtml(q.cupon)}</span><span class="tabular-nums">−${swmMXN(q.descuento)}</span></div>` : ""}${line("Envío nacional", q.envio)}
       <div class="flex justify-between font-semibold border-t border-ink/10 pt-1"><span>Total</span><span class="tabular-nums">${swmMXN(q.total)}</span></div></div>` : `<p class="mt-2 text-xs text-ink/70">Te mando la cotización del envío por correo y aquí mismo.</p>`}
     ${swmPagoHTML("envio", e)}
     ${e.guia ? `<p class="mt-2 text-sm">🚚 ${escapeHtml(e.paqueteria || "Paquetería")}: <b>${escapeHtml(e.guia)}</b></p>` : ""}
@@ -852,7 +852,7 @@ function initSwm() {
   ["swm-c-kg", "swm-c-alto", "swm-c-ancho", "swm-c-largo", "swm-c-usd"].forEach((id) => document.getElementById(id).addEventListener("input", updateSwmCalc));
   document.getElementById("swm-close").addEventListener("click", () => showHomeView("home"));
   const wa = document.getElementById("swm-wa");
-  const waHref = whatsappHref("Hola Mae! Tengo una duda sobre Shop with Mae (compras en EE.UU.).");
+  const waHref = whatsappHref("Hola Mae! Tengo una duda sobre la dirección americana (compras en EE.UU.).");
   if (waHref) { wa.href = waHref; wa.target = "_blank"; wa.rel = "noopener"; }
 
   const estimado = (e) => {

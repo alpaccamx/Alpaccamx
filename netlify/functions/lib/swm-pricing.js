@@ -23,8 +23,10 @@ const CONSOLIDACION_MAX_KG = 12;
 // y en SWM_EXTRAS de swm.js).
 const REVISION_FOTOS = 50; // abrir el paquete y mandar fotos del contenido
 const SEPARAR = 50; // separar artículos de un paquete en otro
-// Lealtad: cada LEALTAD_CADA envíos entregados, el cruce del siguiente va gratis.
+// Lealtad: cada LEALTAD_CADA envíos entregados, el cruce del siguiente va
+// con LEALTAD_PCT % de descuento.
 const LEALTAD_CADA = 5;
+const LEALTAD_PCT = 50;
 // Invita a una amiga: ella tiene este descuento en su primer envío o compra
 // y quien la invitó gana un cupón por lo mismo cuando la amiga paga.
 const REFERIDO_MXN = 50;
@@ -53,4 +55,4 @@ function consolidacionPorPeso(totalKg) {
   return Math.max(1, Math.ceil((Number(totalKg) || 0) / CONSOLIDACION_MAX_KG - 1e-9)) * CONSOLIDACION;
 }
 
-module.exports = { REVISION_FOTOS, SEPARAR, LEALTAD_CADA, REFERIDO_MXN, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, consolidacionPorPeso, TARIFA_KG, KILO_EXTRA, COMISION_PCT, CONSOLIDACION, CONSOLIDACION_MAX_KG, pesoVolumetrico, pesoCobrable, crucePorPeso, crucePorComision };
+module.exports = { REVISION_FOTOS, SEPARAR, LEALTAD_CADA, LEALTAD_PCT, REFERIDO_MXN, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, consolidacionPorPeso, TARIFA_KG, KILO_EXTRA, COMISION_PCT, CONSOLIDACION, CONSOLIDACION_MAX_KG, pesoVolumetrico, pesoCobrable, crucePorPeso, crucePorComision };

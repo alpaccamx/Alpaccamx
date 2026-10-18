@@ -114,7 +114,7 @@ const puedeEditar = (p) => p.origen !== "compra" && !p.datosPendientes
 
 exports.handler = async (event) => {
   const email = verifyCustomerToken(event);
-  if (!email) return json(401, { error: "Inicia sesión para usar Shop with Mae." });
+  if (!email) return json(401, { error: "Inicia sesión para usar tu dirección americana." });
   const customer = await getCustomerByEmail(email).catch(() => null);
   if (!customer) return json(401, { error: "Tu sesión no es válida o ya venció. Inicia sesión de nuevo." });
   const me = customer.email;
