@@ -108,12 +108,11 @@ exports.handler = async (event) => {
           return p;
         });
         if (!rec) return json(404, { error: "No existe ese paquete." });
-        const hasta = new Date(new Date(rec.receivedAt || Date.now()).getTime() + ALMACENAJE_DIAS * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
         await avisar(rec, yaEstaba ? `actualicé tu paquete ${rec.folio} (peso, fotos o nota)` : `llegó tu paquete ${rec.folio} 📦`, `
           <h2 style="margin:0 0 8px;font-size:20px;">${yaEstaba ? "Actualicé tu paquete" : "¡Tu paquete llegó a nuestro almacén!"}</h2>
           <p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · "))}${rec.cobrable ? ` · ${rec.cobrable} kg` : ""}.${fotos.length ? ` Te adjuntamos ${fotos.length === 1 ? "la foto" : `las ${fotos.length} fotos`} de tu paquete (también las ves en tu casillero).` : ""}</p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
-          <p style="font-size:14px;">Lo guardamos gratis hasta el <b>${hasta}</b>. Cuando quieras, entra a tu casillero y pide tu envío a México (puedes juntarlo con otros paquetes).</p>`, fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
+          <p style="font-size:14px;">Te avisamos en cuanto cruce a México; ahí entras a tu casillero y pides tu envío a casa (puedes juntarlo con otros paquetes).</p>`, fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
         return json(200, { paquete: rec });
       }
 
@@ -445,7 +444,10 @@ exports.handler = async (event) => {
           p.enMexicoAt = now(); push(p, "en_mexico"); return p;
         });
         if (!rec) return json(409, { error: "Ese paquete no está en el almacén o ya estaba en México." });
-        await avisar(rec, `tu paquete ${rec.folio} ya está en México 🇲🇽`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu paquete ya cruzó a México!</h2><p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · ") || rec.folio)}</p>`);
+        // El almacenaje gratis empieza a contar desde aquí.
+        const hasta = new Date(new Date(rec.enMexicoAt).getTime() + ALMACENAJE_DIAS * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+        await avisar(rec, `tu paquete ${rec.folio} ya está en México 🇲🇽`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu paquete ya cruzó a México!</h2><p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · ") || rec.folio)}</p>
+          <p style="font-size:14px;">Lo guardamos gratis hasta el <b>${hasta}</b>. Entra a tu casillero y pide tu envío a casa (puedes juntarlo con otros paquetes).</p>`);
         return json(200, { paquete: rec });
       }
 

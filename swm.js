@@ -299,7 +299,9 @@ function swmPendientes() {
   swm.paquetes.filter((p) => p.correccion && p.correccion.estado === "pedida").forEach((p) => out.push(["✏️", `Corrige los datos de ${p.folio}`, ir("paquete", p)]));
   const listos = swm.paquetes.filter((p) => p.status === "recibido" && !p.datosPendientes);
   const mx = listos.filter((p) => p.enMexicoAt);
-  if (mx.length) out.push(["🚚", `${mx.length === 1 ? "Tu paquete ya está" : `Tus ${mx.length} paquetes ya están`} en México: pide tu envío`, 'data-swm-form="envio" data-swm-solo-mx']);
+  const vence = mx.filter((p) => (new Date(p.enMexicoAt).getTime() + swm.almacenajeDias * 864e5 - Date.now()) / 864e5 <= 5);
+  if (vence.length) out.push(["⏰", `Se acaba el almacenaje gratis de ${vence.map((p) => p.folio).join(", ")}: pide tu envío`, 'data-swm-form="envio"']);
+  else if (mx.length) out.push(["🚚", `${mx.length === 1 ? "Tu paquete ya está" : `Tus ${mx.length} paquetes ya están`} en México: pide tu envío`, 'data-swm-form="envio" data-swm-solo-mx']);
   return out;
 }
 
@@ -414,8 +416,9 @@ function swmCotSiguiente(r, cotizando, pagado) {
 function swmPaqueteCardHTML(p) {
   const desc = [p.tienda, p.paqueteria, p.rastreo && `rastreo ${p.rastreo}`].filter(Boolean).join(" · ");
   let extra = "";
-  if (p.status === "recibido" && p.receivedAt && !p.enMexicoAt) {
-    const hasta = new Date(new Date(p.receivedAt).getTime() + swm.almacenajeDias * 864e5);
+  // El almacenaje gratis corre desde que el paquete llega a México.
+  if (p.status === "recibido" && p.enMexicoAt) {
+    const hasta = new Date(new Date(p.enMexicoAt).getTime() + swm.almacenajeDias * 864e5);
     const dias = Math.ceil((hasta - Date.now()) / 864e5);
     extra = `<p class="text-xs ${dias <= 5 ? "text-sale font-semibold" : "text-ink/65"} mt-1">Almacenaje gratis hasta el ${swmDate(hasta.toISOString(), { day: "numeric", month: "long" })}${dias > 0 ? ` (${dias} día${dias === 1 ? "" : "s"})` : " · ya venció"}</p>`;
   }
