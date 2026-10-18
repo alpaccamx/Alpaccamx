@@ -420,7 +420,7 @@ async function notifyCustomerTemplate(template, { phone, name, texto }) {
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_CUSTOMER_PHONE_NUMBER_ID;
   const digits = String(phone || "").replace(/[^0-9]/g, "").replace(/^(?:52)?1?(\d{10})$/, "$1");
-  if (!accessToken || !phoneNumberId || digits.length !== 10 || !texto) return;
+  if (!accessToken || !phoneNumberId || digits.length !== 10 || !texto) return { ok: false, error: "Falta configuración, teléfono o texto." };
   // Meta no acepta saltos de línea ni muchos espacios seguidos en las variables.
   const limpio = (t, n) => String(t).replace(/\s+/g, " ").trim().slice(0, n);
   try {
@@ -444,8 +444,10 @@ async function notifyCustomerTemplate(template, { phone, name, texto }) {
     });
     const body = await res.text();
     if (!res.ok) console.error(`Error mandando ${template}:`, res.status, body);
+    return { ok: res.ok, status: res.status, error: res.ok ? "" : body.slice(0, 500) };
   } catch (err) {
     console.error(`Error de red mandando ${template}:`, err);
+    return { ok: false, error: String(err && err.message || err) };
   }
 }
 
