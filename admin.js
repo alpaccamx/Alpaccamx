@@ -4471,7 +4471,7 @@ ${itemLines}
     const q = swmSearch.trim().toLowerCase();
     if (!q) return true;
     const cas = r.email && swmData.casilleros ? swmData.casilleros[r.email] : "";
-    return [r.folio, r.name, r.email, r.phone, r.tienda, r.rastreo, r.contenido, r.links, cas, r.etiqueta].some((v) => String(v || "").toLowerCase().includes(q));
+    return [r.folio, r.name, r.email, r.phone, r.tienda, r.paqueteria, r.rastreo, r.contenido, r.links, cas, r.etiqueta].some((v) => String(v || "").toLowerCase().includes(q));
   }
 
   function renderSwmAdmin() {
@@ -4566,7 +4566,7 @@ ${itemLines}
     const diasAqui = p.receivedAt ? Math.floor((Date.now() - new Date(p.receivedAt)) / 864e5) : 0;
     const limite = swmData.diasSinDuena || 7;
     return `<div class="swm-card" data-swm-id="${escapeHtml(p.id)}" data-kind="paquete">
-      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}</span>${swmValorAlto(p) ? swmPillA("⚠️ Valor alto", "new") : ""}${swmPillA(st, ["registrado", "sin_dueña"].includes(p.status) || p.datosPendientes ? "new" : "")}</h4>
+      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.paqueteria ? ` · ${escapeHtml(p.paqueteria)}` : ""}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}</span>${swmValorAlto(p) ? swmPillA("⚠️ Valor alto", "new") : ""}${swmPillA(st, ["registrado", "sin_dueña"].includes(p.status) || p.datosPendientes ? "new" : "")}</h4>
       ${sinDuena ? `<div class="meta">Etiqueta: <b>${escapeHtml(p.etiqueta || "—")}</b> · ${p.cobrable || "?"} kg · llegó ${swmFecha(p.receivedAt)} · <b style="color:${diasAqui >= limite ? "#b33660" : "inherit"}">${diasAqui} día${diasAqui === 1 ? "" : "s"}${diasAqui >= limite ? ` (ya pasaron ${limite}: puedes disponer de él)` : ` de ${limite}`}</b></div>
       <div class="grid" style="grid-template-columns:1fr auto;align-items:end;"><label>Buscar a la dueña (nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Ej. Ana López"></label></div>
       <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>

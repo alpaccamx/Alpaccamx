@@ -293,7 +293,7 @@ function swmTabHTML() {
 }
 
 function swmPaqueteCardHTML(p) {
-  const desc = [p.tienda, p.rastreo && `rastreo ${p.rastreo}`].filter(Boolean).join(" · ");
+  const desc = [p.tienda, p.paqueteria, p.rastreo && `rastreo ${p.rastreo}`].filter(Boolean).join(" · ");
   let extra = "";
   if (p.status === "recibido" && p.receivedAt) {
     const hasta = new Date(new Date(p.receivedAt).getTime() + swm.almacenajeDias * 864e5);
@@ -435,6 +435,12 @@ function swmEnvioCardHTML(e) {
 }
 
 /* ----------------------------- Formularios ----------------------------- */
+/* Con quién viene el paquete: ayuda a encontrarlo en la bodega. */
+const SWM_PAQUETERIAS = ["UPS", "USPS", "FedEx", "Amazon", "DHL", "OnTrac", "Otra"];
+const swmPaqueteriaSelect = (attrs, actual = "") => `<label class="flex flex-col gap-1 text-xs font-semibold">Paquetería *<select ${attrs} class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal bg-white">
+    <option value=""${actual ? "" : " selected"} disabled>Elige la paquetería</option>
+    ${SWM_PAQUETERIAS.map((x) => `<option value="${x}"${actual === x ? " selected" : ""}>${x}</option>`).join("")}
+  </select></label>`;
 const swmInput = (id, label, attrs = "") => `<label class="flex flex-col gap-1 text-xs font-semibold">${label}<input id="${id}" ${attrs} class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>`;
 const swmCobroRadios = () => `<fieldset class="grid gap-2 sm:grid-cols-2"><legend class="text-xs font-semibold mb-1">¿Cómo quieres pagar el cruce?</legend>
     <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="peso" checked class="accent-[#c4466e]"><span><b>Por peso o medidas</b><span class="block text-xs text-ink/65">Según mi tabla; se paga al enviar.</span></span></label>
@@ -527,6 +533,7 @@ function swmEditarFormHTML(p) {
   return `<form data-swm-editar="${escapeHtml(p.id)}" class="mt-3 rounded-xl border border-ink/15 p-3 space-y-3" novalidate>
       ${p.status === "registrado" ? `<div class="grid gap-3 sm:grid-cols-2">
         <label class="flex flex-col gap-1 text-xs font-semibold">Tienda<input data-e="tienda" maxlength="80" value="${escapeHtml(p.tienda || "")}" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>
+        ${swmPaqueteriaSelect('data-e="paqueteria"', p.paqueteria || "")}
         <label class="flex flex-col gap-1 text-xs font-semibold">Número de rastreo (guía) *<input data-e="rastreo" maxlength="80" value="${escapeHtml(p.rastreo || "")}" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>
       </div>` : ""}
       ${swmDeclaracionHTML(p)}
@@ -581,7 +588,7 @@ function swmCompraWaLink(tienda) {
 function swmFormHTML() {
   if (swm.form === "paquete") {
     return swmFormShell("📦 Registrar un paquete", `
-      <div class="grid gap-3 sm:grid-cols-2">${swmInput("swm-f-tienda", "Tienda", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}${swmInput("swm-f-rastreo", "Número de rastreo (guía) *", 'maxlength="80" required')}</div>
+      <div class="grid gap-3 sm:grid-cols-2">${swmInput("swm-f-tienda", "Tienda", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}${swmPaqueteriaSelect('id="swm-f-paqueteria" required')}${swmInput("swm-f-rastreo", "Número de rastreo (guía) *", 'maxlength="80" required')}</div>
       ${swmDeclaracionHTML()}
       <p class="text-xs text-ink/65">Regístralo en cuanto tengas la guía, antes de que llegue a la bodega.</p>
       ${swmCobroRadios()}${swmAcepta()}`, "Registrar paquete");
@@ -670,7 +677,8 @@ async function submitSwmForm(form) {
   const cobro = (form.querySelector('input[name="swm-cobro"]:checked') || {}).value;
   let body;
   if (swm.form === "paquete") {
-    body = { accion: "registrar_paquete", tienda: val("swm-f-tienda"), rastreo: val("swm-f-rastreo"), cobro, aceptaRestricciones: document.getElementById("swm-acepta").checked };
+    body = { accion: "registrar_paquete", tienda: val("swm-f-tienda"), paqueteria: val("swm-f-paqueteria"), rastreo: val("swm-f-rastreo"), cobro, aceptaRestricciones: document.getElementById("swm-acepta").checked };
+    if (!body.paqueteria) return fail("Elige con qué paquetería viene tu paquete (UPS, USPS, FedEx, Amazon...).");
     if (!body.rastreo.trim()) return fail("Pon el número de rastreo (guía) de tu paquete: sin él no podemos identificarlo cuando llegue.");
     try { Object.assign(body, await swmLeerDeclaracion(form, cobro)); } catch (ex) { return fail(ex.message); }
     if (!body.aceptaRestricciones) return fail("Confirma que tu paquete no trae nada ilegal ni artículos de cristal, muebles ni pallets.");
@@ -896,6 +904,11 @@ function initSwm() {
       const tienda = edit.querySelector('[data-e="tienda"]');
       const rastreo = edit.querySelector('[data-e="rastreo"]');
       if (tienda) extra.tienda = tienda.value.trim();
+      const paqueteria = edit.querySelector('[data-e="paqueteria"]');
+      if (paqueteria) {
+        extra.paqueteria = paqueteria.value;
+        if (!extra.paqueteria) { err.textContent = "Elige con qué paquetería viene tu paquete."; err.classList.remove("hidden"); return; }
+      }
       if (rastreo) {
         extra.rastreo = rastreo.value.trim();
         if (!extra.rastreo) { err.textContent = "Pon el número de rastreo (guía) de tu paquete."; err.classList.remove("hidden"); return; }
