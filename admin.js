@@ -4457,7 +4457,7 @@ ${itemLines}
     try {
       const res = await fetch("/.netlify/functions/admin-swm", { headers: { "x-admin-key": adminKey } });
       const data = await res.json();
-      if (!res.ok) { if (!quiet) setStatus(data.error || "No se pudo cargar Shop with Mae."); return; }
+      if (!res.ok) { if (!quiet) setStatus(data.error || "No se pudo cargar la dirección americana."); return; }
       swmData = data;
       const pend = swmPendientes();
       swmNewCount = pend.cotizarCompra.length + pend.comprar.length + pend.cotizarEnvio.length + pend.enviar.length + pend.pagos.length + pend.sinDuena.length + pend.extras.length + pend.correcciones.length;
@@ -4918,8 +4918,8 @@ ${itemLines}
     </details>`;
   }
 
-  /* Cruces gratis por lealtad que le quedan a la clienta (cada 5 envíos
-     entregados; lo mismo que lealtadDe en swm-core.js). */
+  /* Descuentos de lealtad (cruce al 50%) que le quedan a la clienta (cada
+     5 envíos entregados; lo mismo que lealtadDe en swm-core.js). */
   const SWM_LEALTAD_CADA = 5;
   function swmLealtadLibres(email) {
     const suyos = swmData.envios.filter((x) => x.email === email);
@@ -4943,7 +4943,7 @@ ${itemLines}
           ${sug.extras ? `<label>Servicios extra (vacío = ${formatPrice(sug.extras)})<input data-f="extras" type="number" step="0.01" min="0" placeholder="${sug.extras}"></label>` : ""}
           <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(e.notaClienta || "")}"></label>
         </div>
-        ${swmLealtadLibres(e.email) || e.premioLealtad ? `<label class="swm-check" style="margin-top:8px;"><input type="checkbox" data-f="premioLealtad"${e.premioLealtad ? " checked" : ""}> 🎁 Cruce gratis por lealtad (le ${e.premioLealtad ? "toca" : `quedan ${swmLealtadLibres(e.email)}`})</label>` : ""}
+        ${swmLealtadLibres(e.email) || e.premioLealtad ? `<label class="swm-check" style="margin-top:8px;"><input type="checkbox" data-f="premioLealtad"${e.premioLealtad ? " checked" : ""}> 🎁 Cruce al 50% por lealtad (le ${e.premioLealtad ? "toca" : `quedan ${swmLealtadLibres(e.email)}`})</label>` : ""}
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("envio", e)}</div>`;
     } else if (e.status === "pagado" || e.status === "en_mexico") {
       action = `<div class="grid"><label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(e.paqueteria || "Estafeta")}"></label><label>Número de guía<input data-f="guia" type="text" value="${escapeHtml(e.guia || "")}"></label></div>
@@ -5227,7 +5227,7 @@ ${itemLines}
     restock: { el: "restock-requests-panel", title: "🔔 Avisos de restock", nav: "mas" },
     resenas: { el: "reviews-panel", title: "⭐ Reseñas", nav: "mas" },
     usa: { el: "usa-orders-panel", title: "🛍️ Encargos USA", nav: "mas" },
-    swm: { el: "swm-panel", title: "🇺🇸 Shop with Mae", nav: "mas" },
+    swm: { el: "swm-panel", title: "🇺🇸 Dirección americana", nav: "mas" },
     ajustes: { el: "settings-view", title: "⚙️ Ajustes", nav: "mas" },
     papelera: { el: "trash-view", title: "🗑️ Papelera", nav: "mas" },
     revision: { el: "revision-view", title: "🔄 Revisión ABW", nav: "mas" },

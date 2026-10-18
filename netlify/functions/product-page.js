@@ -172,7 +172,7 @@ async function listingMeta(q) {
   }
   if (q.ver === "shopwithmae" || q.ver === "direccion-americana") {
     const image = await ogImage("ver", "shopwithmae");
-    return { title: "Dirección americana — Shop with Mae · Alpacca", desc: "Compra en tiendas de EE.UU. (Sephora, Ulta, Amazon...) con tu dirección americana y recíbelo en México.", url: `${SITE}/?ver=shopwithmae`, image, ogSize: Boolean(image) };
+    return { title: "Dirección americana · Alpacca", desc: "Compra en tiendas de EE.UU. (Sephora, Ulta, Amazon...) con tu dirección americana y recíbelo en México.", url: `${SITE}/?ver=shopwithmae`, image, ogSize: Boolean(image) };
   }
   if (q.q) return { title: `"${String(q.q).slice(0, 60)}" — Alpacca`, desc: `Resultados de "${String(q.q).slice(0, 60)}" en Alpacca: skincare coreano y asiático con envíos a todo México.`, url: `${SITE}/?q=${encodeURIComponent(q.q)}` };
   return null;

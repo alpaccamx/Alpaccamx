@@ -4464,7 +4464,7 @@ function setRouteMeta(r) {
   else if (r.categoria) { title = `${r.categoria} coreano — Alpacca`; canonical += `?categoria=${encodeURIComponent(r.categoria)}`; }
   else if (r.ver === "catalogo") { title = "Catálogo completo — Alpacca"; canonical += "?ver=catalogo"; }
   else if (r.ver === "stock") { title = "Stock en México, entrega inmediata — Alpacca"; canonical += "?ver=stock"; }
-  else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México — Shop with Mae · Alpacca"; canonical += "?ver=shopwithmae"; }
+  else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México · Alpacca"; canonical += "?ver=shopwithmae"; }
   else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
   document.title = title;
   const link = document.querySelector('link[rel="canonical"]');
@@ -6513,7 +6513,7 @@ function renderAccountQuick(orders) {
   tiles.push(tile('data-acct-action="favs"', "💗", "Mis favoritos", wishlist.size ? `${wishlist.size} guardado${wishlist.size === 1 ? "" : "s"}` : "Toca el ♡ en un producto", "bg-lilac/15"));
   tiles.push(tile('data-acct-action="skin"', "🧴", skin ? `Mi piel: ${escapeHtml(skin)}` : "¿Cuál es mi tipo de piel?", skin ? "Ver productos para mí" : "Haz el quiz en 1 minuto", "bg-[#eef8f2]"));
   tiles.push(tile('data-acct-action="whatsapp"', "💬", "Hablar con Mae", "Dudas de tus pedidos por WhatsApp", "bg-[#fff6e5]"));
-  tiles.push(tile('data-acct-action="swm"', "🇺🇸", "Mi dirección americana", "Compra en EE.UU. y te lo traemos (Shop with Mae)", "bg-[#eef3ff] col-span-2"));
+  tiles.push(tile('data-acct-action="swm"', "🇺🇸", "Mi dirección americana", "Compra en EE.UU. y te lo traemos a México", "bg-[#eef3ff] col-span-2"));
   el.innerHTML = tiles.slice(0, 5).join("");
 }
 
