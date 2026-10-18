@@ -8,6 +8,7 @@ const { getCoupon, saveCoupon, listCoupons, normCode } = require("./coupons.js")
 const { sendEmail, baseEmailHTML, formatPriceMXN } = require("./email.js");
 const { loadPricingData } = require("./pricing.js");
 const { notifyCustomerSwm } = require("./whatsapp.js");
+const { getCustomerByEmail } = require("./customer-store.js");
 
 const MP_API = "https://api.mercadopago.com";
 const ALMACENAJE_DIAS = 30;
@@ -164,10 +165,19 @@ async function premiarReferido(kind, rec) {
   const premio = `GRACIAS-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   await saveCoupon({ code: premio, tipo: "monto", valor: REFERIDO_MXN, aplica: "swm", usosMax: 1, soloPara: c.duena, nota: `Premio por invitar a ${rec.name || rec.email}` });
   await mutateRecord(kind, rec.id, (r) => { r.premioReferido = premio; return r; });
-  await avisar(c.duena, `¡Ganaste ${formatPriceMXN(REFERIDO_MXN)} por invitar a una amiga! 💗`, `
+  // Con su teléfono (de su cuenta o de sus paquetes) para que también le llegue por WhatsApp.
+  const cuenta = await getCustomerByEmail(c.duena).catch(() => null);
+  let phone = cuenta && cuenta.phone;
+  if (!phone) {
+    const suyos = (await Promise.all(["paquete", "envio", "compra"].map((k) => listRecords(k, { email: c.duena }).catch(() => [])))).flat();
+    phone = (suyos.find((r) => r.phone) || {}).phone || "";
+  }
+  const duena = { email: c.duena, name: (cuenta && cuenta.name) || "", phone };
+  await avisar(duena, `¡Ganaste ${formatPriceMXN(REFERIDO_MXN)} por invitar a una amiga! 💗`, `
     <h2 style="margin:0 0 8px;font-size:20px;">¡Gracias por invitar a una amiga!</h2>
     <p style="font-size:14px;">Tu amiga ya hizo su primer pago con tu código. Te regalamos <b>${formatPriceMXN(REFERIDO_MXN)}</b> para tu próximo envío o compra.</p>
-    <p style="font-size:14px;">Tu cupón: <b>${premio}</b>. Ponlo en "¿Tienes un cupón?" cuando pagues tu siguiente cotización (también está en tu casillero).</p>`);
+    <p style="font-size:14px;">Tu cupón: <b>${premio}</b>. Ponlo en "¿Tienes un cupón?" cuando pagues tu siguiente cotización (también está en tu casillero).</p>`,
+    null, `¡Gracias por invitar a una amiga! 💗 Ya hizo su primer pago con tu código y ganaste ${formatPriceMXN(REFERIDO_MXN)} para tu próximo envío o compra. Tu cupón es ${premio}: ponlo en "¿Tienes un cupón?" cuando pagues tu siguiente cotización. También lo ves en tu casillero.`);
 }
 
 /* Avisa a la clienta por correo y por WhatsApp. "to" es el registro
