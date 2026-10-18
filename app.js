@@ -211,13 +211,18 @@ const CONFIG = {
 
   // Pasos de la rutina que arma el quiz. Un producto entra a un paso si
   // su nombre (en minúsculas y sin acentos) cumple "match" y no cumple
-  // "skip"; se revisan en este orden y se queda en el primero que cumpla.
+  // "skip"; se revisan en este orden y se queda en el primero que cumpla
+  // (un "sun cream" es protector antes que crema; un "cleansing oil" es
+  // aceite antes que limpiador). "orden" es como se le muestra la rutina
+  // y "extra" son pasos que no son diarios (se numeran con +).
   SKIN_ROUTINE: [
-    { key: "sol", label: "Protector solar", emoji: "☀️", when: "Solo de día, al final", match: /\bsun\b|sunscreen|sun (cream|stick|milk|serum|essence|gel|block|fluid|lotion)|\bspf\b|protector solar|uv /, skip: /after sun|body|hair/ },
-    { key: "limpiador", label: "Limpiador", emoji: "🫧", when: "Mañana y noche", match: /cleans|cleanser|foam|face wash|facial wash|limpiador|micellar|cleansing/, skip: /body|hair|hand|lip|eye|mascara|brush|puff|pad/ },
-    { key: "tonico", label: "Tónico", emoji: "💦", when: "Después de limpiar", match: /toner|tonico|skin softener|refresher/, skip: /body|hair|cleans/ },
-    { key: "serum", label: "Sérum", emoji: "💧", when: "Unas gotas antes de la crema", match: /serum|ampoule|ampolla|essence|esencia|booster|concentrate|\bshot\b/, skip: /body|hair|eye|lip|toner|cleans|mask|pad|patch|sheet/ },
-    { key: "crema", label: "Crema", emoji: "🧴", when: "Para sellar la hidratación", match: /cream|crema|moisturi[sz]|gel cream|emulsion|lotion|soothing gel/, skip: /body|hand|foot|hair|lip|eye|sun|cleans|bb |cc |cushion|mask|pad|patch/ },
+    { key: "sol", orden: 6, label: "Protector solar", emoji: "☀️", when: "Solo de día, al final", match: /\bsun\b|sunscreen|sun (cream|stick|milk|serum|essence|gel|block|fluid|lotion)|\bspf\b|protector solar|uv /, skip: /after sun|body|hair|colores|cushion|glow veil/ },
+    { key: "aceite", orden: 1, label: "Aceite limpiador", emoji: "🫒", when: "De noche, antes del limpiador: quita bloqueador y maquillaje", match: /cleansing (oil|balm|butter|sherbet)|oil cleans|balm cleans|aceite limpiador|balsamo limpiador/, skip: /body|hair|lip|eye|foam/ },
+    { key: "mascarilla", orden: 7, extra: true, label: "Mascarilla", emoji: "🎭", when: "1 o 2 veces por semana, después del tónico", match: /\bmask\b|mascarilla|sleeping pack|wash off pack|clay pack|peeling/, skip: /body|hair|lip|eye|foot|hand|nose|cleans|patch/ },
+    { key: "limpiador", orden: 2, label: "Limpiador", emoji: "🫧", when: "Mañana y noche", match: /cleans|cleanser|foam|face wash|facial wash|limpiador|micellar|cleansing/, skip: /body|hair|hand|lip|eye|mascara|brush|puff|pad/ },
+    { key: "tonico", orden: 3, label: "Tónico", emoji: "💦", when: "Después de limpiar", match: /toner|tonico|skin softener|refresher/, skip: /body|hair|cleans|cotton/ },
+    { key: "serum", orden: 4, label: "Sérum", emoji: "💧", when: "Unas gotas antes de la crema", match: /serum|ampoule|ampolla|essence|esencia|booster|concentrate|\bshot\b/, skip: /body|hair|eye|lip|toner|cleans|mask|pad|patch|sheet|cream|spot|\bpack\b|age-r|device|\bcase\b|scalp|muestra|sample/ },
+    { key: "crema", orden: 5, label: "Crema", emoji: "🧴", when: "Para sellar la hidratación", match: /cream|crema|moisturi[sz]|gel cream|emulsion|lotion|soothing gel/, skip: /body|hand|foot|hair|lip|eye|sun|cleans|bb |cc |cushion|mask|pad|patch|spot/ },
   ],
 
   // Frases cortas del resultado del quiz, por tipo de piel y preocupación.
@@ -3610,7 +3615,7 @@ function skinRoutineFor(profile) {
         return items.length >= 3;
       });
     return { step, items };
-  }).filter((r) => r.items.length);
+  }).filter((r) => r.items.length).sort((a, b) => (a.step.orden || 0) - (b.step.orden || 0));
 }
 
 function showQuizResult(profile) {
@@ -3652,8 +3657,8 @@ function showQuizResult(profile) {
   document.getElementById("skin-routine-actions").classList.remove("hidden");
   wrap.innerHTML = quizRoutine
     .map(({ step, items }, i) => `<div>
-        <div class="flex items-baseline gap-2 mb-3">
-          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-ink text-cream text-sm font-bold shrink-0">${i + 1}</span>
+        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-3">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full ${step.extra ? "bg-blush text-rose-ink" : "bg-ink text-cream"} text-sm font-bold shrink-0">${step.extra ? "+" : i + 1}</span>
           <h4 class="font-display text-lg text-ink">${step.emoji} ${escapeHtml(step.label)}</h4>
           <span class="text-xs text-ink/60">${escapeHtml(step.when || "")}</span>
         </div>
@@ -3697,7 +3702,7 @@ function skinRoutineWhatsAppUrl() {
   const lines = [`Mi rutina de Alpacca${profile ? ` (piel ${skinProfileLabel(profile).toLowerCase()})` : ""}:`];
   quizRoutine.forEach(({ step, items }, i) => {
     const p = items[0];
-    lines.push(`${i + 1}. ${step.label}: ${p.marca ? `${p.marca} ` : ""}${p.nombre} – ${formatPrice(p.precio)}`, `   ${productShareUrl(p)}`);
+    lines.push(`${step.extra ? "Extra" : i + 1}. ${step.label}: ${p.marca ? `${p.marca} ` : ""}${p.nombre} – ${formatPrice(p.precio)}`, `   ${productShareUrl(p)}`);
   });
   return `https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`;
 }
