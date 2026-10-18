@@ -375,9 +375,21 @@ exports.handler = async (event) => {
           e.status = "en_mexico"; e.enMexicoAt = now(); push(e, "en_mexico"); return e;
         });
         if (!rec) return json(409, { error: "Ese envío no está pagado o ya avanzó." });
-        await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => { p.status = "en_mexico"; push(p, "en_mexico"); return p; })));
+        await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => { if (!p.enMexicoAt) { p.enMexicoAt = now(); push(p, "en_mexico"); } return p; })));
         await avisar(rec, `tu envío ${rec.folio} ya está en México 🇲🇽`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío ya está en México!</h2><p style="font-size:14px;">Ya cruzó la frontera. En cuanto lo mandemos te llega la guía de la paquetería.</p>`);
         return json(200, { envio: rec });
+      }
+
+      // Un paquete ya cruzó a México (sigue disponible para pedir su envío:
+      // el status no cambia, solo se marca la fecha del cruce).
+      case "paquete_en_mexico": {
+        const rec = await mutateRecord("paquete", id, (p) => {
+          if (!["recibido", "en_envio"].includes(p.status) || p.enMexicoAt) return null;
+          p.enMexicoAt = now(); push(p, "en_mexico"); return p;
+        });
+        if (!rec) return json(409, { error: "Ese paquete no está en el almacén o ya estaba en México." });
+        await avisar(rec, `tu paquete ${rec.folio} ya está en México 🇲🇽`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu paquete ya cruzó a México!</h2><p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · ") || rec.folio)}</p>`);
+        return json(200, { paquete: rec });
       }
 
       case "marcar_enviado": {

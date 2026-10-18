@@ -4480,7 +4480,8 @@ ${itemLines}
     const tabs = [
       ["acciones", `⚡ Por hacer (${swmNewCount})`],
       ["llegar", `⏳ Por llegar (${P.filter((p) => p.status === "registrado").length})`],
-      ["almacen", `📥 En almacén (${P.filter((p) => p.status === "recibido").length})`],
+      ["almacen", `📥 En almacén (${P.filter((p) => p.status === "recibido" && !p.enMexicoAt).length})`],
+      ["mexico", `🇲🇽 En México (${P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length})`],
       ["sindueña", `❓ Sin dueña (${P.filter((p) => p.status === "sin_dueña").length})`],
       ["compras", `🛍️ Compras (${swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status)).length})`],
       ["envios", `🚚 Envíos (${swmData.envios.filter((e) => !["entregado", "cancelado"].includes(e.status)).length})`],
@@ -4512,7 +4513,9 @@ ${itemLines}
     } else if (swmTab === "sindueña") {
       html = P.filter((p) => p.status === "sin_dueña").map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes sin dueña.</p>`;
     } else if (swmTab === "almacen") {
-      html = P.filter((p) => p.status === "recibido" && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes en el almacén.</p>`;
+      html = P.filter((p) => p.status === "recibido" && !p.enMexicoAt && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes en el almacén.</p>`;
+    } else if (swmTab === "mexico") {
+      html = P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes cruzados a México.</p>`;
     } else if (swmTab === "compras") {
       html = swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status) && swmMatches(c)).map(swmCompraCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay compras activas.</p>`;
     } else if (swmTab === "envios") {
@@ -4533,7 +4536,7 @@ ${itemLines}
     return `${cas ? `<b>${escapeHtml(cas)}</b> · ` : ""}${escapeHtml(r.name || r.email)} · ${escapeHtml(r.email)}${r.phone ? ` · ${escapeHtml(r.phone)}` : ""}${wa ? ` · <a href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}`;
   }
   const swmPillA = (t, cls = "") => `<span class="swm-pill ${cls}">${t}</span>`;
-  const swmCancelBtn = (kind, r) => (["cancelado", "entregado", "comprado", "en_mexico", "enviado"].includes(r.status) ? "" : `<button type="button" class="btn-secondary" data-swm-cancel="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">Cancelar</button>`);
+  const swmCancelBtn = (kind, r) => (["cancelado", "entregado", "comprado", "en_mexico", "enviado"].includes(r.status) || r.enMexicoAt ? "" : `<button type="button" class="btn-secondary" data-swm-cancel="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">Cancelar</button>`);
 
   /* "≈ $1,080 MXN" del valor declarado con el tipo de cambio de Ajustes y,
      si paga el cruce con el 15%, cuánto le toca. */
@@ -4557,7 +4560,7 @@ ${itemLines}
   }
 
   function swmPaqueteCard(p) {
-    const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : "📥 En almacén", en_envio: "📦 En un envío", en_mexico: "🇲🇽 En México", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
+    const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : p.enMexicoAt ? "🇲🇽 En México" : "📥 En almacén", en_envio: "📦 En un envío", en_mexico: "🇲🇽 En México", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
     const hasta = p.receivedAt ? new Date(new Date(p.receivedAt).getTime() + swmData.almacenajeDias * 864e5) : null;
     const vence = hasta ? Math.ceil((hasta - Date.now()) / 864e5) : null;
     const fotos = (p.fotos || []).map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:4px 10px;font-size:12px;">📷 Foto</button>`).join(" ");
@@ -4594,8 +4597,9 @@ ${itemLines}
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
         ${p.status === "registrado" ? `<button type="button" class="btn-primary" data-swm-recibir>📥 Marcar como recibido (y avisarle)</button>` : `<button type="button" class="btn-primary" data-swm-recibir>Guardar peso / fotos</button>`}
+        ${p.status === "recibido" && !p.enMexicoAt && !p.datosPendientes ? `<button type="button" class="btn-secondary" data-swm-pkg-mx>🇲🇽 Cruzado a México</button>` : ""}
         ${swmCancelBtn("paquete", p)}
-      </div>` : ""}
+      </div>` : p.status === "en_envio" && !p.enMexicoAt ? `<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-secondary" data-swm-pkg-mx>🇲🇽 Cruzado a México</button></div>` : ""}
     ${sinDuena ? "" : "</div>"}`;
   }
 
@@ -4990,6 +4994,9 @@ ${itemLines}
       swmAct({ accion: "separar_paquete", id, fotos,
         nuevo: { contenido: v("nContenido"), valorUSD: v("nValor"), kg: v("nKg"), alto: v("nAlto"), ancho: v("nAncho"), largo: v("nLargo") },
         resto: { contenido: v("rContenido"), valorUSD: v("rValor"), kg: v("rKg"), alto: v("rAlto"), ancho: v("rAncho"), largo: v("rLargo") } }, btn);
+    } else if (t.closest("[data-swm-pkg-mx]")) {
+      if (!confirm("¿Marcar este paquete como cruzado a México? Le llega un aviso a la clienta.")) return;
+      swmAct({ accion: "paquete_en_mexico", id }, btn);
     } else if (t.closest("[data-swm-en-mexico]")) {
       swmAct({ accion: "marcar_en_mexico", id }, btn);
     } else if (t.closest("[data-swm-enviado]")) {
