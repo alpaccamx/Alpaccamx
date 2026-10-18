@@ -9,6 +9,7 @@
 //   sin_registrar     { email?, etiqueta, tienda?, rastreo?, kg, alto, ancho, largo, fotos?, notaClienta? }
 //                     (llegó un paquete que nadie registró; sin email queda "sin dueña")
 //   asignar_paquete   { id, email }   (un paquete sin dueña ya tiene dueña)
+//   probar_avisos     {} (manda aviso_casillero y aviso_pedido de prueba al WhatsApp de Mae)
 //   crear_envio       { email, paqueteIds[], direccion } (Mae junta paquetes de una clienta en una caja)
 //   editar_paquete    { id, tienda?, rastreo?, contenido?, valorUSD?, cobro?, kg?, alto?, ancho?, largo?, notaClienta?, notaPrivada? }
 //   cotizar_compra    { id, productos, cruce?, notaClienta? }   (MXN)
@@ -376,6 +377,16 @@ exports.handler = async (event) => {
         });
         if (rec) await avisar(rec, `revisa tu pago de ${rec.folio}: ${motivo}`, `<h2 style="margin:0 0 8px;font-size:20px;">No pudimos validar tu pago</h2><p style="font-size:14px;">${esc(motivo)}</p><p style="font-size:14px;">Puedes volver a subir tu comprobante o pagar con tarjeta desde tu casillero.</p>`);
         return rec ? json(200, { [kind]: rec }) : json(404, { error: "No existe." });
+      }
+
+      // Prueba de las plantillas de WhatsApp: solo al número de Mae.
+      case "probar_avisos": {
+        const { notifyCustomerTemplate } = require("./lib/whatsapp.js");
+        const { WHATSAPP_MAE } = require("./lib/order-notify.js");
+        const a = { phone: WHATSAPP_MAE, name: "Mae" };
+        const casillero = await notifyCustomerTemplate("aviso_casillero", { ...a, texto: "Esto es una PRUEBA del aviso de la dirección americana. Así le llega a tu clienta cuando su paquete llega, se cotiza, cruza a México o se envía." });
+        const pedido = await notifyCustomerTemplate("aviso_pedido", { ...a, texto: "Esto es una PRUEBA del aviso de pedidos de la tienda. Así le llega a tu clienta cuando cambias su pedido, le reembolsas o lo cancelas." });
+        return json(200, { aviso_casillero: casillero, aviso_pedido: pedido });
       }
 
       // Mae junta varios paquetes de una clienta en una sola caja (un solo
