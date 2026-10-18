@@ -54,7 +54,7 @@ const SWM_ENVIO_STATUS = {
   cancelado: ["Cancelado", "bg-pill text-ink/50"],
 };
 
-let swm = { loaded: false, loading: false, error: "", name: "", phone: "", casillero: "", precios: { revision: 50, separar: 50 }, paquetes: [], compras: [], envios: [], tab: "paquetes", form: "", almacenajeDias: 30, tiposCambio: {}, comisionPct: 15, editando: "" };
+let swm = { loaded: false, loading: false, error: "", name: "", phone: "", casillero: "", precios: { revision: 50, separar: 50 }, paquetes: [], compras: [], envios: [], tab: "paquetes", form: "", almacenajeDias: 30, tiposCambio: {}, comisionPct: 15, editando: "", abiertas: {} };
 
 const swmMXN = (n) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
 const swmDate = (iso, opts = { day: "numeric", month: "short" }) => (iso ? new Date(iso).toLocaleDateString("es-MX", opts) : "");
@@ -80,6 +80,7 @@ function swmMostrarCompra() {
   swmFocusCompra = "";
   if (!swm.compras.some((c) => c.id === id)) return;
   swm.tab = "compras";
+  swm.abiertas[`compra:${id}`] = true;
   renderSwmCasillero();
   const el = document.getElementById(`swm-compra-${id}`);
   if (el) {
@@ -262,7 +263,6 @@ function renderSwmCasillero() {
 
   const P = swm.paquetes.filter((p) => p.status !== "cancelado");
   const kpi = (n, l) => `<div class="rounded-2xl bg-white/85 px-2 py-3 text-center shadow-sm"><b class="block text-xl font-bold tabular-nums">${n}</b><span class="text-[11px] text-ink/70">${l}</span></div>`;
-  const porPagar = [...swm.compras, ...swm.envios].filter((x) => x.status === "cotizado").length;
   const tabs = [["paquetes", `Paquetes (${P.length})`], ["compras", `Compras (${swm.compras.filter((c) => c.status !== "cancelado").length})`], ["envios", `Envíos (${swm.envios.filter((e) => e.status !== "cancelado").length})`]];
   el.innerHTML = `${h}
     <div class="rounded-3xl bg-gradient-to-br from-blush/60 via-blush/25 to-lilac/25 p-4">
@@ -272,7 +272,7 @@ function renderSwmCasillero() {
         ${kpi(P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length, "en México")}
         ${kpi(P.filter((p) => ["enviado", "entregado"].includes(p.status)).length, "enviados")}
       </div>
-      ${porPagar ? `<button type="button" data-swm-ir-pagar class="mt-3 w-full flex items-center justify-between gap-2 rounded-xl bg-rose-deep px-4 py-3 text-left text-sm font-semibold text-cream hover:bg-rose-ink"><span>💳 Tienes ${porPagar} cotización${porPagar > 1 ? "es" : ""} lista${porPagar > 1 ? "s" : ""} para pagar</span><span aria-hidden="true" class="whitespace-nowrap">Pagar →</span></button>` : ""}
+      ${swmPendientesHTML()}
       <div class="mt-3 grid gap-2 sm:grid-cols-3">
         ${[["paquete", "📦", "Registrar un paquete", "Ya compraste y lo mandaste a la dirección", "bg-[#fff4e0]"], ["compra", "🛍️", "Que Mae compre por mí", "Mándame tu carrito por WhatsApp", "bg-[#fde8f0]"], ["envio", "🚚", "Pedir mi envío a México", "Elige paquetes del almacén", "bg-[#e8f4ee]"]]
           .map(([f, ico, t, d, bg]) => `<button type="button" data-swm-form="${f}" class="flex items-center gap-3 rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80"><span class="shrink-0 w-11 h-11 rounded-xl ${bg} flex items-center justify-center text-2xl" aria-hidden="true">${ico}</span><span>${t}<span class="block text-xs font-normal text-ink/65">${d}</span></span></button>`).join("")}
@@ -285,6 +285,33 @@ function renderSwmCasillero() {
   el.querySelectorAll("[data-swm-editar]").forEach(swmActualizarEstimado);
   const benef = el.querySelector("[data-swm-benef]");
   if (benef) benef.addEventListener("toggle", () => { swm.benefOpen = benef.open; });
+}
+
+/* "Lo que necesitas hacer": todo lo que espera algo de la clienta, en una
+   lista corta arriba del casillero; cada punto la lleva a su tarjeta. */
+function swmPendientes() {
+  const out = [];
+  const ir = (kind, r) => `data-swm-ir="${kind}:${escapeHtml(r.id)}"`;
+  const porPagar = (r) => r.status === "cotizado" && r.cotizacion && !(r.pago && r.pago.status === "revision");
+  swm.envios.filter(porPagar).forEach((e) => out.push(["💳", `Paga tu envío ${e.folio} · ${swmMXN(e.cotizacion.total)}`, ir("envio", e)]));
+  swm.compras.filter(porPagar).forEach((c) => out.push(["💳", `Paga tu compra ${c.folio} · ${swmMXN(c.cotizacion.total)}`, ir("compra", c)]));
+  swm.paquetes.filter((p) => p.datosPendientes && p.status !== "cancelado").forEach((p) => out.push(["⚠️", `Dime qué trae ${p.folio} (llegó sin registrar)`, ir("paquete", p)]));
+  swm.paquetes.filter((p) => p.correccion && p.correccion.estado === "pedida").forEach((p) => out.push(["✏️", `Corrige los datos de ${p.folio}`, ir("paquete", p)]));
+  const listos = swm.paquetes.filter((p) => p.status === "recibido" && !p.datosPendientes);
+  const mx = listos.filter((p) => p.enMexicoAt);
+  if (mx.length) out.push(["🚚", `${mx.length === 1 ? "Tu paquete ya está" : `Tus ${mx.length} paquetes ya están`} en México: pide tu envío`, 'data-swm-form="envio" data-swm-solo-mx']);
+  const vence = listos.filter((p) => !p.enMexicoAt && p.receivedAt && (new Date(p.receivedAt).getTime() + swm.almacenajeDias * 864e5 - Date.now()) / 864e5 <= 5);
+  if (vence.length) out.push(["⏰", `Se acaba el almacenaje gratis de ${vence.map((p) => p.folio).join(", ")}: pide tu envío`, 'data-swm-form="envio"']);
+  return out;
+}
+
+function swmPendientesHTML() {
+  const items = swmPendientes();
+  if (!items.length) return swmActiva() ? `<p class="mt-3 rounded-2xl bg-white/85 px-4 py-3 text-sm">✨ <b>Todo en orden.</b> <span class="text-ink/70">Te avisamos cuando haya novedades.</span></p>` : "";
+  return `<div class="mt-3 rounded-2xl bg-white p-3 shadow-sm">
+      <p class="px-1 text-xs font-bold uppercase tracking-wide text-rose-ink">Lo que necesitas hacer</p>
+      <ul class="mt-2 space-y-1.5">${items.map(([ico, txt, attr]) => `<li><button type="button" ${attr} class="flex w-full items-center gap-3 rounded-xl bg-blush/25 px-3 py-2.5 text-left text-sm font-semibold hover:bg-blush/40"><span aria-hidden="true">${ico}</span><span class="flex-1">${escapeHtml(txt)}</span><span aria-hidden="true" class="text-rose-ink">→</span></button></li>`).join("")}</ul>
+    </div>`;
 }
 
 /* Lo que la hace volver: paquetes traídos, cruce gratis por lealtad e
@@ -350,17 +377,41 @@ function swmTabHTML() {
   if (swm.tab === "envios") {
     return swm.envios.length ? swm.envios.map(swmEnvioCardHTML).join("") : empty("Cuando tengas paquetes en el almacén, pide aquí tu envío a México.");
   }
-  const mx = swm.paquetes.filter((p) => p.status === "recibido" && p.enMexicoAt && !p.datosPendientes);
-  const juntar = mx.length > 1 ? `<div class="rounded-2xl border border-green-800/20 bg-[#eef8f2] p-4 text-sm">
-      <p><b>🇲🇽 Tienes ${mx.length} paquetes en México.</b> Júntalos en una sola caja y pagas un solo envío nacional con una sola guía.</p>
-      <button type="button" data-swm-form="envio" data-swm-solo-mx class="mt-2 rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">📦 Juntar en una caja y pedir mi envío</button>
-    </div>` : "";
-  return swm.paquetes.length ? juntar + swm.paquetes.map(swmPaqueteCardHTML).join("") : empty("Todavía no tienes paquetes. Compra en tu tienda favorita, mándalo a tu dirección americana y regístralo aquí.");
+  return swm.paquetes.length ? swm.paquetes.map(swmPaqueteCardHTML).join("") : empty("Todavía no tienes paquetes. Compra en tu tienda favorita, mándalo a tu dirección americana y regístralo aquí.");
 }
 
 // Ya cruzó a México: el status sigue en almacén/en un envío (para poder
 // pedir su envío), pero a la clienta se le muestra "En México".
 const swmPkgEstado = (p) => (p.enMexicoAt && ["recibido", "en_envio"].includes(p.status) ? "en_mexico" : p.status);
+
+/* Tarjeta compacta: folio, etapa y qué sigue; el detalle se abre al tocarla.
+   Las que esperan algo de la clienta (pagar, completar, corregir) abren solas. */
+function swmCardHTML({ key, id, folio, pill, sub, siguiente, accion, body }) {
+  const open = swm.abiertas[key] ?? accion;
+  return `<details id="${escapeHtml(id)}" data-swm-card="${escapeHtml(key)}" class="group rounded-2xl border ${accion ? "border-rose-deep/40 bg-blush/10" : "border-ink/10 bg-white"} scroll-mt-28"${open ? " open" : ""}>
+    <summary class="flex cursor-pointer list-none items-start justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
+      <span class="min-w-0"><b class="block">${escapeHtml(folio)}</b>${sub ? `<span class="block truncate text-xs text-ink/65">${escapeHtml(sub)}</span>` : ""}<span class="mt-1 block text-[13px] font-semibold ${accion ? "text-rose-ink" : "text-ink/75"}">${siguiente}</span></span>
+      <span class="flex shrink-0 flex-col items-end gap-1.5">${pill}<span class="text-[11px] font-semibold text-ink/50"><span class="group-open:hidden">Ver detalle ▾</span><span class="hidden group-open:inline">Ocultar ▴</span></span></span>
+    </summary>
+    <div class="px-4 pb-4 -mt-2">${body}</div>
+  </details>`;
+}
+
+// Qué sigue con cada cosa, en palabras simples: [texto, ¿le toca a ella?]
+function swmPkgSiguiente(p) {
+  if (p.status === "cancelado") return ["Registro cancelado", false];
+  if (p.datosPendientes) return ["⚠️ Dime qué trae para poder mandártelo", true];
+  if (p.correccion && p.correccion.estado === "pedida") return ["✏️ Mae te pidió corregir tus datos", true];
+  if (p.status === "en_envio") return [p.enMexicoAt ? "Ya cruzó · va en tu envío a casa" : "Va en tu envío a México", false];
+  if (p.status === "recibido") return [p.enMexicoAt ? "Ya cruzó a México · pide tu envío a casa" : "Ya llegó a la bodega · pide tu envío cuando quieras", false];
+  return [{ registrado: "Te aviso cuando llegue a la bodega", enviado: "Va en camino a tu casa", entregado: "¡Entregado! 💗" }[p.status] || "", false];
+}
+function swmCotSiguiente(r, cotizando, pagado) {
+  if (r.status === "cotizado" && r.cotizacion) {
+    return r.pago && r.pago.status === "revision" ? ["🔎 Estamos revisando tu pago", false] : [`💳 Paga ${swmMXN(r.cotizacion.total)} para continuar`, true];
+  }
+  return r.status === "solicitud" || r.status === "solicitado" ? [cotizando, false] : [pagado[r.status] || "", false];
+}
 
 function swmPaqueteCardHTML(p) {
   const desc = [p.tienda, p.paqueteria, p.rastreo && `rastreo ${p.rastreo}`].filter(Boolean).join(" · ");
@@ -371,8 +422,9 @@ function swmPaqueteCardHTML(p) {
     extra = `<p class="text-xs ${dias <= 5 ? "text-sale font-semibold" : "text-ink/65"} mt-1">Almacenaje gratis hasta el ${swmDate(hasta.toISOString(), { day: "numeric", month: "long" })}${dias > 0 ? ` (${dias} día${dias === 1 ? "" : "s"})` : " · ya venció"}</p>`;
   }
   const fotos = (p.fotos || []).map((f) => `<button type="button" data-swm-ver-foto="/.netlify/functions/swm-foto?id=${escapeHtml(f)}"><img src="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" alt="Foto de tu paquete" loading="lazy" class="w-28 h-28 rounded-xl object-cover bg-pill"></button>`).join("");
-  return `<article class="rounded-2xl border border-ink/10 p-4">
-    <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(p.folio)}</b>${swmPill(SWM_PKG_STATUS, p.datosPendientes ? "sin_registro" : swmPkgEstado(p))}</div>
+  const [siguiente, accion] = swmPkgSiguiente(p);
+  return swmCardHTML({ key: `paquete:${p.id}`, id: `swm-paquete-${p.id}`, folio: p.folio, pill: swmPill(SWM_PKG_STATUS, p.datosPendientes ? "sin_registro" : swmPkgEstado(p)),
+    sub: [p.tienda, p.paqueteria].filter(Boolean).join(" · "), siguiente: escapeHtml(siguiente), accion, body: `
     ${p.status === "cancelado" ? "" : swmStepsHTML("paquete", swmPkgEstado(p))}
     <p class="text-sm mt-2">${escapeHtml(desc || "Paquete")}${p.origen === "compra" ? ' <span class="text-xs text-lilac-ink">(compra de Mae)</span>' : ""}</p>
     ${p.contenido ? `<p class="text-xs text-ink/65">${escapeHtml(p.contenido)}</p>` : ""}
@@ -393,8 +445,7 @@ function swmPaqueteCardHTML(p) {
       <label class="flex items-center gap-2 text-xs"><input type="checkbox" data-c="comision" class="accent-[#c4466e]" /> Prefiero pagar el cruce con el 15% del valor (en vez de por peso)</label>
       <p data-c-err class="hidden text-xs text-sale"></p>
       <button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Guardar datos</button>
-    </form>` : ""}
-  </article>`;
+    </form>` : ""}` });
 }
 
 /* Servicios extra de un paquete: revisión del contenido con fotos y
@@ -470,8 +521,9 @@ function swmCompraCardHTML(c) {
       ${q.cruce ? `<div class="flex justify-between"><span>Cruce a México (15%)</span><span class="tabular-nums">${swmMXN(q.cruce)}</span></div>` : ""}
       ${q.descuento ? `<div class="flex justify-between text-rose-ink"><span>Cupón ${escapeHtml(q.cupon)}</span><span class="tabular-nums">−${swmMXN(q.descuento)}</span></div>` : ""}
       <div class="flex justify-between font-semibold border-t border-ink/10 pt-1"><span>Total</span><span class="tabular-nums">${swmMXN(q.total)}</span></div></div>` : "";
-  return `<article id="swm-compra-${escapeHtml(c.id)}" class="rounded-2xl border border-ink/10 p-4 scroll-mt-28">
-    <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(c.folio)}</b>${swmPill(SWM_COMPRA_STATUS, c.status)}</div>
+  const [siguiente, accion] = swmCotSiguiente(c, "Mae está armando tu cotización", { pagado: "Mae hará tu compra pronto", comprado: "Tus productos van a la bodega", cancelado: "Cancelada" });
+  return swmCardHTML({ key: `compra:${c.id}`, id: `swm-compra-${c.id}`, folio: c.folio, pill: swmPill(SWM_COMPRA_STATUS, c.status),
+    sub: [c.tienda, swmDate(c.createdAt)].filter(Boolean).join(" · "), siguiente: escapeHtml(siguiente), accion, body: `
     ${swmStepsHTML("compra", c.status)}
     <p class="text-xs text-ink/65 mt-2">${swmDate(c.createdAt)} · Cruce ${c.cobro === "comision" ? "15% (se paga con la compra)" : "por peso (se paga al enviar)"}</p>
     ${c.tienda ? `<p class="mt-1 text-sm font-semibold">${escapeHtml(c.tienda)}</p>` : ""}
@@ -481,8 +533,7 @@ function swmCompraCardHTML(c) {
     ${lines}${swmPagoHTML("compra", c)}
     ${c.status === "pagado" ? `<p class="mt-2 text-xs text-ink/70">Pagado el ${swmDate(c.pago && c.pago.paidAt)}. Te aviso cuando haga tu compra.</p>` : ""}
     ${c.status === "comprado" ? `<p class="mt-2 text-xs text-ink/70">Tus productos ya van al almacén; los ves en "Mis paquetes".</p>` : ""}
-    ${["solicitud", "cotizado"].includes(c.status) && (!c.pago || c.pago.status === "pendiente") ? `<button type="button" data-swm-cancel="compra:${escapeHtml(c.id)}" class="mt-2 text-xs text-ink/60 underline">Cancelar</button>` : ""}
-  </article>`;
+    ${["solicitud", "cotizado"].includes(c.status) && (!c.pago || c.pago.status === "pendiente") ? `<button type="button" data-swm-cancel="compra:${escapeHtml(c.id)}" class="mt-2 text-xs text-ink/60 underline">Cancelar</button>` : ""}` });
 }
 
 function swmEnvioCardHTML(e) {
@@ -490,18 +541,20 @@ function swmEnvioCardHTML(e) {
   const q = e.cotizacion;
   const line = (l, v) => (v ? `<div class="flex justify-between"><span>${l}</span><span class="tabular-nums">${swmMXN(v)}</span></div>` : "");
   const d = e.direccion || {};
-  return `<article id="swm-envio-${escapeHtml(e.id)}" class="rounded-2xl border border-ink/10 p-4 scroll-mt-28">
-    <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(e.folio)}</b>${swmPill(SWM_ENVIO_STATUS, e.status)}</div>
+  const [siguiente, accion] = swmCotSiguiente(e, "Mae está cotizando tu envío", {
+    pagado: "Estamos preparando tu caja", en_mexico: "Ya está en México, sale pronto a tu casa",
+    enviado: e.guia ? `Va en camino · guía ${e.guia}` : "Va en camino a tu casa", entregado: "¡Entregado! 💗", cancelado: "Cancelado" });
+  return swmCardHTML({ key: `envio:${e.id}`, id: `swm-envio-${e.id}`, folio: e.folio, pill: swmPill(SWM_ENVIO_STATUS, e.status),
+    sub: `${swmDate(e.createdAt)} · ${pk.length} paquete${pk.length === 1 ? "" : "s"}`, siguiente: escapeHtml(siguiente), accion, body: `
     ${swmStepsHTML("envio", e.status)}
-    <p class="text-xs text-ink/65 mt-2">${swmDate(e.createdAt)} · ${pk.length} paquete${pk.length === 1 ? "" : "s"}: ${escapeHtml(pk.map((p) => p.folio).join(", "))}${e.consolidar ? " · consolidado" : ""}</p>
+    <p class="text-xs text-ink/65 mt-2">${swmDate(e.createdAt)} · ${pk.length} paquete${pk.length === 1 ? "" : "s"}: ${escapeHtml(pk.map((p) => p.folio).join(", "))}${e.consolidar ? " · en una sola caja" : ""}</p>
     <p class="text-xs text-ink/65">A: ${escapeHtml([d.nombre, d.ciudad, d.cp].filter(Boolean).join(" · "))}</p>
     ${e.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(e.notaClienta)}</p>` : ""}
     ${q ? `<div class="mt-2 text-sm space-y-0.5">${line(q.premioLealtad ? `Cruce a México <span class="text-[#2f8f5b] font-semibold">(${q.lealtadPct || 50}% por lealtad 🎁)</span>` : "Cruce a México", q.cruce)}${line("Consolidación", q.consolidacion)}${line("Paquete(s) sin registrar", q.sinRegistro)}${line("Servicios extra", q.extras)}${q.descuento ? `<div class="flex justify-between text-rose-ink"><span>Cupón ${escapeHtml(q.cupon)}</span><span class="tabular-nums">−${swmMXN(q.descuento)}</span></div>` : ""}${line("Envío nacional", q.envio)}
       <div class="flex justify-between font-semibold border-t border-ink/10 pt-1"><span>Total</span><span class="tabular-nums">${swmMXN(q.total)}</span></div></div>` : `<p class="mt-2 text-xs text-ink/70">Te mando la cotización del envío por correo y aquí mismo.</p>`}
     ${swmPagoHTML("envio", e)}
     ${e.guia ? `<p class="mt-2 text-sm">🚚 ${escapeHtml(e.paqueteria || "Paquetería")}: <b>${escapeHtml(e.guia)}</b></p>` : ""}
-    ${["solicitado", "cotizado"].includes(e.status) && (!e.pago || e.pago.status === "pendiente") ? `<button type="button" data-swm-cancel="envio:${escapeHtml(e.id)}" class="mt-2 text-xs text-ink/60 underline">Cancelar envío</button>` : ""}
-  </article>`;
+    ${["solicitado", "cotizado"].includes(e.status) && (!e.pago || e.pago.status === "pendiente") ? `<button type="button" data-swm-cancel="envio:${escapeHtml(e.id)}" class="mt-2 text-xs text-ink/60 underline">Cancelar envío</button>` : ""}` });
 }
 
 /* ----------------------------- Formularios ----------------------------- */
@@ -512,9 +565,12 @@ const swmPaqueteriaSelect = (attrs, actual = "") => `<label class="flex flex-col
     ${SWM_PAQUETERIAS.map((x) => `<option value="${x}"${actual === x ? " selected" : ""}>${x}</option>`).join("")}
   </select></label>`;
 const swmInput = (id, label, attrs = "") => `<label class="flex flex-col gap-1 text-xs font-semibold">${label}<input id="${id}" ${attrs} class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>`;
-const swmCobroRadios = () => `<fieldset class="grid gap-2 sm:grid-cols-2"><legend class="text-xs font-semibold mb-1">¿Cómo quieres pagar el cruce?</legend>
-    <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="peso" checked class="accent-[#c4466e]"><span><b>Por peso o medidas</b><span class="block text-xs text-ink/65">Según mi tabla; se paga al enviar.</span></span></label>
-    <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="comision" class="accent-[#c4466e]"><span><b>15% del valor</b><span class="block text-xs text-ink/65">Del valor de los productos con tax, cobrado en pesos.</span></span></label>
+const swmCobroRadios = () => `<fieldset class="space-y-2"><legend class="text-sm font-semibold">¿Cómo quieres pagar el cruce?</legend>
+    <p class="text-xs text-ink/65">El <b>cruce</b> es lo que cuesta pasar tu paquete de Estados Unidos a México. Elige lo que te salga mejor:</p>
+    <div class="grid gap-2 sm:grid-cols-2">
+    <label class="flex gap-2 rounded-xl border-2 border-ink/15 bg-white p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="peso" checked class="mt-0.5 accent-[#c4466e]"><span><b>⚖️ Por peso</b><span class="block text-xs text-ink/65">Según lo que pese la caja; lo pagas cuando pides tu envío. Conviene si tus productos son ligeros pero caros.</span></span></label>
+    <label class="flex gap-2 rounded-xl border-2 border-ink/15 bg-white p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="comision" class="mt-0.5 accent-[#c4466e]"><span><b>💲 15% de lo que costó</b><span class="block text-xs text-ink/65">El 15% del valor de tus productos, en pesos. Conviene si es pesado pero barato.</span><span data-wiz-est class="block text-xs font-semibold text-rose-ink"></span></span></label>
+    </div>
   </fieldset>`;
 /* Qué trae el paquete: hasta 10 capturas o PDF de la factura/resumen o,
    si no sube nada, cada artículo con su costo escrito uno por uno; más el
@@ -529,22 +585,28 @@ const swmDeclRow = (a = {}) => `<div data-decl-row style="display:grid;grid-temp
     <input data-d="cant" type="number" min="1" step="1" value="${Number(a.cant) || 1}" inputmode="numeric" aria-label="Cantidad" class="rounded-xl border border-ink/15 px-2 py-2 text-sm min-w-0" />
     <input data-d="costo" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Costo c/u" value="${a.costo || ""}" aria-label="Costo de cada uno" class="rounded-xl border border-ink/15 px-2 py-2 text-sm min-w-0" />
   </div>`;
-const swmDeclaracionHTML = (p = {}) => `<div data-decl class="space-y-3 rounded-2xl bg-pill/50 p-3">
+const swmDeclaracionHTML = (p = {}) => `<div data-decl class="space-y-3">
     <div>
-      <p class="text-xs font-semibold">¿Qué trae tu paquete? *</p>
-      <p class="text-xs text-ink/65">Sube capturas o la factura de tu compra. <b>Si no tienes, escribe cada artículo</b> con lo que costó.</p>
+      <p class="text-sm font-semibold">¿Qué trae tu paquete? *</p>
+      <p class="text-xs text-ink/65">Lo más fácil: sube capturas de tu pedido o la factura, donde se vean los productos y sus precios.</p>
     </div>
-    <label class="flex flex-col gap-1 text-xs font-semibold">📄 Capturas o factura de tu compra (hasta ${SWM_MAX_ARCHIVOS})
-      <span class="font-normal text-ink/65">Imágenes o PDF. Las fotos se achican solas; cada PDF debe pesar menos de 1.5 MB.</span>
-      <input data-decl-file type="file" multiple accept="application/pdf,image/*" class="text-xs font-normal file:mr-2 file:rounded-full file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-cream" /></label>
-    <p data-decl-files class="text-xs text-ink/65"></p>
-    <p class="text-xs font-semibold pt-1">✍️ O escribe cada artículo</p>
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class=" text-[11px] font-semibold text-ink/60"><span>Artículo</span><span>Cant.</span><span>Costo c/u</span></div>
-    <div data-decl-rows class="space-y-2">${(p.articulos || []).length ? p.articulos.map(swmDeclRow).join("") : swmDeclRow() + swmDeclRow()}</div>
-    <button type="button" data-decl-add class="text-xs font-semibold text-rose-ink underline">+ Agregar otro artículo</button>
+    <label class="flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-dashed border-rose-deep/40 bg-blush/15 px-4 py-5 text-center hover:bg-blush/30 focus-within:ring-2 focus-within:ring-rose-deep">
+      <span class="text-3xl" aria-hidden="true">📷</span>
+      <b class="text-sm text-rose-ink">Subir capturas o factura</b>
+      <span class="text-[11px] text-ink/60">Fotos o PDF · hasta ${SWM_MAX_ARCHIVOS}</span>
+      <input data-decl-file type="file" multiple accept="application/pdf,image/*" class="sr-only" /></label>
+    <p data-decl-files class="text-xs font-semibold text-green-800"></p>
+    <details data-decl-manual class="rounded-xl bg-pill/60 px-3 py-2"${(p.articulos || []).length ? " open" : ""}>
+      <summary class="cursor-pointer text-xs font-semibold text-ink/75">✍️ ¿No tienes capturas? Escribe tus artículos aquí</summary>
+      <div class="mt-2 space-y-2">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class=" text-[11px] font-semibold text-ink/60"><span>Artículo</span><span>Cant.</span><span>Costo c/u</span></div>
+        <div data-decl-rows class="space-y-2">${(p.articulos || []).length ? p.articulos.map(swmDeclRow).join("") : swmDeclRow() + swmDeclRow()}</div>
+        <button type="button" data-decl-add class="text-xs font-semibold text-rose-ink underline">+ Agregar otro artículo</button>
+      </div>
+    </details>
     <div>
-      <p class="text-xs font-semibold">Valor total de los artículos *</p>
-      <p class="text-xs text-ink/65">Lo que costaron los artículos <b>con tax (impuestos), sin envío</b> ni otros cargos.</p>
+      <p class="text-sm font-semibold">¿Cuánto costó todo? *</p>
+      <p class="text-xs text-ink/65">El total de tus productos <b>con tax (impuestos), sin el envío</b>.</p>
       <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0.5rem;" class="mt-1">
         <input data-decl-total type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 85.50" value="${p.valorTotal || ""}" aria-label="Valor total de los artículos" class="rounded-xl border border-ink/15 px-3 py-2 text-sm min-w-0" />
         <select data-decl-moneda aria-label="Moneda" class="rounded-xl border border-ink/15 px-2 py-2 text-sm bg-white">${SWM_MONEDAS.map(([v, l]) => `<option value="${v}"${p.moneda === v ? " selected" : ""}>${l}</option>`).join("")}</select>
@@ -590,7 +652,10 @@ function swmActualizarEstimado(root) {
   const radio = root.querySelector('input[name="swm-cobro"]:checked');
   const check = root.querySelector('[data-c="comision"]');
   const comision = radio ? radio.value === "comision" : !!(check && check.checked);
+  const est = root.querySelector("[data-wiz-est]");
+  if (est) est.textContent = pesos ? `Con lo que declaraste: ≈ ${swmMXN(swmCruceComision(pesos))}` : "";
   if (!pesos) { out.textContent = ""; return; }
+  if (root.hasAttribute("data-wiz")) { out.textContent = moneda === "MXN" ? "" : `≈ ${swmMXN(pesos)}`; return; }
   out.textContent = `${moneda === "MXN" ? "" : `≈ ${swmMXN(pesos)} · `}${comision ? `tu cruce con el ${swm.comisionPct || 15}%: ${swmMXN(swmCruceComision(pesos))}` : "el cruce se cobra por peso cuando llegue"}`;
 }
 
@@ -615,8 +680,7 @@ function swmEditarFormHTML(p) {
     </form>`;
 }
 
-async function swmLeerDeclaracion(root, cobro) {
-  const box = root.querySelector("[data-decl]");
+function swmValidarDeclaracion(box) {
   const articulos = [...box.querySelectorAll("[data-decl-row]")].map((r) => ({
     desc: r.querySelector('[data-d="desc"]').value.trim(),
     cant: r.querySelector('[data-d="cant"]').value,
@@ -628,7 +692,12 @@ async function swmLeerDeclaracion(root, cobro) {
   if (files.length > SWM_MAX_ARCHIVOS) throw new Error(`Puedes subir hasta ${SWM_MAX_ARCHIVOS} capturas o archivos.`);
   const valorTotal = box.querySelector("[data-decl-total]").value;
   const moneda = box.querySelector("[data-decl-moneda]").value;
-  if (!(parseFloat(valorTotal) > 0)) throw new Error("Escribe el valor total de los artículos (con tax, sin envío).");
+  if (!(parseFloat(valorTotal) > 0)) throw new Error("Escribe cuánto costó todo (con tax, sin envío).");
+  return { articulos, files, valorTotal, moneda };
+}
+
+async function swmLeerDeclaracion(root) {
+  const { articulos, files, valorTotal, moneda } = swmValidarDeclaracion(root.querySelector("[data-decl]"));
   const facturas = [];
   let total = 0;
   for (const original of files) {
@@ -655,13 +724,68 @@ function swmCompraWaLink(tienda) {
   return `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(txt)}`;
 }
 
+/* "Registrar un paquete" en 3 pasos cortos: el paquete, qué trae y cómo
+   paga el cruce. Cada paso se revisa antes de pasar al siguiente. */
+const SWM_WIZ_PASOS = ["Tu paquete", "Qué trae", "Cómo pagas el cruce"];
+
+function swmWizValidar(form, n) {
+  if (n === 1) {
+    if (!document.getElementById("swm-f-paqueteria").value) throw new Error("Elige con qué paquetería viene tu paquete (UPS, USPS, FedEx, Amazon...).");
+    if (!document.getElementById("swm-f-rastreo").value.trim()) throw new Error("Pon el número de rastreo (guía) de tu paquete: sin él no podemos identificarlo cuando llegue.");
+  }
+  if (n === 2) swmValidarDeclaracion(form.querySelector("[data-decl]"));
+}
+
+function swmWizIr(form, n) {
+  form.dataset.paso = n;
+  form.querySelectorAll("[data-wiz-paso]").forEach((el) => el.classList.toggle("hidden", Number(el.dataset.wizPaso) !== n));
+  form.querySelector("[data-wiz-barra]").style.width = `${Math.round((n / 3) * 100)}%`;
+  form.querySelector("[data-wiz-label]").textContent = `Paso ${n} de 3 · ${SWM_WIZ_PASOS[n - 1]}`;
+  form.querySelector("[data-wiz-atras]").classList.toggle("hidden", n === 1);
+  form.querySelector("[data-wiz-sig]").classList.toggle("hidden", n === 3);
+  const submit = form.querySelector('button[type="submit"]');
+  submit.classList.toggle("hidden", n !== 3);
+  submit.classList.toggle("inline-flex", n === 3);
+  form.querySelector("[data-swm-err]").classList.add("hidden");
+  if (n === 3) swmActualizarEstimado(form);
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function swmWizSiguiente(form) {
+  const n = Number(form.dataset.paso) || 1;
+  const err = form.querySelector("[data-swm-err]");
+  try { swmWizValidar(form, n); } catch (ex) { err.textContent = ex.message; err.classList.remove("hidden"); return; }
+  swmWizIr(form, n + 1);
+}
+
+/* Dirección para "Pedir mi envío": la última que usó (guardada en este
+   teléfono o la de su envío anterior), para no volver a escribirla. */
+function swmUltimaDireccion() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem("alpacca_swm_dir") || "{}"); } catch (err) { saved = {}; }
+  if (saved.calle) return saved;
+  const last = swm.envios.filter((e) => e.direccion && e.direccion.calle).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+  return last ? last.direccion : {};
+}
+
 function swmFormHTML() {
   if (swm.form === "paquete") {
-    return swmFormShell("📦 Registrar un paquete", `
-      <div class="grid gap-3 sm:grid-cols-2">${swmInput("swm-f-tienda", "Tienda", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}${swmPaqueteriaSelect('id="swm-f-paqueteria" required')}${swmInput("swm-f-rastreo", "Número de rastreo (guía) *", 'maxlength="80" required')}</div>
-      ${swmDeclaracionHTML()}
-      <p class="text-xs text-ink/65">Regístralo en cuanto tengas la guía, antes de que llegue a la bodega.</p>
-      ${swmCobroRadios()}${swmAcepta()}`, "Registrar paquete");
+    const paso = (n, inner) => `<div data-wiz-paso="${n}" class="space-y-4${n === 1 ? "" : " hidden"}">${inner}</div>`;
+    return `<form data-swm-submit data-wiz data-paso="1" class="rounded-3xl border border-ink/10 bg-white p-5 space-y-4 scroll-mt-28" novalidate>
+      <div class="flex items-center justify-between"><b class="text-base">📦 Registrar un paquete</b><button type="button" data-swm-form="" aria-label="Cerrar" class="text-2xl leading-none text-ink/60">&times;</button></div>
+      <div><p data-wiz-label class="text-xs font-semibold text-ink/65">Paso 1 de 3 · ${SWM_WIZ_PASOS[0]}</p>
+        <div class="mt-1.5 h-2 rounded-full bg-ink/10"><div data-wiz-barra class="h-full rounded-full bg-rose-deep transition-all" style="width:33%"></div></div></div>
+      ${paso(1, `<p class="text-xs text-ink/65">Regístralo en cuanto la tienda te dé el número de rastreo, antes de que llegue a la bodega.</p>
+        <div class="grid gap-3 sm:grid-cols-2">${swmInput("swm-f-tienda", "¿En qué tienda compraste?", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}${swmPaqueteriaSelect('id="swm-f-paqueteria" required')}${swmInput("swm-f-rastreo", "Número de rastreo (guía) *", 'maxlength="80" required autocomplete="off"')}</div>`)}
+      ${paso(2, swmDeclaracionHTML())}
+      ${paso(3, swmCobroRadios() + swmAcepta())}
+      <p data-swm-err class="hidden rounded-xl bg-sale/10 px-3 py-2 text-sm text-sale" role="alert"></p>
+      <div class="flex items-center gap-2">
+        <button type="button" data-wiz-atras class="hidden rounded-full px-4 py-3 text-sm font-semibold text-ink/70 hover:bg-pill">← Atrás</button>
+        <button type="button" data-wiz-sig class="inline-flex items-center rounded-full bg-rose-deep px-6 py-3 text-sm font-semibold text-cream hover:bg-rose-ink">Siguiente →</button>
+        <button type="submit" class="hidden items-center rounded-full bg-rose-deep px-6 py-3 text-sm font-semibold text-cream hover:bg-rose-ink disabled:opacity-60">Registrar paquete ✓</button>
+      </div>
+    </form>`;
   }
   if (swm.form === "compra") {
     return `<div class="rounded-3xl border border-ink/10 p-5 space-y-4">
@@ -682,8 +806,8 @@ function swmFormHTML() {
     const faltan = swm.paquetes.filter((p) => p.status === "recibido" && p.datosPendientes);
     if (faltan.length && !disp.length) return `<div class="rounded-2xl bg-sale/[0.06] p-4 text-sm">Primero completa los datos de ${escapeHtml(faltan.map((p) => p.folio).join(", "))} en "Mis paquetes" (llegaron sin registrar). <button type="button" data-swm-form="" class="underline">Cerrar</button></div>`;
     if (!disp.length) return `<div class="rounded-2xl bg-pill p-4 text-sm">Todavía no tienes paquetes en el almacén. Cuando lleguen te aviso por correo y aquí podrás pedir tu envío. <button type="button" data-swm-form="" class="underline">Cerrar</button></div>`;
-    let saved = {};
-    try { saved = JSON.parse(localStorage.getItem("alpacca_swm_dir") || "{}"); } catch (err) { saved = {}; }
+    const saved = swmUltimaDireccion();
+    const tieneDir = Boolean(saved.nombre && saved.calle && saved.ciudad && /^\d{5}$/.test(saved.cp || ""));
     const dv = (k, d = "") => escapeHtml(saved[k] || d);
     // Desde "Juntar mis paquetes en México" solo van marcados los que ya cruzaron.
     const enMx = disp.filter((p) => p.enMexicoAt);
@@ -691,9 +815,12 @@ function swmFormHTML() {
     const checks = disp.map((p) => `<label class="flex items-center gap-2 rounded-xl border border-ink/15 p-3 text-sm"><input type="checkbox" data-swm-pick="${escapeHtml(p.id)}"${marcar(p) ? " checked" : ""} class="accent-[#c4466e]"><span><b>${escapeHtml(p.folio)}</b> · ${escapeHtml([p.tienda, p.cobrable && `${p.cobrable} kg`].filter(Boolean).join(" · "))}${p.enMexicoAt ? ' · <span class="font-semibold text-green-800">🇲🇽 En México</span>' : ""}</span></label>`).join("");
     return swmFormShell("🚚 Pedir mi envío a México", `
       <div class="space-y-2"><p class="text-xs font-semibold">¿Qué paquetes te mando?</p>${checks}</div>
-      ${disp.length > 1 ? `<label class="flex gap-2 text-sm"><input id="swm-f-consolidar" type="checkbox"${enMx.length > 1 ? " checked" : ""} class="mt-0.5 accent-[#c4466e]"><span><b>Consolidar en un solo envío nacional</b> (+$100 MXN por cada grupo de hasta 12 kg).</span></label>` : ""}
+      ${disp.length > 1 ? `<label class="flex gap-2 rounded-xl bg-pill/60 p-3 text-sm"><input id="swm-f-consolidar" type="checkbox"${enMx.length > 1 ? " checked" : ""} class="mt-0.5 accent-[#c4466e]"><span><b>📦 Juntar todo en una sola caja</b><span class="block text-xs text-ink/65">Pagas una sola guía a tu casa en vez de una por paquete. +$100 por cada 12 kg.</span></span></label>` : ""}
       <p class="text-xs font-semibold">¿A dónde te lo mandamos?</p>
-      <div class="grid gap-3 sm:grid-cols-2">
+      ${tieneDir ? `<div data-swm-dir-resumen class="flex items-start justify-between gap-3 rounded-xl border border-ink/15 px-3 py-2.5 text-sm">
+        <span>📍 <b>${dv("nombre")}</b><span class="block text-ink/75">${escapeHtml([saved.calle, saved.colonia].filter(Boolean).join(", "))}</span><span class="block text-ink/75">${escapeHtml([saved.ciudad, saved.estado].filter(Boolean).join(", "))} · CP ${dv("cp")}</span>${saved.telefono ? `<span class="block text-xs text-ink/60">Tel. ${dv("telefono")}</span>` : ""}</span>
+        <button type="button" data-swm-cambiar-dir class="shrink-0 text-xs font-semibold text-rose-ink underline">Cambiar</button></div>` : ""}
+      <div data-swm-dir-campos class="grid gap-3 sm:grid-cols-2${tieneDir ? " hidden" : ""}">
         ${swmInput("swm-d-nombre", "Nombre de quien recibe", `maxlength="100" value="${dv("nombre", swm.name)}"`)}
         ${swmInput("swm-d-telefono", "Teléfono", `maxlength="30" inputmode="tel" value="${dv("telefono", swm.phone)}"`)}
         ${swmInput("swm-d-calle", "Calle y número", `maxlength="150" value="${dv("calle")}"`)}
@@ -703,7 +830,7 @@ function swmFormHTML() {
         ${swmInput("swm-d-cp", "Código postal", `maxlength="5" inputmode="numeric" value="${dv("cp")}"`)}
         ${swmInput("swm-d-referencias", "Referencias (opcional)", `maxlength="200" value="${dv("referencias")}"`)}
       </div>
-      <p class="text-xs text-ink/65">Te cotizo el cruce${disp.length > 1 ? ", la consolidación" : ""} y el envío nacional (Estafeta desde $250) y lo pagas aquí.</p>`, "Pedir cotización de envío");
+      <p class="text-xs text-ink/65">Te mando aquí la cotización: el cruce a México${disp.length > 1 ? ", juntar en una caja (si lo elegiste)" : ""} y la guía a tu casa (Estafeta desde $250). La pagas aquí mismo.</p>`, "Pedir cotización de envío");
   }
   return "";
 }
@@ -748,19 +875,25 @@ async function submitSwmForm(form) {
   const val = (id) => (document.getElementById(id) ? document.getElementById(id).value : "");
   const fail = (m) => { err.textContent = m; err.classList.remove("hidden"); };
   err.classList.add("hidden");
+  if (form.hasAttribute("data-wiz") && Number(form.dataset.paso) < 3) { swmWizSiguiente(form); return; }
   const cobro = (form.querySelector('input[name="swm-cobro"]:checked') || {}).value;
   let body;
   if (swm.form === "paquete") {
     body = { accion: "registrar_paquete", tienda: val("swm-f-tienda"), paqueteria: val("swm-f-paqueteria"), rastreo: val("swm-f-rastreo"), cobro, aceptaRestricciones: document.getElementById("swm-acepta").checked };
     if (!body.paqueteria) return fail("Elige con qué paquetería viene tu paquete (UPS, USPS, FedEx, Amazon...).");
     if (!body.rastreo.trim()) return fail("Pon el número de rastreo (guía) de tu paquete: sin él no podemos identificarlo cuando llegue.");
-    try { Object.assign(body, await swmLeerDeclaracion(form, cobro)); } catch (ex) { return fail(ex.message); }
+    try { Object.assign(body, await swmLeerDeclaracion(form)); } catch (ex) { return fail(ex.message); }
     if (!body.aceptaRestricciones) return fail("Confirma que tu paquete no trae nada ilegal ni artículos de cristal, muebles ni pallets.");
   } else if (swm.form === "envio") {
     const ids = [...form.querySelectorAll("[data-swm-pick]:checked")].map((c) => c.dataset.swmPick);
     const direccion = Object.fromEntries(["nombre", "telefono", "calle", "colonia", "ciudad", "estado", "cp", "referencias"].map((k) => [k, val(`swm-d-${k}`).trim()]));
     if (!ids.length) return fail("Elige al menos un paquete.");
-    if (!direccion.nombre || !direccion.telefono || !direccion.calle || !direccion.ciudad || !/^\d{5}$/.test(direccion.cp)) return fail("Completa tu dirección: nombre, teléfono, calle y número, ciudad y código postal de 5 dígitos.");
+    if (!direccion.nombre || !direccion.telefono || !direccion.calle || !direccion.ciudad || !/^\d{5}$/.test(direccion.cp)) {
+      const campos = form.querySelector("[data-swm-dir-campos]");
+      campos.classList.remove("hidden");
+      if (form.querySelector("[data-swm-dir-resumen]")) form.querySelector("[data-swm-dir-resumen]").classList.add("hidden");
+      return fail("Completa tu dirección: nombre, teléfono, calle y número, ciudad y código postal de 5 dígitos.");
+    }
     try { localStorage.setItem("alpacca_swm_dir", JSON.stringify(direccion)); } catch (e) { /* nada */ }
     body = { accion: "solicitar_envio", paqueteIds: ids, consolidar: !!(document.getElementById("swm-f-consolidar") || {}).checked, direccion };
   } else return;
@@ -885,7 +1018,7 @@ function initSwm() {
     if (!input) return;
     const n = (input.files || []).length;
     const out = input.closest("[data-decl]").querySelector("[data-decl-files]");
-    out.textContent = n > SWM_MAX_ARCHIVOS ? `Elegiste ${n}; el máximo es ${SWM_MAX_ARCHIVOS}.` : n ? `${n} archivo${n === 1 ? "" : "s"} listo${n === 1 ? "" : "s"} para subir.` : "";
+    out.textContent = n > SWM_MAX_ARCHIVOS ? `Elegiste ${n}; el máximo es ${SWM_MAX_ARCHIVOS}.` : n ? `✅ ${n} archivo${n === 1 ? "" : "s"} listo${n === 1 ? "" : "s"}. Se suben al terminar.` : "";
   });
   sec.addEventListener("click", (e) => {
     const editToggle = e.target.closest("[data-swm-editar-toggle]");
@@ -912,14 +1045,26 @@ function initSwm() {
       document.getElementById("swm-address").scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    if (t.closest("[data-swm-ir-pagar]")) {
-      const r = [...swm.envios, ...swm.compras].find((x) => x.status === "cotizado");
-      if (!r) return;
-      const esEnvio = swm.envios.includes(r);
-      swm.tab = esEnvio ? "envios" : "compras";
+    const irA = t.closest("[data-swm-ir]");
+    if (irA) {
+      const [kind, id] = irA.dataset.swmIr.split(":");
+      swm.tab = { paquete: "paquetes", compra: "compras", envio: "envios" }[kind];
+      swm.abiertas[`${kind}:${id}`] = true;
       renderSwmCasillero();
-      const card = document.getElementById(`swm-${esEnvio ? "envio" : "compra"}-${r.id}`);
+      const card = document.getElementById(`swm-${kind}-${id}`);
       if (card) { card.classList.add("ring-2", "ring-rose-deep"); card.scrollIntoView({ behavior: "smooth", block: "start" }); }
+      return;
+    }
+    const resumen = t.closest("[data-swm-card] > summary");
+    if (resumen) { const card = resumen.parentElement; swm.abiertas[card.dataset.swmCard] = !card.open; return; }
+    if (t.closest("[data-wiz-sig]")) { swmWizSiguiente(t.closest("form")); return; }
+    if (t.closest("[data-wiz-atras]")) { const form = t.closest("form"); swmWizIr(form, Math.max(1, Number(form.dataset.paso) - 1)); return; }
+    const cambiarDir = t.closest("[data-swm-cambiar-dir]");
+    if (cambiarDir) {
+      const form = cambiarDir.closest("form");
+      form.querySelector("[data-swm-dir-resumen]").classList.add("hidden");
+      form.querySelector("[data-swm-dir-campos]").classList.remove("hidden");
+      form.querySelector("#swm-d-calle").focus();
       return;
     }
     const copy = t.closest("[data-swm-copy]");
