@@ -170,6 +170,10 @@ async function listingMeta(q) {
     const image = await ogImage("ver", "catalogo");
     return { title: "Catálogo completo — Alpacca", desc: "Todo el skincare y maquillaje coreano y asiático: pieza individual o caja, envíos a todo México.", url: `${SITE}/?ver=catalogo`, image, ogSize: Boolean(image) };
   }
+  if (q.ver === "tipo-de-piel") {
+    const image = await ogImage("ver", "tipo-de-piel");
+    return { title: "¿Cuál es tu tipo de piel? Test gratis — Alpacca", desc: "Contesta 5 preguntas y te armamos tu rutina coreana paso a paso, con productos para tu tipo de piel.", url: `${SITE}/?ver=tipo-de-piel`, image, ogSize: Boolean(image) };
+  }
   if (q.ver === "shopwithmae" || q.ver === "direccion-americana") {
     const image = await ogImage("ver", "shopwithmae");
     return { title: "Dirección americana · Alpacca", desc: "Compra en tiendas de EE.UU. (Sephora, Ulta, Amazon...) con tu dirección americana y recíbelo en México.", url: `${SITE}/?ver=shopwithmae`, image, ogSize: Boolean(image) };
