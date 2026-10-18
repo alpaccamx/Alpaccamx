@@ -4,7 +4,7 @@
 //
 // GET  → { paquetes, compras, envios, name, almacenajeDias, casillero }
 // POST { accion, ... }:
-//   registrar_paquete { tienda, rastreo, articulos[], valorTotal, moneda, facturas?, cobro, aceptaRestricciones }
+//   registrar_paquete { tienda, paqueteria, rastreo, articulos[], valorTotal, moneda, facturas?, cobro, aceptaRestricciones }
 //                     facturas = hasta 10 { filename, contentType, dataBase64 } (capturas o PDF)
 //                     y/o articulos = [{ desc, cant, costo }] (obligatorio si no sube nada);
 //                     valorTotal/moneda = lo que costaron los artículos con tax, sin envío
@@ -15,7 +15,7 @@
 //                     → con Mercado Pago regresa { redirectUrl }
 //   comprobante       { kind, id, filename, contentType, dataBase64 }
 //   completar_paquete { id, articulos[], valorTotal, moneda, facturas?, cobro }  (paquete que llegó sin registrar)
-//   editar_paquete    { id, tienda?, rastreo?, articulos[], valorTotal, moneda, facturas?, quitarArchivos?, cobro }
+//   editar_paquete    { id, tienda?, paqueteria?, rastreo?, articulos[], valorTotal, moneda, facturas?, quitarArchivos?, cobro }
 //                     (mientras va en camino, o cuando Mae le pidió corregir sus datos)
 //   cancelar          { kind, id }
 //   pedir_revision    { id }  (abrir el paquete y mandar fotos del contenido; cargo REVISION_FOTOS)
@@ -148,6 +148,8 @@ exports.handler = async (event) => {
       case "registrar_paquete": {
         if (!b.aceptaRestricciones) return json(400, { error: "Confirma que tu paquete no trae nada ilegal ni artículos de cristal, muebles ni pallets." });
         const tienda = clip(b.tienda, 80); const rastreo = clip(b.rastreo, 80);
+        const paqueteria = clip(b.paqueteria, 40);
+        if (!paqueteria) return json(400, { error: "Elige con qué paquetería viene tu paquete (UPS, USPS, FedEx, Amazon...)." });
         if (!rastreo) return json(400, { error: "Pon el número de rastreo (guía) de tu paquete: sin él no podemos identificarlo cuando llegue." });
         const cobro = COBROS.includes(b.cobro) ? b.cobro : "peso";
         const dec = leerDeclaracion(b, cobro);
@@ -158,7 +160,7 @@ exports.handler = async (event) => {
         const facturas = await guardarFacturas(id, dec.facturas);
         const rec = {
           id, folio: await nextFolio("paquete"), ...base, origen: "propio",
-          tienda, rastreo, ...dec.datos, facturas,
+          tienda, paqueteria, rastreo, ...dec.datos, facturas,
           cobro, status: "registrado",
           kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0, fotos: [], notaClienta: "", notaPrivada: "",
           history: [{ at: now(), status: "registrado" }], createdAt: now(), updatedAt: now(),
@@ -207,6 +209,7 @@ exports.handler = async (event) => {
           Object.assign(p, dec.datos);
           if (b.tienda != null) p.tienda = clip(b.tienda, 80);
           p.rastreo = rastreo;
+          if (rec.status === "registrado" && b.paqueteria) p.paqueteria = clip(b.paqueteria, 40);
           p.cobro = cobro;
           p.facturas = [...anteriores, ...nuevas];
           if (b.quitarArchivos) delete p.factura;
