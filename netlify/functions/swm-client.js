@@ -254,6 +254,9 @@ exports.handler = async (event) => {
         if (paquetes.some((p) => !p || p.email !== me || p.status !== "recibido")) {
           return json(409, { error: "Solo puedes enviar paquetes tuyos que ya llegaron al almacén." });
         }
+        // El envío a casa se pide cuando el paquete ya cruzó a México.
+        const sinCruzar = paquetes.find((p) => !p.enMexicoAt);
+        if (sinCruzar) return json(409, { error: `${sinCruzar.folio} todavía no cruza a México. Te avisamos en cuanto llegue y ahí pides tu envío.` });
         const separando = paquetes.find((p) => p.separar && p.separar.estado === "pedida");
         if (separando) return json(409, { error: `Estamos separando ${separando.folio}; en cuanto quede listo lo puedes enviar.` });
         const corregir = paquetes.find((p) => p.correccion && p.correccion.estado === "pedida");
