@@ -101,12 +101,17 @@ function swmOnAuthChange() {
   if (!document.getElementById("swm-section").classList.contains("hidden")) renderSwm();
 }
 
+// Ya usa el casillero (tiene algo registrado): la página se enfoca en su
+// casillero y pliega la dirección y las reglas.
+const swmActiva = () => swm.loaded && (swm.paquetes.length + swm.compras.length + swm.envios.length) > 0;
+
 function renderSwm() {
   // Con sesión, la página abre directo en su dirección y su casillero: la
   // explicación del servicio queda plegada abajo. Sin sesión, al revés.
   const logged = Boolean(getCustomerToken());
   document.querySelectorAll("#swm-section .swm-guest").forEach((el) => el.classList.toggle("hidden", logged));
   ["swm-how", "swm-prices"].forEach((id) => { document.getElementById(id).open = !logged; });
+  document.getElementById("swm-rules").open = !logged || !swmActiva();
   renderSwmPagoBanner();
   renderSwmWelcome();
   renderSwmGuias();
@@ -163,8 +168,14 @@ function renderSwmAddress() {
       <div class="min-w-0"><span class="block text-[11px] uppercase tracking-wide text-cream/80">${label}</span><b class="block text-base text-cream break-words">${escapeHtml(value)}</b></div>
       <button type="button" data-swm-copy="${escapeHtml(value)}" class="shrink-0 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold text-cream hover:bg-white/30">Copiar</button>
     </div>`;
-  el.innerHTML = `${h}
-    <div class="grid gap-4 md:grid-cols-[1fr_0.8fr]">
+  // Plegada para quien ya usa el casillero (se abre sola la primera vez).
+  if (swm.addrOpen == null && swm.loaded) swm.addrOpen = !swmActiva();
+  el.innerHTML = `<details id="swm-addr" class="group rounded-3xl border border-ink/10 bg-white"${swm.addrOpen === false ? "" : " open"}>
+    <summary class="cursor-pointer list-none flex items-center justify-between gap-3 px-5 py-4">
+      <span><span class="block font-display text-lg sm:text-xl text-ink">📋 Mi dirección americana</span><span class="block text-xs text-ink/70">${swm.casillero ? `Tu código: <b>${escapeHtml(swm.casillero)}</b> · ` : ""}toca para ver y copiar</span></span>
+      <span class="text-ink/50 group-open:rotate-180 transition" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="px-3 pb-3 sm:px-5 sm:pb-5 grid gap-4 md:grid-cols-[1fr_0.8fr]">
       <div class="rounded-3xl bg-rose-deep p-5">
         ${swm.casillero ? `<p class="mb-2 inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-cream">Tu código de casillero: ${escapeHtml(swm.casillero)}</p>` : ""}
         ${fields.map(row).join("")}
@@ -179,7 +190,10 @@ function renderSwmAddress() {
           <li>Cuando te den tu número de rastreo, <b>regístralo en "Mi casillero"</b>.</li>
         </ol>
       </div>
-    </div>`;
+    </div></details>`;
+  // Solo cuando ella lo abre o cierra (el evento "toggle" también salta al pintarlo abierto).
+  const det = el.querySelector("#swm-addr");
+  det.querySelector("summary").addEventListener("click", () => setTimeout(() => { swm.addrOpen = det.open; }, 0));
 }
 
 /* Guías por tienda: cómo se llena la dirección en cada checkout (con su
@@ -213,21 +227,27 @@ function renderSwmGuias() {
     <p class="mt-3 text-xs text-ink/70">En todas: el código <b>${escapeHtml(code)}</b> es lo que nos dice que el paquete es tuyo. Cuando te llegue el número de rastreo, regístralo en "Mi casillero".</p>`;
 }
 
-/* Primera vez (casillero vacío): 3 pasos para empezar. */
+/* Guía de bienvenida: 3 pasos que se van palomeando hasta que hace su
+   primer envío. "Copió la dirección" se recuerda en este navegador. */
+const swmCopio = () => { try { return localStorage.getItem("alpacca_swm_copio") === "1"; } catch (err) { return false; } };
 function renderSwmWelcome() {
   const el = document.getElementById("swm-welcome");
-  const show = Boolean(getCustomerToken()) && swm.loaded && !swm.error && !swm.paquetes.length && !swm.compras.length && !swm.envios.length;
+  const pasos = [
+    [swmCopio() || swm.paquetes.length > 0, "Copia tu dirección americana", "Úsala en tu tienda favorita, con tu código de casillero en el apellido.", '<button type="button" data-swm-abrir-dir class="mt-1 block text-xs font-semibold text-rose-ink underline">Ver mi dirección</button>'],
+    [swm.paquetes.length > 0 || swm.compras.length > 0, "Registra tu primer paquete", "Cuando te den el número de rastreo. ¿Sin tarjeta americana? Usa \u201cQue Mae compre por mí\u201d.", '<button type="button" data-swm-form="paquete" class="mt-1 block text-xs font-semibold text-rose-ink underline">Registrar paquete</button>'],
+    [swm.envios.length > 0, "Pide tu primer envío a México", "Cuando tus paquetes lleguen al almacén te aviso y lo pides aquí.", ""],
+  ];
+  const hechos = pasos.filter((p) => p[0]).length;
+  const show = Boolean(getCustomerToken()) && swm.loaded && !swm.error && hechos < pasos.length;
   el.classList.toggle("hidden", !show);
   if (!show) return;
-  const step = (n, t, d) => `<li class="flex gap-3"><span class="shrink-0 w-7 h-7 rounded-full bg-rose-deep text-cream text-sm font-bold flex items-center justify-center">${n}</span><span><b class="block text-sm text-ink">${t}</b><span class="text-xs text-ink/75">${d}</span></span></li>`;
+  const paso = ([ok, t, d, extra], n) => `<li class="flex gap-3">
+      <span class="shrink-0 w-7 h-7 rounded-full ${ok ? "bg-[#2f8f5b]" : "bg-rose-deep"} text-cream text-sm font-bold flex items-center justify-center">${ok ? "✓" : n + 1}</span>
+      <span><b class="block text-sm ${ok ? "text-ink/55 line-through" : "text-ink"}">${t}</b>${ok ? "" : `<span class="text-xs text-ink/75">${d}</span>${extra}`}</span></li>`;
   el.innerHTML = `<div class="rounded-3xl border-2 border-rose/40 bg-white p-5">
-    <p class="font-display text-lg text-ink">👋 ¡Bienvenida! Así empiezas:</p>
-    <ol class="mt-3 space-y-3">
-      ${step(1, "Copia tu dirección americana", "Está aquí abajo, con tu código de casillero en el apellido.")}
-      ${step(2, "Compra en tu tienda favorita", "Sephora, Ulta, Amazon... y manda tu pedido a esa dirección.")}
-      ${step(3, "Registra tu número de rastreo", "En \u201cMi casillero\u201d → Registrar un paquete. Te avisamos cuando llegue.")}
-    </ol>
-    <p class="mt-3 text-xs text-ink/70">¿No tienes tarjeta americana? Usa <b>\u201cQue Mae compre por mí\u201d</b> y yo hago la compra.</p>
+    <div class="flex items-center justify-between gap-3"><p class="font-display text-lg text-ink">👋 ¡Bienvenida! Así empiezas</p><span class="text-xs font-bold text-rose-ink">${hechos} de ${pasos.length}</span></div>
+    <div class="mt-2 h-2 rounded-full bg-pill overflow-hidden"><div class="h-full bg-rose-deep rounded-full" style="width:${Math.round((hechos / pasos.length) * 100)}%"></div></div>
+    <ol class="mt-4 space-y-3">${pasos.map(paso).join("")}</ol>
   </div>`;
 }
 
@@ -245,15 +265,16 @@ function renderSwmCasillero() {
   const P = swm.paquetes.filter((p) => p.status !== "cancelado");
   const kpi = (n, l) => `<div class="rounded-2xl bg-white/85 px-2 py-3 text-center shadow-sm"><b class="block text-xl font-bold tabular-nums">${n}</b><span class="text-[11px] text-ink/70">${l}</span></div>`;
   const porPagar = [...swm.compras, ...swm.envios].filter((x) => x.status === "cotizado").length;
-  const tabs = [["paquetes", `Mis paquetes (${P.length})`], ["compras", `Compras por mí (${swm.compras.filter((c) => c.status !== "cancelado").length})`], ["envios", `Envíos (${swm.envios.filter((e) => e.status !== "cancelado").length})`]];
+  const tabs = [["paquetes", `Paquetes (${P.length})`], ["compras", `Compras (${swm.compras.filter((c) => c.status !== "cancelado").length})`], ["envios", `Envíos (${swm.envios.filter((e) => e.status !== "cancelado").length})`]];
   el.innerHTML = `${h}
     <div class="rounded-3xl bg-gradient-to-br from-blush/60 via-blush/25 to-lilac/25 p-4">
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-4 gap-2">
         ${kpi(P.filter((p) => p.status === "registrado").length, "por llegar")}
-        ${kpi(P.filter((p) => p.status === "recibido" && !p.enMexicoAt).length, "en el almacén")}
+        ${kpi(P.filter((p) => p.status === "recibido" && !p.enMexicoAt).length, "en almacén")}
+        ${kpi(P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length, "en México")}
         ${kpi(P.filter((p) => ["enviado", "entregado"].includes(p.status)).length, "enviados")}
       </div>
-      ${porPagar ? `<p class="mt-3 rounded-xl bg-white/90 px-3 py-2 text-sm font-semibold text-rose-ink">💳 Tienes ${porPagar} cotización${porPagar > 1 ? "es" : ""} lista${porPagar > 1 ? "s" : ""} para pagar.</p>` : ""}
+      ${porPagar ? `<button type="button" data-swm-ir-pagar class="mt-3 w-full flex items-center justify-between gap-2 rounded-xl bg-rose-deep px-4 py-3 text-left text-sm font-semibold text-cream hover:bg-rose-ink"><span>💳 Tienes ${porPagar} cotización${porPagar > 1 ? "es" : ""} lista${porPagar > 1 ? "s" : ""} para pagar</span><span aria-hidden="true" class="whitespace-nowrap">Pagar →</span></button>` : ""}
       <div class="mt-3 grid gap-2 sm:grid-cols-3">
         <button type="button" data-swm-form="paquete" class="rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80">📦 Registrar un paquete<span class="block text-[11px] font-normal text-ink/65">Ya compraste y lo mandaste a la dirección</span></button>
         <button type="button" data-swm-form="compra" class="rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80">🛍️ Que Mae compre por mí<span class="block text-[11px] font-normal text-ink/65">Mándame tu carrito por WhatsApp</span></button>
@@ -261,9 +282,52 @@ function renderSwmCasillero() {
       </div>
     </div>
     <div id="swm-form-box" class="mt-4">${swmFormHTML()}</div>
-    <div class="mt-6 flex gap-1.5 overflow-x-auto" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" aria-selected="${swm.tab === k}" data-swm-tab="${k}" class="shrink-0 rounded-full px-4 py-2 text-sm font-semibold ${swm.tab === k ? "bg-ink text-cream" : "bg-pill text-ink/75"}">${l}</button>`).join("")}</div>
+    ${swmBeneficiosHTML()}
+    <div class="mt-6 grid grid-cols-3 gap-1.5" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" aria-selected="${swm.tab === k}" data-swm-tab="${k}" class="rounded-full px-2 py-2 text-[13px] font-semibold ${swm.tab === k ? "bg-ink text-cream" : "bg-pill text-ink/75"}">${l}</button>`).join("")}</div>
     <div class="mt-4 space-y-3">${swmTabHTML()}</div>`;
   el.querySelectorAll("[data-swm-editar]").forEach(swmActualizarEstimado);
+  const benef = el.querySelector("[data-swm-benef]");
+  if (benef) benef.addEventListener("toggle", () => { swm.benefOpen = benef.open; });
+}
+
+/* Lo que la hace volver: paquetes traídos, cruce gratis por lealtad e
+   invita a una amiga (con sus cupones de premio). */
+function swmBeneficiosHTML() {
+  const L = swm.lealtad;
+  const R = swm.referido;
+  const traidos = swm.paquetes.filter((p) => ["enviado", "entregado"].includes(p.status)).length;
+  if (!L && !R) return "";
+  const puntos = L ? Array.from({ length: L.cada }, (_, i) => `<span class="w-5 h-5 rounded-full border-2 ${i < L.avance ? "bg-rose-deep border-rose-deep" : "bg-white border-ink/20"}"></span>`).join("") : "";
+  const faltan = L ? L.cada - L.avance : 0;
+  const waTxt = R ? `Te recomiendo la dirección americana de Alpacca (Shop with Mae) para traer tus compras de EE.UU. 💗 Usa mi código ${R.code} y tienes $${R.monto} de descuento en tu primer envío: https://alpacca.mx/?ver=direccion-americana` : "";
+  return `<details class="mt-4 group rounded-3xl border border-ink/10 bg-white"${swm.benefOpen ? " open" : ""} data-swm-benef>
+    <summary class="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3">
+      <span class="text-sm"><b>💗 Tus beneficios</b>${L && L.disponibles ? ` · <span class="text-[#2f8f5b] font-semibold">🎁 ${L.disponibles} cruce${L.disponibles > 1 ? "s" : ""} gratis</span>` : ""}${(swm.premios || []).length ? ` · <span class="text-rose-ink font-semibold">${swm.premios.length} cupón${swm.premios.length > 1 ? "es" : ""}</span>` : ""}</span>
+      <span class="text-ink/50 group-open:rotate-180 transition" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="px-4 pb-4 space-y-4 text-sm">
+      ${traidos ? `<p>🎉 Con Mae ya trajiste <b>${traidos} paquete${traidos === 1 ? "" : "s"}</b> a México. ¡Gracias por tu confianza!</p>` : ""}
+      ${L ? `<div>
+        <p class="font-semibold">🎁 Cada ${L.cada} envíos, tu siguiente cruce va gratis</p>
+        <div class="mt-2 flex gap-1.5" aria-label="${L.avance} de ${L.cada}">${puntos}</div>
+        <p class="mt-1 text-xs text-ink/70">${L.disponibles ? `<b class="text-[#2f8f5b]">Tienes ${L.disponibles} cruce${L.disponibles > 1 ? "s" : ""} gratis</b>: se aplica en tu próximo envío. ` : ""}Te falta${faltan === 1 ? "" : "n"} ${faltan} envío${faltan === 1 ? "" : "s"} entregado${faltan === 1 ? "" : "s"} para el siguiente.</p>
+      </div>` : ""}
+      ${R ? `<div>
+        <p class="font-semibold">👭 Invita a una amiga</p>
+        <p class="text-xs text-ink/75 mt-0.5">Ella tiene <b>$${R.monto} de descuento</b> en su primer envío o compra y tú ganas <b>$${R.monto}</b> cuando lo pague.</p>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <span class="rounded-xl border-2 border-dashed border-rose/60 px-3 py-1.5 font-bold tracking-wide">${escapeHtml(R.code)}</span>
+          <button type="button" data-swm-copy="${escapeHtml(R.code)}" class="rounded-full bg-pill px-3 py-1.5 text-xs font-semibold">Copiar</button>
+          <a href="https://wa.me/?text=${encodeURIComponent(waTxt)}" target="_blank" rel="noopener" class="rounded-full bg-[#25D366] px-3 py-1.5 text-xs font-semibold text-white">Compartir por WhatsApp</a>
+        </div>
+      </div>` : ""}
+      ${(swm.premios || []).length ? `<div>
+        <p class="font-semibold">🎟️ Tus cupones</p>
+        <ul class="mt-1 space-y-1">${swm.premios.map((c) => `<li class="flex items-center gap-2"><b class="tracking-wide">${escapeHtml(c.code)}</b> · ${swmMXN(c.valor)} <button type="button" data-swm-copy="${escapeHtml(c.code)}" class="rounded-full bg-pill px-2.5 py-1 text-xs font-semibold">Copiar</button></li>`).join("")}</ul>
+        <p class="mt-1 text-xs text-ink/70">Ponlo en "¿Tienes un cupón?" cuando pagues tu siguiente cotización.</p>
+      </div>` : ""}
+    </div>
+  </details>`;
 }
 
 /* Línea de avance ("Registrado → En almacén → ..."), como en Delivered. */
@@ -278,7 +342,7 @@ function swmStepsHTML(kind, status) {
   if (idx == null) return "";
   return `<ol class="mt-3 flex items-start" aria-label="Avance">${labels.map((l, i) => `<li class="flex-1 flex flex-col items-center text-center ${i ? "relative before:absolute before:top-[7px] before:right-1/2 before:w-full before:h-0.5 " + (i <= idx ? "before:bg-rose-deep" : "before:bg-ink/15") : ""}">
       <span class="relative z-10 w-4 h-4 rounded-full border-2 ${i <= idx ? "bg-rose-deep border-rose-deep" : "bg-white border-ink/25"}"${i === idx ? ' aria-current="step"' : ""}></span>
-      <span class="mt-1 text-[10px] leading-tight ${i === idx ? "font-bold text-ink" : "text-ink/60"}">${l}</span></li>`).join("")}</ol>`;
+      <span class="mt-1 text-[11px] leading-tight ${i === idx ? "font-bold text-ink" : "text-ink/65"}">${l}</span></li>`).join("")}</ol>`;
 }
 
 function swmTabHTML() {
@@ -429,13 +493,13 @@ function swmEnvioCardHTML(e) {
   const q = e.cotizacion;
   const line = (l, v) => (v ? `<div class="flex justify-between"><span>${l}</span><span class="tabular-nums">${swmMXN(v)}</span></div>` : "");
   const d = e.direccion || {};
-  return `<article class="rounded-2xl border border-ink/10 p-4">
+  return `<article id="swm-envio-${escapeHtml(e.id)}" class="rounded-2xl border border-ink/10 p-4 scroll-mt-28">
     <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(e.folio)}</b>${swmPill(SWM_ENVIO_STATUS, e.status)}</div>
     ${swmStepsHTML("envio", e.status)}
     <p class="text-xs text-ink/65 mt-2">${swmDate(e.createdAt)} · ${pk.length} paquete${pk.length === 1 ? "" : "s"}: ${escapeHtml(pk.map((p) => p.folio).join(", "))}${e.consolidar ? " · consolidado" : ""}</p>
     <p class="text-xs text-ink/65">A: ${escapeHtml([d.nombre, d.ciudad, d.cp].filter(Boolean).join(" · "))}</p>
     ${e.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(e.notaClienta)}</p>` : ""}
-    ${q ? `<div class="mt-2 text-sm space-y-0.5">${line("Cruce a México", q.cruce)}${line("Consolidación", q.consolidacion)}${line("Paquete(s) sin registrar", q.sinRegistro)}${line("Servicios extra", q.extras)}${q.descuento ? `<div class="flex justify-between text-rose-ink"><span>Cupón ${escapeHtml(q.cupon)}</span><span class="tabular-nums">−${swmMXN(q.descuento)}</span></div>` : ""}${line("Envío nacional", q.envio)}
+    ${q ? `<div class="mt-2 text-sm space-y-0.5">${q.premioLealtad ? `<div class="flex justify-between text-[#2f8f5b] font-semibold"><span>Cruce a México</span><span>¡Gratis! 🎁</span></div>` : ""}${line("Cruce a México", q.cruce)}${line("Consolidación", q.consolidacion)}${line("Paquete(s) sin registrar", q.sinRegistro)}${line("Servicios extra", q.extras)}${q.descuento ? `<div class="flex justify-between text-rose-ink"><span>Cupón ${escapeHtml(q.cupon)}</span><span class="tabular-nums">−${swmMXN(q.descuento)}</span></div>` : ""}${line("Envío nacional", q.envio)}
       <div class="flex justify-between font-semibold border-t border-ink/10 pt-1"><span>Total</span><span class="tabular-nums">${swmMXN(q.total)}</span></div></div>` : `<p class="mt-2 text-xs text-ink/70">Te mando la cotización del envío por correo y aquí mismo.</p>`}
     ${swmPagoHTML("envio", e)}
     ${e.guia ? `<p class="mt-2 text-sm">🚚 ${escapeHtml(e.paqueteria || "Paquetería")}: <b>${escapeHtml(e.guia)}</b></p>` : ""}
@@ -666,13 +730,14 @@ async function loadSwm() {
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) swm.error = "Tu sesión venció. Vuelve a iniciar sesión.";
     else if (!res.ok) swm.error = data.error || "No se pudo cargar tu casillero.";
-    else Object.assign(swm, { paquetes: data.paquetes || [], compras: data.compras || [], envios: data.envios || [], name: data.name || "", phone: data.phone || "", casillero: data.casillero || "", precios: data.precios || swm.precios, almacenajeDias: data.almacenajeDias || 30, tiposCambio: data.tiposCambio || {}, comisionPct: data.comisionPct || 15, error: "" });
+    else Object.assign(swm, { lealtad: data.lealtad || null, referido: data.referido || null, premios: data.premios || [], paquetes: data.paquetes || [], compras: data.compras || [], envios: data.envios || [], name: data.name || "", phone: data.phone || "", casillero: data.casillero || "", precios: data.precios || swm.precios, almacenajeDias: data.almacenajeDias || 30, tiposCambio: data.tiposCambio || {}, comisionPct: data.comisionPct || 15, error: "" });
   } catch (err) {
     swm.error = "No se pudo cargar tu casillero. Revisa tu conexión.";
   }
   swm.loading = false;
   swm.loaded = true;
   if ([...swm.compras, ...swm.envios].some((x) => x.status === "cotizado")) swm.tab = swm.envios.some((x) => x.status === "cotizado") ? "envios" : "compras";
+  document.getElementById("swm-rules").open = !swmActiva();
   renderSwmWelcome();
   renderSwmAddress();
   renderSwmCasillero();
@@ -822,7 +887,26 @@ function initSwm() {
     }
     const t = e.target;
     if (t.closest("[data-swm-login]")) { openAccountPanelDefault(); return; }
+    if (t.closest("[data-swm-abrir-dir]")) {
+      swm.addrOpen = true; renderSwmAddress();
+      document.getElementById("swm-address").scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (t.closest("[data-swm-ir-pagar]")) {
+      const r = [...swm.envios, ...swm.compras].find((x) => x.status === "cotizado");
+      if (!r) return;
+      const esEnvio = swm.envios.includes(r);
+      swm.tab = esEnvio ? "envios" : "compras";
+      renderSwmCasillero();
+      const card = document.getElementById(`swm-${esEnvio ? "envio" : "compra"}-${r.id}`);
+      if (card) { card.classList.add("ring-2", "ring-rose-deep"); card.scrollIntoView({ behavior: "smooth", block: "start" }); }
+      return;
+    }
     const copy = t.closest("[data-swm-copy]");
+    if (copy && copy.closest("#swm-addr")) {
+      try { localStorage.setItem("alpacca_swm_copio", "1"); } catch (err) { /* sin almacenamiento: no pasa nada */ }
+      setTimeout(renderSwmWelcome, 0);
+    }
     if (copy) {
       const done = () => { const old = copy.textContent; copy.textContent = "¡Copiado!"; setTimeout(() => { copy.textContent = old; }, 1400); };
       if (navigator.clipboard) navigator.clipboard.writeText(copy.dataset.swmCopy).then(done, () => {});

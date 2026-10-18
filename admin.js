@@ -4918,6 +4918,16 @@ ${itemLines}
     </details>`;
   }
 
+  /* Cruces gratis por lealtad que le quedan a la clienta (cada 5 envíos
+     entregados; lo mismo que lealtadDe en swm-core.js). */
+  const SWM_LEALTAD_CADA = 5;
+  function swmLealtadLibres(email) {
+    const suyos = swmData.envios.filter((x) => x.email === email);
+    const entregados = suyos.filter((x) => x.status === "entregado").length;
+    const usados = suyos.filter((x) => x.premioLealtad && x.status !== "cancelado").length;
+    return Math.max(0, Math.floor(entregados / SWM_LEALTAD_CADA) - usados);
+  }
+
   function swmEnvioCard(e) {
     const st = { solicitado: "🆕 Por cotizar", cotizado: "💳 Cotizado", pagado: "✅ Pagado · hay que mandar", en_mexico: "🇲🇽 En México · hay que mandar", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[e.status] || e.status;
     const pk = (e.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
@@ -4933,6 +4943,7 @@ ${itemLines}
           ${sug.extras ? `<label>Servicios extra (vacío = ${formatPrice(sug.extras)})<input data-f="extras" type="number" step="0.01" min="0" placeholder="${sug.extras}"></label>` : ""}
           <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(e.notaClienta || "")}"></label>
         </div>
+        ${swmLealtadLibres(e.email) || e.premioLealtad ? `<label class="swm-check" style="margin-top:8px;"><input type="checkbox" data-f="premioLealtad"${e.premioLealtad ? " checked" : ""}> 🎁 Cruce gratis por lealtad (le ${e.premioLealtad ? "toca" : `quedan ${swmLealtadLibres(e.email)}`})</label>` : ""}
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("envio", e)}</div>`;
     } else if (e.status === "pagado" || e.status === "en_mexico") {
       action = `<div class="grid"><label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(e.paqueteria || "Estafeta")}"></label><label>Número de guía<input data-f="guia" type="text" value="${escapeHtml(e.guia || "")}"></label></div>
@@ -5140,7 +5151,8 @@ ${itemLines}
       swmAct({ accion: "compra_comprada", id, paquetes }, btn);
     } else if (t.closest("[data-swm-cotizar-envio]")) {
       if (v("envio") === "") { alert("Pon el costo del envío nacional."); return; }
-      swmAct({ accion: "cotizar_envio", id, envio: v("envio"), cruce: v("cruce"), consolidacion: v("consolidacion"), sinRegistro: v("sinRegistro"), extras: v("extras"), notaClienta: v("notaClienta") }, btn);
+      const premio = card.querySelector('[data-f="premioLealtad"]');
+      swmAct({ accion: "cotizar_envio", id, envio: v("envio"), cruce: v("cruce"), consolidacion: v("consolidacion"), sinRegistro: v("sinRegistro"), extras: v("extras"), notaClienta: v("notaClienta"), ...(premio ? { premioLealtad: premio.checked } : {}) }, btn);
     } else if (t.closest("[data-swm-revision-hecha]")) {
       const input = card.querySelector('[data-f="revFotos"]');
       const fotos = (await Promise.all([...(input.files || [])].slice(0, 10).map(swmResize))).filter(Boolean);

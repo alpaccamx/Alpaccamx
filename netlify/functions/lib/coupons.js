@@ -12,6 +12,10 @@
 //   Sin hora, "hasta" incluye todo ese día y "desde" empieza a las 00:00.
 //   Con hora, el cupón se activa / se desactiva solo a esa hora.
 // El descuento nunca toca el envío de la tienda.
+// - Invita a una amiga (Shop with Mae): "duena" es la clienta dueña del
+//   código (no lo puede usar ella) y "soloNuevas" lo deja solo para quien
+//   todavía no ha pagado nada. "soloPara" es un cupón de premio que solo
+//   puede usar esa clienta.
 // - sinMinimo: "pedido compartido de Corea": quita el pedido mínimo de
 //   productos de Corea (solo tienda). Puede no tener descuento (valor 0).
 //   Mae lo activa o lo pausa cuando abre o cierra la dinámica.
@@ -54,6 +58,9 @@ function limpiar(c) {
     activo: c.activo !== false,
     nota: String(c.nota || "").slice(0, 200),
     sinMinimo: !!c.sinMinimo,
+    duena: String(c.duena || "").toLowerCase().slice(0, 200),
+    soloNuevas: !!c.soloNuevas,
+    soloPara: String(c.soloPara || "").toLowerCase().slice(0, 200),
     // Pedido compartido: envío Corea→México fijo por kg (MXN). 0 = tabla normal.
     envioKg: c.sinMinimo ? Math.max(0, Math.min(10000, Number(c.envioKg) || 0)) : 0,
   };
@@ -80,7 +87,7 @@ async function saveCoupon(input) {
   for (let attempt = 0; attempt < 6; attempt++) {
     const cur = await s.getWithMetadata(key(c.code), { type: "json" });
     const prev = (cur && cur.data) || {};
-    const data = { ...c, usos: prev.usos || 0, usadoPor: prev.usadoPor || [], createdAt: prev.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+    const data = { ...c, duena: c.duena || prev.duena || "", soloNuevas: c.soloNuevas || !!prev.soloNuevas, soloPara: c.soloPara || prev.soloPara || "", usos: prev.usos || 0, usadoPor: prev.usadoPor || [], createdAt: prev.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
     const res = cur ? await s.setJSON(key(c.code), data, { onlyIfMatch: cur.etag }) : await s.setJSON(key(c.code), data, { onlyIfNew: true });
     if (res.modified) return data;
   }
@@ -93,7 +100,7 @@ async function deleteCoupon(code) {
 
 /* Revisa si el cupón sirve. base = total al precio de transferencia (para
    el mínimo). Regresa { ok, error?, coupon }. */
-function checkCoupon(c, { email, ambito, base }) {
+function checkCoupon(c, { email, ambito, base, nueva }) {
   if (!c || !c.activo) return { ok: false, error: "Ese cupón no existe o ya no está activo." };
   if (c.aplica !== "ambos" && c.aplica !== ambito) {
     return { ok: false, error: c.aplica === "swm" ? "Ese cupón es solo para la dirección americana." : "Ese cupón es solo para la tienda." };
@@ -104,6 +111,9 @@ function checkCoupon(c, { email, ambito, base }) {
   if (c.usosMax && (c.usos || 0) >= c.usosMax) return { ok: false, error: "Ese cupón ya se agotó." };
   const who = String(email || "").toLowerCase();
   if (c.unaVez && who && (c.usadoPor || []).includes(who)) return { ok: false, error: "Ya usaste este cupón." };
+  if (c.duena && who === c.duena) return { ok: false, error: "Ese es tu código para invitar amigas; compártelo 💗" };
+  if (c.soloNuevas && nueva === false) return { ok: false, error: "Ese código es solo para tu primer envío o compra." };
+  if (c.soloPara && who !== c.soloPara) return { ok: false, error: "Ese cupón es de otra clienta." };
   if (c.minimo && (Number(base) || 0) < c.minimo) {
     return { ok: false, error: `Este cupón es para compras desde $${c.minimo.toLocaleString("es-MX")}.` };
   }

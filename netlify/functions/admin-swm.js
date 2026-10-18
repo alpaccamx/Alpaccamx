@@ -38,7 +38,7 @@ const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, g
 const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, SEPARAR, COMISION_PCT } = require("./lib/swm-pricing.js");
 const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
 const { getCoupon, discountFor } = require("./lib/coupons.js");
-const { ALMACENAJE_DIAS, round2, cotizacionSugerida, aplicarPago, avisar, formatPriceMXN, tiposDeCambio } = require("./lib/swm-core.js");
+const { ALMACENAJE_DIAS, round2, cotizacionSugerida, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
 
 const num = (v) => Math.max(0, parseFloat(v) || 0);
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
@@ -282,13 +282,21 @@ exports.handler = async (event) => {
         const sug = await cotizacionSugerida(paquetes, envio0.consolidar);
         const val = (v, d) => (v === "" || v == null ? d : round2(num(v)));
         const envioMX = round2(num(b.envio));
-        const cruce = val(b.cruce, sug.cruce);
+        // Cruce gratis por lealtad (si le toca y Mae lo marcó).
+        let premioLealtad = !!envio0.premioLealtad;
+        if (b.premioLealtad && !premioLealtad) {
+          const suyos = (await listRecords("envio")).filter((e) => e.email === envio0.email);
+          if (!lealtadDe(suyos).disponibles) return json(409, { error: "Esta clienta no tiene cruces gratis disponibles." });
+          premioLealtad = true;
+        } else if (b.premioLealtad === false) premioLealtad = false;
+        const cruce = premioLealtad ? 0 : val(b.cruce, sug.cruce);
         const consolidacion = val(b.consolidacion, sug.consolidacion);
         const sinRegistro = val(b.sinRegistro, sug.sinRegistro || 0);
         const extras = val(b.extras, sug.extras || 0);
         const rec = await mutateRecord("envio", id, (e) => {
           e.sugerido = { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro || 0, extras: sug.extras || 0, kg: sug.kg };
-          e.cotizacion = { cruce, consolidacion, sinRegistro, extras, envio: envioMX, total: round2(cruce + consolidacion + sinRegistro + extras + envioMX), at: now() };
+          e.cotizacion = { cruce, consolidacion, sinRegistro, extras, envio: envioMX, total: round2(cruce + consolidacion + sinRegistro + extras + envioMX), at: now(), ...(premioLealtad ? { premioLealtad: true } : {}) };
+          e.premioLealtad = premioLealtad;
           e.pago = { status: "pendiente", monto: e.cotizacion.total };
           if (b.notaClienta != null) e.notaClienta = clip(b.notaClienta, 1000);
           e.status = "cotizado"; push(e, "cotizado");
@@ -297,7 +305,7 @@ exports.handler = async (event) => {
         const c = rec.cotizacion;
         await avisar(rec, `tu envío ${rec.folio} está cotizado`, `
           <h2 style="margin:0 0 8px;font-size:20px;">Tu envío a México está cotizado</h2>
-          <p style="font-size:14px;">${c.cruce ? `Cruce a México: <b>${formatPriceMXN(c.cruce)}</b><br>` : ""}${c.consolidacion ? `Consolidación: <b>${formatPriceMXN(c.consolidacion)}</b><br>` : ""}${c.sinRegistro ? `Paquete(s) sin registrar: <b>${formatPriceMXN(c.sinRegistro)}</b><br>` : ""}${c.extras ? `Servicios extra (revisión / separar): <b>${formatPriceMXN(c.extras)}</b><br>` : ""}Envío nacional: <b>${formatPriceMXN(c.envio)}</b><br>Total a pagar: <b>${formatPriceMXN(c.total)}</b></p>
+          <p style="font-size:14px;">${c.premioLealtad ? `Cruce a México: <b>¡GRATIS por tu lealtad! 🎁</b><br>` : ""}${c.cruce ? `Cruce a México: <b>${formatPriceMXN(c.cruce)}</b><br>` : ""}${c.consolidacion ? `Consolidación: <b>${formatPriceMXN(c.consolidacion)}</b><br>` : ""}${c.sinRegistro ? `Paquete(s) sin registrar: <b>${formatPriceMXN(c.sinRegistro)}</b><br>` : ""}${c.extras ? `Servicios extra (revisión / separar): <b>${formatPriceMXN(c.extras)}</b><br>` : ""}Envío nacional: <b>${formatPriceMXN(c.envio)}</b><br>Total a pagar: <b>${formatPriceMXN(c.total)}</b></p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
           <p style="font-size:14px;">Págalo con tarjeta o transferencia desde tu casillero y lo preparo.</p>`);
         return json(200, { envio: rec });

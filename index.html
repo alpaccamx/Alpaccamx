@@ -232,16 +232,19 @@
 
   <div id="swm-pago-banner" class="mt-6 hidden" role="status"></div>
   <div id="swm-welcome" class="mt-6 hidden"></div>
-  <div id="swm-address" class="mt-6"></div>
-  <div id="swm-casillero" class="mt-8 scroll-mt-24"></div>
+  <!-- Con sesión, primero su casillero (lo que más consulta) y la dirección plegada debajo. -->
+  <div id="swm-casillero" class="mt-6 scroll-mt-24"></div>
+  <div id="swm-address" class="mt-6 scroll-mt-24"></div>
 
-  <!-- Reglas: un solo aviso (antes salía 3 veces). -->
-  <div class="mt-8 rounded-2xl border border-sale/30 bg-sale/[0.04] p-4 text-sm space-y-2">
-    <p class="font-semibold">📌 Reglas importantes</p>
+  <!-- Reglas: un solo aviso (antes salía 3 veces). Plegado para quien ya usa el casillero. -->
+  <details id="swm-rules" open class="mt-8 group rounded-2xl border border-sale/30 bg-sale/[0.04] text-sm">
+    <summary class="cursor-pointer list-none flex items-center justify-between px-4 py-3 font-semibold">📌 Reglas importantes <span class="text-ink/50 group-open:rotate-180 transition" aria-hidden="true">⌄</span></summary>
+    <div class="px-4 pb-4 space-y-2">
     <p><b>Registra tu guía antes de que llegue.</b> Si tu paquete llega sin registrar se cobran <b>$80 MXN</b>, y si no sabemos de quién es y nadie lo reclama en <b>7 días</b>, dispondremos de él.</p>
     <p><b>No cruzamos:</b> nada ilegal, nada de cristal (velas, jarrones, etc.), muebles ni pallets.</p>
     <p>Guardamos tus paquetes <b>gratis 30 días</b> desde que llegan.</p>
-  </div>
+    </div>
+  </details>
 
   <details id="swm-how" class="mt-8 group rounded-2xl border border-ink/10 open:bg-white">
     <summary class="cursor-pointer list-none flex items-center justify-between px-5 py-4 font-display text-lg sm:text-xl text-ink">¿Cómo funciona? <span class="text-ink/50 group-open:rotate-180 transition" aria-hidden="true">⌄</span></summary>
