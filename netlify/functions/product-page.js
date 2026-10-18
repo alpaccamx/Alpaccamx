@@ -35,7 +35,7 @@ async function loadIndexHtml() {
 }
 
 function absUrl(src) {
-  if (!src) return `${SITE}/assets/og-alpacca.jpg`;
+  if (!src) return `${SITE}/assets/og-alpacca.jpg?v=2`;
   if (/^https?:\/\//.test(src)) return src;
   return `${SITE}/${src.replace(/^\.?\/+/, "")}`;
 }
