@@ -2036,6 +2036,10 @@ function getMenuItems() {
 
   items.push({ type: "link", label: "🇺🇸 Dirección americana · Compras en EE.UU.", href: "#swm-section" });
 
+  if (!document.getElementById("skintype-section").classList.contains("hidden")) {
+    items.push({ type: "link", label: "🧴 Test de tipo de piel · Arma tu rutina", href: "#skintype-section" });
+  }
+
   const brandsSection = document.getElementById("brands-section");
   if (brandsSection && !brandsSection.classList.contains("hidden")) {
     const brands = [...new Set(products.map((p) => p.marca).filter(Boolean))].sort();
@@ -3388,6 +3392,12 @@ let quizIndex = 0;
 let quizAnswers = [];
 let quizRoutine = []; // [{ step, items }] del último resultado mostrado
 
+/* Test de tipo de piel con su propio link: alpacca.mx/?ver=tipo-de-piel */
+function openSkinQuiz({ restore = false } = {}) {
+  showHomeView("piel");
+  if (!restore) window.scrollTo({ top: 0, behavior: "auto" });
+}
+
 function renderSkinTypeSection() {
   const section = document.getElementById("skintype-section");
   const hasSkinData = products.some((p) => (p.tipoPiel || []).length > 0);
@@ -3923,6 +3933,7 @@ const DEFAULT_VIEW_ROUTES = {
   wishlist: { ver: "favoritos" },
   americano: { ver: "americano" },
   swm: { ver: "shopwithmae" },
+  piel: { ver: "tipo-de-piel" },
 };
 
 function showHomeView(view, route) {
@@ -3932,7 +3943,11 @@ function showHomeView(view, route) {
     pushRoute(r);
     setRouteMeta(r);
   }
-  document.getElementById("homepage-sections").classList.toggle("hidden", view !== "home");
+  // El test de piel vive dentro del inicio: en su vista ("piel") se muestra
+  // solo esa sección y se esconde lo demás del inicio.
+  const homepage = document.getElementById("homepage-sections");
+  homepage.classList.toggle("hidden", view !== "home" && view !== "piel");
+  [...homepage.children].forEach((el) => el.classList.toggle("!hidden", view === "piel" && el.id !== "skintype-section"));
   document.getElementById("search-results-section").classList.toggle("hidden", view !== "search");
   document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
   document.getElementById("stock-section").classList.toggle("hidden", view !== "stock");
@@ -4465,6 +4480,7 @@ function setRouteMeta(r) {
   else if (r.ver === "catalogo") { title = "Catálogo completo — Alpacca"; canonical += "?ver=catalogo"; }
   else if (r.ver === "stock") { title = "Stock en México, entrega inmediata — Alpacca"; canonical += "?ver=stock"; }
   else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México · Alpacca"; canonical += "?ver=shopwithmae"; }
+  else if (r.ver === "tipo-de-piel") { title = "Test de tipo de piel: arma tu rutina coreana — Alpacca"; canonical += "?ver=tipo-de-piel"; }
   else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
   document.title = title;
   const link = document.querySelector('link[rel="canonical"]');
@@ -4491,6 +4507,7 @@ function openRouteView(params, restore) {
   }
   else if (ver === "stock") openStockSection({ restore });
   else if (ver === "favoritos") openWishlistSection();
+  else if (ver === "tipo-de-piel") openSkinQuiz({ restore });
   else if ((ver === "shopwithmae" || ver === "direccion-americana") && typeof openSwmSection === "function") openSwmSection({ restore });
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
   else if (ver === "mis-pedidos") { showHomeView("home"); if (!restore) openAccountPanel(); }
@@ -6800,11 +6817,7 @@ function initAccountDashboard() {
     }
     closeAccountPanel();
     if (a === "favs") openWishlistSection();
-    if (a === "skin") {
-      showHomeView("home");
-      const sec = document.getElementById("skintype-section");
-      if (sec) sec.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
-    }
+    if (a === "skin") openSkinQuiz();
   });
   // Foto que no carga (producto que ya no está en el catálogo): se cambia
   // por un recuadro rosa en vez del ícono de imagen rota.
@@ -7329,6 +7342,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (href === "stock-section") {
       openStockSection();
+      return;
+    }
+    if (href === "skintype-section") {
+      e.preventDefault();
+      openSkinQuiz();
       return;
     }
     if (href === "swm-section" && typeof openSwmSection === "function") {
