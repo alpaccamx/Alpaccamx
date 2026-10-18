@@ -368,6 +368,18 @@ exports.handler = async (event) => {
         return rec ? json(200, { [kind]: rec }) : json(404, { error: "No existe." });
       }
 
+      // Ya cruzó: está en México, antes de mandarlo por paquetería.
+      case "marcar_en_mexico": {
+        const rec = await mutateRecord("envio", id, (e) => {
+          if (e.status !== "pagado") return null;
+          e.status = "en_mexico"; e.enMexicoAt = now(); push(e, "en_mexico"); return e;
+        });
+        if (!rec) return json(409, { error: "Ese envío no está pagado o ya avanzó." });
+        await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => { p.status = "en_mexico"; push(p, "en_mexico"); return p; })));
+        await avisar(rec, `tu envío ${rec.folio} ya está en México 🇲🇽`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío ya está en México!</h2><p style="font-size:14px;">Ya cruzó la frontera. En cuanto lo mandemos te llega la guía de la paquetería.</p>`);
+        return json(200, { envio: rec });
+      }
+
       case "marcar_enviado": {
         const rec = await mutateRecord("envio", id, (e) => {
           e.paqueteria = clip(b.paqueteria, 40) || "Estafeta"; e.guia = clip(b.guia, 80);

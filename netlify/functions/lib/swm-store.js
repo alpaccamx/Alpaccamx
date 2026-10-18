@@ -3,12 +3,12 @@
 //
 // Hay tres tipos de registro, cada uno con su folio:
 //   paquete (P-0001): una caja que llega al almacén de Mae en El Paso.
-//     registrado → recibido (peso, medidas, fotos) → en_envio → enviado
+//     registrado → recibido (peso, medidas, fotos) → en_envio → en_mexico → enviado
 //     → entregado (o cancelado).
 //   compra (C-0001): "Mae compra por mí". solicitud → cotizado → pagado
 //     → comprado (Mae registra los paquetes) (o cancelado).
 //   envio (E-0001): la clienta junta paquetes recibidos y pide que se los
-//     manden a México. solicitado → cotizado → pagado → enviado →
+//     manden a México. solicitado → cotizado → pagado → en_mexico → enviado →
 //     entregado (o cancelado).
 //
 // Compras y envíos llevan un "pago": { status: "pendiente" | "revision" |

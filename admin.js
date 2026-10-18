@@ -4415,7 +4415,7 @@ ${itemLines}
       comprar: swmData.compras.filter((c) => c.status === "pagado"),
       cotizarEnvio: swmData.envios.filter((e) => e.status === "solicitado"),
       sinDuena: swmData.paquetes.filter((p) => p.status === "sin_dueña"),
-      enviar: swmData.envios.filter((e) => e.status === "pagado"),
+      enviar: swmData.envios.filter((e) => e.status === "pagado" || e.status === "en_mexico"),
       pagos: swmPorRevisar(),
       // Servicios extra que pidió la clienta (revisión con fotos solo
       // cuando el paquete ya llegó).
@@ -4520,7 +4520,7 @@ ${itemLines}
     } else {
       html = sec("Envíos", swmData.envios.filter((e) => ["entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard)
         + sec("Compras", swmData.compras.filter((c) => ["comprado", "cancelado"].includes(c.status) && swmMatches(c)), swmCompraCard)
-        + sec("Paquetes", P.filter((p) => ["en_envio", "enviado", "entregado", "cancelado"].includes(p.status) && swmMatches(p)), swmPaqueteCard)
+        + sec("Paquetes", P.filter((p) => ["en_envio", "en_mexico", "enviado", "entregado", "cancelado"].includes(p.status) && swmMatches(p)), swmPaqueteCard)
         || `<p style="color:#5f5866;font-size:14px;">Todavía no hay historial.</p>`;
     }
     document.getElementById("swm-empty").style.display = "none";
@@ -4533,7 +4533,7 @@ ${itemLines}
     return `${cas ? `<b>${escapeHtml(cas)}</b> · ` : ""}${escapeHtml(r.name || r.email)} · ${escapeHtml(r.email)}${r.phone ? ` · ${escapeHtml(r.phone)}` : ""}${wa ? ` · <a href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}`;
   }
   const swmPillA = (t, cls = "") => `<span class="swm-pill ${cls}">${t}</span>`;
-  const swmCancelBtn = (kind, r) => (["cancelado", "entregado", "comprado", "enviado"].includes(r.status) ? "" : `<button type="button" class="btn-secondary" data-swm-cancel="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">Cancelar</button>`);
+  const swmCancelBtn = (kind, r) => (["cancelado", "entregado", "comprado", "en_mexico", "enviado"].includes(r.status) ? "" : `<button type="button" class="btn-secondary" data-swm-cancel="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">Cancelar</button>`);
 
   /* "≈ $1,080 MXN" del valor declarado con el tipo de cambio de Ajustes y,
      si paga el cruce con el 15%, cuánto le toca. */
@@ -4557,7 +4557,7 @@ ${itemLines}
   }
 
   function swmPaqueteCard(p) {
-    const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : "📥 En almacén", en_envio: "📦 En un envío", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
+    const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : "📥 En almacén", en_envio: "📦 En un envío", en_mexico: "🇲🇽 En México", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
     const hasta = p.receivedAt ? new Date(new Date(p.receivedAt).getTime() + swmData.almacenajeDias * 864e5) : null;
     const vence = hasta ? Math.ceil((hasta - Date.now()) / 864e5) : null;
     const fotos = (p.fotos || []).map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:4px 10px;font-size:12px;">📷 Foto</button>`).join(" ");
@@ -4778,7 +4778,7 @@ ${itemLines}
   }
 
   function swmEnvioCard(e) {
-    const st = { solicitado: "🆕 Por cotizar", cotizado: "💳 Cotizado", pagado: "✅ Pagado · hay que mandar", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[e.status] || e.status;
+    const st = { solicitado: "🆕 Por cotizar", cotizado: "💳 Cotizado", pagado: "✅ Pagado · hay que mandar", en_mexico: "🇲🇽 En México · hay que mandar", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[e.status] || e.status;
     const pk = (e.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
     const d = e.direccion || {};
     const q = e.cotizacion; const sug = e.sugerido || {};
@@ -4793,14 +4793,14 @@ ${itemLines}
           <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(e.notaClienta || "")}"></label>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("envio", e)}</div>`;
-    } else if (e.status === "pagado") {
+    } else if (e.status === "pagado" || e.status === "en_mexico") {
       action = `<div class="grid"><label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(e.paqueteria || "Estafeta")}"></label><label>Número de guía<input data-f="guia" type="text" value="${escapeHtml(e.guia || "")}"></label></div>
-        <div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-primary" data-swm-enviado>🚚 Marcar enviado (mandarle la guía)</button></div>`;
+        <div style="display:flex;gap:8px;margin-top:10px;">${e.status === "pagado" ? `<button type="button" class="btn-secondary" data-swm-en-mexico>🇲🇽 Ya está en México</button>` : ""}<button type="button" class="btn-primary" data-swm-enviado>🚚 Marcar enviado (mandarle la guía)</button></div>`;
     } else if (e.status === "enviado") {
       action = `<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-secondary" data-swm-entregado>🎁 Marcar entregado</button></div>`;
     }
     return `<div class="swm-card" data-swm-id="${escapeHtml(e.id)}" data-kind="envio">
-      <h4><span>${escapeHtml(e.folio)} · Envío a México</span>${swmPillA(st, ["solicitado", "pagado"].includes(e.status) ? "new" : "")}</h4>
+      <h4><span>${escapeHtml(e.folio)} · Envío a México</span>${swmPillA(st, ["solicitado", "pagado", "en_mexico"].includes(e.status) ? "new" : "")}</h4>
       <div class="meta">${swmWho(e)} · ${swmFecha(e.createdAt)}${e.consolidar ? " · <b>consolidar</b>" : ""}</div>
       <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${pk.map((p) => `<li>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "")} · ${p.cobrable || "?"} kg · cruce ${p.crucePagado ? "ya pagado" : p.cobro === "comision" ? "15%" : "por peso"}</li>`).join("")}</ul>
       <div class="meta">📍 ${escapeHtml([d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}</div>
@@ -4990,6 +4990,8 @@ ${itemLines}
       swmAct({ accion: "separar_paquete", id, fotos,
         nuevo: { contenido: v("nContenido"), valorUSD: v("nValor"), kg: v("nKg"), alto: v("nAlto"), ancho: v("nAncho"), largo: v("nLargo") },
         resto: { contenido: v("rContenido"), valorUSD: v("rValor"), kg: v("rKg"), alto: v("rAlto"), ancho: v("rAncho"), largo: v("rLargo") } }, btn);
+    } else if (t.closest("[data-swm-en-mexico]")) {
+      swmAct({ accion: "marcar_en_mexico", id }, btn);
     } else if (t.closest("[data-swm-enviado]")) {
       if (!v("guia")) { alert("Pon el número de guía."); return; }
       swmAct({ accion: "marcar_enviado", id, paqueteria: v("paqueteria"), guia: v("guia") }, btn);

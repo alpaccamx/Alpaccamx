@@ -32,6 +32,7 @@ const SWM_PKG_STATUS = {
   registrado: ["⏳ En camino al almacén", "bg-[#fff6e5] text-[#8a5a00]"],
   recibido: ["📥 En el almacén", "bg-[#eef8f2] text-green-800"],
   en_envio: ["📦 En un envío", "bg-lilac/15 text-lilac-ink"],
+  en_mexico: ["🇲🇽 En México", "bg-[#eef8f2] text-green-800"],
   enviado: ["🚚 Enviado a México", "bg-lilac/15 text-lilac-ink"],
   entregado: ["🎁 Entregado", "bg-pill text-ink/70"],
   cancelado: ["Cancelado", "bg-pill text-ink/50"],
@@ -47,6 +48,7 @@ const SWM_ENVIO_STATUS = {
   solicitado: ["🕐 Cotizando envío", "bg-[#fff6e5] text-[#8a5a00]"],
   cotizado: ["💳 Listo para pagar", "bg-blush/40 text-rose-ink"],
   pagado: ["✅ Pagado · preparando", "bg-[#eef8f2] text-green-800"],
+  en_mexico: ["🇲🇽 Ya está en México", "bg-[#eef8f2] text-green-800"],
   enviado: ["🚚 En camino", "bg-lilac/15 text-lilac-ink"],
   entregado: ["🎁 Entregado", "bg-pill text-ink/70"],
   cancelado: ["Cancelado", "bg-pill text-ink/50"],
@@ -266,9 +268,9 @@ function renderSwmCasillero() {
 
 /* Línea de avance ("Registrado → En almacén → ..."), como en Delivered. */
 const SWM_STEPS = {
-  paquete: [{ registrado: 0, recibido: 1, en_envio: 1, enviado: 2, entregado: 3 }, ["Registrado", "En almacén", "Enviado", "Entregado"]],
+  paquete: [{ registrado: 0, recibido: 1, en_envio: 1, en_mexico: 2, enviado: 3, entregado: 4 }, ["Registrado", "En almacén", "En México", "Enviado", "Entregado"]],
   compra: [{ solicitud: 0, cotizado: 1, pagado: 2, comprado: 3 }, ["Cotizando", "Por pagar", "Pagada", "Comprada"]],
-  envio: [{ solicitado: 0, cotizado: 1, pagado: 2, enviado: 3, entregado: 4 }, ["Cotizando", "Por pagar", "Pagado", "En camino", "Entregado"]],
+  envio: [{ solicitado: 0, cotizado: 1, pagado: 2, en_mexico: 3, enviado: 4, entregado: 5 }, ["Cotizando", "Por pagar", "Pagado", "En México", "En camino", "Entregado"]],
 };
 function swmStepsHTML(kind, status) {
   const [idxMap, labels] = SWM_STEPS[kind];
