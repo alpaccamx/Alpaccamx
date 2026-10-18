@@ -216,13 +216,14 @@ const CONFIG = {
   // aceite antes que limpiador). "orden" es como se le muestra la rutina
   // y "extra" son pasos que no son diarios (se numeran con +).
   SKIN_ROUTINE: [
-    { key: "sol", orden: 6, label: "Protector solar", emoji: "☀️", when: "Solo de día, al final", match: /\bsun\b|sunscreen|sun (cream|stick|milk|serum|essence|gel|block|fluid|lotion)|\bspf\b|protector solar|uv /, skip: /after sun|body|hair|colores|cushion|glow veil/ },
+    { key: "sol", orden: 7, label: "Protector solar", emoji: "☀️", when: "Solo de día, al final", match: /\bsun\b|sunscreen|sun (cream|stick|milk|serum|essence|gel|block|fluid|lotion)|\bspf\b|protector solar|uv /, skip: /after sun|body|hair|colores|cushion|glow veil/ },
     { key: "aceite", orden: 1, label: "Aceite limpiador", emoji: "🫒", when: "De noche, antes del limpiador: quita bloqueador y maquillaje", match: /cleansing (oil|balm|butter|sherbet)|oil cleans|balm cleans|aceite limpiador|balsamo limpiador/, skip: /body|hair|lip|eye|foam/ },
-    { key: "mascarilla", orden: 7, extra: true, label: "Mascarilla", emoji: "🎭", when: "1 o 2 veces por semana, después del tónico", match: /\bmask\b|mascarilla|sleeping pack|wash off pack|clay pack|peeling/, skip: /body|hair|lip|eye|foot|hand|nose|cleans|patch/ },
+    { key: "ojos", orden: 5, label: "Contorno de ojos", emoji: "👁️", when: "Con toquecitos del dedo anular, antes de la crema", match: /eye (cream|serum|essence|gel|balm|stick|concentrate|ampoule|contour)|under eye|contorno de ojos|eye(-| )?care/, skip: /liner|shadow|brow|mascara|lash|remover|makeup|palette|glitter|pencil|primer|concealer|lip ?(&|and) ?eye|patch|mask/ },
+    { key: "mascarilla", orden: 8, extra: true, label: "Mascarilla", emoji: "🎭", when: "1 o 2 veces por semana, después del tónico", match: /\bmask\b|mascarilla|sleeping pack|wash off pack|clay pack|peeling/, skip: /body|hair|lip|eye|foot|hand|nose|cleans|patch/ },
     { key: "limpiador", orden: 2, label: "Limpiador", emoji: "🫧", when: "Mañana y noche", match: /cleans|cleanser|foam|face wash|facial wash|limpiador|micellar|cleansing/, skip: /body|hair|hand|lip|eye|mascara|brush|puff|pad/ },
     { key: "tonico", orden: 3, label: "Tónico", emoji: "💦", when: "Después de limpiar", match: /toner|tonico|skin softener|refresher/, skip: /body|hair|cleans|cotton/ },
     { key: "serum", orden: 4, label: "Sérum", emoji: "💧", when: "Unas gotas antes de la crema", match: /serum|ampoule|ampolla|essence|esencia|booster|concentrate|\bshot\b/, skip: /body|hair|eye|lip|toner|cleans|mask|pad|patch|sheet|cream|spot|\bpack\b|age-r|device|\bcase\b|scalp|muestra|sample/ },
-    { key: "crema", orden: 5, label: "Crema", emoji: "🧴", when: "Para sellar la hidratación", match: /cream|crema|moisturi[sz]|gel cream|emulsion|lotion|soothing gel/, skip: /body|hand|foot|hair|lip|eye|sun|cleans|bb |cc |cushion|mask|pad|patch|spot/ },
+    { key: "crema", orden: 6, label: "Crema", emoji: "🧴", when: "Para sellar la hidratación", match: /cream|crema|moisturi[sz]|gel cream|emulsion|lotion|soothing gel/, skip: /body|hand|foot|hair|lip|eye|sun|cleans|bb |cc |cushion|mask|pad|patch|spot/ },
   ],
 
   // Frases cortas del resultado del quiz, por tipo de piel y preocupación.
