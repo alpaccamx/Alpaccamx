@@ -5344,6 +5344,7 @@ function resumeCheckoutIfPending() {
    ====================================================================== */
 function openCart() {
   updateCartLoginGate();
+  prepararCarritoDirecciones();
   document.getElementById("cart-drawer").classList.remove("translate-x-full");
   const overlay = document.getElementById("cart-overlay");
   overlay.classList.remove("opacity-0", "pointer-events-none");
@@ -5641,6 +5642,7 @@ async function sendQuote(e) {
   sendBtn.disabled = true;
   sendBtn.innerHTML = "<span>Enviando…</span>";
 
+  const direccionUsada = direccionDelCarrito();
   const { orderId, error } = await recordTransferOrder();
 
   if (!orderId) {
@@ -5667,6 +5669,7 @@ async function sendQuote(e) {
   sendBtn.disabled = false;
   sendBtn.innerHTML = originalLabel;
 
+  if (!entregaPersonalActiva()) guardarDireccionUsada(direccionUsada);
   document.getElementById("quote-form").reset();
   cartCoupon = null;
   updatePayMethodUI();
@@ -5967,6 +5970,7 @@ async function payWithMercadoPago() {
     cart = {};
     saveCart();
     renderCart();
+    if (!c.entregaPersonal) await Promise.race([guardarDireccionUsada(direccionDelCarrito()), new Promise((r) => setTimeout(r, 1500))]);
     window.location.href = data.redirectUrl;
   } catch (err) {
     console.error(err);
@@ -6066,11 +6070,191 @@ function getCustomerToken() {
 }
 function setCustomerToken(token) {
   localStorage.setItem(CUSTOMER_TOKEN_KEY, token);
+  misDirecciones = null;
   if (typeof swmOnAuthChange === "function") swmOnAuthChange();
 }
 function clearCustomerToken() {
   localStorage.removeItem(CUSTOMER_TOKEN_KEY);
+  misDirecciones = null;
   if (typeof swmOnAuthChange === "function") swmOnAuthChange();
+}
+
+/* ---------- Mis direcciones ----------
+   Se guardan en la cuenta (customer-addresses) para no volver a
+   escribirlas en el carrito ni en "Pedir mi envío" de la dirección
+   americana. Campos: alias, nombre, telefono, calle, colonia, ciudad,
+   estado, cp, referencias; una es la principal. */
+let misDirecciones = null; // null = todavía no se cargan
+let misDireccionesCarga = null;
+const MAX_DIRECCIONES = 8;
+
+function loadMisDirecciones(force = false) {
+  if (!getCustomerToken()) return Promise.resolve([]);
+  if (misDirecciones && !force) return Promise.resolve(misDirecciones);
+  if (!misDireccionesCarga) {
+    misDireccionesCarga = fetch("/.netlify/functions/customer-addresses", { headers: { Authorization: `Bearer ${getCustomerToken()}` }, cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((d) => { misDirecciones = d.direcciones || []; return misDirecciones; })
+      .catch(() => misDirecciones || [])
+      .finally(() => { misDireccionesCarga = null; });
+  }
+  return misDireccionesCarga;
+}
+
+async function direccionesPost(body) {
+  const res = await fetch("/.netlify/functions/customer-addresses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${getCustomerToken()}` },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "No se pudo guardar la dirección.");
+  misDirecciones = data.direcciones || [];
+  return misDirecciones;
+}
+
+// Se guarda sola al pedir; si ya existe (misma calle y CP) solo se actualiza.
+function guardarDireccionUsada(d) {
+  if (!getCustomerToken() || !d || !d.nombre || !d.calle || !d.ciudad || !/^\d{5}$/.test(d.cp || "")) return Promise.resolve();
+  return direccionesPost({ accion: "guardar", direccion: d }).catch(() => {});
+}
+
+const direccionPrincipal = () => (misDirecciones || []).find((d) => d.principal) || (misDirecciones || [])[0] || null;
+const direccionLinea = (d) => [d.calle, d.colonia, d.ciudad, d.estado, d.cp && `CP ${d.cp}`].filter(Boolean).join(", ");
+const textoSimple = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+/* Carrito: la dirección escrita en el formulario, y llenarlo con una guardada. */
+function direccionDelCarrito() {
+  const c = getCustomerFields();
+  return { nombre: c.name, telefono: c.phone, calle: c.street, colonia: c.colonia, ciudad: c.municipio, estado: c.estado, cp: c.cp, referencias: c.referencias };
+}
+
+function usarDireccionEnCarrito(d) {
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (!el || !v) return;
+    if (el.tagName === "SELECT") {
+      const opt = [...el.options].find((o) => o.value && textoSimple(o.value) === textoSimple(v));
+      if (!opt) return;
+      el.value = opt.value;
+    } else el.value = v;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  [["customer-name", d.nombre], ["customer-phone", d.telefono], ["customer-street", d.calle], ["customer-colonia", d.colonia],
+    ["customer-municipio", d.ciudad], ["customer-estado", d.estado], ["customer-cp", d.cp], ["customer-referencias", d.referencias]].forEach(([id, v]) => set(id, v));
+  renderCartDirecciones();
+}
+
+function renderCartDirecciones() {
+  const box = document.getElementById("cart-saved-addr");
+  if (!box) return;
+  const list = getCustomerToken() ? misDirecciones || [] : [];
+  box.classList.toggle("hidden", !list.length);
+  if (!list.length) { box.innerHTML = ""; return; }
+  const actual = direccionDelCarrito();
+  box.innerHTML = `<p class="text-xs text-ink/70 mb-1.5">Usar una dirección guardada:</p>
+    <div class="flex flex-wrap gap-1.5">${list.map((d) => {
+      const on = textoSimple(d.calle) === textoSimple(actual.calle) && d.cp === actual.cp;
+      return `<button type="button" data-cart-dir="${escapeAttr(d.id)}" aria-pressed="${on}" class="rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? "border-rose-deep bg-blush/40 text-rose-ink" : "border-ink/20 bg-white text-ink/80"}">📍 ${escapeHtml(d.alias || d.calle)}</button>`;
+    }).join("")}</div>`;
+}
+
+// Al abrir el carrito con sesión: si la dirección está vacía, pone la principal.
+function prepararCarritoDirecciones() {
+  if (!getCustomerToken()) { renderCartDirecciones(); return; }
+  loadMisDirecciones().then(() => {
+    const p = direccionPrincipal();
+    if (p && !document.getElementById("customer-street").value.trim()) usarDireccionEnCarrito(p);
+    else renderCartDirecciones();
+  });
+}
+
+/* Mi cuenta → Mis direcciones: ver, agregar, editar, borrar y elegir la principal. */
+function openMisDirecciones() {
+  showAccountView("addresses");
+  document.getElementById("addr-form-box").innerHTML = "";
+  document.getElementById("addr-list").innerHTML = '<p class="text-sm text-ink/70">Cargando…</p>';
+  loadMisDirecciones(true).then(renderMisDirecciones);
+}
+
+function renderMisDirecciones() {
+  const list = misDirecciones || [];
+  const btn = (attr, txt, cls = "text-ink/70") => `<button type="button" ${attr} class="text-xs font-semibold underline ${cls}">${txt}</button>`;
+  document.getElementById("addr-list").innerHTML = (list.length ? list.map((d) => `<div class="rounded-2xl border ${d.principal ? "border-rose-deep/40 bg-blush/15" : "border-ink/10 bg-white"} p-3 text-sm">
+      <div class="flex items-center justify-between gap-2"><b>📍 ${escapeHtml(d.alias || "Mi dirección")}</b>${d.principal ? '<span class="rounded-full bg-rose-deep px-2 py-0.5 text-[10px] font-bold text-cream">PRINCIPAL</span>' : ""}</div>
+      <p class="mt-1">${escapeHtml(d.nombre)}</p><p class="text-ink/75">${escapeHtml(direccionLinea(d))}</p>${d.telefono ? `<p class="text-xs text-ink/60">Tel. ${escapeHtml(d.telefono)}</p>` : ""}
+      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1">${btn(`data-addr-edit="${escapeAttr(d.id)}"`, "Editar", "text-rose-ink")}${d.principal ? "" : btn(`data-addr-principal="${escapeAttr(d.id)}"`, "Usar como principal")}${btn(`data-addr-del="${escapeAttr(d.id)}"`, "Borrar")}</div>
+    </div>`).join("") : '<p class="rounded-2xl bg-pill px-4 py-5 text-center text-sm text-ink/70">Todavía no tienes direcciones guardadas. Agrega una y ya no tendrás que escribirla al pedir.</p>')
+    + (list.length < MAX_DIRECCIONES ? '<button type="button" data-addr-new class="w-full rounded-full border-2 border-dashed border-rose-deep/40 py-2.5 text-sm font-semibold text-rose-ink hover:bg-blush/20">+ Agregar dirección</button>' : "");
+}
+
+function renderDireccionForm(d = {}) {
+  const v = (k) => escapeAttr(d[k] || "");
+  const inp = (k, label, attrs = "") => `<label class="block text-xs font-semibold text-ink/75">${label}<input data-af="${k}" value="${v(k)}" ${attrs} class="mt-1 w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm font-normal focus:outline-none focus:ring-2 focus:ring-lilac" /></label>`;
+  const estados = [...document.getElementById("customer-estado").options].filter((o) => o.value).map((o) => `<option${textoSimple(o.value) === textoSimple(d.estado) ? " selected" : ""}>${escapeHtml(o.value)}</option>`).join("");
+  const box = document.getElementById("addr-form-box");
+  box.innerHTML = `<form data-addr-form="${escapeAttr(d.id || "")}" class="space-y-3 rounded-2xl border border-ink/10 bg-white p-4" novalidate>
+      <b class="block text-sm">${d.id ? "Editar dirección" : "Nueva dirección"}</b>
+      ${inp("alias", "Nombre para reconocerla (opcional)", 'maxlength="30" placeholder="Casa, Trabajo, Mamá…"')}
+      ${inp("nombre", "Quién recibe *", 'maxlength="100" autocomplete="name"')}
+      ${inp("telefono", "Teléfono *", 'maxlength="20" inputmode="tel" autocomplete="tel"')}
+      ${inp("calle", "Calle y número *", 'maxlength="150" autocomplete="address-line1"')}
+      ${inp("colonia", "Colonia *", 'maxlength="100" autocomplete="address-line2"')}
+      <div class="grid grid-cols-2 gap-3">${inp("ciudad", "Municipio o ciudad *", 'maxlength="80" autocomplete="address-level2"')}${inp("cp", "Código postal *", 'maxlength="5" inputmode="numeric" autocomplete="postal-code"')}</div>
+      <label class="block text-xs font-semibold text-ink/75">Estado *<select data-af="estado" class="mt-1 w-full rounded-lg border border-ink/20 bg-white/70 px-3 py-2 text-base sm:text-sm font-normal"><option value=""${d.estado ? "" : " selected"} disabled>Selecciona tu estado</option>${estados}</select></label>
+      ${inp("referencias", "Referencias (opcional)", 'maxlength="200" placeholder="Entre calles, color de fachada…"')}
+      ${d.principal ? "" : '<label class="flex items-center gap-2 text-sm"><input type="checkbox" data-af="principal" class="accent-[#c4466e]" /> Usarla como mi dirección principal</label>'}
+      <p data-addr-err role="alert" class="hidden text-xs text-rose-ink"></p>
+      <div class="flex gap-2"><button type="submit" class="rounded-full bg-rose-deep px-5 py-2.5 text-sm font-semibold text-cream hover:bg-rose-ink disabled:opacity-50">Guardar dirección</button>
+        <button type="button" data-addr-cancel class="rounded-full px-4 py-2.5 text-sm font-semibold text-ink/70">Cancelar</button></div>
+    </form>`;
+  box.querySelector('[data-af="nombre"]').focus();
+}
+
+function initMisDirecciones() {
+  document.getElementById("cart-saved-addr").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-cart-dir]");
+    const d = b && (misDirecciones || []).find((x) => x.id === b.dataset.cartDir);
+    if (d) usarDireccionEnCarrito(d);
+  });
+  const view = document.getElementById("account-view-addresses");
+  view.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t.closest("[data-addr-back]")) { showAccountView("orders"); renderAccountProfile(); return; }
+    if (t.closest("[data-addr-new]")) { renderDireccionForm({ principal: !(misDirecciones || []).length }); return; }
+    if (t.closest("[data-addr-cancel]")) { document.getElementById("addr-form-box").innerHTML = ""; return; }
+    const edit = t.closest("[data-addr-edit]");
+    if (edit) { renderDireccionForm((misDirecciones || []).find((d) => d.id === edit.dataset.addrEdit) || {}); return; }
+    const pri = t.closest("[data-addr-principal]");
+    if (pri) { direccionesPost({ accion: "principal", id: pri.dataset.addrPrincipal }).then(renderMisDirecciones, (err) => alert(err.message)); return; }
+    const del = t.closest("[data-addr-del]");
+    if (del && confirm("¿Borrar esta dirección?")) direccionesPost({ accion: "borrar", id: del.dataset.addrDel }).then(renderMisDirecciones, (err) => alert(err.message));
+  });
+  view.addEventListener("submit", async (e) => {
+    const form = e.target.closest("[data-addr-form]");
+    if (!form) return;
+    e.preventDefault();
+    const err = form.querySelector("[data-addr-err]");
+    const d = { id: form.dataset.addrForm || undefined };
+    form.querySelectorAll("[data-af]").forEach((el) => { d[el.dataset.af] = el.type === "checkbox" ? el.checked : el.value.trim(); });
+    if (!d.nombre || !d.telefono || !d.calle || !d.colonia || !d.ciudad || !d.estado || !/^\d{5}$/.test(d.cp)) {
+      err.textContent = "Completa todos los datos marcados con * (el código postal lleva 5 números).";
+      err.classList.remove("hidden");
+      return;
+    }
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    try {
+      await direccionesPost({ accion: "guardar", direccion: d });
+      document.getElementById("addr-form-box").innerHTML = "";
+      renderMisDirecciones();
+    } catch (ex) {
+      err.textContent = ex.message;
+      err.classList.remove("hidden");
+      btn.disabled = false;
+    }
+  });
 }
 
 function openAccountPanel() {
@@ -6085,7 +6269,7 @@ function closeAccountPanel() {
   overlay.classList.add("opacity-0", "pointer-events-none");
 }
 
-const ACCOUNT_VIEWS = ["login", "signup", "forgot", "reset", "orders", "settings"];
+const ACCOUNT_VIEWS = ["login", "signup", "forgot", "reset", "orders", "settings", "addresses"];
 function showAccountView(view) {
   ACCOUNT_VIEWS.forEach((v) => {
     document.getElementById(`account-view-${v}`).classList.toggle("hidden", v !== view);
@@ -6573,7 +6757,15 @@ function renderAccountProfile() {
       <div class="flex items-center justify-between mb-1"><h4 class="font-display text-base text-ink">Mis datos</h4>
         <button type="button" data-acct-action="settings" class="text-xs font-semibold text-rose-ink underline">Editar</button></div>
       <div class="text-sm">${row("Nombre", myAccountCache.name)}${row("Teléfono", myAccountCache.phone)}${row("Correo", myAccountCache.email)}</div>
+    </div>
+    <div class="mt-3 rounded-2xl bg-ink/[0.03] p-4">
+      <div class="flex items-center justify-between mb-1"><h4 class="font-display text-base text-ink">📍 Mis direcciones</h4>
+        <button type="button" data-acct-action="addresses" class="text-xs font-semibold text-rose-ink underline">${(misDirecciones || []).length ? "Administrar" : "Agregar"}</button></div>
+      ${misDirecciones === null ? '<p class="text-sm text-ink/60">Cargando…</p>'
+        : direccionPrincipal() ? `<p class="text-sm"><b>${escapeHtml(direccionPrincipal().alias || direccionPrincipal().nombre)}</b> · ${escapeHtml(direccionLinea(direccionPrincipal()))}</p>${misDirecciones.length > 1 ? `<p class="text-xs text-ink/60 mt-0.5">y ${misDirecciones.length - 1} más</p>` : ""}`
+        : '<p class="text-sm text-ink/70">Guarda tu dirección y ya no tendrás que escribirla en cada pedido.</p>'}
     </div>`;
+  if (misDirecciones === null) loadMisDirecciones().then(renderAccountProfile);
 }
 
 function initAccountDashboard() {
@@ -6599,6 +6791,7 @@ function initAccountDashboard() {
     if (!act) return;
     const a = act.dataset.acctAction;
     if (a === "settings") { openAccountSettings(); return; }
+    if (a === "addresses") { openMisDirecciones(); return; }
     if (a === "swm" && typeof openSwmSection === "function") { closeAccountPanel(); openSwmSection(); return; }
     if (a === "whatsapp") {
       const href = whatsappHref(`Hola ${CONFIG.BUSINESS_NAME}! Tengo una duda sobre mis pedidos.`);
@@ -7018,6 +7211,7 @@ function initAccountPanel() {
   document.getElementById("forgot-form").addEventListener("submit", handleForgotSubmit);
   document.getElementById("reset-form").addEventListener("submit", handleResetSubmit);
   document.getElementById("settings-form").addEventListener("submit", handleSettingsSubmit);
+  initMisDirecciones();
   document.getElementById("account-logout").addEventListener("click", logoutCustomer);
   document.getElementById("account-settings-toggle").addEventListener("click", openAccountSettings);
   document.getElementById("account-settings-back").addEventListener("click", () => showAccountView("orders"));

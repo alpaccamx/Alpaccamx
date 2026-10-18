@@ -758,9 +758,11 @@ function swmWizSiguiente(form) {
   swmWizIr(form, n + 1);
 }
 
-/* Dirección para "Pedir mi envío": la última que usó (guardada en este
-   teléfono o la de su envío anterior), para no volver a escribirla. */
+/* Dirección para "Pedir mi envío": la principal de "Mis direcciones" o,
+   si no tiene, la última que usó (en este teléfono o en su envío anterior). */
 function swmUltimaDireccion() {
+  const principal = typeof direccionPrincipal === "function" && direccionPrincipal();
+  if (principal) return principal;
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem("alpacca_swm_dir") || "{}"); } catch (err) { saved = {}; }
   if (saved.calle) return saved;
@@ -821,6 +823,7 @@ function swmFormHTML() {
         <span>📍 <b>${dv("nombre")}</b><span class="block text-ink/75">${escapeHtml([saved.calle, saved.colonia].filter(Boolean).join(", "))}</span><span class="block text-ink/75">${escapeHtml([saved.ciudad, saved.estado].filter(Boolean).join(", "))} · CP ${dv("cp")}</span>${saved.telefono ? `<span class="block text-xs text-ink/60">Tel. ${dv("telefono")}</span>` : ""}</span>
         <button type="button" data-swm-cambiar-dir class="shrink-0 text-xs font-semibold text-rose-ink underline">Cambiar</button></div>` : ""}
       <div data-swm-dir-campos class="grid gap-3 sm:grid-cols-2${tieneDir ? " hidden" : ""}">
+        ${(typeof misDirecciones !== "undefined" && (misDirecciones || []).length > 1) ? `<div class="sm:col-span-2"><p class="text-xs text-ink/70 mb-1.5">Usar una dirección guardada:</p><div class="flex flex-wrap gap-1.5">${misDirecciones.map((d) => `<button type="button" data-swm-usar-dir="${escapeHtml(d.id)}" class="rounded-full border border-ink/20 bg-white px-3 py-1.5 text-xs font-semibold text-ink/80">📍 ${escapeHtml(d.alias || d.calle)}</button>`).join("")}</div></div>` : ""}
         ${swmInput("swm-d-nombre", "Nombre de quien recibe", `maxlength="100" value="${dv("nombre", swm.name)}"`)}
         ${swmInput("swm-d-telefono", "Teléfono", `maxlength="30" inputmode="tel" value="${dv("telefono", swm.phone)}"`)}
         ${swmInput("swm-d-calle", "Calle y número", `maxlength="150" value="${dv("calle")}"`)}
@@ -849,6 +852,7 @@ async function swmPost(body) {
 async function loadSwm() {
   swm.loading = true;
   renderSwmCasillero();
+  const dirs = typeof loadMisDirecciones === "function" ? loadMisDirecciones() : Promise.resolve();
   try {
     const res = await fetch("/.netlify/functions/swm-client", { headers: { Authorization: `Bearer ${getCustomerToken()}` }, cache: "no-store" });
     const data = await res.json().catch(() => ({}));
@@ -858,6 +862,7 @@ async function loadSwm() {
   } catch (err) {
     swm.error = "No se pudo cargar tu casillero. Revisa tu conexión.";
   }
+  await dirs;
   swm.loading = false;
   swm.loaded = true;
   if ([...swm.compras, ...swm.envios].some((x) => x.status === "cotizado")) swm.tab = swm.envios.some((x) => x.status === "cotizado") ? "envios" : "compras";
@@ -895,6 +900,7 @@ async function submitSwmForm(form) {
       return fail("Completa tu dirección: nombre, teléfono, calle y número, ciudad y código postal de 5 dígitos.");
     }
     try { localStorage.setItem("alpacca_swm_dir", JSON.stringify(direccion)); } catch (e) { /* nada */ }
+    if (typeof guardarDireccionUsada === "function") guardarDireccionUsada(direccion);
     body = { accion: "solicitar_envio", paqueteIds: ids, consolidar: !!(document.getElementById("swm-f-consolidar") || {}).checked, direccion };
   } else return;
   btn.disabled = true;
@@ -1059,6 +1065,13 @@ function initSwm() {
     if (resumen) { const card = resumen.parentElement; swm.abiertas[card.dataset.swmCard] = !card.open; return; }
     if (t.closest("[data-wiz-sig]")) { swmWizSiguiente(t.closest("form")); return; }
     if (t.closest("[data-wiz-atras]")) { const form = t.closest("form"); swmWizIr(form, Math.max(1, Number(form.dataset.paso) - 1)); return; }
+    const usarDir = t.closest("[data-swm-usar-dir]");
+    if (usarDir) {
+      const d = (misDirecciones || []).find((x) => x.id === usarDir.dataset.swmUsarDir) || {};
+      ["nombre", "telefono", "calle", "colonia", "ciudad", "estado", "cp", "referencias"].forEach((k) => { const el = document.getElementById(`swm-d-${k}`); if (el) el.value = d[k] || ""; });
+      usarDir.parentElement.querySelectorAll("[data-swm-usar-dir]").forEach((b) => b.classList.toggle("border-rose-deep", b === usarDir));
+      return;
+    }
     const cambiarDir = t.closest("[data-swm-cambiar-dir]");
     if (cambiarDir) {
       const form = cambiarDir.closest("form");
