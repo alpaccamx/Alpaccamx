@@ -5,12 +5,14 @@
 //
 // Requiere el header "x-admin-key" con el valor de ADMIN_KEY.
 //
-// Body esperado (JSON): { orderId, weight, destinationZipCode? }
+// Body esperado (JSON): { orderId | envioId, weight, destinationZipCode? }
+// (envioId: un envío de Dirección americana; se usa su dirección.)
 
 const { getOrder } = require("./lib/blob-store.js");
 const { quoteRates: quoteEnviosPerros } = require("./lib/enviosperros.js");
 const { quoteRates: quoteSkydropx } = require("./lib/skydropx.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
+const { getRecord } = require("./lib/swm-store.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -32,16 +34,23 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "JSON inválido." });
   }
 
-  const { orderId, weight } = body;
+  const { orderId, envioId, weight } = body;
   const weightNum = Number(weight);
-  if (!orderId || !weightNum || weightNum <= 0) {
+  if ((!orderId && !envioId) || !weightNum || weightNum <= 0) {
     return jsonResponse(400, { error: "Faltan el pedido o un peso válido." });
   }
 
-  const order = await getOrder(orderId);
-  if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
-
-  const c = order.customer || {};
+  let c;
+  if (envioId) {
+    const envio = await getRecord("envio", String(envioId));
+    if (!envio) return jsonResponse(404, { error: "Envío no encontrado." });
+    const d = envio.direccion || {};
+    c = { cp: d.cp, estado: d.estado, municipio: d.ciudad, colonia: d.colonia };
+  } else {
+    const order = await getOrder(orderId);
+    if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
+    c = order.customer || {};
+  }
   const destinationZipCode = String(body.destinationZipCode || c.cp || "").trim();
   if (!destinationZipCode) {
     return jsonResponse(400, { error: "Falta el código postal del destinatario." });
