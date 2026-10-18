@@ -161,50 +161,50 @@ const CONFIG = {
       key: "tipo",
       question: "Lávate la cara y no te pongas nada. Una hora después, ¿cómo la sientes?",
       options: [
-        { label: "Tirante o áspera, como que le falta crema", points: { Seca: 2 } },
-        { label: "Cómoda, ni grasosa ni tirante", points: { Normal: 2 } },
-        { label: "Con brillo en frente, nariz y mentón; mejillas normales", points: { Mixta: 2 } },
-        { label: "Con brillo en toda la cara", points: { Grasa: 2 } },
+        { icon: "🏜️", label: "Tirante o áspera, como que le falta crema", points: { Seca: 2 } },
+        { icon: "😊", label: "Cómoda, ni grasosa ni tirante", points: { Normal: 2 } },
+        { icon: "🌗", label: "Con brillo en frente, nariz y mentón; mejillas normales", points: { Mixta: 2 } },
+        { icon: "✨", label: "Con brillo en toda la cara", points: { Grasa: 2 } },
       ],
     },
     {
       key: "tipo",
       question: "A media tarde, ¿cómo está tu cara?",
       options: [
-        { label: "Sin brillo, y a veces con resequedad o pellejitos", points: { Seca: 1 } },
-        { label: "Casi igual que en la mañana", points: { Normal: 1 } },
-        { label: "Brilla la zona T (frente, nariz y mentón)", points: { Mixta: 1 } },
-        { label: "Brilla toda, el maquillaje se me corre", points: { Grasa: 1 } },
+        { icon: "🍂", label: "Sin brillo, y a veces con resequedad o pellejitos", points: { Seca: 1 } },
+        { icon: "🙂", label: "Casi igual que en la mañana", points: { Normal: 1 } },
+        { icon: "💡", label: "Brilla la zona T (frente, nariz y mentón)", points: { Mixta: 1 } },
+        { icon: "💦", label: "Brilla toda, el maquillaje se me corre", points: { Grasa: 1 } },
       ],
     },
     {
       key: "sensible",
       question: "¿Tu piel se pone roja, arde o pica con productos nuevos, el sol o el clima?",
       options: [
-        { label: "Sí, seguido", value: true },
-        { label: "A veces, con algunos productos", value: true },
-        { label: "Casi nunca", value: false },
+        { icon: "🔥", label: "Sí, seguido", value: true },
+        { icon: "🌤️", label: "A veces, con algunos productos", value: true },
+        { icon: "🌿", label: "Casi nunca", value: false },
       ],
     },
     {
       key: "concerns",
-      question: "¿Qué te gustaría mejorar? (elige hasta 2)",
+      question: "¿Qué te gustaría mejorar?",
       max: 2,
       options: [
-        { label: "🔴 Acné y granitos", value: "acne" },
-        { label: "✨ Manchas y tono disparejo", value: "manchas" },
-        { label: "🔍 Poros y brillo", value: "poros" },
-        { label: "🌿 Líneas y firmeza", value: "madura" },
-        { label: "💧 Resequedad y falta de luz", value: "hidratacion" },
-        { label: "🙂 Nada en especial", value: "" },
+        { icon: "🔴", label: "Acné y granitos", value: "acne" },
+        { icon: "✨", label: "Manchas y tono disparejo", value: "manchas" },
+        { icon: "🔍", label: "Poros y brillo", value: "poros" },
+        { icon: "🌿", label: "Líneas y firmeza", value: "madura" },
+        { icon: "💧", label: "Resequedad y falta de luz", value: "hidratacion" },
+        { icon: "🙂", label: "Nada en especial", value: "" },
       ],
     },
     {
       key: "uso",
       question: "¿Para qué es tu compra?",
       options: [
-        { label: "💗 Para mí: piezas sueltas", value: "mi" },
-        { label: "📦 Para revender: cajas con precio por pieza", value: "revender" },
+        { icon: "💗", label: "Para mí: piezas sueltas", value: "mi" },
+        { icon: "📦", label: "Para revender: cajas con precio por pieza", value: "revender" },
       ],
     },
   ],
@@ -3437,14 +3437,16 @@ function resetSkinQuiz() {
 function renderQuizQuestion() {
   document.getElementById("skin-quiz").classList.remove("hidden");
   document.getElementById("skin-quiz-result").classList.add("hidden");
+  document.getElementById("skin-quiz-result-head").classList.add("hidden");
 
   const questions = CONFIG.SKIN_QUIZ;
   const q = questions[quizIndex];
   const multi = q.key === "concerns";
 
-  document.getElementById("quiz-progress").innerHTML = questions
-    .map((_, i) => `<span class="w-6 h-1.5 rounded-full ${i <= quizIndex ? "bg-rose" : "bg-ink/15"}"></span>`)
-    .join("");
+  const pct = Math.round(((quizIndex + 1) / questions.length) * 100);
+  document.getElementById("quiz-progress").style.width = `${pct}%`;
+  document.getElementById("quiz-step-label").textContent = `Pregunta ${quizIndex + 1} de ${questions.length}`;
+  document.getElementById("quiz-step-pct").textContent = multi ? `Elige hasta ${q.max || 2}` : "";
 
   const questionEl = document.getElementById("quiz-question");
   questionEl.textContent = q.question;
@@ -3452,12 +3454,19 @@ function renderQuizQuestion() {
 
   const picked = multi ? new Set(quizAnswers[quizIndex] || []) : null;
   const optionsWrap = document.getElementById("quiz-options");
-  const optClass = (on) => `rounded-xl border px-4 py-3 text-sm font-semibold text-ink text-left transition ${
-    on ? "border-rose bg-blush/40" : "border-ink/15 bg-white/60 hover:border-ink/40 hover:bg-white"
-  }`;
-  optionsWrap.innerHTML = q.options
-    .map((opt, i) => `<button type="button" data-opt="${i}" ${multi ? `aria-pressed="${picked.has(opt.value)}"` : ""} class="${optClass(multi && picked.has(opt.value))}">${escapeHtml(opt.label)}</button>`)
-    .join("") + (multi ? `<button type="button" data-quiz-next class="sm:col-span-2 h-12 rounded-full bg-ink text-cream font-semibold hover:bg-ink/85 transition">Continuar</button>` : "");
+  // Cada opción es una tarjeta con su ícono; en la de elegir varias se marca con ✓.
+  const optionHTML = (opt, i) => {
+    const on = multi && picked.has(opt.value);
+    return `<button type="button" data-opt="${i}" ${multi ? `aria-pressed="${on}"` : ""} class="group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-[15px] font-semibold text-ink transition hover:-translate-y-0.5 active:translate-y-0 ${
+      on ? "bg-blush/50 ring-2 ring-rose-deep shadow-md" : "bg-white ring-1 ring-ink/10 shadow-[0_2px_10px_-2px_rgba(196,70,110,0.15)] hover:ring-rose hover:shadow-md"
+    }">
+      <span aria-hidden="true" class="flex w-11 h-11 shrink-0 items-center justify-center rounded-xl text-2xl ${on ? "bg-white" : "bg-gradient-to-br from-blush/70 to-lilac/30"}">${escapeHtml(opt.icon || "•")}</span>
+      <span class="flex-1 leading-snug">${escapeHtml(opt.label)}</span>
+      <span aria-hidden="true" class="flex w-7 h-7 shrink-0 items-center justify-center rounded-full text-sm ${on ? "bg-rose-deep text-cream" : "text-ink/30 group-hover:text-rose-ink"}">${on ? "✓" : multi ? "+" : "›"}</span>
+    </button>`;
+  };
+  optionsWrap.innerHTML = q.options.map(optionHTML).join("")
+    + (multi ? `<button type="button" data-quiz-next class="mt-2 h-12 rounded-full bg-rose-deep text-cream font-semibold shadow-md hover:bg-rose-ink transition">Continuar →</button>` : "");
 
   const next = () => {
     if (quizIndex < questions.length - 1) {
@@ -3622,6 +3631,7 @@ function skinRoutineFor(profile) {
 function showQuizResult(profile) {
   document.getElementById("skin-quiz").classList.add("hidden");
   document.getElementById("skin-quiz-result").classList.remove("hidden");
+  document.getElementById("skin-quiz-result-head").classList.remove("hidden");
 
   const concernLabels = (profile.concerns || [])
     .map((c) => ((CONFIG.SKIN_CONCERNS || []).find((x) => x.key === c) || {}).label)
@@ -3637,7 +3647,7 @@ function showQuizResult(profile) {
     tips[profile.tipo],
     profile.sensible ? tips.sensible : "",
     ...(profile.concerns || []).map((c) => tips[c]),
-  ].filter(Boolean).map((t) => `<li>${escapeHtml(t)}</li>`).join("");
+  ].filter(Boolean).map((t) => `<li class="flex gap-2 rounded-xl bg-blush/25 px-3 py-2"><span aria-hidden="true">💡</span><span>${escapeHtml(t)}</span></li>`).join("");
 
   quizRoutine = skinRoutineFor(profile);
   const wrap = document.getElementById("skin-routine");
@@ -3954,6 +3964,7 @@ function showHomeView(view, route) {
   const homepage = document.getElementById("homepage-sections");
   homepage.classList.toggle("hidden", view !== "home" && view !== "piel");
   [...homepage.children].forEach((el) => el.classList.toggle("!hidden", view === "piel" && el.id !== "skintype-section"));
+  document.getElementById("skintype-section").classList.toggle("!pt-5", view === "piel");
   document.getElementById("search-results-section").classList.toggle("hidden", view !== "search");
   document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
   document.getElementById("stock-section").classList.toggle("hidden", view !== "stock");
