@@ -111,8 +111,19 @@ async function ogImage(tipo, name) {
   let ok = false;
   try { ok = (await fetch(url, { method: "HEAD" })).ok; } catch (err) { ok = false; }
   ogExists.set(url, { at: Date.now(), ok });
-  return ok ? url : null;
+  return ok ? `${url}?v=${OG_VERSION}` : null;
 }
+// Sube este número cuando se cambien las imágenes de assets/og: WhatsApp y
+// Facebook guardan la miniatura por URL y si no cambia siguen con la vieja.
+const OG_VERSION = 2;
+// Accesos "preocupación de piel" del inicio (CONFIG.SKIN_CONCERNS en app.js).
+const PREOCUPACIONES = {
+  acne: ["Acné y granitos", "Skincare coreano para piel con acné: ácido salicílico, árbol de té y centella. Envíos a todo México."],
+  manchas: ["Manchas y opacidad", "Vitamina C, niacinamida y más para un tono parejo y luminoso. Envíos a todo México."],
+  madura: ["Piel madura", "Péptidos, colágeno y retinol para líneas y firmeza. Envíos a todo México."],
+  poros: ["Poros dilatados", "Productos para poros y brillo: BHA, niacinamida y arcillas. Envíos a todo México."],
+  hidratacion: ["Hidratación profunda", "Ácido hialurónico, ceramidas y mucina de caracol para piel reseca. Envíos a todo México."],
+};
 const fam = (n) => String(n || "").replace(/\s*\(.*\)$/, "").toLowerCase();
 
 /* País de la MARCA (el que más se repite en sus productos), igual que
@@ -175,11 +186,26 @@ async function listingMeta(q) {
     return { title: "¿Cuál es tu tipo de piel? Test gratis — Alpacca", desc: "Contesta 5 preguntas y te armamos tu rutina coreana paso a paso, con productos para tu tipo de piel.", url: `${SITE}/?ver=tipo-de-piel`, image, ogSize: Boolean(image) };
   }
   if (q.ver === "shopwithmae" || q.ver === "direccion-americana") {
-    const og = await ogImage("ver", "shopwithmae");
-    const image = og && `${og}?v=2`; // ?v=2: imagen nueva, que WhatsApp no use la vieja
+    const image = await ogImage("ver", "shopwithmae");
     return { title: "Dirección americana · Alpacca", desc: "Compra en tiendas de EE.UU. (Sephora, Ulta, Amazon...) con tu dirección americana y recíbelo en México.", url: `${SITE}/?ver=shopwithmae`, image, ogSize: Boolean(image) };
   }
-  if (q.q) return { title: `"${String(q.q).slice(0, 60)}" — Alpacca`, desc: `Resultados de "${String(q.q).slice(0, 60)}" en Alpacca: skincare coreano y asiático con envíos a todo México.`, url: `${SITE}/?q=${encodeURIComponent(q.q)}` };
+  if (q.ver === "favoritos") {
+    const image = await ogImage("ver", "favoritos");
+    return { title: "Mis favoritos — Alpacca", desc: "Guarda los productos que te encantan y pídelos cuando quieras. Envíos a todo México.", url: `${SITE}/?ver=favoritos`, image, ogSize: Boolean(image) };
+  }
+  if (q.ver === "mis-pedidos") {
+    const image = await ogImage("ver", "mis-pedidos");
+    return { title: "Mis pedidos — Alpacca", desc: "Revisa tus pedidos y en qué paso van, desde tu cuenta de Alpacca.", url: `${SITE}/?ver=mis-pedidos`, image, ogSize: Boolean(image) };
+  }
+  if (q.preocupacion && PREOCUPACIONES[q.preocupacion]) {
+    const [label, desc] = PREOCUPACIONES[q.preocupacion];
+    const image = await ogImage("preocupacion", q.preocupacion);
+    return { title: `${label}: skincare coreano — Alpacca`, desc, url: `${SITE}/?preocupacion=${encodeURIComponent(q.preocupacion)}`, image, ogSize: Boolean(image) };
+  }
+  if (q.q) {
+    const image = await ogImage("ver", "busqueda");
+    return { title: `"${String(q.q).slice(0, 60)}" — Alpacca`, desc: `Resultados de "${String(q.q).slice(0, 60)}" en Alpacca: skincare coreano, asiático y americano con envíos a todo México.`, url: `${SITE}/?q=${encodeURIComponent(q.q)}`, image, ogSize: Boolean(image) };
+  }
   return null;
 }
 
