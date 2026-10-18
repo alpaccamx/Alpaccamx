@@ -117,6 +117,13 @@
   force = true
   query = {q = ":q"}
 
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/product-page"
+  status = 200
+  force = true
+  query = {preocupacion = ":preocupacion"}
+
 # Catálogo ligero que baja la tienda (ver netlify/functions/catalog-light.js).
 [[redirects]]
   from = "/catalogo.csv"

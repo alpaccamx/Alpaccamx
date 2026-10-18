@@ -56,7 +56,21 @@ def fit_text(draw, text, fdir, max_w, sizes=(96, 84, 72, 62, 54, 46, 40)):
     return f, lines[:2]
 
 
-def card(photos, title, subtitle, fdir, out):
+def paste_alpaca(im, alpaca):
+    """La alpaca de las marcas a la derecha, de cuerpo completo y con sombra suave."""
+    a = alpaca.copy()
+    a.thumbnail((330, 590), Image.LANCZOS)
+    ax, ay = W - a.width - 22, H - a.height - 18
+    sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    s = Image.new("RGBA", a.size, (150, 60, 90, 70))
+    s.putalpha(a.getchannel("A").point(lambda v: int(v * 0.35)))
+    sh.paste(s, (ax + 8, ay + 14))
+    sh = sh.filter(ImageFilter.GaussianBlur(14))
+    im.paste(sh, (0, 0), sh)
+    im.paste(a, (ax, ay), a)
+
+
+def card(photos, title, subtitle, fdir, out, alpaca=None):
     im = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(im)
     d.ellipse((900, -260, 1420, 260), fill=BLOB1)
@@ -66,6 +80,9 @@ def card(photos, title, subtitle, fdir, out):
     im.paste(logo, (70, 60), logo)
     # Fotos: tarjetas blancas a la derecha (dos arriba, una abajo).
     slots = [(680, 95, 235), (935, 95, 235), (808, 350, 235)][: len(photos)]
+    if alpaca is not None:
+        # Con alpaca: dos fotos escalonadas en medio y la alpaca a la derecha.
+        slots = [(590, 85, 225), (650, 330, 225)][: len(photos)]
     for (x, y, s), ph in zip(slots, photos):
         shadow = Image.new("RGBA", (s + 40, s + 40), (0, 0, 0, 0))
         ImageDraw.Draw(shadow).rounded_rectangle((20, 26, s + 20, s + 26), 28, fill=(150, 60, 90, 60))
@@ -75,13 +92,17 @@ def card(photos, title, subtitle, fdir, out):
         tile.paste(p, ((s - p.width) // 2, (s - p.height) // 2), p)
         mask = Image.new("L", (s, s), 0); ImageDraw.Draw(mask).rounded_rectangle((0, 0, s, s), 28, fill=255)
         im.paste(tile, (x, y), mask)
-    max_w = 560 if photos else 1000
+    if alpaca is not None:
+        paste_alpaca(im, alpaca)
+    max_w = (470 if alpaca is not None else 560) if photos else 1000
     f, lines = fit_text(d, title, fdir, max_w)
     y = 250 if len(lines) == 1 else 215
     for ln in lines:
         d.text((70, y), ln, font=f, fill=INK)
         y += int(f.size * 1.15)
-    d.text((72, y + 10), subtitle, font=font(fdir, "Medium", 30), fill=MUTED)
+    # Con alpaca hay menos ancho: "N productos · Envíos..." va en dos renglones.
+    for i, ln in enumerate(subtitle.split(" · ") if alpaca is not None else [subtitle]):
+        d.text((72, y + 10 + i * 40), ln, font=font(fdir, "Medium", 30), fill=MUTED)
     d.text((72, 540), "alpacca.mx", font=font(fdir, "SemiBold", 30), fill=ROSE)
     im.save(out, "JPEG", quality=82, optimize=True, progressive=True)
 
@@ -103,7 +124,7 @@ def pick_photos(rows, n=3):
     return out
 
 
-def main(csv_path, fdir):
+def main(csv_path, fdir, alpaca_path=None, solo=None):
     rows = [r for r in csv.DictReader(open(csv_path, encoding="utf-8")) if r.get("Nombre")]
     os.makedirs(OUT, exist_ok=True)
     # "País" agrupa por el país de la marca (el que más se repite en sus
@@ -119,16 +140,26 @@ def main(csv_path, fdir):
     for r in rows:
         r["_PaisMarca"] = brand_country.get((r.get("Marca") or "").strip(), "Corea del Sur")
     groups = [("marca", "Marca"), ("categoria", "Categoria"), ("pais", "_PaisMarca")]
+    alpaca = None
+    if alpaca_path:
+        # Las categorías y los países ya tienen su propia alpaca
+        # (scripts/og_alpaca.py): con --alpaca solo se rehacen las marcas.
+        groups = groups[:1]
+        alpaca = Image.open(alpaca_path).convert("RGBA")
+        alpaca.putalpha(alpaca.getchannel("A").point(lambda v: 0 if v < 25 else v))
+        alpaca = alpaca.crop(alpaca.getchannel("A").point(lambda v: 255 if v > 60 else 0).getbbox())
     for tipo, col in groups:
         by = {}
         for r in rows:
             if r.get(col):
                 by.setdefault(r[col].strip(), []).append(r)
         for name, rr in sorted(by.items()):
+            if solo and name not in solo:
+                continue
             n = len({re.sub(r"\s*\(.*\)$", "", r["Nombre"]) for r in rr if r.get("Presentacion") == "Pieza individual"}) or len(rr)
             title = name if tipo != "pais" else f"Marcas de {name}"
             sub = f"{n} producto{'s' if n != 1 else ''} · Envíos a todo México"
-            card(pick_photos(rr), title, sub, fdir, os.path.join(OUT, f"{tipo}-{slug(name)}.jpg"))
+            card(pick_photos(rr, 2 if alpaca is not None else 3), title, sub, fdir, os.path.join(OUT, f"{tipo}-{slug(name)}.jpg"), alpaca)
             print(tipo, name, n)
 
 
@@ -158,7 +189,11 @@ def stock_main(csv_path, fdir):
 
 if __name__ == "__main__":
     # python3 scripts/og_images.py --stock stock.csv FUENTES  (alpacca.mx/stock.csv)
-    if sys.argv[1] == "--stock":
+    # python3 scripts/og_images.py --alpaca ALPACA.png catalogo.csv FUENTES [Marca ...]
+    #   (solo las marcas, con la alpaca a un lado; con nombres, solo esas)
+    if sys.argv[1] == "--alpaca":
+        main(sys.argv[3], sys.argv[4], sys.argv[2], set(sys.argv[5:]) or None)
+    elif sys.argv[1] == "--stock":
         stock_main(sys.argv[2], sys.argv[3])
     else:
         main(sys.argv[1], sys.argv[2])
