@@ -234,7 +234,7 @@ function renderSwmWelcome() {
   const pasos = [
     [swmCopio() || swm.paquetes.length > 0, "Copia tu dirección americana", "Úsala en tu tienda favorita, con tu código de casillero en el apellido.", '<button type="button" data-swm-abrir-dir class="mt-1 block text-xs font-semibold text-rose-ink underline">Ver mi dirección</button>'],
     [swm.paquetes.length > 0 || swm.compras.length > 0, "Registra tu primer paquete", "Cuando te den el número de rastreo. ¿Sin tarjeta americana? Usa \u201cQue Mae compre por mí\u201d.", '<button type="button" data-swm-form="paquete" class="mt-1 block text-xs font-semibold text-rose-ink underline">Registrar paquete</button>'],
-    [swm.envios.length > 0, "Pide tu primer envío a México", "Cuando tus paquetes lleguen al almacén te aviso y lo pides aquí.", ""],
+    [swm.envios.length > 0, "Pide tu primer envío a casa", "Cuando tus paquetes crucen a México te aviso y lo pides aquí.", ""],
   ];
   const hechos = pasos.filter((p) => p[0]).length;
   const show = Boolean(getCustomerToken()) && swm.loaded && !swm.error && hechos < pasos.length;
@@ -274,7 +274,7 @@ function renderSwmCasillero() {
       </div>
       ${swmPendientesHTML()}
       <div class="mt-3 grid gap-2 sm:grid-cols-3">
-        ${[["paquete", "📦", "Registrar un paquete", "Ya compraste y lo mandaste a la dirección", "bg-[#fff4e0]"], ["compra", "🛍️", "Que Mae compre por mí", "Mándame tu carrito por WhatsApp", "bg-[#fde8f0]"], ["envio", "🚚", "Pedir mi envío a México", "Elige paquetes del almacén", "bg-[#e8f4ee]"]]
+        ${[["paquete", "📦", "Registrar un paquete", "Ya compraste y lo mandaste a la dirección", "bg-[#fff4e0]"], ["compra", "🛍️", "Que Mae compre por mí", "Mándame tu carrito por WhatsApp", "bg-[#fde8f0]"], ["envio", "🚚", "Pedir mi envío a casa", "Cuando tus paquetes ya estén en México", "bg-[#e8f4ee]"]]
           .map(([f, ico, t, d, bg]) => `<button type="button" data-swm-form="${f}" class="flex items-center gap-3 rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80"><span class="shrink-0 w-11 h-11 rounded-xl ${bg} flex items-center justify-center text-2xl" aria-hidden="true">${ico}</span><span>${t}<span class="block text-xs font-normal text-ink/65">${d}</span></span></button>`).join("")}
       </div>
     </div>
@@ -300,8 +300,6 @@ function swmPendientes() {
   const listos = swm.paquetes.filter((p) => p.status === "recibido" && !p.datosPendientes);
   const mx = listos.filter((p) => p.enMexicoAt);
   if (mx.length) out.push(["🚚", `${mx.length === 1 ? "Tu paquete ya está" : `Tus ${mx.length} paquetes ya están`} en México: pide tu envío`, 'data-swm-form="envio" data-swm-solo-mx']);
-  const vence = listos.filter((p) => !p.enMexicoAt && p.receivedAt && (new Date(p.receivedAt).getTime() + swm.almacenajeDias * 864e5 - Date.now()) / 864e5 <= 5);
-  if (vence.length) out.push(["⏰", `Se acaba el almacenaje gratis de ${vence.map((p) => p.folio).join(", ")}: pide tu envío`, 'data-swm-form="envio"']);
   return out;
 }
 
@@ -375,7 +373,7 @@ function swmTabHTML() {
     return swm.compras.length ? swm.compras.map(swmCompraCardHTML).join("") : empty("¿No sabes cómo comprar o no tienes tarjeta americana? Pídeme que compre por ti y te mando la cotización aquí.");
   }
   if (swm.tab === "envios") {
-    return swm.envios.length ? swm.envios.map(swmEnvioCardHTML).join("") : empty("Cuando tengas paquetes en el almacén, pide aquí tu envío a México.");
+    return swm.envios.length ? swm.envios.map(swmEnvioCardHTML).join("") : empty("Cuando tus paquetes estén en México, pide aquí tu envío a casa.");
   }
   return swm.paquetes.length ? swm.paquetes.map(swmPaqueteCardHTML).join("") : empty("Todavía no tienes paquetes. Compra en tu tienda favorita, mándalo a tu dirección americana y regístralo aquí.");
 }
@@ -403,7 +401,7 @@ function swmPkgSiguiente(p) {
   if (p.datosPendientes) return ["⚠️ Dime qué trae para poder mandártelo", true];
   if (p.correccion && p.correccion.estado === "pedida") return ["✏️ Mae te pidió corregir tus datos", true];
   if (p.status === "en_envio") return [p.enMexicoAt ? "Ya cruzó · va en tu envío a casa" : "Va en tu envío a México", false];
-  if (p.status === "recibido") return [p.enMexicoAt ? "Ya cruzó a México · pide tu envío a casa" : "Ya llegó a la bodega · pide tu envío cuando quieras", false];
+  if (p.status === "recibido") return [p.enMexicoAt ? "Ya cruzó a México · pide tu envío a casa" : "Ya llegó a la bodega · te avisamos cuando cruce a México", false];
   return [{ registrado: "Te aviso cuando llegue a la bodega", enviado: "Va en camino a tu casa", entregado: "¡Entregado! 💗" }[p.status] || "", false];
 }
 function swmCotSiguiente(r, cotizando, pagado) {
@@ -804,10 +802,11 @@ function swmFormHTML() {
     </div>`;
   }
   if (swm.form === "envio") {
-    const disp = swm.paquetes.filter((p) => p.status === "recibido" && !p.datosPendientes);
+    // El envío a casa se pide cuando el paquete ya cruzó a México.
+    const disp = swm.paquetes.filter((p) => p.status === "recibido" && p.enMexicoAt && !p.datosPendientes);
     const faltan = swm.paquetes.filter((p) => p.status === "recibido" && p.datosPendientes);
     if (faltan.length && !disp.length) return `<div class="rounded-2xl bg-sale/[0.06] p-4 text-sm">Primero completa los datos de ${escapeHtml(faltan.map((p) => p.folio).join(", "))} en "Mis paquetes" (llegaron sin registrar). <button type="button" data-swm-form="" class="underline">Cerrar</button></div>`;
-    if (!disp.length) return `<div class="rounded-2xl bg-pill p-4 text-sm">Todavía no tienes paquetes en el almacén. Cuando lleguen te aviso por correo y aquí podrás pedir tu envío. <button type="button" data-swm-form="" class="underline">Cerrar</button></div>`;
+    if (!disp.length) return `<div class="rounded-2xl bg-pill p-4 text-sm">Todavía no tienes paquetes en México. Cuando crucen te aviso y aquí podrás pedir tu envío a casa. <button type="button" data-swm-form="" class="underline">Cerrar</button></div>`;
     const saved = swmUltimaDireccion();
     const tieneDir = Boolean(saved.nombre && saved.calle && saved.ciudad && /^\d{5}$/.test(saved.cp || ""));
     const dv = (k, d = "") => escapeHtml(saved[k] || d);
@@ -815,7 +814,7 @@ function swmFormHTML() {
     const enMx = disp.filter((p) => p.enMexicoAt);
     const marcar = (p) => !swm.soloMexico || !!p.enMexicoAt;
     const checks = disp.map((p) => `<label class="flex items-center gap-2 rounded-xl border border-ink/15 p-3 text-sm"><input type="checkbox" data-swm-pick="${escapeHtml(p.id)}"${marcar(p) ? " checked" : ""} class="accent-[#c4466e]"><span><b>${escapeHtml(p.folio)}</b> · ${escapeHtml([p.tienda, p.cobrable && `${p.cobrable} kg`].filter(Boolean).join(" · "))}${p.enMexicoAt ? ' · <span class="font-semibold text-green-800">🇲🇽 En México</span>' : ""}</span></label>`).join("");
-    return swmFormShell("🚚 Pedir mi envío a México", `
+    return swmFormShell("🚚 Pedir mi envío a casa", `
       <div class="space-y-2"><p class="text-xs font-semibold">¿Qué paquetes te mando?</p>${checks}</div>
       ${disp.length > 1 ? `<label class="flex gap-2 rounded-xl bg-pill/60 p-3 text-sm"><input id="swm-f-consolidar" type="checkbox"${enMx.length > 1 ? " checked" : ""} class="mt-0.5 accent-[#c4466e]"><span><b>📦 Juntar todo en una sola caja</b><span class="block text-xs text-ink/65">Pagas una sola guía a tu casa en vez de una por paquete. +$100 por cada 12 kg.</span></span></label>` : ""}
       <p class="text-xs font-semibold">¿A dónde te lo mandamos?</p>
