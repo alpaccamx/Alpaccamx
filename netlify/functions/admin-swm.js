@@ -48,6 +48,22 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const KINDS = ["paquete", "compra", "envio"];
 const push = (r, status, extra) => { r.history = [...(r.history || []), { at: now(), status, ...(extra || {}) }]; };
 
+/* Correos de un paquete: llegó al almacén y ya cruzó a México (aquí empieza
+   a contar el almacenaje gratis). Regresan [asunto, html]. */
+function correoLlego(rec, yaEstaba, nFotos) {
+  return [yaEstaba ? `actualicé tu paquete ${rec.folio} (peso, fotos o nota)` : `llegó tu paquete ${rec.folio} 📦`, `
+    <h2 style="margin:0 0 8px;font-size:20px;">${yaEstaba ? "Actualicé tu paquete" : "¡Tu paquete llegó a nuestro almacén!"}</h2>
+    <p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · "))}${rec.cobrable ? ` · ${rec.cobrable} kg` : ""}.${nFotos ? ` Te adjuntamos ${nFotos === 1 ? "la foto" : `las ${nFotos} fotos`} de tu paquete (también las ves en tu casillero).` : ""}</p>
+    ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
+    <p style="font-size:14px;">Te avisamos en cuanto cruce a México; ahí entras a tu casillero y pides tu envío a casa (puedes juntarlo con otros paquetes).</p>`];
+}
+
+function correoEnMexico(rec) {
+  const hasta = new Date(new Date(rec.enMexicoAt).getTime() + ALMACENAJE_DIAS * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+  return [`tu paquete ${rec.folio} ya está en México 🇲🇽`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu paquete ya cruzó a México!</h2><p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · ") || rec.folio)}</p>
+    <p style="font-size:14px;">Lo guardamos gratis hasta el <b>${hasta}</b>. Entra a tu casillero y pide tu envío a casa (puedes juntarlo con otros paquetes).</p>`];
+}
+
 exports.handler = async (event) => {
   const auth = checkAdminKey(event);
   if (!auth.configured) return json(500, { error: "Falta configurar ADMIN_KEY en Netlify." });
@@ -108,11 +124,7 @@ exports.handler = async (event) => {
           return p;
         });
         if (!rec) return json(404, { error: "No existe ese paquete." });
-        await avisar(rec, yaEstaba ? `actualicé tu paquete ${rec.folio} (peso, fotos o nota)` : `llegó tu paquete ${rec.folio} 📦`, `
-          <h2 style="margin:0 0 8px;font-size:20px;">${yaEstaba ? "Actualicé tu paquete" : "¡Tu paquete llegó a nuestro almacén!"}</h2>
-          <p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · "))}${rec.cobrable ? ` · ${rec.cobrable} kg` : ""}.${fotos.length ? ` Te adjuntamos ${fotos.length === 1 ? "la foto" : `las ${fotos.length} fotos`} de tu paquete (también las ves en tu casillero).` : ""}</p>
-          ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
-          <p style="font-size:14px;">Te avisamos en cuanto cruce a México; ahí entras a tu casillero y pides tu envío a casa (puedes juntarlo con otros paquetes).</p>`, fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
+        await avisar(rec, ...correoLlego(rec, yaEstaba, fotos.length), fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
         return json(200, { paquete: rec });
       }
 
@@ -385,6 +397,15 @@ exports.handler = async (event) => {
         const a = { phone: WHATSAPP_MAE, name: "Mae" };
         const casillero = await notifyCustomerTemplate("aviso_casillero", { ...a, texto: "Esto es una PRUEBA del aviso de la dirección americana. Así le llega a tu clienta cuando su paquete llega, se cotiza, cruza a México o se envía." });
         const pedido = await notifyCustomerTemplate("aviso_pedido", { ...a, texto: "Esto es una PRUEBA del aviso de pedidos de la tienda. Así le llega a tu clienta cuando cambias su pedido, le reembolsas o lo cancelas." });
+        // Con "correo": también los correos de "llegó al almacén" y "ya
+        // cruzó a México", iguales a los de las clientas, a ese correo.
+        if (b.correo) {
+          const correo = clip(b.correo, 200).toLowerCase();
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) return json(400, { error: "Correo no válido." });
+          const ej = { folio: "P-PRUEBA", tienda: "Sephora", rastreo: "1Z999PRUEBA", cobrable: 2, email: correo, enMexicoAt: now() };
+          await avisar(ej, ...correoLlego(ej, false, 0));
+          await avisar(ej, ...correoEnMexico(ej));
+        }
         return json(200, { aviso_casillero: casillero, aviso_pedido: pedido });
       }
 
@@ -444,10 +465,7 @@ exports.handler = async (event) => {
           p.enMexicoAt = now(); push(p, "en_mexico"); return p;
         });
         if (!rec) return json(409, { error: "Ese paquete no está en el almacén o ya estaba en México." });
-        // El almacenaje gratis empieza a contar desde aquí.
-        const hasta = new Date(new Date(rec.enMexicoAt).getTime() + ALMACENAJE_DIAS * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
-        await avisar(rec, `tu paquete ${rec.folio} ya está en México 🇲🇽`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu paquete ya cruzó a México!</h2><p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · ") || rec.folio)}</p>
-          <p style="font-size:14px;">Lo guardamos gratis hasta el <b>${hasta}</b>. Entra a tu casillero y pide tu envío a casa (puedes juntarlo con otros paquetes).</p>`);
+        await avisar(rec, ...correoEnMexico(rec));
         return json(200, { paquete: rec });
       }
 
