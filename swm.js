@@ -442,7 +442,7 @@ function swmPaqueteCardHTML(p) {
     ${p.datosPendientes ? `<form data-swm-completar="${escapeHtml(p.id)}" class="mt-3 rounded-xl bg-sale/[0.06] border border-sale/30 p-3 space-y-2" novalidate>
       <p class="text-sm"><b>⚠️ Este paquete llegó sin registrar.</b> Dime qué trae y cuánto costó para poder enviártelo. Se suma un cargo de <b>${swmMXN(p.cargoSinRegistro || 80)}</b> a tu envío.</p>
       ${swmDeclaracionHTML()}
-      <label class="flex items-center gap-2 text-xs"><input type="checkbox" data-c="comision" class="accent-[#c4466e]" /> Prefiero pagar el cruce con el 15% del valor (en vez de por peso)</label>
+      ${swmCobroRadios()}
       <p data-c-err class="hidden text-xs text-sale"></p>
       <button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Guardar datos</button>
     </form>` : ""}` });
@@ -565,11 +565,11 @@ const swmPaqueteriaSelect = (attrs, actual = "") => `<label class="flex flex-col
     ${SWM_PAQUETERIAS.map((x) => `<option value="${x}"${actual === x ? " selected" : ""}>${x}</option>`).join("")}
   </select></label>`;
 const swmInput = (id, label, attrs = "") => `<label class="flex flex-col gap-1 text-xs font-semibold">${label}<input id="${id}" ${attrs} class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>`;
-const swmCobroRadios = () => `<fieldset class="space-y-2"><legend class="text-sm font-semibold">¿Cómo quieres pagar el cruce?</legend>
+const swmCobroRadios = (actual = "peso") => `<fieldset class="space-y-2"><legend class="text-sm font-semibold">¿Cómo quieres pagar el cruce?</legend>
     <p class="text-xs text-ink/65">El <b>cruce</b> es lo que cuesta pasar tu paquete de Estados Unidos a México. Elige lo que te salga mejor:</p>
     <div class="grid gap-2 sm:grid-cols-2">
-    <label class="flex gap-2 rounded-xl border-2 border-ink/15 bg-white p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="peso" checked class="mt-0.5 accent-[#c4466e]"><span><b>⚖️ Por peso</b><span class="block text-xs text-ink/65">Según lo que pese la caja; lo pagas cuando pides tu envío. Conviene si tus productos son ligeros pero caros.</span></span></label>
-    <label class="flex gap-2 rounded-xl border-2 border-ink/15 bg-white p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="comision" class="mt-0.5 accent-[#c4466e]"><span><b>💲 15% de lo que costó</b><span class="block text-xs text-ink/65">El 15% del valor de tus productos, en pesos. Conviene si es pesado pero barato.</span><span data-wiz-est class="block text-xs font-semibold text-rose-ink"></span></span></label>
+    <label class="flex gap-2 rounded-xl border-2 border-ink/15 bg-white p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="peso"${actual === "comision" ? "" : " checked"} class="mt-0.5 accent-[#c4466e]"><span><b>⚖️ Por peso</b><span class="block text-xs text-ink/65">Según lo que pese la caja; lo pagas cuando pides tu envío. Conviene si tus productos son ligeros pero caros.</span></span></label>
+    <label class="flex gap-2 rounded-xl border-2 border-ink/15 bg-white p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="comision"${actual === "comision" ? " checked" : ""} class="mt-0.5 accent-[#c4466e]"><span><b>💲 15% de lo que costó</b><span class="block text-xs text-ink/65">El 15% del valor de tus productos, en pesos. Conviene si es pesado pero barato.</span><span data-wiz-est class="block text-xs font-semibold text-rose-ink"></span></span></label>
     </div>
   </fieldset>`;
 /* Qué trae el paquete: hasta 10 capturas o PDF de la factura/resumen o,
@@ -655,7 +655,7 @@ function swmActualizarEstimado(root) {
   const est = root.querySelector("[data-wiz-est]");
   if (est) est.textContent = pesos ? `Con lo que declaraste: ≈ ${swmMXN(swmCruceComision(pesos))}` : "";
   if (!pesos) { out.textContent = ""; return; }
-  if (root.hasAttribute("data-wiz")) { out.textContent = moneda === "MXN" ? "" : `≈ ${swmMXN(pesos)}`; return; }
+  if (est) { out.textContent = moneda === "MXN" ? "" : `≈ ${swmMXN(pesos)}`; return; }
   out.textContent = `${moneda === "MXN" ? "" : `≈ ${swmMXN(pesos)} · `}${comision ? `tu cruce con el ${swm.comisionPct || 15}%: ${swmMXN(swmCruceComision(pesos))}` : "el cruce se cobra por peso cuando llegue"}`;
 }
 
@@ -673,7 +673,7 @@ function swmEditarFormHTML(p) {
       </div>` : ""}
       ${swmDeclaracionHTML(p)}
       ${n ? `<label class="flex items-center gap-2 text-xs"><input type="checkbox" data-e="quitar" class="accent-[#c4466e]" /> Quitar mis ${n} archivo${n === 1 ? "" : "s"} anterior${n === 1 ? "" : "es"} (si no, se suman los nuevos)</label>` : ""}
-      ${p.crucePagado ? "" : `<label class="flex items-center gap-2 text-xs"><input type="checkbox" data-c="comision" class="accent-[#c4466e]"${p.cobro === "comision" ? " checked" : ""} /> Pagar el cruce con el 15% del valor (en vez de por peso)</label>`}
+      ${p.crucePagado ? "" : swmCobroRadios(p.cobro)}
       <p data-c-err class="hidden text-xs text-sale"></p>
       <div class="flex gap-2"><button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Guardar cambios</button>
       ${p.correccion && p.correccion.estado === "pedida" ? "" : `<button type="button" data-swm-editar-toggle="${escapeHtml(p.id)}" class="rounded-full px-4 py-2 text-xs font-semibold text-ink/70">Cancelar</button>`}</div>
@@ -1160,8 +1160,8 @@ function initSwm() {
       e.preventDefault();
       const err = edit.querySelector("[data-c-err]");
       const btn = edit.querySelector('button[type="submit"]');
-      const chk = edit.querySelector('[data-c="comision"]');
-      const cobro = chk ? (chk.checked ? "comision" : "peso") : undefined;
+      const radio = edit.querySelector('input[name="swm-cobro"]:checked');
+      const cobro = radio ? radio.value : undefined;
       const extra = {};
       const tienda = edit.querySelector('[data-e="tienda"]');
       const rastreo = edit.querySelector('[data-e="rastreo"]');
@@ -1203,7 +1203,7 @@ function initSwm() {
       e.preventDefault();
       const err = comp.querySelector("[data-c-err]");
       const btn = comp.querySelector('button[type="submit"]');
-      const cobro = comp.querySelector('[data-c="comision"]').checked ? "comision" : "peso";
+      const cobro = (comp.querySelector('input[name="swm-cobro"]:checked') || {}).value || "peso";
       btn.disabled = true;
       swmLeerDeclaracion(comp, cobro)
         .then((dec) => swmPost({ accion: "completar_paquete", id: comp.dataset.swmCompletar, cobro, ...dec }))
