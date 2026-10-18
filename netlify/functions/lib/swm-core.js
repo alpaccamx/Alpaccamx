@@ -3,7 +3,8 @@
 // La usan swm-client.js (clienta), admin-swm.js (Mae) y mp-webhook.js.
 
 const { getRecord, mutateRecord, listRecords } = require("./swm-store.js");
-const { crucePorPeso, crucePorComision, consolidacionPorPeso } = require("./swm-pricing.js");
+const { crucePorPeso, crucePorComision, consolidacionPorPeso, LEALTAD_CADA, REFERIDO_MXN } = require("./swm-pricing.js");
+const { getCoupon, saveCoupon, listCoupons, normCode } = require("./coupons.js");
 const { sendEmail, baseEmailHTML, formatPriceMXN } = require("./email.js");
 const { loadPricingData } = require("./pricing.js");
 const { notifyCustomerSwm } = require("./whatsapp.js");
@@ -120,8 +121,53 @@ async function aplicarPago(kind, id, { metodo, paymentId, monto } = {}) {
       <h2 style="margin:0 0 8px;font-size:20px;">¡Pago recibido!</h2>
       <p style="font-size:14px;">Recibimos tu pago de ${formatPriceMXN(rec.pago.monto || (rec.cotizacion && rec.cotizacion.total))} de ${rec.folio}.
       ${kind === "compra" ? "Ya voy a hacer tu compra; te aviso cuando la registre." : "Ya preparo tu envío; te mando la guía en cuanto salga."}</p>`);
+    await premiarReferido(kind, rec).catch((err) => console.error("swm premio referido:", err));
   }
   return rec;
+}
+
+/* Lealtad: cada LEALTAD_CADA envíos entregados, un cruce gratis. */
+function lealtadDe(envios) {
+  const entregados = envios.filter((e) => e.status === "entregado").length;
+  const usados = envios.filter((e) => e.premioLealtad && e.status !== "cancelado").length;
+  return { cada: LEALTAD_CADA, entregados, avance: entregados % LEALTAD_CADA, disponibles: Math.max(0, Math.floor(entregados / LEALTAD_CADA) - usados) };
+}
+
+/* Código "invita a una amiga" de la clienta (se crea la primera vez). */
+async function codigoReferido(email, casillero) {
+  const me = String(email || "").toLowerCase();
+  const raiz = normCode(String(casillero || me.split("@")[0]).replace(/^ALP-/i, "")).replace(/[-_]/g, "").slice(0, 18) || "MAE";
+  for (let i = 0; i < 5; i++) {
+    const code = `AMIGA-${raiz}${i ? i + 1 : ""}`;
+    const c = await getCoupon(code);
+    if (c && c.duena === me) return code;
+    if (c) continue;
+    await saveCoupon({ code, tipo: "monto", valor: REFERIDO_MXN, aplica: "swm", unaVez: true, soloNuevas: true, duena: me, nota: `Invita a una amiga · código de ${me}` });
+    return code;
+  }
+  return "";
+}
+
+/* Cupones de premio que tiene disponibles la clienta. */
+async function premiosDe(email) {
+  const me = String(email || "").toLowerCase();
+  return (await listCoupons()).filter((c) => c.soloPara === me && c.activo && !(c.usosMax && (c.usos || 0) >= c.usosMax)).map((c) => ({ code: c.code, valor: c.valor, nota: c.nota }));
+}
+
+/* Cuando una amiga paga con el código de alguien, a esa clienta le toca su
+   premio (una sola vez por cotización). */
+async function premiarReferido(kind, rec) {
+  const code = rec && rec.cotizacion && rec.cotizacion.cupon;
+  if (!code || rec.premioReferido) return;
+  const c = await getCoupon(code);
+  if (!c || !c.duena || c.duena === rec.email) return;
+  const premio = `GRACIAS-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  await saveCoupon({ code: premio, tipo: "monto", valor: REFERIDO_MXN, aplica: "swm", usosMax: 1, soloPara: c.duena, nota: `Premio por invitar a ${rec.name || rec.email}` });
+  await mutateRecord(kind, rec.id, (r) => { r.premioReferido = premio; return r; });
+  await avisar(c.duena, `¡Ganaste ${formatPriceMXN(REFERIDO_MXN)} por invitar a una amiga! 💗`, `
+    <h2 style="margin:0 0 8px;font-size:20px;">¡Gracias por invitar a una amiga!</h2>
+    <p style="font-size:14px;">Tu amiga ya hizo su primer pago con tu código. Te regalamos <b>${formatPriceMXN(REFERIDO_MXN)}</b> para tu próximo envío o compra.</p>
+    <p style="font-size:14px;">Tu cupón: <b>${premio}</b>. Ponlo en "¿Tienes un cupón?" cuando pagues tu siguiente cotización (también está en tu casillero).</p>`);
 }
 
 /* Avisa a la clienta por correo y por WhatsApp. "to" es el registro
@@ -162,6 +208,7 @@ async function todoDe(email) {
 }
 
 module.exports = {
+  lealtadDe, codigoReferido, premiosDe,
   ALMACENAJE_DIAS, round2, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
   formatPriceMXN,
 };

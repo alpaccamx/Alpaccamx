@@ -28,8 +28,8 @@ const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
 const { detectFileType } = require("./lib/file-signature.js");
 const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, casilleroDe } = require("./lib/swm-store.js");
-const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe, tiposDeCambio } = require("./lib/swm-core.js");
-const { REVISION_FOTOS, SEPARAR, COMISION_PCT } = require("./lib/swm-pricing.js");
+const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe, tiposDeCambio, lealtadDe, codigoReferido, premiosDe } = require("./lib/swm-core.js");
+const { REVISION_FOTOS, SEPARAR, COMISION_PCT, REFERIDO_MXN } = require("./lib/swm-pricing.js");
 const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/coupons.js");
 
 const COBROS = ["peso", "comision"];
@@ -122,7 +122,12 @@ exports.handler = async (event) => {
   if (event.httpMethod === "GET") {
     try {
       const [all, casillero] = await Promise.all([todoDe(me), casilleroDe(me, customer.name).catch((err) => { console.error("swm casillero:", err); return ""; })]);
+      const [referido, premios] = await Promise.all([
+        codigoReferido(me, casillero).catch((err) => { console.error("swm referido:", err); return ""; }),
+        premiosDe(me).catch(() => []),
+      ]);
       return json(200, {
+        lealtad: lealtadDe(all.envios), referido: referido ? { code: referido, monto: REFERIDO_MXN } : null, premios,
         casillero,
         paquetes: all.paquetes.map(publico), compras: all.compras.map(publico), envios: all.envios.map(publico),
         name: customer.name || "", phone: customer.phone || "", almacenajeDias: ALMACENAJE_DIAS,
@@ -340,7 +345,10 @@ exports.handler = async (event) => {
         if (!limit.allowed) return json(429, { error: "Demasiados intentos. Espera un poco." });
         const c = await getCoupon(b.code);
         const base = rec.cotizacion.total;
-        const check = checkCoupon(c, { email: me, ambito: "swm", base });
+        // "Nueva" = todavía no ha pagado ninguna compra ni envío (para los códigos de amiga).
+        const mio = await todoDe(me);
+        const nueva = ![...mio.compras, ...mio.envios].some((r) => r.pago && r.pago.status === "pagado");
+        const check = checkCoupon(c, { email: me, ambito: "swm", base, nueva });
         if (!check.ok) return json(409, { error: check.error });
         const descuento = discountFor(c, base);
         if (!(descuento > 0)) return json(409, { error: "Ese cupón no aplica a esta cotización." });
