@@ -3224,6 +3224,8 @@ ${itemLines}
       { n: count("por_enviar"), label: "Por enviar", hint: "Generar guía", go: "por_enviar", cls: "hot" },
       { n: restockCount == null ? "…" : restockCount, label: "Avisos de restock", hint: "Clientas esperando", go: "restock" },
     ];
+    // Lo que tiene pendientes va primero; lo que está en 0 queda chiquito al final.
+    cards.sort((a, b) => (Number(b.n) > 0) - (Number(a.n) > 0));
     todoEl.innerHTML = cards
       .map((c) => `<button type="button" class="todo-card ${c.n ? c.cls || "" : "zero"}" data-home-go="${c.go}">
         <span class="n">${c.n}</span><span>${c.label}</span><span class="hint">${c.hint} ›</span></button>`)
@@ -4674,7 +4676,9 @@ ${itemLines}
       ${p.status === "recibido" && p.phone ? `<div style="margin-top:8px;"><a class="btn-primary" href="${escapeHtml(swmPaqueteWa(p))}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;padding:8px 16px;font-size:13px;background:#25D366;border-radius:999px;color:#fff;font-weight:600;">💬 Avisar por WhatsApp (y mandarle las fotos)</a></div>` : ""}
       ${swmCorreccionAdmin(p)}
       ${swmExtrasAdmin(p)}`}
-      ${editable ? `<div class="grid">
+      ${editable ? `<details class="swm-peso"${p.status === "recibido" && !p.cobrable ? " open" : ""}>
+        <summary>${p.status === "registrado" ? "📥 Ya llegó: registrar peso y avisarle" : `⚖️ Peso, medidas y fotos${p.cobrable ? ` · ${p.cobrable} kg` : ""}`}</summary>
+      <div class="grid">
         <label>Peso (kg)<input data-f="kg" type="number" step="0.01" min="0" value="${p.kg || ""}"></label>
         <label>Alto (cm)<input data-f="alto" type="number" min="0" value="${p.alto || ""}"></label>
         <label>Ancho (cm)<input data-f="ancho" type="number" min="0" value="${p.ancho || ""}"></label>
@@ -4687,6 +4691,8 @@ ${itemLines}
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
         ${p.status === "registrado" ? `<button type="button" class="btn-primary" data-swm-recibir>📥 Marcar como recibido (y avisarle)</button>` : `<button type="button" class="btn-primary" data-swm-recibir>Guardar peso / fotos</button>`}
+      </div></details>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
         ${p.status === "recibido" && !p.enMexicoAt && !p.datosPendientes ? `<button type="button" class="btn-secondary" data-swm-pkg-mx>🇲🇽 Cruzado a México</button>` : ""}
         ${swmCancelBtn("paquete", p)}
       </div>` : p.status === "en_envio" && !p.enMexicoAt ? `<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-secondary" data-swm-pkg-mx>🇲🇽 Cruzado a México</button></div>` : ""}

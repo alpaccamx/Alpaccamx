@@ -158,10 +158,8 @@ function swmAddressFields() {
 function renderSwmAddress() {
   const el = document.getElementById("swm-address");
   const h = `<h3 class="font-display text-xl sm:text-2xl text-ink mb-3">🏠 Tu dirección americana</h3>`;
-  if (!getCustomerToken()) {
-    el.innerHTML = h + swmLoginPrompt("Crea tu cuenta gratis (o inicia sesión) para ver tu dirección en EE.UU. y tu código de casillero.");
-    return;
-  }
+  // Sin sesión no se repite el "crear cuenta": ya está el botón de la portada.
+  if (!getCustomerToken()) { el.innerHTML = ""; return; }
   const fields = swmAddressFields();
   const all = fields.map(([l, v]) => `${l.replace(/ \(.*\)$/, "")}: ${v}`).join("\n");
   const row = ([label, value]) => `<div class="flex items-center justify-between gap-3 py-2 border-b border-white/30 last:border-0">
@@ -276,9 +274,8 @@ function renderSwmCasillero() {
       </div>
       ${porPagar ? `<button type="button" data-swm-ir-pagar class="mt-3 w-full flex items-center justify-between gap-2 rounded-xl bg-rose-deep px-4 py-3 text-left text-sm font-semibold text-cream hover:bg-rose-ink"><span>💳 Tienes ${porPagar} cotización${porPagar > 1 ? "es" : ""} lista${porPagar > 1 ? "s" : ""} para pagar</span><span aria-hidden="true" class="whitespace-nowrap">Pagar →</span></button>` : ""}
       <div class="mt-3 grid gap-2 sm:grid-cols-3">
-        <button type="button" data-swm-form="paquete" class="rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80">📦 Registrar un paquete<span class="block text-[11px] font-normal text-ink/65">Ya compraste y lo mandaste a la dirección</span></button>
-        <button type="button" data-swm-form="compra" class="rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80">🛍️ Que Mae compre por mí<span class="block text-[11px] font-normal text-ink/65">Mándame tu carrito por WhatsApp</span></button>
-        <button type="button" data-swm-form="envio" class="rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80">🚚 Pedir mi envío a México<span class="block text-[11px] font-normal text-ink/65">Elige paquetes del almacén</span></button>
+        ${[["paquete", "📦", "Registrar un paquete", "Ya compraste y lo mandaste a la dirección", "bg-[#fff4e0]"], ["compra", "🛍️", "Que Mae compre por mí", "Mándame tu carrito por WhatsApp", "bg-[#fde8f0]"], ["envio", "🚚", "Pedir mi envío a México", "Elige paquetes del almacén", "bg-[#e8f4ee]"]]
+          .map(([f, ico, t, d, bg]) => `<button type="button" data-swm-form="${f}" class="flex items-center gap-3 rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80"><span class="shrink-0 w-11 h-11 rounded-xl ${bg} flex items-center justify-center text-2xl" aria-hidden="true">${ico}</span><span>${t}<span class="block text-xs font-normal text-ink/65">${d}</span></span></button>`).join("")}
       </div>
     </div>
     <div id="swm-form-box" class="mt-4">${swmFormHTML()}</div>
@@ -373,7 +370,7 @@ function swmPaqueteCardHTML(p) {
     const dias = Math.ceil((hasta - Date.now()) / 864e5);
     extra = `<p class="text-xs ${dias <= 5 ? "text-sale font-semibold" : "text-ink/65"} mt-1">Almacenaje gratis hasta el ${swmDate(hasta.toISOString(), { day: "numeric", month: "long" })}${dias > 0 ? ` (${dias} día${dias === 1 ? "" : "s"})` : " · ya venció"}</p>`;
   }
-  const fotos = (p.fotos || []).map((f) => `<a href="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" target="_blank" rel="noopener"><img src="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" alt="Foto de tu paquete" loading="lazy" class="w-20 h-20 rounded-xl object-cover bg-pill"></a>`).join("");
+  const fotos = (p.fotos || []).map((f) => `<button type="button" data-swm-ver-foto="/.netlify/functions/swm-foto?id=${escapeHtml(f)}"><img src="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" alt="Foto de tu paquete" loading="lazy" class="w-28 h-28 rounded-xl object-cover bg-pill"></button>`).join("");
   return `<article class="rounded-2xl border border-ink/10 p-4">
     <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(p.folio)}</b>${swmPill(SWM_PKG_STATUS, p.datosPendientes ? "sin_registro" : swmPkgEstado(p))}</div>
     ${p.status === "cancelado" ? "" : swmStepsHTML("paquete", swmPkgEstado(p))}
@@ -406,7 +403,7 @@ function swmExtrasHTML(p) {
   const out = [];
   const rv = p.revision;
   if (rv && rv.estado === "hecha") {
-    const fotos = (rv.fotos || []).map((f) => `<a href="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" target="_blank" rel="noopener"><img src="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" alt="Foto del contenido" loading="lazy" class="w-20 h-20 rounded-xl object-cover bg-pill"></a>`).join("");
+    const fotos = (rv.fotos || []).map((f) => `<button type="button" data-swm-ver-foto="/.netlify/functions/swm-foto?id=${escapeHtml(f)}"><img src="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" alt="Foto del contenido" loading="lazy" class="w-28 h-28 rounded-xl object-cover bg-pill"></button>`).join("");
     out.push(`<div class="mt-3 rounded-xl bg-[#eef8f2] p-3 text-sm"><b>📸 Revisamos el contenido</b>${rv.nota ? `<p class="mt-1">${escapeHtml(rv.nota)}</p>` : ""}${fotos ? `<div class="mt-2 flex flex-wrap gap-2">${fotos}</div>` : ""}</div>`);
   } else if (rv) {
     out.push(`<p class="mt-2 rounded-xl bg-[#fff6e5] px-3 py-2 text-xs">📸 Pediste revisión con fotos (${swmMXN(swm.precios.revision)}). ${p.status === "registrado" ? "La hacemos cuando llegue." : "Te avisamos cuando esté."}</p>`);
@@ -826,6 +823,20 @@ async function swmUploadProof(key, input) {
   }
 }
 
+/* Foto del paquete en grande, encima de la página (tocar para cerrar). */
+function swmVerFoto(src) {
+  const box = document.createElement("div");
+  box.className = "fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4";
+  box.setAttribute("role", "dialog");
+  box.setAttribute("aria-label", "Foto de tu paquete");
+  box.innerHTML = `<img src="${escapeHtml(src)}" alt="Foto de tu paquete" class="max-h-full max-w-full rounded-2xl object-contain"><button type="button" class="absolute top-4 right-4 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-ink">Cerrar ✕</button>`;
+  const cerrar = () => { box.remove(); document.removeEventListener("keydown", esc); };
+  const esc = (e) => { if (e.key === "Escape") cerrar(); };
+  box.addEventListener("click", cerrar);
+  document.addEventListener("keydown", esc);
+  document.body.appendChild(box);
+}
+
 function updateSwmCalc() {
   const v = (id) => parseFloat(document.getElementById(id).value) || 0;
   const { vol, cobrable } = swmPesoCobrable(v("swm-c-kg"), v("swm-c-alto"), v("swm-c-ancho"), v("swm-c-largo"));
@@ -850,6 +861,13 @@ function initSwm() {
     .map(([kg, mxn]) => `<tr class="odd:bg-pill/60"><td class="px-3 py-1.5">${kg} kg</td><td class="px-3 py-1.5 text-right">${swmMXN(mxn).replace(/\.00$/, "")}</td></tr>`)
     .join("");
   ["swm-c-kg", "swm-c-alto", "swm-c-ancho", "swm-c-largo", "swm-c-usd"].forEach((id) => document.getElementById(id).addEventListener("input", updateSwmCalc));
+  document.getElementById("swm-c-ejemplo").innerHTML = `Ejemplo: una caja de 2 kg cruza por <b>${swmMXN(SWM_TARIFA[2]).replace(/\.00$/, "")}</b>; si tus compras fueron de US$100, el 15% sale en unos ${swmMXN(Math.ceil(100 * (((typeof shippingSettings !== "undefined" && shippingSettings.exchangeRate) || 19.5)) * SWM_COMISION_PCT / 100)).replace(/\.00$/, "")}.`;
+  // Ilustración de la portada: solo se muestra si ya existe el archivo.
+  const heroImg = document.getElementById("swm-hero-img");
+  if (heroImg) {
+    const show = () => { heroImg.classList.remove("hidden"); heroImg.closest(".swm-guest").classList.add("sm:pr-72", "lg:pr-80"); };
+    if (heroImg.complete && heroImg.naturalWidth) show(); else heroImg.addEventListener("load", show, { once: true });
+  }
   document.getElementById("swm-close").addEventListener("click", () => showHomeView("home"));
   const wa = document.getElementById("swm-wa");
   const waHref = whatsappHref("Hola Mae! Tengo una duda sobre la dirección americana (compras en EE.UU.).");
@@ -887,6 +905,8 @@ function initSwm() {
     }
     const t = e.target;
     if (t.closest("[data-swm-login]")) { openAccountPanelDefault(); return; }
+    const verFoto = t.closest("[data-swm-ver-foto]");
+    if (verFoto) { swmVerFoto(verFoto.dataset.swmVerFoto); return; }
     if (t.closest("[data-swm-abrir-dir]")) {
       swm.addrOpen = true; renderSwmAddress();
       document.getElementById("swm-address").scrollIntoView({ behavior: "smooth", block: "start" });

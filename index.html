@@ -217,6 +217,7 @@
     <h2 id="swm-title" class="font-logo text-4xl sm:text-6xl text-rose-deep leading-none mt-2">Dirección americana</h2>
     <!-- Lo de abajo solo se ve sin sesión: con sesión la página abre directo en su casillero (ver renderSwm). -->
     <div class="swm-guest">
+      <img id="swm-hero-img" src="./assets/swm/hero.webp" alt="" aria-hidden="true" width="640" height="640" class="hidden mx-auto mt-4 w-48 h-48 sm:absolute sm:right-8 sm:top-1/2 sm:-translate-y-1/2 sm:mt-0 sm:w-64 sm:h-64 lg:w-72 lg:h-72 object-contain" />
       <p class="mt-4 text-base sm:text-lg text-ink/85 max-w-xl"><b>Te damos una dirección en Estados Unidos</b> para que compres en tus tiendas favoritas y te lo traemos a México, sin pagar altos cargos aduanales. ¿No tienes tarjeta americana? Yo compro por ti. 💗</p>
       <ul class="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
         <li class="rounded-full bg-white/80 px-3 py-1.5">🛍️ Sephora · Ulta · Olive Young y más</li>
@@ -249,12 +250,12 @@
   <details id="swm-how" class="mt-8 group rounded-2xl border border-ink/10 open:bg-white">
     <summary class="cursor-pointer list-none flex items-center justify-between px-5 py-4 font-display text-lg sm:text-xl text-ink">¿Cómo funciona? <span class="text-ink/50 group-open:rotate-180 transition" aria-hidden="true">⌄</span></summary>
     <div class="px-5 pb-5">
-  <ol class="grid gap-3 sm:grid-cols-5">
-        <li class="rounded-2xl bg-pill p-4"><span class="text-2xl" aria-hidden="true">🏠</span><b class="block text-sm mt-1">1. Tú compras</b><span class="text-xs text-ink/75">Haz tus compras en tus tiendas favoritas y envíalas a nuestra dirección en EE.UU.</span></li>
-        <li class="rounded-2xl bg-pill p-4"><span class="text-2xl" aria-hidden="true">📋</span><b class="block text-sm mt-1">2. Verificamos</b><span class="text-xs text-ink/75">Revisamos que todo esté en orden y te avisamos cuando llega a nuestro almacén.</span></li>
-        <li class="rounded-2xl bg-pill p-4"><span class="text-2xl" aria-hidden="true">🛍️</span><b class="block text-sm mt-1">3. O yo compro por ti</b><span class="text-xs text-ink/75">¿No sabes cómo o no tienes tarjeta americana? Mándame captura de tu carrito por WhatsApp y yo compro por ti, sin costo extra.</span></li>
-        <li class="rounded-2xl bg-pill p-4"><span class="text-2xl" aria-hidden="true">✈️</span><b class="block text-sm mt-1">4. Lo traemos</b><span class="text-xs text-ink/75">Cotizamos el cruce y el envío a México o hasta donde estés.</span></li>
-        <li class="rounded-2xl bg-pill p-4"><span class="text-2xl" aria-hidden="true">📦</span><b class="block text-sm mt-1">5. Lo recibes</b><span class="text-xs text-ink/75">Te lo entregamos directamente y sin complicaciones.</span></li>
+  <ol class="grid sm:grid-cols-5 sm:gap-4">
+        <li class="relative flex gap-3 pb-5 last:pb-0 sm:flex-col sm:items-center sm:text-center sm:pb-0 before:absolute before:left-[17px] before:top-9 before:bottom-0 before:w-0.5 before:bg-rose/30 last:before:hidden sm:before:left-1/2 sm:before:top-[17px] sm:before:bottom-auto sm:before:w-full sm:before:h-0.5"><span class="relative z-10 shrink-0 w-9 h-9 rounded-full bg-rose-deep text-cream text-sm font-bold flex items-center justify-center">1</span><span><b class="block text-sm text-ink">🏠 Tú compras</b><span class="text-xs text-ink/75">Haz tus compras en tus tiendas favoritas y envíalas a nuestra dirección en EE.UU.</span></span></li>
+        <li class="relative flex gap-3 pb-5 last:pb-0 sm:flex-col sm:items-center sm:text-center sm:pb-0 before:absolute before:left-[17px] before:top-9 before:bottom-0 before:w-0.5 before:bg-rose/30 last:before:hidden sm:before:left-1/2 sm:before:top-[17px] sm:before:bottom-auto sm:before:w-full sm:before:h-0.5"><span class="relative z-10 shrink-0 w-9 h-9 rounded-full bg-rose-deep text-cream text-sm font-bold flex items-center justify-center">2</span><span><b class="block text-sm text-ink">📋 Verificamos</b><span class="text-xs text-ink/75">Revisamos que todo esté en orden y te avisamos cuando llega a nuestro almacén.</span></span></li>
+        <li class="relative flex gap-3 pb-5 last:pb-0 sm:flex-col sm:items-center sm:text-center sm:pb-0 before:absolute before:left-[17px] before:top-9 before:bottom-0 before:w-0.5 before:bg-rose/30 last:before:hidden sm:before:left-1/2 sm:before:top-[17px] sm:before:bottom-auto sm:before:w-full sm:before:h-0.5"><span class="relative z-10 shrink-0 w-9 h-9 rounded-full bg-rose-deep text-cream text-sm font-bold flex items-center justify-center">3</span><span><b class="block text-sm text-ink">🛍️ O yo compro por ti</b><span class="text-xs text-ink/75">¿No sabes cómo o no tienes tarjeta americana? Mándame captura de tu carrito por WhatsApp y yo compro por ti, sin costo extra.</span></span></li>
+        <li class="relative flex gap-3 pb-5 last:pb-0 sm:flex-col sm:items-center sm:text-center sm:pb-0 before:absolute before:left-[17px] before:top-9 before:bottom-0 before:w-0.5 before:bg-rose/30 last:before:hidden sm:before:left-1/2 sm:before:top-[17px] sm:before:bottom-auto sm:before:w-full sm:before:h-0.5"><span class="relative z-10 shrink-0 w-9 h-9 rounded-full bg-rose-deep text-cream text-sm font-bold flex items-center justify-center">4</span><span><b class="block text-sm text-ink">✈️ Lo traemos</b><span class="text-xs text-ink/75">Cotizamos el cruce y el envío a México o hasta donde estés.</span></span></li>
+        <li class="relative flex gap-3 pb-5 last:pb-0 sm:flex-col sm:items-center sm:text-center sm:pb-0 before:absolute before:left-[17px] before:top-9 before:bottom-0 before:w-0.5 before:bg-rose/30 last:before:hidden sm:before:left-1/2 sm:before:top-[17px] sm:before:bottom-auto sm:before:w-full sm:before:h-0.5"><span class="relative z-10 shrink-0 w-9 h-9 rounded-full bg-rose-deep text-cream text-sm font-bold flex items-center justify-center">5</span><span><b class="block text-sm text-ink">📦 Lo recibes</b><span class="text-xs text-ink/75">Te lo entregamos directamente y sin complicaciones.</span></span></li>
       </ol>
     </div>
   </details>
@@ -270,10 +271,11 @@
       <p class="text-sm text-ink/80">Tú eliges cómo pagar el cruce de cada paquete: <b>por peso</b> (se paga cuando llega al almacén) o <b>15% del valor</b> de tus productos con tax (se paga desde el principio). El envío nacional va aparte, desde $250 MXN por Estafeta.</p>
       <div id="swm-calc" class="rounded-2xl bg-lilac/10 p-4">
         <p class="font-semibold text-ink">🧮 Calcula tu cruce</p>
+        <p id="swm-c-ejemplo" class="mt-1 text-xs text-ink/70"></p>
     <div class="mt-3 grid gap-4 md:grid-cols-2">
           <div>
             <p class="text-sm font-semibold">Por peso / medidas</p>
-            <div class="mt-2 grid grid-cols-4 gap-2 text-xs">
+            <div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
               <label class="flex flex-col gap-1">Peso (kg)<input id="swm-c-kg" type="number" min="0" step="0.1" inputmode="decimal" class="rounded-lg border border-ink/15 px-2 py-2 text-sm" /></label>
               <label class="flex flex-col gap-1">Alto (cm)<input id="swm-c-alto" type="number" min="0" inputmode="decimal" class="rounded-lg border border-ink/15 px-2 py-2 text-sm" /></label>
               <label class="flex flex-col gap-1">Ancho (cm)<input id="swm-c-ancho" type="number" min="0" inputmode="decimal" class="rounded-lg border border-ink/15 px-2 py-2 text-sm" /></label>
@@ -512,9 +514,9 @@
 <!-- Por qué elegir Alpacca -->
 <section id="why-alpacca" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
   <h2 class="font-display text-2xl sm:text-3xl text-ink mb-8">¿Por qué elegir Alpacca?</h2>
-  <div class="grid sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] gap-8 sm:gap-14 items-start">
-    <div class="flex sm:flex-col items-center sm:items-start gap-4 sm:gap-1">
-      <img src="./assets/mascot.webp" width="192" height="192" loading="lazy" decoding="async" alt="" aria-hidden="true" class="w-14 h-14 sm:w-16 sm:h-16 object-contain flex-shrink-0" />
+  <div class="grid sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] gap-8 sm:gap-14 items-start">
+    <div class="flex sm:flex-col items-center sm:items-start gap-4 sm:gap-2 rounded-3xl bg-gradient-to-br from-blush/50 to-lilac/20 p-5 sm:p-7">
+      <img src="./assets/mascot.webp" width="192" height="192" loading="lazy" decoding="async" alt="" aria-hidden="true" class="w-16 h-16 sm:w-28 sm:h-28 object-contain flex-shrink-0" />
       <div>
         <span class="font-logo text-5xl sm:text-6xl text-rose-deep leading-none block">+5</span>
         <p class="font-semibold text-ink mt-2">años ayudando a negocios a surtirse y crecer</p>

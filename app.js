@@ -2246,14 +2246,14 @@ function productCardHTML(p, { rank } = {}) {
         ${presChipsHTML(p)}
         <div class="mt-auto pt-1.5">
           <div class="leading-tight tabular-nums">
-            <span data-card-price class="font-bold text-[15px] text-ink block">${formatPrice(p.precio)}</span>
+            <span data-card-price class="font-bold text-base text-ink block">${formatPrice(p.precio)}</span>
             <span data-card-unit>${boxUnitPriceHTML(p)}</span>
             <span data-card-tarjeta></span>
           </div>
           ${productReviewSummaryHTML(p)}
           <div class="flex flex-wrap gap-1 mt-1.5 empty:hidden">
             <span data-card-stock-badge class="empty:hidden">${hasVariants ? "" : stockBadgeHTML(p)}</span>
-            ${presentacionTagHTML(p)}
+            ${(presClusters.get(p.presKey) || []).length > 1 ? "" : presentacionTagHTML(p)}
           </div>
           ${
             outOfStock
