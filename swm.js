@@ -289,7 +289,12 @@ function swmTabHTML() {
   if (swm.tab === "envios") {
     return swm.envios.length ? swm.envios.map(swmEnvioCardHTML).join("") : empty("Cuando tengas paquetes en el almacén, pide aquí tu envío a México.");
   }
-  return swm.paquetes.length ? swm.paquetes.map(swmPaqueteCardHTML).join("") : empty("Todavía no tienes paquetes. Compra en tu tienda favorita, mándalo a tu dirección americana y regístralo aquí.");
+  const mx = swm.paquetes.filter((p) => p.status === "recibido" && p.enMexicoAt && !p.datosPendientes);
+  const juntar = mx.length > 1 ? `<div class="rounded-2xl border border-green-800/20 bg-[#eef8f2] p-4 text-sm">
+      <p><b>🇲🇽 Tienes ${mx.length} paquetes en México.</b> Júntalos en una sola caja y pagas un solo envío nacional con una sola guía.</p>
+      <button type="button" data-swm-form="envio" data-swm-solo-mx class="mt-2 rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">📦 Juntar en una caja y pedir mi envío</button>
+    </div>` : "";
+  return swm.paquetes.length ? juntar + swm.paquetes.map(swmPaqueteCardHTML).join("") : empty("Todavía no tienes paquetes. Compra en tu tienda favorita, mándalo a tu dirección americana y regístralo aquí.");
 }
 
 // Ya cruzó a México: el status sigue en almacén/en un envío (para poder
@@ -619,10 +624,13 @@ function swmFormHTML() {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem("alpacca_swm_dir") || "{}"); } catch (err) { saved = {}; }
     const dv = (k, d = "") => escapeHtml(saved[k] || d);
-    const checks = disp.map((p) => `<label class="flex items-center gap-2 rounded-xl border border-ink/15 p-3 text-sm"><input type="checkbox" data-swm-pick="${escapeHtml(p.id)}" checked class="accent-[#c4466e]"><span><b>${escapeHtml(p.folio)}</b> · ${escapeHtml([p.tienda, p.cobrable && `${p.cobrable} kg`].filter(Boolean).join(" · "))}</span></label>`).join("");
+    // Desde "Juntar mis paquetes en México" solo van marcados los que ya cruzaron.
+    const enMx = disp.filter((p) => p.enMexicoAt);
+    const marcar = (p) => !swm.soloMexico || !!p.enMexicoAt;
+    const checks = disp.map((p) => `<label class="flex items-center gap-2 rounded-xl border border-ink/15 p-3 text-sm"><input type="checkbox" data-swm-pick="${escapeHtml(p.id)}"${marcar(p) ? " checked" : ""} class="accent-[#c4466e]"><span><b>${escapeHtml(p.folio)}</b> · ${escapeHtml([p.tienda, p.cobrable && `${p.cobrable} kg`].filter(Boolean).join(" · "))}${p.enMexicoAt ? ' · <span class="font-semibold text-green-800">🇲🇽 En México</span>' : ""}</span></label>`).join("");
     return swmFormShell("🚚 Pedir mi envío a México", `
       <div class="space-y-2"><p class="text-xs font-semibold">¿Qué paquetes te mando?</p>${checks}</div>
-      ${disp.length > 1 ? `<label class="flex gap-2 text-sm"><input id="swm-f-consolidar" type="checkbox" class="mt-0.5 accent-[#c4466e]"><span><b>Consolidar en un solo envío nacional</b> (+$100 MXN por cada grupo de hasta 12 kg).</span></label>` : ""}
+      ${disp.length > 1 ? `<label class="flex gap-2 text-sm"><input id="swm-f-consolidar" type="checkbox"${enMx.length > 1 ? " checked" : ""} class="mt-0.5 accent-[#c4466e]"><span><b>Consolidar en un solo envío nacional</b> (+$100 MXN por cada grupo de hasta 12 kg).</span></label>` : ""}
       <p class="text-xs font-semibold">¿A dónde te lo mandamos?</p>
       <div class="grid gap-3 sm:grid-cols-2">
         ${swmInput("swm-d-nombre", "Nombre de quien recibe", `maxlength="100" value="${dv("nombre", swm.name)}"`)}
@@ -822,7 +830,8 @@ function initSwm() {
     }
     const f = t.closest("[data-swm-form]");
     if (f) {
-      swm.form = swm.form === f.dataset.swmForm ? "" : f.dataset.swmForm;
+      swm.soloMexico = f.hasAttribute("data-swm-solo-mx");
+      swm.form = swm.form === f.dataset.swmForm && !swm.soloMexico ? "" : f.dataset.swmForm;
       document.getElementById("swm-form-box").innerHTML = swmFormHTML();
       if (swm.form) document.getElementById("swm-form-box").scrollIntoView({ behavior: "smooth", block: "nearest" });
       return;

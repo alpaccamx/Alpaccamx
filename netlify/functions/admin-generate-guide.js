@@ -6,7 +6,7 @@
 //
 // Body esperado (JSON):
 //   {
-//     orderId, weight, provider: "enviosperros" | "skydropx",
+//     orderId | envioId, weight, provider: "enviosperros" | "skydropx",
 //     destination,                          -- datos del destinatario
 //     // solo si provider === "enviosperros":
 //     courier, service,
@@ -26,6 +26,8 @@ const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
+const { getRecord, mutateRecord } = require("./lib/swm-store.js");
+const { avisar } = require("./lib/swm-core.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -47,14 +49,20 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "JSON inválido." });
   }
 
-  const { orderId, weight, provider, destination } = body;
+  const { orderId, envioId, weight, provider, destination } = body;
   const weightNum = Number(weight);
-  if (!orderId || !weightNum || weightNum <= 0 || !provider || !destination) {
+  if ((!orderId && !envioId) || !weightNum || weightNum <= 0 || !provider || !destination) {
     return jsonResponse(400, { error: "Faltan datos para generar la guía." });
   }
 
-  const existing = await getOrder(orderId);
-  if (!existing) return jsonResponse(404, { error: "Pedido no encontrado." });
+  if (envioId) {
+    const envio = await getRecord("envio", String(envioId));
+    if (!envio) return jsonResponse(404, { error: "Envío no encontrado." });
+    if (!["pagado", "en_mexico"].includes(envio.status)) return jsonResponse(409, { error: "Ese envío no está pagado o ya se mandó." });
+  } else {
+    const existing = await getOrder(orderId);
+    if (!existing) return jsonResponse(404, { error: "Pedido no encontrado." });
+  }
 
   try {
     let trackingNumber;
@@ -99,6 +107,22 @@ exports.handler = async (event) => {
       carrierLabel = `${carrierSlug || "Skydropx"} ${serviceCode || ""}`.trim();
     } else {
       return jsonResponse(400, { error: "Paquetería no reconocida." });
+    }
+
+    // Envío de Dirección americana: igual que "Marcar enviado" en admin-swm.
+    if (envioId) {
+      const at = new Date().toISOString();
+      const rec = await mutateRecord("envio", String(envioId), (e) => {
+        e.paqueteria = carrierLabel; e.guia = trackingNumber; e.status = "enviado"; e.enviadoAt = at;
+        e.history = [...(e.history || []), { at, status: "enviado", guiaGenerada: provider }];
+        return e;
+      });
+      await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => {
+        p.status = "enviado"; p.history = [...(p.history || []), { at, status: "enviado" }]; return p;
+      })));
+      const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+      await avisar(rec, `tu envío ${rec.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${esc(rec.paqueteria)}</b><br>Guía: <b>${esc(rec.guia)}</b></p>`);
+      return jsonResponse(200, { envio: rec });
     }
 
     const order = await updateOrderFields(orderId, {

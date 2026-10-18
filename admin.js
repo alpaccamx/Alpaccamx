@@ -4394,6 +4394,8 @@ ${itemLines}
   let swmSearch = "";
   let swmSinRegistroOpen = false;
   let swmNuevaCompraOpen = false;
+  let swmConsolidarEmail = ""; // clienta con el formulario "Juntar en una caja" abierto
+  const swmGuiaState = {}; // envioId -> { rates, selected }
   let swmEditCompraId = "";
 
   function swmCobrable(kg, alto, ancho, largo) {
@@ -4467,6 +4469,66 @@ ${itemLines}
     }
   }
 
+  async function swmGuia(t) {
+    const card = t.closest("[data-swm-id]");
+    const id = card.dataset.swmId;
+    const g = (k) => (card.querySelector(`[data-g="${k}"]`) || {}).value?.trim() || "";
+    const errEl = card.querySelector("[data-guia-error]");
+    const ratesEl = card.querySelector("[data-guia-rates]");
+    const genBtn = card.querySelector("[data-guia-generar]");
+    errEl.textContent = "";
+    const rateEl = t.closest("[data-guia-rate]");
+    if (rateEl) {
+      swmGuiaState[id].selected = Number(rateEl.dataset.guiaRate);
+      ratesEl.querySelectorAll("[data-guia-rate]").forEach((l) => l.classList.toggle("selected", l === rateEl));
+      rateEl.querySelector("input").checked = true;
+      genBtn.disabled = false;
+      return;
+    }
+    const weight = parseFloat(g("peso"));
+    if (!(weight > 0)) { errEl.textContent = "Escribe el peso de la caja."; return; }
+    if (!/^\d{5}$/.test(g("cp"))) { errEl.textContent = "Revisa el código postal."; return; }
+    if (t.closest("[data-guia-cotizar]")) {
+      genBtn.disabled = true; swmGuiaState[id] = null;
+      ratesEl.textContent = "Cotizando en Envíos Perros y Skydropx...";
+      try {
+        const res = await fetch("/.netlify/functions/admin-shipping-rates", {
+          method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ envioId: id, weight, destinationZipCode: g("cp"), destinationState: g("estado"), destinationCity: g("ciudad"), destinationNeighborhood: g("colonia") }),
+        });
+        const data = await res.json();
+        if (!res.ok || !(data.rates || []).length) { ratesEl.textContent = ""; errEl.textContent = data.error || "No hay opciones de envío para esos datos."; return; }
+        swmGuiaState[id] = { rates: data.rates, selected: null };
+        const badge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
+        ratesEl.innerHTML = data.rates.map((r, i) => `<label class="rate-option" data-guia-rate="${i}"><input type="radio" name="guia-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}</span></label>`).join("");
+      } catch (err) { ratesEl.textContent = ""; errEl.textContent = "No se pudo conectar con el servidor."; }
+      return;
+    }
+    const st = swmGuiaState[id];
+    if (!st || st.selected == null) { errEl.textContent = "Elige una paquetería primero."; return; }
+    if (!confirm("¿Generar la guía? Se cobra en tu cuenta de la paquetería y a la clienta le llega el aviso.")) return;
+    const r = st.rates[st.selected];
+    const destination = {
+      name: g("nombre").slice(0, 30) || "Cliente", phone: g("telefono").replace(/[^0-9]/g, "").slice(-10),
+      street: g("calle"), exteriorNumber: g("ext") || "S/N", neighborhood: g("colonia").slice(0, 25), city: g("ciudad"), state: g("estado"),
+      zipCode: g("cp"), references: g("referencias").slice(0, 25) || "Sin referencias",
+    };
+    if (g("int")) destination.interiorNumber = g("int");
+    genBtn.disabled = true; const label = genBtn.textContent; genBtn.textContent = "Generando guía...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-generate-guide", {
+        method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ envioId: id, weight, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo generar la guía.");
+      showToast(`✅ Guía ${data.envio.guia} generada y aviso enviado`);
+      await loadSwm({ quiet: true });
+    } catch (err) {
+      errEl.textContent = err.message; genBtn.disabled = false; genBtn.textContent = label;
+    }
+  }
+
   function swmMatches(r) {
     const q = swmSearch.trim().toLowerCase();
     if (!q) return true;
@@ -4515,7 +4577,10 @@ ${itemLines}
     } else if (swmTab === "almacen") {
       html = P.filter((p) => p.status === "recibido" && !p.enMexicoAt && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes en el almacén.</p>`;
     } else if (swmTab === "mexico") {
-      html = P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt && swmMatches(p)).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes cruzados a México.</p>`;
+      const mx = P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt && swmMatches(p));
+      const porClienta = new Map();
+      mx.forEach((p) => { const k = p.email || "—"; if (!porClienta.has(k)) porClienta.set(k, []); porClienta.get(k).push(p); });
+      html = [...porClienta.entries()].map(([email, ps]) => swmMexicoGrupo(email, ps)).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes cruzados a México.</p>`;
     } else if (swmTab === "compras") {
       html = swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status) && swmMatches(c)).map(swmCompraCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay compras activas.</p>`;
     } else if (swmTab === "envios") {
@@ -4781,6 +4846,49 @@ ${itemLines}
     </div>`;
   }
 
+  /* Pestaña "En México": paquetes por clienta, con la opción de juntar
+     varios en una sola caja (un envío con una sola guía). */
+  function swmMexicoGrupo(email, ps) {
+    const libres = ps.filter((p) => p.status === "recibido" && !p.datosPendientes);
+    const p0 = ps[0];
+    const ultimo = swmData.envios.filter((e) => e.email === email && e.direccion).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+    const d = (ultimo && ultimo.direccion) || { nombre: p0.name || "", telefono: p0.phone || "" };
+    const abierto = swmConsolidarEmail === email;
+    const inp = (k, l, extra = "") => `<label>${l}<input data-dir="${k}" type="text" value="${escapeHtml(d[k] || "")}" ${extra}></label>`;
+    const form = abierto ? `<div class="swm-card" data-swm-consolidar="${escapeHtml(email)}" style="background:#fdf6f9;">
+        <div class="meta" style="font-weight:700;">¿Qué paquetes van en la caja?</div>
+        ${libres.map((p) => `<label class="swm-check"><input type="checkbox" data-cons-pick="${escapeHtml(p.id)}" checked> ${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "")} · ${p.cobrable || "?"} kg</label>`).join("")}
+        <div class="meta" style="font-weight:700;margin-top:8px;">Dirección de entrega${ultimo ? " (la de su último envío)" : ""}</div>
+        <div class="grid">${inp("nombre", "Nombre de quien recibe")}${inp("telefono", "Teléfono")}${inp("calle", "Calle y número")}${inp("colonia", "Colonia")}${inp("ciudad", "Ciudad")}${inp("estado", "Estado")}${inp("cp", "Código postal", 'maxlength="5" inputmode="numeric"')}${inp("referencias", "Referencias")}</div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-cons-save>📦 Crear envío en una sola caja</button><button type="button" class="btn-secondary" data-cons-toggle="">Cancelar</button></div>
+        <div class="meta">Después lo cotizas en "Envíos" como siempre y a ella le llega para pagar.</div>
+      </div>` : "";
+    return `<div style="margin:0 0 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+        <b>${escapeHtml(p0.name || email)} · ${ps.length} paquete${ps.length === 1 ? "" : "s"} en México</b>
+        ${libres.length && !abierto ? `<button type="button" class="btn-primary" data-cons-toggle="${escapeHtml(email)}" style="padding:8px 14px;font-size:13px;">📦 ${libres.length > 1 ? "Juntar en una caja y crear envío" : "Crear envío"}</button>` : ""}
+      </div>${form}${ps.map(swmPaqueteCard).join("")}</div>`;
+  }
+
+  /* Guía real para un envío de Dirección americana (Envíos Perros /
+     Skydropx), igual que en los pedidos de la tienda. */
+  function swmGuiaForm(e) {
+    const d = e.direccion || {};
+    const pk = (e.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
+    const kg = Math.max(1, Math.ceil(pk.reduce((s, p) => s + (Number(p.kg) || Number(p.cobrable) || 0), 0)) || Math.ceil((e.sugerido && e.sugerido.kg) || 1));
+    const inp = (k, l, v, extra = "") => `<label>${l}<input data-g="${k}" type="text" value="${escapeHtml(v || "")}" ${extra}></label>`;
+    return `<details style="margin-top:10px;"><summary style="cursor:pointer;font-weight:700;font-size:14px;">📦 Generar guía real (comparar precios)</summary>
+      <div class="grid" style="margin-top:8px;">
+        ${inp("peso", "Peso total de la caja (kg)", kg, 'inputmode="decimal"')}${inp("nombre", "Nombre", d.nombre)}${inp("telefono", "Teléfono", d.telefono)}
+        ${inp("calle", "Calle", d.calle)}${inp("ext", "Núm. exterior", "")}${inp("int", "Núm. interior", "")}
+        ${inp("colonia", "Colonia", d.colonia)}${inp("ciudad", "Ciudad", d.ciudad)}${inp("estado", "Estado", d.estado)}${inp("cp", "Código postal", d.cp)}${inp("referencias", "Referencias", d.referencias)}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-secondary" data-guia-cotizar>Cotizar paqueterías</button><button type="button" class="btn-primary" data-guia-generar disabled>Generar guía y avisarle</button></div>
+      <div data-guia-error style="color:#b33660;font-size:13px;margin-top:6px;"></div>
+      <div class="rate-options" data-guia-rates style="margin-top:6px;"></div>
+    </details>`;
+  }
+
   function swmEnvioCard(e) {
     const st = { solicitado: "🆕 Por cotizar", cotizado: "💳 Cotizado", pagado: "✅ Pagado · hay que mandar", en_mexico: "🇲🇽 En México · hay que mandar", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[e.status] || e.status;
     const pk = (e.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
@@ -4799,7 +4907,8 @@ ${itemLines}
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("envio", e)}</div>`;
     } else if (e.status === "pagado" || e.status === "en_mexico") {
       action = `<div class="grid"><label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(e.paqueteria || "Estafeta")}"></label><label>Número de guía<input data-f="guia" type="text" value="${escapeHtml(e.guia || "")}"></label></div>
-        <div style="display:flex;gap:8px;margin-top:10px;">${e.status === "pagado" ? `<button type="button" class="btn-secondary" data-swm-en-mexico>🇲🇽 Ya está en México</button>` : ""}<button type="button" class="btn-primary" data-swm-enviado>🚚 Marcar enviado (mandarle la guía)</button></div>`;
+        <div style="display:flex;gap:8px;margin-top:10px;">${e.status === "pagado" ? `<button type="button" class="btn-secondary" data-swm-en-mexico>🇲🇽 Ya está en México</button>` : ""}<button type="button" class="btn-primary" data-swm-enviado>🚚 Marcar enviado (mandarle la guía)</button></div>
+        ${swmGuiaForm(e)}`;
     } else if (e.status === "enviado") {
       action = `<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-secondary" data-swm-entregado>🎁 Marcar entregado</button></div>`;
     }
@@ -4849,6 +4958,21 @@ ${itemLines}
     const t = e.target;
     const tab = t.closest("[data-swm-tab]");
     if (tab) { swmTab = tab.dataset.swmTab; renderSwmAdmin(); return; }
+    const consToggle = t.closest("[data-cons-toggle]");
+    if (consToggle) { swmConsolidarEmail = consToggle.dataset.consToggle; renderSwmAdmin(); return; }
+    if (t.closest("[data-cons-save]")) {
+      const box = t.closest("[data-swm-consolidar]");
+      const paqueteIds = [...box.querySelectorAll("[data-cons-pick]:checked")].map((c) => c.dataset.consPick);
+      if (!paqueteIds.length) { alert("Elige al menos un paquete."); return; }
+      const direccion = Object.fromEntries([...box.querySelectorAll("[data-dir]")].map((i) => [i.dataset.dir, i.value.trim()]));
+      const ok = await swmAct({ accion: "crear_envio", email: box.dataset.swmConsolidar, paqueteIds, direccion }, t.closest("button"));
+      if (ok) { swmConsolidarEmail = ""; swmTab = "envios"; renderSwmAdmin(); }
+      return;
+    }
+    if (t.closest("[data-guia-cotizar]") || t.closest("[data-guia-generar]") || t.closest("[data-guia-rate]")) {
+      swmGuia(t);
+      return;
+    }
     if (t.closest("[data-swm-nc-toggle]")) {
       swmNuevaCompraOpen = !swmNuevaCompraOpen;
       document.getElementById("swm-nc-box").innerHTML = swmNuevaCompraOpen ? swmNuevaCompraForm() : "";

@@ -9,6 +9,7 @@
 //   sin_registrar     { email?, etiqueta, tienda?, rastreo?, kg, alto, ancho, largo, fotos?, notaClienta? }
 //                     (llegó un paquete que nadie registró; sin email queda "sin dueña")
 //   asignar_paquete   { id, email }   (un paquete sin dueña ya tiene dueña)
+//   crear_envio       { email, paqueteIds[], direccion } (Mae junta paquetes de una clienta en una caja)
 //   editar_paquete    { id, tienda?, rastreo?, contenido?, valorUSD?, cobro?, kg?, alto?, ancho?, largo?, notaClienta?, notaPrivada? }
 //   cotizar_compra    { id, productos, cruce?, notaClienta? }   (MXN)
 //   crear_compra      { email, name?, phone?, tienda, items: [{ nombre, tono?, cantidad, precio }], cobro, cruce?, notaClienta?, fotos? }
@@ -366,6 +367,42 @@ exports.handler = async (event) => {
         });
         if (rec) await avisar(rec, `revisa tu pago de ${rec.folio}: ${motivo}`, `<h2 style="margin:0 0 8px;font-size:20px;">No pudimos validar tu pago</h2><p style="font-size:14px;">${esc(motivo)}</p><p style="font-size:14px;">Puedes volver a subir tu comprobante o pagar con tarjeta desde tu casillero.</p>`);
         return rec ? json(200, { [kind]: rec }) : json(404, { error: "No existe." });
+      }
+
+      // Mae junta varios paquetes de una clienta en una sola caja (un solo
+      // envío nacional con una guía). Sigue el flujo normal: cotizar → pago.
+      case "crear_envio": {
+        const email = clip(b.email, 200).toLowerCase();
+        const ids = [...new Set((Array.isArray(b.paqueteIds) ? b.paqueteIds : []).map(String))].slice(0, 40);
+        if (!email || !ids.length) return json(400, { error: "Elige al menos un paquete." });
+        const d = b.direccion || {};
+        const direccion = {
+          nombre: clip(d.nombre, 100), telefono: clip(d.telefono, 30), calle: clip(d.calle, 150), colonia: clip(d.colonia, 100),
+          ciudad: clip(d.ciudad, 80), estado: clip(d.estado, 60), cp: clip(d.cp, 10), referencias: clip(d.referencias, 200),
+        };
+        if (!direccion.nombre || !direccion.calle || !direccion.ciudad || !/^\d{5}$/.test(direccion.cp) || !direccion.telefono) {
+          return json(400, { error: "Completa la dirección: nombre, teléfono, calle y número, ciudad y código postal de 5 dígitos." });
+        }
+        const paquetes = await Promise.all(ids.map((x) => getRecord("paquete", x)));
+        if (paquetes.some((p) => !p || p.email !== email || p.status !== "recibido")) return json(409, { error: "Solo se pueden juntar paquetes de la misma clienta que estén en el almacén o en México (sin envío)." });
+        const pendiente = paquetes.find((p) => p.datosPendientes || (p.separar && p.separar.estado === "pedida"));
+        if (pendiente) return json(409, { error: `${pendiente.folio} tiene datos o una separación pendiente.` });
+        const consolidar = paquetes.length > 1;
+        const sug = await cotizacionSugerida(paquetes, consolidar);
+        const p0 = paquetes[0];
+        const rec = {
+          id: randomUUID(), folio: await nextFolio("envio"), email, name: p0.name || "", phone: p0.phone || "",
+          paqueteIds: ids, consolidar, direccion, creadoPor: "mae",
+          status: "solicitado", sugerido: { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro, extras: sug.extras, kg: sug.kg },
+          cotizacion: null, pago: null, paqueteria: "", guia: "", notaClienta: "", notaPrivada: "",
+          history: [{ at: now(), status: "solicitado", por: "mae" }], createdAt: now(), updatedAt: now(),
+        };
+        await saveRecord("envio", rec);
+        await Promise.all(ids.map((x) => mutateRecord("paquete", x, (p) => {
+          if (p.status !== "recibido") return null;
+          p.status = "en_envio"; p.envioId = rec.id; return p;
+        })));
+        return json(200, { envio: rec });
       }
 
       // Ya cruzó: está en México, antes de mandarlo por paquetería.
