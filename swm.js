@@ -250,7 +250,7 @@ function renderSwmCasillero() {
     <div class="rounded-3xl bg-gradient-to-br from-blush/60 via-blush/25 to-lilac/25 p-4">
       <div class="grid grid-cols-3 gap-2">
         ${kpi(P.filter((p) => p.status === "registrado").length, "por llegar")}
-        ${kpi(P.filter((p) => p.status === "recibido").length, "en el almacén")}
+        ${kpi(P.filter((p) => p.status === "recibido" && !p.enMexicoAt).length, "en el almacén")}
         ${kpi(P.filter((p) => ["enviado", "entregado"].includes(p.status)).length, "enviados")}
       </div>
       ${porPagar ? `<p class="mt-3 rounded-xl bg-white/90 px-3 py-2 text-sm font-semibold text-rose-ink">💳 Tienes ${porPagar} cotización${porPagar > 1 ? "es" : ""} lista${porPagar > 1 ? "s" : ""} para pagar.</p>` : ""}
@@ -292,18 +292,22 @@ function swmTabHTML() {
   return swm.paquetes.length ? swm.paquetes.map(swmPaqueteCardHTML).join("") : empty("Todavía no tienes paquetes. Compra en tu tienda favorita, mándalo a tu dirección americana y regístralo aquí.");
 }
 
+// Ya cruzó a México: el status sigue en almacén/en un envío (para poder
+// pedir su envío), pero a la clienta se le muestra "En México".
+const swmPkgEstado = (p) => (p.enMexicoAt && ["recibido", "en_envio"].includes(p.status) ? "en_mexico" : p.status);
+
 function swmPaqueteCardHTML(p) {
   const desc = [p.tienda, p.paqueteria, p.rastreo && `rastreo ${p.rastreo}`].filter(Boolean).join(" · ");
   let extra = "";
-  if (p.status === "recibido" && p.receivedAt) {
+  if (p.status === "recibido" && p.receivedAt && !p.enMexicoAt) {
     const hasta = new Date(new Date(p.receivedAt).getTime() + swm.almacenajeDias * 864e5);
     const dias = Math.ceil((hasta - Date.now()) / 864e5);
     extra = `<p class="text-xs ${dias <= 5 ? "text-sale font-semibold" : "text-ink/65"} mt-1">Almacenaje gratis hasta el ${swmDate(hasta.toISOString(), { day: "numeric", month: "long" })}${dias > 0 ? ` (${dias} día${dias === 1 ? "" : "s"})` : " · ya venció"}</p>`;
   }
   const fotos = (p.fotos || []).map((f) => `<a href="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" target="_blank" rel="noopener"><img src="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" alt="Foto de tu paquete" loading="lazy" class="w-20 h-20 rounded-xl object-cover bg-pill"></a>`).join("");
   return `<article class="rounded-2xl border border-ink/10 p-4">
-    <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(p.folio)}</b>${swmPill(SWM_PKG_STATUS, p.datosPendientes ? "sin_registro" : p.status)}</div>
-    ${p.status === "cancelado" ? "" : swmStepsHTML("paquete", p.status)}
+    <div class="flex flex-wrap items-center justify-between gap-2"><b>${escapeHtml(p.folio)}</b>${swmPill(SWM_PKG_STATUS, p.datosPendientes ? "sin_registro" : swmPkgEstado(p))}</div>
+    ${p.status === "cancelado" ? "" : swmStepsHTML("paquete", swmPkgEstado(p))}
     <p class="text-sm mt-2">${escapeHtml(desc || "Paquete")}${p.origen === "compra" ? ' <span class="text-xs text-lilac-ink">(compra de Mae)</span>' : ""}</p>
     ${p.contenido ? `<p class="text-xs text-ink/65">${escapeHtml(p.contenido)}</p>` : ""}
     ${p.valorTotal ? `<p class="text-xs text-ink/65">Valor declarado: ${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}${swmNumArchivos(p) ? ` · 📄 ${swmNumArchivos(p)} archivo${swmNumArchivos(p) === 1 ? "" : "s"} recibido${swmNumArchivos(p) === 1 ? "" : "s"}` : ""}</p>` : ""}
