@@ -4726,7 +4726,7 @@ ${itemLines}
   function swmPaqueteWa(p) {
     const nombre = String(p.name || "").split(/\s+/)[0];
     const que = [p.tienda, p.rastreo && `guía ${p.rastreo}`].filter(Boolean).join(", ");
-    const txt = `¡Hola${nombre ? ` ${nombre}` : ""}! 📦 Ya llegó tu paquete ${p.folio}${que ? ` (${que})` : ""} a nuestro almacén. Te mando las fotos 👇\n\nTe aviso en cuanto cruce a México y ahí pides tu envío a casa en tu casillero: https://alpacca.mx/?ver=shopwithmae`;
+    const txt = `¡Hola${nombre ? ` ${nombre}` : ""}! 📦 Ya llegó tu paquete ${p.folio}${que ? ` (${que})` : ""} a nuestro almacén. Te mando las fotos 👇\n\nTe aviso en cuanto cruce a México y ahí pides tu envío a casa en tu casillero: https://alpacca.mx/?ver=direccion-americana`;
     return `${waLinkFromPhone(p.phone)}?text=${encodeURIComponent(txt)}`;
   }
 
@@ -4812,7 +4812,7 @@ ${itemLines}
     const { productos, cruce } = swmNcLeer(box);
     box.querySelector("[data-swm-nc-total]").innerHTML = productos ? `Productos ${formatPrice(productos)}${cruce ? ` + cruce ${formatPrice(cruce)}` : ""} = <b>${formatPrice(productos + cruce)}</b>` : "";
   }
-  const swmCompraLink = (c) => `${location.origin}/?ver=shopwithmae&compra=${encodeURIComponent(c.id)}`;
+  const swmCompraLink = (c) => `${location.origin}/?ver=direccion-americana&compra=${encodeURIComponent(c.id)}`;
   function swmCompraWa(c) {
     const wa = waLinkFromPhone(c.phone);
     const nombre = String(c.name || "").split(/\s+/)[0];

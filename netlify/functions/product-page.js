@@ -7,7 +7,7 @@
 // la ficha pide al abrirse (el catálogo ligero no trae la descripción).
 //
 // También sirve los links de listados (?marca=, ?categoria=, ?pais=,
-// ?ver=stock|catalogo|shopwithmae, ?q=) con su propio título, descripción e
+// ?ver=stock|catalogo|direccion-americana, ?q=) con su propio título, descripción e
 // imagen, para que al pegarlos en WhatsApp la miniatura sea de esa marca y
 // no la genérica. Las imágenes salen de assets/og/<tipo>-<slug>.jpg
 // (scripts/og_images.py); si una marca no tiene, se usa la foto de uno de
@@ -187,7 +187,7 @@ async function listingMeta(q) {
   }
   if (q.ver === "shopwithmae" || q.ver === "direccion-americana") {
     const image = await ogImage("ver", "shopwithmae");
-    return { title: "Dirección americana · Alpacca", desc: "Compra en tiendas de EE.UU. (Sephora, Ulta, Amazon...) con tu dirección americana y recíbelo en México.", url: `${SITE}/?ver=shopwithmae`, image, ogSize: Boolean(image) };
+    return { title: "Dirección americana · Alpacca", desc: "Compra en tiendas de EE.UU. (Sephora, Ulta, Amazon...) con tu dirección americana y recíbelo en México.", url: `${SITE}/?ver=direccion-americana`, image, ogSize: Boolean(image) };
   }
   if (q.ver === "favoritos") {
     const image = await ogImage("ver", "favoritos");

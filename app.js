@@ -3948,7 +3948,7 @@ const DEFAULT_VIEW_ROUTES = {
   stock: { ver: "stock" },
   wishlist: { ver: "favoritos" },
   americano: { ver: "americano" },
-  swm: { ver: "shopwithmae" },
+  swm: { ver: "direccion-americana" },
   piel: { ver: "tipo-de-piel" },
 };
 
@@ -4496,7 +4496,7 @@ function setRouteMeta(r) {
   else if (r.categoria) { title = `${r.categoria} coreano — Alpacca`; canonical += `?categoria=${encodeURIComponent(r.categoria)}`; }
   else if (r.ver === "catalogo") { title = "Catálogo completo — Alpacca"; canonical += "?ver=catalogo"; }
   else if (r.ver === "stock") { title = "Stock en México, entrega inmediata — Alpacca"; canonical += "?ver=stock"; }
-  else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México · Alpacca"; canonical += "?ver=shopwithmae"; }
+  else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México · Alpacca"; canonical += "?ver=direccion-americana"; }
   else if (r.ver === "tipo-de-piel") { title = "Test de tipo de piel: arma tu rutina coreana — Alpacca"; canonical += "?ver=tipo-de-piel"; }
   else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
   document.title = title;
@@ -4506,7 +4506,14 @@ function setRouteMeta(r) {
 
 function openRouteView(params, restore) {
   const q = params.get("q");
-  const ver = params.get("ver");
+  let ver = params.get("ver");
+  // Link viejo de la dirección americana: se abre igual, pero la barra del
+  // navegador queda con el nombre nuevo.
+  if (ver === "shopwithmae") {
+    ver = "direccion-americana";
+    params.set("ver", ver);
+    try { history.replaceState(history.state, "", `${location.pathname}?${params.toString()}`); } catch (err) { /* nada */ }
+  }
   if (q) {
     document.getElementById("search-input").value = q;
     renderSearchResults(q, { restore });
