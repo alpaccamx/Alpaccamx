@@ -70,7 +70,7 @@ function swmCrucePeso(kg) {
   return kg <= 15 ? SWM_TARIFA[kg] : SWM_TARIFA[15] + (kg - 15) * SWM_KILO_EXTRA;
 }
 
-/* Link que Mae manda por WhatsApp: ?ver=shopwithmae&compra=<id> abre esa
+/* Link que Mae manda por WhatsApp: ?ver=direccion-americana&compra=<id> (o el viejo ?ver=shopwithmae) abre esa
    cotización (después de iniciar sesión, si hace falta). */
 let swmFocusCompra = new URLSearchParams(location.search).get("compra") || "";
 
@@ -91,7 +91,7 @@ function swmMostrarCompra() {
 
 function openSwmSection({ restore = false } = {}) {
   document.getElementById("search-input").value = "";
-  showHomeView("swm", { ver: "shopwithmae" });
+  showHomeView("swm", { ver: "direccion-americana" });
   renderSwm();
   if (!restore) document.getElementById("swm-section").scrollIntoView({ behavior: "auto", block: "start" });
 }
