@@ -3036,6 +3036,9 @@ ${itemLines}
   let currentBucket = "";
   let restockCount = null;
   const abwExcluded = new Set();
+  // "compartido": solo los pedidos del pedido compartido de Corea (los que
+  // usaron un cupón sin mínimo), para pedirlos juntos en un solo carrito.
+  let abwFiltro = "todos";
 
   function orderStage(o) {
     let rank = STAGE_ORDER.indexOf(o.stage);
@@ -3321,7 +3324,8 @@ ${itemLines}
 
   /* ---------- Compras ABW (lista consolidada) ---------- */
   function abwOrders() {
-    return allOrders.filter((o) => orderBucket(o) === "por_abw");
+    const all = allOrders.filter((o) => orderBucket(o) === "por_abw");
+    return abwFiltro === "compartido" ? all.filter((o) => o.pedidoCompartido) : all;
   }
 
   function abwSelectedItems() {
@@ -3340,6 +3344,12 @@ ${itemLines}
   }
 
   function renderAbw() {
+    const nCompartido = allOrders.filter((o) => orderBucket(o) === "por_abw" && o.pedidoCompartido).length;
+    if (!nCompartido) abwFiltro = "todos";
+    const filtro = document.getElementById("abw-filtro");
+    filtro.style.display = nCompartido ? "flex" : "none";
+    const chip = (k, t) => `<button type="button" data-abw-filtro="${k}" class="${abwFiltro === k ? "btn-primary" : "btn-secondary"}" style="padding:8px 14px;font-size:14px;">${t}</button>`;
+    filtro.innerHTML = nCompartido ? chip("todos", "Todos") + chip("compartido", `👯 Solo pedido compartido (${nCompartido})`) : "";
     const orders = abwOrders();
     const has = orders.length > 0;
     document.getElementById("abw-empty").style.display = has ? "none" : "block";
@@ -3349,7 +3359,7 @@ ${itemLines}
         const n = supplierSourceableItems(o).reduce((s, it) => s + (it.qty || 0), 0);
         return `<label class="abw-order"><input type="checkbox" data-abw-order="${o.id}" ${abwExcluded.has(o.id) ? "" : "checked"} />
           <span class="who"><b>${escapeHtml((o.customer && o.customer.name) || "(sin nombre)")}</b>
-          <small>#${orderNumber(o)} · ${formatFecha(o.createdAt)} · ${n} pieza${n === 1 ? "" : "s"} por pedir</small></span></label>`;
+          <small>#${orderNumber(o)} · ${formatFecha(o.createdAt)} · ${n} pieza${n === 1 ? "" : "s"} por pedir${o.pedidoCompartido ? ` · 👯 compartido${o.cupon ? ` (${escapeHtml(o.cupon)})` : ""}` : ""}</small></span></label>`;
       })
       .join("");
     const items = abwSelectedItems();
@@ -5505,6 +5515,12 @@ ${itemLines}
     if (go === "abw") showView("compras");
     else if (go === "restock") showView("restock");
     else goToOrders(go);
+  });
+  document.getElementById("abw-filtro").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-abw-filtro]");
+    if (!b) return;
+    abwFiltro = b.dataset.abwFiltro;
+    renderAbw();
   });
   document.getElementById("abw-orders").addEventListener("change", (e) => {
     const cb = e.target.closest("[data-abw-order]");
