@@ -3318,7 +3318,7 @@ function renderQuickIcons() {
     return p.imagen;
   };
   const avail = products.filter((p) => !p.enStock);
-  const icons = [];
+  const icons = [{ key: "howto", label: "Cómo comprar", img: icon("como-comprar") }];
 
   if (avail.some((p) => (p.destacado || []).includes("Best Seller"))) {
     icons.push({ key: "best", label: "Best Seller", img: icon("best") });
@@ -3374,7 +3374,8 @@ function renderQuickIcons() {
       if (currentHomeView !== "home") showHomeView("home");
       document.getElementById(id).scrollIntoView({ behavior: scrollBehavior(), block: "start" });
     };
-    if (key === "best") goHomeTo("featured-section");
+    if (key === "howto") openHowToVideo();
+    else if (key === "best") goHomeTo("featured-section");
     else if (key === "stock") openStockSection();
     else if (key === "catalog") openFullCatalog();
     else if (key === "brands") goHomeTo("brands-section");
@@ -3382,6 +3383,46 @@ function renderQuickIcons() {
     else if (key.startsWith("cat:")) showCategoryProducts(key.slice(4));
   };
 }
+
+/* Video "Cómo comprar" (1 min) encima de la página. Lo abren el ícono de
+   accesos rápidos, las preguntas frecuentes, el carrito vacío
+   ([data-howto-video]) y su link propio alpacca.mx/?ver=como-comprar.
+   El video solo se descarga cuando se abre. */
+const HOWTO_VIDEO = "./assets/video/como-comprar-corea.mp4";
+function openHowToVideo() {
+  if (document.getElementById("howto-video")) return;
+  const back = document.activeElement;
+  const box = document.createElement("div");
+  box.id = "howto-video";
+  box.className = "fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-4";
+  box.setAttribute("role", "dialog");
+  box.setAttribute("aria-modal", "true");
+  box.setAttribute("aria-label", "Video: cómo comprar en Alpacca");
+  box.innerHTML = `<div class="relative h-full max-h-[90vh] aspect-[9/16] max-w-full">
+      <video src="${HOWTO_VIDEO}" poster="./assets/video/como-comprar-corea.webp" controls autoplay playsinline preload="metadata" class="w-full h-full rounded-2xl bg-black object-contain"></video>
+    </div>
+    <button type="button" data-howto-close class="absolute top-4 right-4 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-ink">Cerrar ✕</button>`;
+  const cerrar = () => {
+    box.querySelector("video").pause();
+    box.remove();
+    document.removeEventListener("keydown", esc);
+    document.body.classList.remove("overflow-hidden");
+    // Si llegó con el link del video, la barra regresa al inicio.
+    if (new URLSearchParams(location.search).get("ver") === "como-comprar") {
+      try { history.replaceState(history.state, "", location.pathname); } catch (err) { /* nada */ }
+    }
+    if (back && back.focus) back.focus();
+  };
+  const esc = (e) => { if (e.key === "Escape") cerrar(); };
+  box.addEventListener("click", (e) => { if (e.target === box || e.target.closest("[data-howto-close]")) cerrar(); });
+  document.addEventListener("keydown", esc);
+  document.body.classList.add("overflow-hidden");
+  document.body.appendChild(box);
+  box.querySelector("[data-howto-close]").focus();
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-howto-video]")) { e.preventDefault(); openHowToVideo(); }
+});
 
 /* ======================================================================
    Quiz de piel. Preguntas en CONFIG.SKIN_QUIZ: tipo de piel (2 preguntas
@@ -4498,6 +4539,7 @@ function setRouteMeta(r) {
   else if (r.ver === "stock") { title = "Stock en México, entrega inmediata — Alpacca"; canonical += "?ver=stock"; }
   else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México · Alpacca"; canonical += "?ver=direccion-americana"; }
   else if (r.ver === "tipo-de-piel") { title = "Test de tipo de piel: arma tu rutina coreana — Alpacca"; canonical += "?ver=tipo-de-piel"; }
+  else if (r.ver === "como-comprar") { title = "Cómo comprar en Alpacca (video de 1 minuto)"; canonical += "?ver=como-comprar"; }
   else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
   document.title = title;
   const link = document.querySelector('link[rel="canonical"]');
@@ -4532,6 +4574,7 @@ function openRouteView(params, restore) {
   else if (ver === "stock") openStockSection({ restore });
   else if (ver === "favoritos") openWishlistSection();
   else if (ver === "tipo-de-piel") openSkinQuiz({ restore });
+  else if (ver === "como-comprar") { showHomeView("home", { ver }); openHowToVideo(); }
   else if ((ver === "shopwithmae" || ver === "direccion-americana") && typeof openSwmSection === "function") openSwmSection({ restore });
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
   else if (ver === "mis-pedidos") { showHomeView("home"); if (!restore) openAccountPanel(); }
