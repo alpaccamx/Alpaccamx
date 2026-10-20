@@ -60,7 +60,7 @@ const CONFIG = {
   SHIPPING_MESSAGE: "📦 Stock sin mínimo de compra con 50% de descuento ✨",
 
   // Pedido mínimo para poder enviar la cotización, en pesos mexicanos (monto fijo).
-  MIN_ORDER_MXN: 5700,
+  MIN_ORDER_MXN: 6000,
 
   // El precio para pagar con tarjeta (Mercado Pago) se lee directo de la
   // columna opcional "Precio Tarjeta" de tu Google Sheet (ver README
