@@ -3318,7 +3318,7 @@ function renderQuickIcons() {
     return p.imagen;
   };
   const avail = products.filter((p) => !p.enStock);
-  const icons = [{ key: "howto", label: "Cómo comprar", img: icon("como-comprar") }];
+  const icons = [];
 
   if (avail.some((p) => (p.destacado || []).includes("Best Seller"))) {
     icons.push({ key: "best", label: "Best Seller", img: icon("best") });
@@ -4574,7 +4574,6 @@ function openRouteView(params, restore) {
   else if (ver === "stock") openStockSection({ restore });
   else if (ver === "favoritos") openWishlistSection();
   else if (ver === "tipo-de-piel") openSkinQuiz({ restore });
-  else if (ver === "como-comprar") { showHomeView("home", { ver }); openHowToVideo(); }
   else if ((ver === "shopwithmae" || ver === "direccion-americana") && typeof openSwmSection === "function") openSwmSection({ restore });
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
   else if (ver === "mis-pedidos") { showHomeView("home"); if (!restore) openAccountPanel(); }
