@@ -185,6 +185,10 @@ async function listingMeta(q) {
     const image = await ogImage("ver", "tipo-de-piel");
     return { title: "¿Cuál es tu tipo de piel? Test gratis — Alpacca", desc: "Contesta 5 preguntas y te armamos tu rutina coreana paso a paso, con productos para tu tipo de piel.", url: `${SITE}/?ver=tipo-de-piel`, image, ogSize: Boolean(image) };
   }
+  if (q.ver === "como-comprar") {
+    const image = await ogImage("ver", "como-comprar");
+    return { title: "Cómo comprar en Alpacca · Video de 1 minuto", desc: "Paso a paso: busca tu skincare coreano, agrégalo al carrito, paga y recíbelo en tu casa.", url: `${SITE}/?ver=como-comprar`, image, ogSize: Boolean(image) };
+  }
   if (q.ver === "shopwithmae" || q.ver === "direccion-americana") {
     const image = await ogImage("ver", "shopwithmae");
     return { title: "Dirección americana · Alpacca", desc: "Compra en tiendas de EE.UU. (Sephora, Ulta, Amazon...) con tu dirección americana y recíbelo en México.", url: `${SITE}/?ver=direccion-americana`, image, ogSize: Boolean(image) };

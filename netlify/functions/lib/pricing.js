@@ -24,7 +24,7 @@ const CSV_URLS = {
 };
 
 // Debe coincidir con CONFIG.MIN_ORDER_MXN en app.js.
-const MIN_ORDER_MXN = 5700;
+const MIN_ORDER_MXN = 6000;
 
 // Tolerancia de redondeo entre el cálculo del navegador y el del servidor.
 // Más de esto se trata como precio alterado o desactualizado.

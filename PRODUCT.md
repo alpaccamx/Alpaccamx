@@ -8,7 +8,7 @@ web
 
 ## Users
 
-- **Primary: resellers in Mexico (mayoreo).** Small businesses and individuals who resell Korean skincare to their own customers. They buy in volume, compare unit prices and margins, pick between single units and boxes (`Presentacion`), and need to reach the order minimum (`CONFIG.MIN_ORDER_MXN`, currently $5,700 MXN) for Korea-imported items. Most browse and buy on their phones and are used to arranging purchases over WhatsApp.
+- **Primary: resellers in Mexico (mayoreo).** Small businesses and individuals who resell Korean skincare to their own customers. They buy in volume, compare unit prices and margins, pick between single units and boxes (`Presentacion`), and need to reach the order minimum (`CONFIG.MIN_ORDER_MXN`, currently $6,000 MXN) for Korea-imported items. Most browse and buy on their phones and are used to arranging purchases over WhatsApp.
 - **Secondary: individual shoppers** who buy for their own routine, usually from the in-stock section (no minimum) or by meeting the minimum. The skin-type quiz and skin-concern tiles are aimed at them, and at resellers advising their own clients.
 - **Operator: Mae**, who runs the business alone from `/admin.html`: she confirms transfer payments against uploaded receipts, edits orders, orders from the supplier, generates shipping labels, and notifies customers by WhatsApp.
 

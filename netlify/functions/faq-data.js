@@ -8,7 +8,7 @@ const FAQS = [
   {
     palabras: ["minimo", "mínimo", "cuanto es el pedido", "pedido minimo"],
     respuesta:
-      "¡Hola! 👋 Nuestro pedido mínimo de compra es de $5,100 MXN. Puedes armar tu pedido y ver los precios en nuestro catálogo: [PON_AQUI_EL_LINK_DE_TU_SITIO]",
+      "¡Hola! 👋 Nuestro pedido mínimo de compra es de $6,000 MXN en productos de Corea (lo que está en Stock en México no tiene mínimo). Puedes armar tu pedido y ver los precios en nuestro catálogo: [PON_AQUI_EL_LINK_DE_TU_SITIO]",
   },
   {
     palabras: ["horario", "hora", "abren", "cierran", "atienden"],
