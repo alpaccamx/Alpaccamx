@@ -128,10 +128,12 @@ function csvToProducts(text) {
     .map((r, n) => {
       const get = (i) => (i >= 0 && r[i] != null ? r[i].trim() : "");
       const disponibleRaw = get(iDisponible).toLowerCase();
+      // "PREORDEN" se puede pedir (ABW lo surte en ~21 días), igual que en app.js.
+      const preorden = disponibleRaw === "preorden";
       const disponible =
         disponibleRaw === ""
           ? true
-          : ["si", "sí", "yes", "true", "1", "disponible"].includes(disponibleRaw);
+          : preorden || ["si", "sí", "yes", "true", "1", "disponible"].includes(disponibleRaw);
       const precioRaw = normalizeMoneyCell(get(iPrecio));
       const precioTarjetaRaw = normalizeMoneyCell(get(iPrecioTarjeta));
       const pesoRaw = get(iPeso).replace(/[^0-9.,]/g, "").replace(",", ".");
@@ -146,6 +148,7 @@ function csvToProducts(text) {
         peso: parseFloat(pesoRaw) || 0,
         presentacion: get(iPresentacion),
         disponible,
+        preorden,
         costoUSD: parseFloat(normalizeMoneyCell(get(iPrecioUsd))) || 0,
       };
     })
@@ -497,6 +500,7 @@ async function priceOrder({ source, items, customer, soldMap, sinMinimo = false,
       peso: main.peso || 0,
       presentacion: main.presentacion || "",
       costoUSD: main.costoUSD || 0,
+      ...(main.preorden ? { preorden: true } : {}),
     });
   }
 

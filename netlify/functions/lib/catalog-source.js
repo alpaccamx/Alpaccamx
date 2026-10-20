@@ -67,7 +67,7 @@ async function loadStock({ maxAgeMs = TTL_MS } = {}) {
 /* "SI"/vacío = disponible, igual que la tienda. */
 function isAvailable(row) {
   const v = (row.Disponible || "").toLowerCase();
-  return v === "" || ["si", "sí", "yes", "true", "1", "disponible"].includes(v);
+  return v === "" || ["si", "sí", "yes", "true", "1", "disponible", "preorden"].includes(v);
 }
 
 module.exports = { loadCatalog, loadStock, isAvailable, CATALOG_CSV_URL };

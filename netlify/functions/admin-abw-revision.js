@@ -46,7 +46,7 @@ async function mutate(fn) {
 
 const clean = (v, n = 300) => String(v == null ? "" : v).slice(0, n);
 const num = (v) => (v === null || v === undefined || v === "" || !isFinite(Number(v)) ? null : Number(v));
-const TIPOS = ["precio", "agotado", "disponible", "no_existe"];
+const TIPOS = ["precio", "agotado", "disponible", "no_existe", "preorden"];
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET" && event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };

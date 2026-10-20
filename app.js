@@ -1046,10 +1046,12 @@ function csvToProducts(text) {
     .map((r, n) => {
       const get = (i) => (i >= 0 && r[i] != null ? r[i].trim() : "");
       const disponibleRaw = get(iDisponible).toLowerCase();
+      // "PREORDEN": ABW lo surte en ~21 días; se puede pedir, con aviso.
+      const preorden = disponibleRaw === "preorden";
       const disponible =
         disponibleRaw === ""
           ? true
-          : ["si", "sí", "yes", "true", "1", "disponible"].includes(disponibleRaw);
+          : preorden || ["si", "sí", "yes", "true", "1", "disponible"].includes(disponibleRaw);
       const precioRaw = normalizeMoneyCell(get(iPrecio));
       const precioTarjetaRaw = normalizeMoneyCell(get(iPrecioTarjeta));
       const pesoRaw = get(iPeso).replace(/[^0-9.,]/g, "").replace(",", ".");
@@ -1069,6 +1071,7 @@ function csvToProducts(text) {
         imagen: get(iImagen),
         descripcion: get(iDescripcion),
         disponible,
+        preorden,
         destacado: splitTags(get(iDestacado)),
         tipoPiel: splitTags(get(iTipoPiel)),
         pais: get(iPais),
@@ -2235,7 +2238,7 @@ function productCardHTML(p, { rank } = {}) {
         ${rank ? `<span class="absolute top-0 left-0 z-10 min-w-[1.5rem] h-6 px-1.5 bg-ink text-cream text-xs font-semibold flex items-center justify-center rounded-br-md tabular-nums">${rank}</span>` : ""}
         <img data-card-img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" loading="lazy"
           class="w-full h-full object-contain group-hover:scale-[1.03] transition duration-300" />
-        <div data-card-badge class="absolute top-2 ${rank ? "right-2" : "left-2"}">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
+        <div data-card-badge class="absolute top-2 ${rank ? "right-2" : "left-2"}">${cardBadgeHTML(p)}</div>
         ${wishlistButtonHTML(p.id)}
       </div>
       <div class="pt-2.5 flex flex-col flex-1">
@@ -2275,7 +2278,7 @@ function productCardHTML(p, { rank } = {}) {
               : `<button data-add="${hasVariants ? "" : escapeAttr(p.id)}" ${hasVariants ? "disabled" : ""} aria-label="Agregar ${escapeHtml(p.nombre)} al carrito" title="${hasVariants ? "Elige una versión" : "Agregar al carrito"}"
                   class="tap mt-2.5 w-full h-9 inline-flex items-center justify-center gap-1.5 rounded-full border border-ink text-ink text-[13px] font-semibold hover:bg-ink hover:text-cream transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-ink">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.6 12.2a1.8 1.8 0 0 0 1.8 1.4h8.4a1.8 1.8 0 0 0 1.8-1.4L21 7H6"/></svg>
-                  Agregar
+                  ${!hasVariants && p.preorden ? "Preordenar" : "Agregar"}
                 </button>`
           }
         </div>
@@ -2285,6 +2288,16 @@ function productCardHTML(p, { rank } = {}) {
 
 function agotadoBadgeHTML() {
   return `<span class="bg-ink/85 text-cream text-xs font-semibold px-2 py-0.5 rounded-sm">Agotado</span>`;
+}
+
+/* Preorden: ABW tarda ~21 días en tenerlo en la bodega de Corea. */
+const PREORDEN_DIAS = 21;
+const PREORDEN_AVISO = `Preorden: tarda unos ${PREORDEN_DIAS} días en llegar a la bodega de Corea, y después sigue el envío a México.`;
+function preordenBadgeHTML() {
+  return `<span class="bg-[#fff1d6] text-[#8a5a00] border border-[#e8c67a] text-xs font-semibold px-2 py-0.5 rounded-sm">⏳ Preorden · ${PREORDEN_DIAS} días</span>`;
+}
+function cardBadgeHTML(p) {
+  return !p.disponible ? agotadoBadgeHTML() : p.preorden ? preordenBadgeHTML() : "";
 }
 
 /* Agrupa variantes de tono/color o tipo/aroma del mismo producto en una
@@ -2394,7 +2407,7 @@ function wireVariantSelectors(container) {
       if (tarjetaEl) tarjetaEl.innerHTML = "";
 
       const badgeEl = card.querySelector("[data-card-badge]");
-      if (badgeEl) badgeEl.innerHTML = variant.disponible ? "" : agotadoBadgeHTML();
+      if (badgeEl) badgeEl.innerHTML = cardBadgeHTML(variant);
 
       const stockBadgeEl = card.querySelector("[data-card-stock-badge]");
       if (stockBadgeEl) stockBadgeEl.innerHTML = stockBadgeHTML(variant);
@@ -2614,7 +2627,7 @@ function renderProductSheet(p) {
     <div class="grid gap-5 sm:grid-cols-2 sm:gap-8">
       <div class="relative aspect-square w-full max-w-[min(100%,34vh)] mx-auto sm:max-w-full rounded-xl overflow-hidden ${isCajaPresentacion(p) ? "bg-lilac/15 border-2 border-lilac/70" : "bg-pill"}">
         <img src="${escapeAttr(img)}" alt="${escapeAttr(p.nombre)}" class="w-full h-full object-contain" />
-        <div class="absolute top-2 left-2">${!p.disponible ? agotadoBadgeHTML() : ""}</div>
+        <div class="absolute top-2 left-2">${cardBadgeHTML(p)}</div>
         ${wishlistButtonHTML(p.id)}
       </div>
       <div class="flex flex-col gap-4 min-w-0">
@@ -2639,7 +2652,7 @@ function renderProductSheet(p) {
         ${fam.variants.length ? `<div>
           <label for="sheet-variant" class="block text-xs font-semibold text-ink/75 mb-1.5">Tono o versión</label>
           <select id="sheet-variant" data-sheet-variant class="w-full rounded-lg border border-ink/20 bg-white px-3 py-2.5 text-base sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-rose/30">
-            ${fam.variants.map((v) => `<option value="${escapeAttr(v.id)}"${v.id === p.id ? " selected" : ""}${v.disponible ? "" : " disabled"}>${escapeHtml(splitBaseName(v).shade || v.nombre)}${v.disponible ? "" : " (agotado)"}</option>`).join("")}
+            ${fam.variants.map((v) => `<option value="${escapeAttr(v.id)}"${v.id === p.id ? " selected" : ""}${v.disponible ? "" : " disabled"}>${escapeHtml(splitBaseName(v).shade || v.nombre)}${v.disponible ? (v.preorden ? " (preorden)" : "") : " (agotado)"}</option>`).join("")}
           </select></div>` : ""}
         <div class="tabular-nums leading-tight">
           <p class="text-2xl font-bold text-ink">${formatPrice(p.precio)} <span class="text-sm font-medium text-ink/70">por transferencia</span></p>
@@ -2649,11 +2662,12 @@ function renderProductSheet(p) {
         <p class="text-sm text-ink/80">${p.enStock
           ? `✅ <b>Stock en México</b>: entrega inmediata y sin pedido mínimo. ${stockBadgeHTML(p)}`
           : `🇰🇷 Se pide a Corea. Cuenta para el pedido mínimo de ${formatPrice(CONFIG.MIN_ORDER_MXN || 0)}.`}</p>
+        ${p.preorden && !p.enStock ? `<p class="rounded-xl bg-[#fff6e5] border border-[#e8c67a] px-3 py-2 text-sm text-[#6b4700]">⏳ <b>${PREORDEN_AVISO.replace(/^Preorden:/, "Preorden:</b>")}</p>` : ""}
         <div class="flex flex-col gap-2 sticky bottom-0 z-10 -mx-4 px-4 pt-2 pb-3 bg-cream/95 backdrop-blur border-t border-ink/10 sm:static sm:mx-0 sm:px-0 sm:pt-0 sm:pb-0 sm:bg-transparent sm:border-0">
           ${out
             ? `<button type="button" data-restock="${escapeAttr(p.id)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
                 class="h-12 rounded-full border border-rose/60 text-rose-ink font-semibold hover:bg-rose/10 transition">🔔 Avísame cuando vuelva</button>`
-            : `<button type="button" data-sheet-add="${escapeAttr(p.id)}" class="h-12 rounded-full bg-ink text-cream font-semibold hover:bg-ink/85 transition">Agregar al carrito</button>`}
+            : `<button type="button" data-sheet-add="${escapeAttr(p.id)}" class="h-12 rounded-full bg-ink text-cream font-semibold hover:bg-ink/85 transition">${p.preorden && !p.enStock ? "Preordenar" : "Agregar al carrito"}</button>`}
           <div class="flex gap-2">
             <a href="https://wa.me/?text=${encodeURIComponent(shareText)}" target="_blank" rel="noopener"
               class="flex-1 h-11 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#dcf8e8] text-[#11632d] text-sm font-semibold hover:brightness-95">Compartir por WhatsApp</a>
@@ -5352,6 +5366,7 @@ function renderCart() {
           <p class="text-sm font-semibold text-ink truncate">${escapeHtml(it.product.nombre)}</p>
           ${it.product.presentacion ? `<p class="text-xs text-ink/75">${escapeHtml(it.product.presentacion)}</p>` : ""}
           <p class="text-xs text-ink/75">${formatPrice(it.product.precio)} c/u</p>
+          ${it.product.preorden && !it.product.enStock ? `<p class="text-xs font-semibold text-[#8a5a00]">⏳ Preorden: ~${PREORDEN_DIAS} días en llegar a la bodega de Corea</p>` : ""}
           <div class="mt-1 flex items-center gap-2" role="group" aria-label="Cantidad de ${name}">
             <button type="button" data-dec="${escapeAttr(id)}" aria-label="Quitar una pieza de ${name}" class="tap w-7 h-7 coarse:w-9 coarse:h-9 rounded-full border border-ink/20 text-ink text-base leading-none hover:bg-ink/5">−</button>
             <span class="text-sm w-5 text-center">${it.qty}</span>
@@ -5365,6 +5380,8 @@ function renderCart() {
     })
     .join("");
 
+  const preNote = document.getElementById("cart-preorden-note");
+  if (preNote) preNote.classList.toggle("hidden", !items.some(([, it]) => it.product.preorden && !it.product.enStock));
   wrap.querySelectorAll("[data-inc]").forEach((b) => b.addEventListener("click", () => changeQty(b.dataset.inc, 1)));
   wrap.querySelectorAll("[data-dec]").forEach((b) => b.addEventListener("click", () => changeQty(b.dataset.dec, -1)));
   wrap.querySelectorAll("[data-remove]").forEach((b) => b.addEventListener("click", () => removeFromCart(b.dataset.remove)));
