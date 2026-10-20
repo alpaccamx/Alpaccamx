@@ -677,6 +677,7 @@
       qty: Number(row.querySelector(".edit-item-qty").value) || 0,
       precio: Number(row.querySelector(".edit-item-precio").value) || 0,
       enStock: row.querySelector(".edit-item-enstock").checked,
+      preorden: row.dataset.preorden === "1",
     })).filter((it) => it.nombre && it.qty > 0);
 
     if (!items.length) {
@@ -1109,7 +1110,7 @@
           (it.nombre && it.nombre.toLowerCase().includes(term))
         );
         const marcaHTML = marca ? `<strong>${highlightMatch(marca, term)}</strong> — ` : "";
-        return `<li${isMatch ? ' class="item-hit"' : ""}>${marcaHTML}${highlightMatch(it.nombre, term)} x${it.qty}${it.enStock ? " · en stock" : ""} <span class="unit-price">(${formatPrice(precio)} c/u)</span> — ${formatPrice(precio * it.qty)}</li>`;
+        return `<li${isMatch ? ' class="item-hit"' : ""}>${marcaHTML}${highlightMatch(it.nombre, term)} x${it.qty}${it.enStock ? " · en stock" : ""}${it.preorden ? " · ⏳ preorden (21 días)" : ""} <span class="unit-price">(${formatPrice(precio)} c/u)</span> — ${formatPrice(precio * it.qty)}</li>`;
       })
       .join("");
   }
@@ -1495,7 +1496,7 @@ ${itemLines}
   function editItemRowHTML(it) {
     const precio = it ? itemPrecioTransferencia(it) : 0;
     return `
-      <div class="edit-item-row">
+      <div class="edit-item-row"${it && it.preorden ? ' data-preorden="1"' : ""}>
         <input aria-label="Nombre del producto" type="text" class="edit-item-nombre" placeholder="Nombre del producto" value="${escapeHtml((it && it.nombre) || "")}" />
         <input aria-label="Marca" type="text" class="edit-item-marca" placeholder="Marca" value="${escapeHtml(it ? itemMarca(it) : "")}" />
         <input aria-label="SKU" type="text" class="edit-item-sku" placeholder="SKU" value="${escapeHtml((it && it.sku) || "")}" />
@@ -3655,7 +3656,7 @@ ${itemLines}
     }
     const words = normalizeForSearch(document.getElementById("catalog-search").value).split(/\s+/).filter(Boolean);
     let list = catalogRows;
-    if (catalogFilter) list = list.filter((r) => (r.disponible === "NO" ? "NO" : "SI") === catalogFilter);
+    if (catalogFilter) list = list.filter((r) => dispDe(r.disponible) === catalogFilter);
     if (words.length) {
       list = list.filter((r) => {
         const hay = normalizeForSearch(`${r.marca} ${r.nombre} ${r.sku} ${r.presentacion}`);
@@ -3670,7 +3671,7 @@ ${itemLines}
       <button type="button" class="cat-row" data-cat-sku="${escapeHtml(r.sku)}">
         ${r.imagen ? `<img src="${escapeHtml(catalogImgSrc(r.imagen))}" alt="" loading="lazy" />` : `<img alt="" />`}
         <span class="info"><b>${escapeHtml(r.nombre)}</b><small>${r.marca ? `${escapeHtml(r.marca)} · ` : ""}${r.presentacion ? `${escapeHtml(r.presentacion)} · ` : ""}SKU ${escapeHtml(r.sku)}</small></span>
-        <span class="pr">${formatPrice(r.precio)}<small class="${r.disponible === "NO" ? "no" : "si"}">${r.disponible === "NO" ? "⛔ No disponible" : "✅ Disponible"}</small></span>
+        <span class="pr">${formatPrice(r.precio)}<small class="${r.disponible === "NO" ? "no" : "si"}">${r.disponible === "NO" ? "⛔ No disponible" : r.disponible === "PREORDEN" ? "⏳ Preorden" : "✅ Disponible"}</small></span>
       </button>`).join("");
   }
 
@@ -3708,12 +3709,15 @@ ${itemLines}
     }
   }
 
+  // Disponible en el Sheet: SI, NO o PREORDEN (ABW lo surte en ~21 días).
+  const dispDe = (x) => { const u = String(x || "SI").toUpperCase(); return u === "NO" || u === "PREORDEN" ? u : "SI"; };
+
   function renderCatalogEditor(msg) {
     const wrap = document.getElementById("catalog-editor");
     const f = catalogEditing.fields;
     const v = (k) => (f[k] ? String(f[k].value ?? "") : "");
     const has = (k) => Boolean(f[k]);
-    const disp = (v("Disponible") || "SI").toUpperCase() === "NO" ? "NO" : "SI";
+    const disp = dispDe(v("Disponible"));
     const usd = v("Precio USD");
     const priceInputs = ["Precio", "Precio Tarjeta"].filter((k) => has(k) && !f[k].formula);
     wrap.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Editar producto">
@@ -3722,6 +3726,7 @@ ${itemLines}
       <div><span class="filters-label" style="font-size:13px;">¿Disponible en la tienda?</span>
         <div class="switch" id="cat-disp" data-value="${disp}">
           <button type="button" data-disp="SI" class="${disp === "SI" ? "on-si" : ""}">✅ Sí</button>
+          <button type="button" data-disp="PREORDEN" class="${disp === "PREORDEN" ? "on-pre" : ""}">⏳ Preorden</button>
           <button type="button" data-disp="NO" class="${disp === "NO" ? "on-no" : ""}">⛔ No</button></div></div>
       ${has("Precio USD") ? `<input aria-label="Precio USD (costo en ABW)" type="number" step="0.01" min="0" data-cat-field="Precio USD" value="${escapeHtml(normalizeMoneyText(usd))}" />` : ""}
       <div class="calc" id="cat-calc">Precio en la tienda ahora: <b>${escapeHtml(v("Precio"))}</b> transferencia · <b>${escapeHtml(v("Precio Tarjeta"))}</b> tarjeta</div>
@@ -3772,7 +3777,7 @@ ${itemLines}
       } else if (after !== before.trim()) changes[k] = after;
     });
     const disp = document.getElementById("cat-disp").dataset.value;
-    if (disp !== ((f.Disponible && String(f.Disponible.value).toUpperCase() === "NO") ? "NO" : "SI")) changes.Disponible = disp;
+    if (disp !== dispDe(f.Disponible && f.Disponible.value)) changes.Disponible = disp;
     if (!Object.keys(changes).length) {
       errEl.textContent = "No cambiaste nada.";
       errEl.style.display = "block";
@@ -3901,6 +3906,7 @@ ${itemLines}
     agotado: "⛔ Se agotó",
     disponible: "✅ Volvió a haber",
     no_existe: "❓ Ya no está en ABW",
+    preorden: "⏳ Pasa a preorden (21 días)",
   };
   const revKind = (c) => (c.tipo === "precio" ? ((c.despues.usd || 0) > (c.antes.usd || 0) ? "sube" : "baja") : c.tipo);
   const revKey = (marca, c) => `${marca}|${c.sku}|${c.tipo}`;
@@ -3954,7 +3960,8 @@ ${itemLines}
         ${rows.map(({ c, kind }) => {
           const chg = c.tipo === "precio"
             ? `<span class="${kind === "sube" ? "rev-up" : "rev-down"}">${usd(c.antes.usd)} → <b>${usd(c.despues.usd)}</b></span>`
-            : c.tipo === "disponible" ? `Disponible: NO → <b>SI</b>` : `Disponible: ${escapeHtml(c.antes.disp || "SI")} → <b>NO</b>`;
+            : c.tipo === "disponible" ? `Disponible: ${escapeHtml(c.antes.disp || "NO")} → <b>SI</b>`
+            : c.tipo === "preorden" ? `Disponible: ${escapeHtml(c.antes.disp || "SI")} → <b>PREORDEN</b>` : `Disponible: ${escapeHtml(c.antes.disp || "SI")} → <b>NO</b>`;
           return `<label class="rev-row"><input type="checkbox" checked data-rev-key="${escapeHtml(revKey(marca, c))}">
             <span class="what">${escapeHtml(c.nombre)}<small>${escapeHtml(c.presentacion || "")} · SKU ${escapeHtml(c.sku)} · ${REV_TIPOS[kind]}</small></span>
             <span class="chg">${chg}</span></label>`;
@@ -3996,6 +4003,7 @@ ${itemLines}
           if (c.tipo === "precio" && c.despues.usd != null) f["Precio USD"] = c.despues.usd;
           if (c.tipo === "agotado" || c.tipo === "no_existe") f.Disponible = "NO";
           if (c.tipo === "disponible") f.Disponible = "SI";
+          if (c.tipo === "preorden") f.Disponible = "PREORDEN";
           bySku.set(c.sku, f);
         });
         const updates = [...bySku.entries()].map(([sku, fields]) => ({ sku, fields }));
@@ -5593,7 +5601,7 @@ ${itemLines}
     if (d) {
       const sw = document.getElementById("cat-disp");
       sw.dataset.value = d.dataset.disp;
-      sw.querySelectorAll("button").forEach((x) => { x.className = x === d ? (d.dataset.disp === "SI" ? "on-si" : "on-no") : ""; });
+      sw.querySelectorAll("button").forEach((x) => { x.className = x === d ? ({ SI: "on-si", PREORDEN: "on-pre" }[d.dataset.disp] || "on-no") : ""; });
       return;
     }
     if (e.target.closest("#cat-save")) saveCatalogEditor();

@@ -72,6 +72,7 @@ exports.handler = async (event) => {
       precio: Number(it.precio) || 0,
       precioBase: Number(it.precio) || 0,
       enStock: !!it.enStock,
+      ...(it.preorden ? { preorden: true } : {}),
     }))
     .filter((it) => it.nombre && it.qty > 0);
 
