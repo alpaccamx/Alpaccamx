@@ -3405,6 +3405,7 @@ function renderQuickIcons() {
 const HOWTO_VIDEOS = {
   corea: { src: "./assets/video/como-comprar-corea.mp4", poster: "./assets/video/como-comprar-corea.webp", label: "Video: cómo comprar en Alpacca" },
   direccion: { src: "./assets/video/direccion-americana.mp4", poster: "./assets/video/direccion-americana.webp", label: "Video: cómo usar tu dirección americana" },
+  compra: { src: "./assets/video/compra-por-mi.mp4", poster: "./assets/video/compra-por-mi.webp", label: "Video: que Mae compre por ti" },
 };
 function openHowToVideo(kind = "corea") {
   const v = HOWTO_VIDEOS[kind] || HOWTO_VIDEOS.corea;
