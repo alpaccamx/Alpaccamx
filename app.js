@@ -1048,6 +1048,8 @@ function csvToProducts(text) {
       const disponibleRaw = get(iDisponible).toLowerCase();
       // "PREORDEN": ABW lo surte en ~21 días; se puede pedir, con aviso.
       const preorden = disponibleRaw === "preorden";
+      // "OCULTO": ya no existe en ABW; no se muestra en la tienda.
+      if (disponibleRaw === "oculto") return null;
       const disponible =
         disponibleRaw === ""
           ? true
@@ -1077,7 +1079,7 @@ function csvToProducts(text) {
         pais: get(iPais),
       };
     })
-    .filter((p) => p.nombre && p.nombre !== "Producto sin nombre");
+    .filter((p) => p && p.nombre && p.nombre !== "Producto sin nombre");
 }
 
 /* ======================================================================

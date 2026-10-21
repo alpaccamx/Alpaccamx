@@ -83,8 +83,8 @@ exports.handler = async (event) => {
         nombre: clean(c.nombre),
         presentacion: clean(c.presentacion, 60),
         tipo: c.tipo,
-        antes: { usd: num(c.antes && c.antes.usd), disp: clean(c.antes && c.antes.disp, 4) },
-        despues: { usd: num(c.despues && c.despues.usd), disp: clean(c.despues && c.despues.disp, 4) },
+        antes: { usd: num(c.antes && c.antes.usd), disp: clean(c.antes && c.antes.disp, 10) },
+        despues: { usd: num(c.despues && c.despues.usd), disp: clean(c.despues && c.despues.disp, 10) },
       }));
     const data = await mutate((d) => {
       d.marcas = d.marcas || {};

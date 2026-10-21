@@ -88,7 +88,7 @@ function cellValue(header, raw) {
     return n;
   }
   const s = String(raw).slice(0, 5000);
-  if (header === "Disponible" && !["SI", "NO", "PREORDEN"].includes(s.toUpperCase())) throw new Error('"Disponible" debe ser SI, NO o PREORDEN.');
+  if (header === "Disponible" && !["SI", "NO", "PREORDEN", "OCULTO"].includes(s.toUpperCase())) throw new Error('"Disponible" debe ser SI, NO, PREORDEN u OCULTO.');
   return header === "Disponible" ? s.toUpperCase() : s;
 }
 
