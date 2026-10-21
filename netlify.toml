@@ -126,8 +126,13 @@
 
 # Link corto del video de compras en vivo (personal shopper en USA).
 [[redirects]]
+  from = "/personal-shopper-en-usa"
+  to = "/?ver=personal-shopper-en-usa"
+  status = 301
+
+[[redirects]]
   from = "/personalshopperenusa"
-  to = "/?ver=personalshopperenusa"
+  to = "/?ver=personal-shopper-en-usa"
   status = 301
 
 # Catálogo ligero que baja la tienda (ver netlify/functions/catalog-light.js).
