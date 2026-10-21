@@ -3332,7 +3332,7 @@ function renderQuickIcons() {
     return p.imagen;
   };
   const avail = products.filter((p) => !p.enStock);
-  const icons = [];
+  const icons = [{ key: "howto", label: "Cómo comprar", img: icon("como-comprar") }];
 
   if (avail.some((p) => (p.destacado || []).includes("Best Seller"))) {
     icons.push({ key: "best", label: "Best Seller", img: icon("best") });
@@ -3402,8 +3402,12 @@ function renderQuickIcons() {
    accesos rápidos, las preguntas frecuentes, el carrito vacío
    ([data-howto-video]) y su link propio alpacca.mx/?ver=como-comprar.
    El video solo se descarga cuando se abre. */
-const HOWTO_VIDEO = "./assets/video/como-comprar-corea.mp4";
-function openHowToVideo() {
+const HOWTO_VIDEOS = {
+  corea: { src: "./assets/video/como-comprar-corea.mp4", poster: "./assets/video/como-comprar-corea.webp", label: "Video: cómo comprar en Alpacca" },
+  direccion: { src: "./assets/video/direccion-americana.mp4", poster: "./assets/video/direccion-americana.webp", label: "Video: cómo usar tu dirección americana" },
+};
+function openHowToVideo(kind = "corea") {
+  const v = HOWTO_VIDEOS[kind] || HOWTO_VIDEOS.corea;
   if (document.getElementById("howto-video")) return;
   const back = document.activeElement;
   const box = document.createElement("div");
@@ -3411,9 +3415,9 @@ function openHowToVideo() {
   box.className = "fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-4";
   box.setAttribute("role", "dialog");
   box.setAttribute("aria-modal", "true");
-  box.setAttribute("aria-label", "Video: cómo comprar en Alpacca");
+  box.setAttribute("aria-label", v.label);
   box.innerHTML = `<div class="relative h-full max-h-[90vh] aspect-[9/16] max-w-full">
-      <video src="${HOWTO_VIDEO}" poster="./assets/video/como-comprar-corea.webp" controls autoplay playsinline preload="metadata" class="w-full h-full rounded-2xl bg-black object-contain"></video>
+      <video src="${v.src}" poster="${v.poster}" controls autoplay playsinline preload="metadata" class="w-full h-full rounded-2xl bg-black object-contain"></video>
     </div>
     <button type="button" data-howto-close class="absolute top-4 right-4 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-ink">Cerrar ✕</button>`;
   const cerrar = () => {
@@ -3435,7 +3439,8 @@ function openHowToVideo() {
   box.querySelector("[data-howto-close]").focus();
 }
 document.addEventListener("click", (e) => {
-  if (e.target.closest("[data-howto-video]")) { e.preventDefault(); openHowToVideo(); }
+  const b = e.target.closest("[data-howto-video]");
+  if (b) { e.preventDefault(); openHowToVideo(b.dataset.howtoVideo || "corea"); }
 });
 
 /* ======================================================================
@@ -4588,6 +4593,7 @@ function openRouteView(params, restore) {
   else if (ver === "stock") openStockSection({ restore });
   else if (ver === "favoritos") openWishlistSection();
   else if (ver === "tipo-de-piel") openSkinQuiz({ restore });
+  else if (ver === "como-comprar") { showHomeView("home", { ver }); openHowToVideo(); }
   else if ((ver === "shopwithmae" || ver === "direccion-americana") && typeof openSwmSection === "function") openSwmSection({ restore });
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
   else if (ver === "mis-pedidos") { showHomeView("home"); if (!restore) openAccountPanel(); }

@@ -247,6 +247,7 @@ function renderSwmWelcome() {
     <div class="flex items-center justify-between gap-3"><p class="font-display text-lg text-ink">👋 ¡Bienvenida! Así empiezas</p><span class="text-xs font-bold text-rose-ink">${hechos} de ${pasos.length}</span></div>
     <div class="mt-2 h-2 rounded-full bg-pill overflow-hidden"><div class="h-full bg-rose-deep rounded-full" style="width:${Math.round((hechos / pasos.length) * 100)}%"></div></div>
     <ol class="mt-4 space-y-3">${pasos.map(paso).join("")}</ol>
+    <button type="button" data-howto-video="direccion" class="mt-4 text-sm font-semibold text-rose-ink underline">▶️ Mira el video de cómo funciona (1 min)</button>
   </div>`;
 }
 
