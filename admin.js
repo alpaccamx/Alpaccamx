@@ -3671,7 +3671,7 @@ ${itemLines}
       <button type="button" class="cat-row" data-cat-sku="${escapeHtml(r.sku)}">
         ${r.imagen ? `<img src="${escapeHtml(catalogImgSrc(r.imagen))}" alt="" loading="lazy" />` : `<img alt="" />`}
         <span class="info"><b>${escapeHtml(r.nombre)}</b><small>${r.marca ? `${escapeHtml(r.marca)} · ` : ""}${r.presentacion ? `${escapeHtml(r.presentacion)} · ` : ""}SKU ${escapeHtml(r.sku)}</small></span>
-        <span class="pr">${formatPrice(r.precio)}<small class="${r.disponible === "NO" ? "no" : "si"}">${r.disponible === "NO" ? "⛔ No disponible" : r.disponible === "PREORDEN" ? "⏳ Preorden" : "✅ Disponible"}</small></span>
+        <span class="pr">${formatPrice(r.precio)}<small class="${r.disponible === "NO" || r.disponible === "OCULTO" ? "no" : "si"}">${r.disponible === "NO" ? "⛔ No disponible" : r.disponible === "OCULTO" ? "🙈 Oculto" : r.disponible === "PREORDEN" ? "⏳ Preorden" : "✅ Disponible"}</small></span>
       </button>`).join("");
   }
 
@@ -3709,8 +3709,9 @@ ${itemLines}
     }
   }
 
-  // Disponible en el Sheet: SI, NO o PREORDEN (ABW lo surte en ~21 días).
-  const dispDe = (x) => { const u = String(x || "SI").toUpperCase(); return u === "NO" || u === "PREORDEN" ? u : "SI"; };
+  // Disponible en el Sheet: SI, NO, PREORDEN (ABW lo surte en ~21 días) u
+  // OCULTO (ya no existe en ABW; no sale en la tienda).
+  const dispDe = (x) => { const u = String(x || "SI").toUpperCase(); return ["NO", "PREORDEN", "OCULTO"].includes(u) ? u : "SI"; };
 
   function renderCatalogEditor(msg) {
     const wrap = document.getElementById("catalog-editor");
@@ -3727,7 +3728,8 @@ ${itemLines}
         <div class="switch" id="cat-disp" data-value="${disp}">
           <button type="button" data-disp="SI" class="${disp === "SI" ? "on-si" : ""}">✅ Sí</button>
           <button type="button" data-disp="PREORDEN" class="${disp === "PREORDEN" ? "on-pre" : ""}">⏳ Preorden</button>
-          <button type="button" data-disp="NO" class="${disp === "NO" ? "on-no" : ""}">⛔ No</button></div></div>
+          <button type="button" data-disp="NO" class="${disp === "NO" ? "on-no" : ""}">⛔ No</button>
+          <button type="button" data-disp="OCULTO" class="${disp === "OCULTO" ? "on-no" : ""}" title="Ya no existe: no sale en la tienda">🙈 Ocultar</button></div></div>
       ${has("Precio USD") ? `<input aria-label="Precio USD (costo en ABW)" type="number" step="0.01" min="0" data-cat-field="Precio USD" value="${escapeHtml(normalizeMoneyText(usd))}" />` : ""}
       <div class="calc" id="cat-calc">Precio en la tienda ahora: <b>${escapeHtml(v("Precio"))}</b> transferencia · <b>${escapeHtml(v("Precio Tarjeta"))}</b> tarjeta</div>
       ${priceInputs.map((k) => `<input aria-label="${escapeHtml(k)} (MXN)" type="number" step="1" min="0" data-cat-field="${escapeHtml(k)}" value="${escapeHtml(normalizeMoneyText(v(k)))}" />`).join("")}
@@ -3905,7 +3907,7 @@ ${itemLines}
     baja: "💲 Bajó de precio",
     agotado: "⛔ Se agotó",
     disponible: "✅ Volvió a haber",
-    no_existe: "❓ Ya no está en ABW",
+    no_existe: "❓ Ya no está en ABW (se oculta)",
     preorden: "⏳ Pasa a preorden (21 días)",
   };
   const revKind = (c) => (c.tipo === "precio" ? ((c.despues.usd || 0) > (c.antes.usd || 0) ? "sube" : "baja") : c.tipo);
@@ -3961,7 +3963,7 @@ ${itemLines}
           const chg = c.tipo === "precio"
             ? `<span class="${kind === "sube" ? "rev-up" : "rev-down"}">${usd(c.antes.usd)} → <b>${usd(c.despues.usd)}</b></span>`
             : c.tipo === "disponible" ? `Disponible: ${escapeHtml(c.antes.disp || "NO")} → <b>SI</b>`
-            : c.tipo === "preorden" ? `Disponible: ${escapeHtml(c.antes.disp || "SI")} → <b>PREORDEN</b>` : `Disponible: ${escapeHtml(c.antes.disp || "SI")} → <b>NO</b>`;
+            : c.tipo === "preorden" ? `Disponible: ${escapeHtml(c.antes.disp || "SI")} → <b>PREORDEN</b>` : c.tipo === "no_existe" ? `Disponible: ${escapeHtml(c.antes.disp || "SI")} → <b>OCULTO</b>` : `Disponible: ${escapeHtml(c.antes.disp || "SI")} → <b>NO</b>`;
           return `<label class="rev-row"><input type="checkbox" checked data-rev-key="${escapeHtml(revKey(marca, c))}">
             <span class="what">${escapeHtml(c.nombre)}<small>${escapeHtml(c.presentacion || "")} · SKU ${escapeHtml(c.sku)} · ${REV_TIPOS[kind]}</small></span>
             <span class="chg">${chg}</span></label>`;
@@ -4001,7 +4003,8 @@ ${itemLines}
         sel.forEach(({ c }) => {
           const f = bySku.get(c.sku) || {};
           if (c.tipo === "precio" && c.despues.usd != null) f["Precio USD"] = c.despues.usd;
-          if (c.tipo === "agotado" || c.tipo === "no_existe") f.Disponible = "NO";
+          if (c.tipo === "agotado") f.Disponible = "NO";
+          if (c.tipo === "no_existe") f.Disponible = "OCULTO";
           if (c.tipo === "disponible") f.Disponible = "SI";
           if (c.tipo === "preorden") f.Disponible = "PREORDEN";
           bySku.set(c.sku, f);

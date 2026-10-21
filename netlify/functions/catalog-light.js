@@ -19,7 +19,10 @@ exports.handler = async () => {
     const { table } = await loadCatalog({ maxAgeMs: 30 * 1000 });
     const header = (table[0] || []).map((h) => h.trim());
     const keep = header.map((h, i) => (DROP.has(h.toLowerCase()) ? -1 : i)).filter((i) => i >= 0);
-    const body = table.map((r) => keep.map((i) => csvCell(r[i])).join(",")).join("\n");
+    // "OCULTO" en Disponible: ya no existe en ABW, no se manda a la tienda.
+    const iDisp = header.findIndex((h) => h.toLowerCase() === "disponible");
+    const rows = table.filter((r, n) => n === 0 || iDisp < 0 || String(r[iDisp] || "").trim().toUpperCase() !== "OCULTO");
+    const body = rows.map((r) => keep.map((i) => csvCell(r[i])).join(",")).join("\n");
     return {
       statusCode: 200,
       headers: {
