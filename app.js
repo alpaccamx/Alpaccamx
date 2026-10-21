@@ -2074,6 +2074,7 @@ function getMenuItems() {
     ["corea", "Cómo comprar en nuestra bodega en Corea"],
     ["direccion", "Cómo usar tu dirección americana"],
     ["compra", "Que Mae compre por mí"],
+    ["envivo", "Compras en vivo en tiendas de EE.UU."],
   ] });
 
   return items;
@@ -3423,6 +3424,7 @@ const HOWTO_VIDEOS = {
   corea: { src: "./assets/video/como-comprar-corea.mp4", poster: "./assets/video/como-comprar-corea.webp", label: "Video: cómo comprar en Alpacca" },
   direccion: { src: "./assets/video/direccion-americana.mp4", poster: "./assets/video/direccion-americana.webp", label: "Video: cómo usar tu dirección americana" },
   compra: { src: "./assets/video/compra-por-mi.mp4", poster: "./assets/video/compra-por-mi.webp", label: "Video: que Mae compre por ti" },
+  envivo: { src: "./assets/video/compras-en-vivo.mp4", poster: "./assets/video/compras-en-vivo.webp", label: "Video: compras en vivo en tiendas de EE.UU." },
 };
 function openHowToVideo(kind = "corea") {
   const v = HOWTO_VIDEOS[kind] || HOWTO_VIDEOS.corea;
@@ -3444,7 +3446,7 @@ function openHowToVideo(kind = "corea") {
     document.removeEventListener("keydown", esc);
     document.body.classList.remove("overflow-hidden");
     // Si llegó con el link del video, la barra regresa al inicio.
-    if (new URLSearchParams(location.search).get("ver") === "como-comprar") {
+    if (["como-comprar", "compras-en-vivo"].includes(new URLSearchParams(location.search).get("ver"))) {
       try { history.replaceState(history.state, "", location.pathname); } catch (err) { /* nada */ }
     }
     if (back && back.focus) back.focus();
@@ -4581,6 +4583,7 @@ function setRouteMeta(r) {
   else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México · Alpacca"; canonical += "?ver=direccion-americana"; }
   else if (r.ver === "tipo-de-piel") { title = "Test de tipo de piel: arma tu rutina coreana — Alpacca"; canonical += "?ver=tipo-de-piel"; }
   else if (r.ver === "como-comprar") { title = "Cómo comprar en Alpacca (video de 1 minuto)"; canonical += "?ver=como-comprar"; }
+  else if (r.ver === "compras-en-vivo") { title = "Compras en vivo en tiendas de EE.UU. con Mae (video) · Alpacca"; canonical += "?ver=compras-en-vivo"; }
   else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
   document.title = title;
   const link = document.querySelector('link[rel="canonical"]');
@@ -4616,6 +4619,7 @@ function openRouteView(params, restore) {
   else if (ver === "favoritos") openWishlistSection();
   else if (ver === "tipo-de-piel") openSkinQuiz({ restore });
   else if (ver === "como-comprar") { showHomeView("home", { ver }); openHowToVideo(); }
+  else if (ver === "compras-en-vivo") { showHomeView("home", { ver }); openHowToVideo("envivo"); }
   else if ((ver === "shopwithmae" || ver === "direccion-americana") && typeof openSwmSection === "function") openSwmSection({ restore });
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
   else if (ver === "mis-pedidos") { showHomeView("home"); if (!restore) openAccountPanel(); }
