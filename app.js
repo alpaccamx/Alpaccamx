@@ -2067,21 +2067,29 @@ function getMenuItems() {
     items.push({ type: "country", label: "País", options: countries });
   }
 
+  // Los videos tutoriales (ver HOWTO_VIDEOS): valor = clave del video.
+  items.push({ type: "tutorials", label: "▶️ Tutoriales", options: [
+    ["corea", "Cómo comprar en nuestra bodega en Corea"],
+    ["direccion", "Cómo usar tu dirección americana"],
+    ["compra", "Que Mae compre por mí"],
+  ] });
+
   return items;
 }
 
 function menuItemHTML(item) {
   const base = "block px-5 py-4 border-b border-ink/10 font-semibold uppercase text-sm tracking-wide";
 
-  if (item.type === "brands" || item.type === "categories" || item.type === "country") {
+  if (item.type === "brands" || item.type === "categories" || item.type === "country" || item.type === "tutorials") {
     const key = item.type;
     const optionAttr =
-      item.type === "brands" ? "data-menu-brand" : item.type === "categories" ? "data-menu-category" : "data-menu-country";
+      item.type === "brands" ? "data-menu-brand" : item.type === "categories" ? "data-menu-category" : item.type === "tutorials" ? "data-howto-video" : "data-menu-country";
     const dropdownOptions = item.options
+      .map((o) => (Array.isArray(o) ? o : [o, o]))
       .map(
-        (v) =>
+        ([v, label]) =>
           `<button type="button" ${optionAttr}="${escapeAttr(v)}"
-            class="block w-full text-left px-4 py-2 coarse:py-3 text-sm text-ink/75 hover:bg-blush/40 hover:text-ink transition">${escapeHtml(v)}</button>`
+            class="block w-full text-left px-4 py-2 coarse:py-3 text-sm text-ink/75 hover:bg-blush/40 hover:text-ink transition">${item.type === "tutorials" ? "▶️ " : ""}${escapeHtml(label)}</button>`
       )
       .join("");
     return `<div data-${key}-dropdown>
@@ -2104,9 +2112,9 @@ function wireMenuItems(container, onNavigate) {
     });
   });
 
-  container.querySelectorAll("[data-brands-dropdown], [data-categories-dropdown], [data-country-dropdown]").forEach((wrap) => {
-    const toggle = wrap.querySelector("[data-brands-toggle], [data-categories-toggle], [data-country-toggle]");
-    const panel = wrap.querySelector("[data-brands-panel], [data-categories-panel], [data-country-panel]");
+  container.querySelectorAll("[data-brands-dropdown], [data-categories-dropdown], [data-country-dropdown], [data-tutorials-dropdown]").forEach((wrap) => {
+    const toggle = wrap.querySelector("[data-brands-toggle], [data-categories-toggle], [data-country-toggle], [data-tutorials-toggle]");
+    const panel = wrap.querySelector("[data-brands-panel], [data-categories-panel], [data-country-panel], [data-tutorials-panel]");
     // El panel fixed se saca al <body> para que no quede atrapado por el
     // "contenedor" que crea el backdrop-blur del header en elementos fixed
     // (si no, "top"/"left" quedan relativos al header en vez de la ventana).
@@ -2146,11 +2154,18 @@ function wireMenuItems(container, onNavigate) {
         showCountryProducts(btn.dataset.menuCountry);
       });
     });
+    // Tutoriales: el video lo abre el listener global de [data-howto-video].
+    panel.querySelectorAll("[data-howto-video]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        panel.classList.add("hidden");
+        if (onNavigate) onNavigate();
+      });
+    });
   });
 }
 
 document.addEventListener("click", (e) => {
-  document.querySelectorAll("[data-brands-panel], [data-categories-panel], [data-country-panel]").forEach((panel) => {
+  document.querySelectorAll("[data-brands-panel], [data-categories-panel], [data-country-panel], [data-tutorials-panel]").forEach((panel) => {
     const owner = panel.__trigger || panel.parentElement;
     if (!panel.contains(e.target) && !owner.contains(e.target)) {
       panel.classList.add("hidden");
@@ -2161,7 +2176,7 @@ document.addEventListener("click", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  document.querySelectorAll("[data-brands-panel], [data-categories-panel], [data-country-panel]").forEach((panel) => {
+  document.querySelectorAll("[data-brands-panel], [data-categories-panel], [data-country-panel], [data-tutorials-panel]").forEach((panel) => {
     if (panel.classList.contains("hidden")) return;
     panel.classList.add("hidden");
     if (panel.__toggle) {
@@ -2869,7 +2884,7 @@ const SEARCH_SYNONYMS = [
   [["morado", "lila", "ciruela", "vino"], ["purple", "plum", "mauve", "lilac", "wine", "berry"]],
   [["cafe", "marron", "chocolate"], ["brown", "choco", "mocha", "coffee"]],
   [["negro", "negra"], ["black"]],
-  [["kit", "kits", "set", "regalo"], ["set", "kit", "gift", "trial"]],
+  [["kit", "kits", "set", "sets", "regalo", "estuche", "combo", "paquete"], ["set", "kit", "gift", "trial", "bundle", "collection"]],
 ];
 // Palabras que no ayudan a encontrar ("crema PARA ojos").
 const SEARCH_STOPWORDS = new Set(["para", "de", "del", "la", "el", "los", "las", "con", "y", "en", "un", "una", "mi", "piel"]);
@@ -4293,6 +4308,10 @@ function searchRelevance(p, nq, words) {
     score = 45;
     if (words.some((w) => name.endsWith(" " + w) || name === w)) score += 5; // "... Toner" es un tónico
   } else if (words.every((w) => full.includes(w))) score = 35;
+  // La palabra solo sale en la opción entre paréntesis ("AGE-R (1 Set
+  // (English Version))"): no es lo que busca, va después.
+  const core = `${marca} ${normalizeForSearch(splitBaseName(p).base).replace(/\(.*$/, "").replace(/[^a-z0-9&+.-]+/g, " ")}`.trim();
+  if (score && words.some((w) => pad(full).includes(pad(w)) && !pad(core).includes(pad(w)))) score -= 15;
   // Accesorios y muestras al final, salvo que eso sea lo que busca.
   const acc = name.match(SEARCH_ACCESSORY_RE);
   if (acc && !pad(nq).includes(pad(acc[1]))) score -= 8;
