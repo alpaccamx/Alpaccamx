@@ -2869,7 +2869,7 @@ const SEARCH_SYNONYMS = [
   [["morado", "lila", "ciruela", "vino"], ["purple", "plum", "mauve", "lilac", "wine", "berry"]],
   [["cafe", "marron", "chocolate"], ["brown", "choco", "mocha", "coffee"]],
   [["negro", "negra"], ["black"]],
-  [["kit", "kits", "set", "regalo"], ["set", "kit", "gift", "trial"]],
+  [["kit", "kits", "set", "sets", "regalo", "estuche", "combo", "paquete"], ["set", "kit", "gift", "trial", "bundle", "collection"]],
 ];
 // Palabras que no ayudan a encontrar ("crema PARA ojos").
 const SEARCH_STOPWORDS = new Set(["para", "de", "del", "la", "el", "los", "las", "con", "y", "en", "un", "una", "mi", "piel"]);
@@ -4293,6 +4293,10 @@ function searchRelevance(p, nq, words) {
     score = 45;
     if (words.some((w) => name.endsWith(" " + w) || name === w)) score += 5; // "... Toner" es un tónico
   } else if (words.every((w) => full.includes(w))) score = 35;
+  // La palabra solo sale en la opción entre paréntesis ("AGE-R (1 Set
+  // (English Version))"): no es lo que busca, va después.
+  const core = `${marca} ${normalizeForSearch(splitBaseName(p).base).replace(/\(.*$/, "").replace(/[^a-z0-9&+.-]+/g, " ")}`.trim();
+  if (score && words.some((w) => pad(full).includes(pad(w)) && !pad(core).includes(pad(w)))) score -= 15;
   // Accesorios y muestras al final, salvo que eso sea lo que busca.
   const acc = name.match(SEARCH_ACCESSORY_RE);
   if (acc && !pad(nq).includes(pad(acc[1]))) score -= 8;
