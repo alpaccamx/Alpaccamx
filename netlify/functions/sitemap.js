@@ -18,6 +18,7 @@ exports.handler = async () => {
     { loc: `${BASE}?ver=tipo-de-piel`, pri: "0.7" },
     { loc: `${BASE}?ver=direccion-americana`, pri: "0.7" },
     { loc: `${BASE}?ver=como-comprar`, pri: "0.6" },
+    { loc: `${BASE}?ver=compras-en-vivo`, pri: "0.6" },
   ];
   try {
     const { rows } = await loadCatalog();
