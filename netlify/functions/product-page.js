@@ -189,6 +189,10 @@ async function listingMeta(q) {
     const image = await ogImage("ver", "como-comprar");
     return { title: "Cómo comprar en Alpacca · Video de 1 minuto", desc: "Skincare coreano por mayoreo para emprendedoras, directo de nuestra bodega en Corea: busca, agrega al carrito, paga y recíbelo en tu casa.", url: `${SITE}/?ver=como-comprar`, image, ogSize: Boolean(image) };
   }
+  if (q.ver === "personal-shopper") {
+    const image = await ogImage("ver", "compras-en-vivo");
+    return { title: "Personal shopper en EE.UU. · Alpacca", desc: "Compras en línea (tú armas tu carrito y yo lo compro) o compras en vivo en tiendas de EE.UU. por videollamada. Todo cruzado a México.", url: `${SITE}/?ver=personal-shopper`, image, ogSize: Boolean(image) };
+  }
   if (["personal-shopper-en-usa", "personalshopperenusa", "compras-en-vivo"].includes(q.ver)) {
     const image = await ogImage("ver", "compras-en-vivo");
     return { title: "Personal shopper en USA · Compras en vivo · Alpacca", desc: "Yo voy a la tienda y tú eliges en vivo por videollamada: Guess, Louis Vuitton, Gucci, BaByliss y más, a precio americano y cruzado a México.", url: `${SITE}/?ver=personal-shopper-en-usa`, image, ogSize: Boolean(image) };

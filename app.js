@@ -2046,6 +2046,7 @@ function getMenuItems() {
   items.push({ type: "link", label: "✅ Stock en México 🇲🇽", href: "#stock-section" });
 
   items.push({ type: "link", label: "🇺🇸 Dirección americana · Compras en EE.UU.", href: "#swm-section" });
+  items.push({ type: "link", label: "🛍️ Personal shopper", href: "#ps-section" });
 
   if (!document.getElementById("skintype-section").classList.contains("hidden")) {
     items.push({ type: "link", label: "🧴 Test de tipo de piel · Arma tu rutina", href: "#skintype-section" });
@@ -3446,8 +3447,12 @@ function openHowToVideo(kind = "corea") {
     document.removeEventListener("keydown", esc);
     document.body.classList.remove("overflow-hidden");
     // Si llegó con el link del video, la barra regresa al inicio.
-    if (["como-comprar", "personal-shopper-en-usa", "personalshopperenusa", "compras-en-vivo"].includes(new URLSearchParams(location.search).get("ver"))) {
+    // (el de compras en vivo se queda en Personal shopper → Compras físicas).
+    const ver = new URLSearchParams(location.search).get("ver");
+    if (ver === "como-comprar") {
       try { history.replaceState(history.state, "", location.pathname); } catch (err) { /* nada */ }
+    } else if (ver === "personal-shopper-en-usa") {
+      try { history.replaceState(history.state, "", `${location.pathname}?ver=personal-shopper&tipo=en-tienda`); } catch (err) { /* nada */ }
     }
     if (back && back.focus) back.focus();
   };
@@ -4029,6 +4034,7 @@ const DEFAULT_VIEW_ROUTES = {
   wishlist: { ver: "favoritos" },
   americano: { ver: "americano" },
   swm: { ver: "direccion-americana" },
+  ps: { ver: "personal-shopper" },
   piel: { ver: "tipo-de-piel" },
 };
 
@@ -4055,6 +4061,7 @@ function showHomeView(view, route) {
   document.getElementById("concern-products-section").classList.toggle("hidden", view !== "concerns");
   document.getElementById("americano-section").classList.toggle("hidden", view !== "americano");
   document.getElementById("swm-section").classList.toggle("hidden", view !== "swm");
+  document.getElementById("ps-section").classList.toggle("hidden", view !== "ps");
 }
 
 function renderSearchResults(query, { restore = false } = {}) {
@@ -4583,6 +4590,7 @@ function setRouteMeta(r) {
   else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México · Alpacca"; canonical += "?ver=direccion-americana"; }
   else if (r.ver === "tipo-de-piel") { title = "Test de tipo de piel: arma tu rutina coreana — Alpacca"; canonical += "?ver=tipo-de-piel"; }
   else if (r.ver === "como-comprar") { title = "Cómo comprar en Alpacca (video de 1 minuto)"; canonical += "?ver=como-comprar"; }
+  else if (r.ver === "personal-shopper") { title = r.tipo === "en-tienda" ? "Personal shopper: compras en vivo en tiendas de EE.UU. · Alpacca" : r.tipo === "en-linea" ? "Personal shopper: yo compro en línea por ti en EE.UU. · Alpacca" : "Personal shopper en EE.UU. · Alpacca"; canonical += "?ver=personal-shopper"; }
   else if (r.ver === "personal-shopper-en-usa") { title = "Personal shopper en USA: compras en vivo con Mae (video) · Alpacca"; canonical += "?ver=personal-shopper-en-usa"; }
   else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
   document.title = title;
@@ -4619,7 +4627,8 @@ function openRouteView(params, restore) {
   else if (ver === "favoritos") openWishlistSection();
   else if (ver === "tipo-de-piel") openSkinQuiz({ restore });
   else if (ver === "como-comprar") { showHomeView("home", { ver }); openHowToVideo(); }
-  else if (ver === "personal-shopper-en-usa") { showHomeView("home", { ver }); openHowToVideo("envivo"); }
+  else if (ver === "personal-shopper-en-usa" && typeof openPsSection === "function") { openPsSection("tienda", { restore }); openHowToVideo("envivo"); }
+  else if (ver === "personal-shopper" && typeof openPsSection === "function") openPsSection({ "en-linea": "linea", "en-tienda": "tienda" }[params.get("tipo")] || "", { restore });
   else if ((ver === "shopwithmae" || ver === "direccion-americana") && typeof openSwmSection === "function") openSwmSection({ restore });
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
   else if (ver === "mis-pedidos") { showHomeView("home"); if (!restore) openAccountPanel(); }
@@ -7467,6 +7476,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (href === "swm-section" && typeof openSwmSection === "function") {
       e.preventDefault();
       openSwmSection();
+      return;
+    }
+    if (href === "ps-section" && typeof openPsSection === "function") {
+      e.preventDefault();
+      openPsSection(link.dataset.psOpen || "");
       return;
     }
     const target = document.getElementById(href);
