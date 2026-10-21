@@ -803,6 +803,7 @@ function swmFormHTML() {
       ${swmInput("swm-f-tienda-wa", "¿De qué tienda? (opcional)", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}
       <p class="text-xs text-ink/65">No compro nada ilegal ni artículos de cristal (velas, jarrones, etc.), muebles ni pallets.</p>
       <a data-swm-wa-compra href="${escapeHtml(swmCompraWaLink(""))}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-semibold text-white hover:opacity-90">💬 Mandar mi carrito por WhatsApp</a>
+      <button type="button" data-howto-video="compra" class="block text-sm font-semibold text-rose-ink underline">▶️ Mira el video de cómo funciona (1 min)</button>
     </div>`;
   }
   if (swm.form === "envio") {
