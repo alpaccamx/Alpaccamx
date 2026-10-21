@@ -124,6 +124,12 @@
   force = true
   query = {preocupacion = ":preocupacion"}
 
+# Link corto del video de compras en vivo (personal shopper en USA).
+[[redirects]]
+  from = "/personalshopperenusa"
+  to = "/?ver=personalshopperenusa"
+  status = 301
+
 # Catálogo ligero que baja la tienda (ver netlify/functions/catalog-light.js).
 [[redirects]]
   from = "/catalogo.csv"
