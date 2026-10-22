@@ -4695,7 +4695,7 @@ ${itemLines}
     const diasAqui = p.receivedAt ? Math.floor((Date.now() - new Date(p.receivedAt)) / 864e5) : 0;
     const limite = swmData.diasSinDuena || 7;
     return `<div class="swm-card" data-swm-id="${escapeHtml(p.id)}" data-kind="paquete">
-      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.paqueteria ? ` · ${escapeHtml(p.paqueteria)}` : ""}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}</span>${swmValorAlto(p) ? swmPillA("⚠️ Valor alto", "new") : ""}${swmPillA(st, ["registrado", "sin_dueña"].includes(p.status) || p.datosPendientes ? "new" : "")}</h4>
+      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.paqueteria ? ` · ${escapeHtml(p.paqueteria)}` : ""}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}${p.ordenTienda ? ` · 🧾 orden ${escapeHtml(p.ordenTienda)}` : ""}</span>${swmValorAlto(p) ? swmPillA("⚠️ Valor alto", "new") : ""}${swmPillA(st, ["registrado", "sin_dueña"].includes(p.status) || p.datosPendientes ? "new" : "")}</h4>
       ${p.pago ? `<div class="meta">💲 Cruce del 15% por adelantado: <b>${formatPrice(p.pago.monto || 0)}</b>${p.crucePagado ? " · ✅ pagado (en su envío solo se cobra la guía)" : ""}</div>${swmPagoBox("paquete", p)}` : ""}
       ${sinDuena ? `<div class="meta">Etiqueta: <b>${escapeHtml(p.etiqueta || "—")}</b> · ${p.cobrable || "?"} kg · llegó ${swmFecha(p.receivedAt)} · <b style="color:${diasAqui >= limite ? "#b33660" : "inherit"}">${diasAqui} día${diasAqui === 1 ? "" : "s"}${diasAqui >= limite ? ` (ya pasaron ${limite}: puedes disponer de él)` : ` de ${limite}`}</b></div>
       <div class="grid" style="grid-template-columns:1fr auto;align-items:end;"><label>Buscar a la dueña (nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Ej. Ana López"></label></div>
@@ -4928,7 +4928,7 @@ ${itemLines}
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-compra>${c.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${linkBtns}${swmCancelBtn("compra", c)}</div>`;
     } else if (c.status === "pagado") {
       action = `<div style="margin-top:10px;font-size:13px;font-weight:600;">Ya compré: ¿qué paquetes van a llegar?</div>
-        <div data-swm-pkgs><div class="grid" data-swm-pkg><label>Tienda<input data-k="tienda" type="text"></label><label>Rastreo<input data-k="rastreo" type="text"></label><label>Contenido<input data-k="contenido" type="text"></label></div></div>
+        <div data-swm-pkgs><div class="grid" data-swm-pkg><label>Tienda<input data-k="tienda" type="text" value="${escapeHtml(c.tienda || "")}"></label><label>Número de orden de la tienda (solo para ti)<input data-k="orden" type="text"></label><label>Contenido<input data-k="contenido" type="text"></label></div></div>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button type="button" class="btn-secondary" data-swm-add-pkg style="padding:6px 12px;font-size:13px;">+ Otro paquete</button><button type="button" class="btn-primary" data-swm-comprada>🛍️ Ya compré (avisarle)</button></div>`;
     }
     return `<div class="swm-card" data-swm-id="${escapeHtml(c.id)}" data-kind="compra">
