@@ -4928,7 +4928,7 @@ ${itemLines}
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-compra>${c.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${linkBtns}${swmCancelBtn("compra", c)}</div>`;
     } else if (c.status === "pagado") {
       action = `<div style="margin-top:10px;font-size:13px;font-weight:600;">Ya compré: ¿qué paquetes van a llegar?</div>
-        <div data-swm-pkgs><div class="grid" data-swm-pkg><label>Tienda<input data-k="tienda" type="text" value="${escapeHtml(c.tienda || "")}"></label><label>Número de orden de la tienda (solo para ti)<input data-k="orden" type="text"></label><label>Contenido<input data-k="contenido" type="text"></label></div></div>
+        <div data-swm-pkgs><div class="grid" data-swm-pkg><label>Tienda<input data-k="tienda" type="text" value="${escapeHtml(c.tienda || "")}"></label><label>Número de orden de la tienda (solo para ti)<input data-k="orden" type="text"></label></div></div>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button type="button" class="btn-secondary" data-swm-add-pkg style="padding:6px 12px;font-size:13px;">+ Otro paquete</button><button type="button" class="btn-primary" data-swm-comprada>🛍️ Ya compré (avisarle)</button></div>`;
     }
     return `<div class="swm-card" data-swm-id="${escapeHtml(c.id)}" data-kind="compra">
