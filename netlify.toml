@@ -124,6 +124,17 @@
   force = true
   query = {preocupacion = ":preocupacion"}
 
+# Links cortos para mandar por WhatsApp.
+[[redirects]]
+  from = "/direccion-americana"
+  to = "/?ver=direccion-americana"
+  status = 301
+
+[[redirects]]
+  from = "/personal-shopper"
+  to = "/?ver=personal-shopper"
+  status = 301
+
 # Link corto del video de compras en vivo (personal shopper en USA).
 [[redirects]]
   from = "/personal-shopper-en-usa"
