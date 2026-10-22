@@ -231,7 +231,9 @@ function renderSwmGuias() {
 const swmCopio = () => { try { return localStorage.getItem("alpacca_swm_copio") === "1"; } catch (err) { return false; } };
 function renderSwmWelcome() {
   const el = document.getElementById("swm-welcome");
+  const tieneDirMx = typeof direccionPrincipal === "function" && Boolean(direccionPrincipal());
   const pasos = [
+    [tieneDirMx, "Pon tu dirección de envío en México", "A donde te mandamos tus paquetes cuando crucen. Solo se pone una vez.", `<button type="button" data-swm-dirmx-toggle class="mt-1 block text-xs font-semibold text-rose-ink underline">Poner mi dirección</button>${swm.dirMxOpen ? swmDirMxFormHTML() : ""}`],
     [swmCopio() || swm.paquetes.length > 0, "Copia tu dirección americana", "Úsala en tu tienda favorita, con tu código de casillero en el apellido.", '<button type="button" data-swm-abrir-dir class="mt-1 block text-xs font-semibold text-rose-ink underline">Ver mi dirección</button>'],
     [swm.paquetes.length > 0 || swm.compras.length > 0, "Registra tu primer paquete", "Cuando te den el número de rastreo. ¿Sin tarjeta americana? Usa Personal shopper \u2192 Compras en línea.", '<button type="button" data-swm-form="paquete" class="mt-1 block text-xs font-semibold text-rose-ink underline">Registrar paquete</button>'],
     [swm.envios.length > 0, "Pide tu primer envío a casa", "Cuando tus paquetes crucen a México te aviso y lo pides aquí.", ""],
@@ -249,6 +251,52 @@ function renderSwmWelcome() {
     <ol class="mt-4 space-y-3">${pasos.map(paso).join("")}</ol>
     <button type="button" data-howto-video="direccion" class="mt-4 text-sm font-semibold text-rose-ink underline">▶️ Mira el video de cómo funciona (1 min)</button>
   </div>`;
+}
+
+/* Dirección de envío en México (se guarda en "Mis direcciones" de su cuenta
+   y luego se usa sola al pedir el envío). */
+function swmDirMxFormHTML() {
+  const d = swmUltimaDireccion();
+  const f = (k, label, attrs = "") => swmInput(`swm-mx-${k}`, label, `value="${escapeHtml(d[k] || "")}" ${attrs}`);
+  return `<form data-swm-dirmx class="mt-3 space-y-3 rounded-2xl bg-pill/60 p-3" novalidate>
+    <div class="grid gap-3 sm:grid-cols-2">
+      ${f("nombre", "Nombre de quien recibe *", 'maxlength="100" autocomplete="name"')}
+      ${f("telefono", "Teléfono (10 dígitos) *", 'maxlength="20" inputmode="tel" autocomplete="tel"')}
+      ${f("calle", "Calle y número *", 'maxlength="150" autocomplete="street-address"')}
+      ${f("colonia", "Colonia", 'maxlength="100"')}
+      ${f("ciudad", "Ciudad o municipio *", 'maxlength="80" autocomplete="address-level2"')}
+      ${f("estado", "Estado", 'maxlength="60" autocomplete="address-level1"')}
+      ${f("cp", "Código postal *", 'maxlength="5" inputmode="numeric" autocomplete="postal-code"')}
+      ${f("referencias", "Referencias", 'maxlength="200" placeholder="Casa azul, entre calles…"')}
+    </div>
+    <p data-swm-dirmx-err class="hidden text-sm text-sale"></p>
+    <button type="submit" class="inline-flex items-center rounded-full bg-rose-deep px-5 py-2.5 text-sm font-semibold text-cream hover:bg-rose-ink">Guardar mi dirección ✓</button>
+  </form>`;
+}
+
+async function swmGuardarDirMx(form) {
+  const err = form.querySelector("[data-swm-dirmx-err]");
+  const val = (k) => (document.getElementById(`swm-mx-${k}`).value || "").trim();
+  const d = Object.fromEntries(["nombre", "telefono", "calle", "colonia", "ciudad", "estado", "cp", "referencias"].map((k) => [k, val(k)]));
+  err.classList.add("hidden");
+  if (!d.nombre || d.telefono.replace(/[^0-9]/g, "").length < 10 || !d.calle || !d.ciudad || !/^\d{5}$/.test(d.cp)) {
+    err.textContent = "Completa nombre, teléfono de 10 dígitos, calle y número, ciudad y código postal de 5 dígitos.";
+    err.classList.remove("hidden");
+    return;
+  }
+  const btn = form.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  try {
+    await direccionesPost({ accion: "guardar", direccion: d });
+    try { localStorage.setItem("alpacca_swm_dir", JSON.stringify(d)); } catch (e) { /* nada */ }
+    swm.dirMxOpen = false;
+    renderSwmWelcome();
+    renderSwmCasillero();
+  } catch (ex) {
+    err.textContent = ex.message;
+    err.classList.remove("hidden");
+    btn.disabled = false;
+  }
 }
 
 /* ---------------------------- Casillero ---------------------------- */
@@ -296,6 +344,7 @@ function swmPendientes() {
   const porPagar = (r) => r.status === "cotizado" && r.cotizacion && !(r.pago && r.pago.status === "revision");
   swm.envios.filter(porPagar).forEach((e) => out.push(["💳", `Paga tu envío ${e.folio} · ${swmMXN(e.cotizacion.total)}`, ir("envio", e)]));
   swm.compras.filter(porPagar).forEach((c) => out.push(["💳", `Paga tu compra ${c.folio} · ${swmMXN(c.cotizacion.total)}`, ir("compra", c)]));
+  if (typeof direccionPrincipal === "function" && misDirecciones && !direccionPrincipal()) out.push(["📍", "Pon tu dirección de envío en México", "data-swm-dirmx-toggle"]);
   swm.paquetes.filter((p) => p.datosPendientes && p.status !== "cancelado").forEach((p) => out.push(["⚠️", `Dime qué trae ${p.folio} (llegó sin registrar)`, ir("paquete", p)]));
   swm.paquetes.filter((p) => p.correccion && p.correccion.estado === "pedida").forEach((p) => out.push(["✏️", `Corrige los datos de ${p.folio}`, ir("paquete", p)]));
   const listos = swm.paquetes.filter((p) => p.status === "recibido" && !p.datosPendientes);
@@ -1062,6 +1111,13 @@ function initSwm() {
     out.textContent = n > SWM_MAX_ARCHIVOS ? `Elegiste ${n}; el máximo es ${SWM_MAX_ARCHIVOS}.` : n ? `✅ ${n} archivo${n === 1 ? "" : "s"} listo${n === 1 ? "" : "s"}. Se suben al terminar.` : "";
   });
   sec.addEventListener("click", (e) => {
+    if (e.target.closest("[data-swm-dirmx-toggle]")) {
+      swm.dirMxOpen = !swm.dirMxOpen;
+      renderSwmWelcome();
+      const box = document.getElementById("swm-welcome");
+      if (swm.dirMxOpen && box) box.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     const editToggle = e.target.closest("[data-swm-editar-toggle]");
     if (editToggle) {
       swm.editando = swm.editando === editToggle.dataset.swmEditarToggle ? "" : editToggle.dataset.swmEditarToggle;
@@ -1175,6 +1231,8 @@ function initSwm() {
     if (proof) swmUploadProof(proof.dataset.swmProof, proof);
   });
   sec.addEventListener("submit", (e) => {
+    const dirmx = e.target.closest("[data-swm-dirmx]");
+    if (dirmx) { e.preventDefault(); swmGuardarDirMx(dirmx); return; }
     const form = e.target.closest("[data-swm-submit]");
     if (form) { e.preventDefault(); submitSwmForm(form); return; }
     const cup = e.target.closest("[data-swm-cupon]");
