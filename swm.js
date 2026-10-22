@@ -642,7 +642,7 @@ const swmDeclTexto = (p) => ((p.articulos || []).length
 const swmDeclaracionHTML = (p = {}) => `<div data-decl data-previos="${swmNumArchivos(p)}" class="space-y-3">
     <div>
       <p class="text-sm font-semibold">¿Qué trae tu paquete? *</p>
-      <p class="text-xs text-ink/65">Sube capturas de tu compra <b>o</b> escribe qué trae y cuánto costó cada cosa.</p>
+      <p class="text-xs text-ink/65">Sube capturas de tu compra <b>o</b> escribe qué trae.</p>
     </div>
     <label class="flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-dashed border-rose-deep/40 bg-blush/15 px-4 py-4 text-center hover:bg-blush/30 focus-within:ring-2 focus-within:ring-rose-deep">
       <span class="text-3xl" aria-hidden="true">📷</span>
@@ -650,8 +650,8 @@ const swmDeclaracionHTML = (p = {}) => `<div data-decl data-previos="${swmNumArc
       <span class="text-[11px] text-ink/60">Fotos o PDF · hasta ${SWM_MAX_ARCHIVOS}</span>
       <input data-decl-file type="file" multiple accept="application/pdf,image/*" class="sr-only" /></label>
     <p data-decl-files class="text-xs font-semibold text-green-800"></p>
-    <label class="flex flex-col gap-1 text-xs font-semibold">✍️ O escríbelo aquí: qué trae y cuánto costó cada cosa
-      <textarea data-decl-que rows="3" maxlength="300" placeholder="Ej.&#10;Blush Rare Beauty $25&#10;Crema CeraVe x2 $36" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal">${escapeHtml(swmDeclTexto(p))}</textarea></label>
+    <label class="flex flex-col gap-1 text-xs font-semibold">✍️ O escribe qué trae
+      <textarea data-decl-que rows="2" maxlength="300" placeholder="Ej. maquillaje Rare Beauty y 2 cremas CeraVe" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal">${escapeHtml(swmDeclTexto(p))}</textarea></label>
     <div>
       <p class="text-sm font-semibold">¿Cuánto costó todo? *</p>
       <p class="text-xs text-ink/65">El total de tus productos <b>con tax (impuestos), sin el envío</b>.</p>
@@ -758,7 +758,7 @@ function swmValidarDeclaracion(box) {
   const files = [...(box.querySelector("[data-decl-file]").files || [])];
   const queTrae = (box.querySelector("[data-decl-que]") || {}).value?.trim() || "";
   const previos = Number(box.dataset.previos) || 0;
-  if (!articulos.length && !files.length && !previos && !(queTrae && /\d/.test(queTrae))) throw new Error("Sube capturas de tu compra o escribe qué trae y cuánto costó cada cosa (ej. Blush $25, crema $18).");
+  if (!articulos.length && !files.length && !previos && queTrae.length < 3) throw new Error("Sube capturas de tu compra o escribe qué trae tu paquete (ej. maquillaje y 2 cremas).");
   if (files.length > SWM_MAX_ARCHIVOS) throw new Error(`Puedes subir hasta ${SWM_MAX_ARCHIVOS} capturas o archivos.`);
   const valorTotal = box.querySelector("[data-decl-total]").value;
   const moneda = box.querySelector("[data-decl-moneda]").value;
