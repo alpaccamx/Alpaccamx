@@ -22,7 +22,7 @@
 //   editar_compra     { id, tienda?, items, taxPct?, envioUSD?, cobro, cruce?, notaClienta?, fotos? }
 //                     (corrige una cotización que todavía no se paga; si tenía cupón,
 //                      se recalcula el descuento)
-//   compra_comprada   { id, paquetes: [{ tienda, rastreo, contenido }] }
+//   compra_comprada   { id, paquetes: [{ tienda, orden?, rastreo?, contenido }] }  (orden = número de orden de la tienda, solo para Mae)
 //   cotizar_envio     { id, envio, cruce?, consolidacion?, sinRegistro?, extras?, notaClienta? }
 //   revision_hecha    { id, fotos: [{ dataBase64, contentType }], nota? }  (fotos del contenido)
 //   separar_paquete   { id, nuevo: { contenido, valorUSD?, kg, alto, ancho, largo }, resto: { contenido?, valorUSD?, kg, alto, ancho, largo }, fotos? }
@@ -279,8 +279,9 @@ exports.handler = async (event) => {
       case "compra_comprada": {
         const compra = await getRecord("compra", id);
         if (!compra) return json(404, { error: "No existe esa compra." });
-        const lista = (Array.isArray(b.paquetes) ? b.paquetes : []).map((x) => ({ tienda: clip(x.tienda, 80), rastreo: clip(x.rastreo, 80), contenido: clip(x.contenido, 300) })).filter((x) => x.tienda || x.rastreo);
-        if (!lista.length) return json(400, { error: "Pon al menos un paquete (tienda o rastreo)." });
+        // ordenTienda: número de orden de la tienda, solo para Mae (no se le muestra a la clienta).
+        const lista = (Array.isArray(b.paquetes) ? b.paquetes : []).map((x) => ({ tienda: clip(x.tienda, 80), rastreo: clip(x.rastreo, 80), ordenTienda: clip(x.orden, 80), contenido: clip(x.contenido, 300) })).filter((x) => x.tienda || x.rastreo || x.ordenTienda);
+        if (!lista.length) return json(400, { error: "Pon al menos un paquete (tienda o número de orden)." });
         const ids = [];
         for (const x of lista) {
           const p = {
