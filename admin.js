@@ -4778,9 +4778,27 @@ ${itemLines}
       <label style="grid-column:1/-1;">Artículo<input data-k="nombre" type="text" placeholder="Ej. Rare Beauty Blush" value="${escapeHtml(x.nombre || "")}"></label>
       <label>Tono / talla<input data-k="tono" type="text" value="${escapeHtml(x.tono || "")}"></label>
       <label>Cant.<input data-k="cantidad" type="number" min="1" step="1" value="${x.cantidad || 1}"></label>
-      <label>Precio c/u (MXN)<input data-k="precio" type="number" min="0" step="0.01" value="${x.precio || ""}"></label>
+      <label>Precio c/u (USD, sin tax)<input data-k="precioUSD" type="number" min="0" step="0.01" value="${x.precioUSD || ""}"></label>
       <button type="button" class="btn-secondary" data-swm-nc-del title="Quitar artículo" style="align-self:end;padding:8px 10px;">🗑️</button>
     </div>`;
+  /* Lista pegada, un artículo por renglón: "Nombre x2 $1.95", "2 x Nombre - 1.95",
+     "Nombre · tono (x3) US$2.25"... Cantidad = "x2" / "2x" / "2 ×"; precio =
+     el último número con punto decimal o con "$". */
+  function swmNcParse(txt) {
+    return String(txt || "").split(/\n+/).map((line) => {
+      let s = line.replace(/^[\s•*\-–\d]+[.)]\s+/, (m) => (/\d/.test(m) && !/[.)]/.test(m) ? m : "")).replace(/^\s*[•*\-–]\s*/, "").trim();
+      if (!s) return null;
+      let precioUSD = 0;
+      const pm = s.match(/(?:US)?\$\s*(\d+(?:[.,]\d{1,2})?)|(\d+[.,]\d{2})(?!.*\d)/i);
+      if (pm) { precioUSD = parseFloat((pm[1] || pm[2]).replace(",", ".")) || 0; s = s.replace(pm[0], " "); }
+      let cantidad = 1;
+      const qm = s.match(/(?:^|\s|\()(?:x|×)\s*(\d{1,3})\b|\b(\d{1,3})\s*(?:x|×)(?:\s|$)|(?:cant(?:idad)?|qty)\.?\s*:?\s*(\d{1,3})/i);
+      if (qm) { cantidad = parseInt(qm[1] || qm[2] || qm[3], 10) || 1; s = s.replace(qm[0], " "); }
+      s = s.replace(/[()]/g, " ").replace(/\s*[-–:,]\s*$/, "").replace(/\s{2,}/g, " ").trim();
+      const [nombre, ...rest] = s.split(/\s+[·|]\s+/);
+      return nombre ? { nombre: nombre.trim(), tono: rest.join(" · ").trim(), cantidad, precioUSD } : null;
+    }).filter(Boolean);
+  }
   /* Sin "c": nueva cotización. Con "c": editar esa cotización (misma clienta). */
   function swmNuevaCompraForm(c = null) {
     const q = (c && c.cotizacion) || {};
@@ -4797,8 +4815,17 @@ ${itemLines}
         <label>WhatsApp<input data-n="phone" type="tel"></label>`}
         <label>Tienda<input data-n="tienda" type="text" placeholder="Sephora, Ulta, Amazon…" value="${escapeHtml((c && c.tienda) || "")}"></label>
       </div>
-      <div data-swm-nc-items style="margin-top:6px;">${(q.items && q.items.length ? q.items : [{}]).map(swmNcItemRow).join("")}</div>
+      <details style="margin-top:10px;" ${c ? "" : "open"}><summary style="cursor:pointer;font-weight:600;color:#a33a63;">📋 Pegar la lista de artículos (más rápido)</summary>
+        <div class="meta" style="margin-top:4px;">Un artículo por renglón: nombre, cantidad y precio en dólares. Ej.:<br><code>Winterberry Ice x2 $1.95</code><br><code>Champagne Toast · Moisturizing x3 $2.25</code><br>Puedes pedirle a Claude (en Chrome) que te dé el carrito así y pegarlo aquí.</div>
+        <textarea data-swm-nc-paste rows="5" style="width:100%;margin-top:6px;border:1px solid #e5d6de;border-radius:10px;padding:8px;font-size:14px;" placeholder="Winterberry Ice x2 $1.95"></textarea>
+        <button type="button" class="btn-secondary" data-swm-nc-paste-go style="margin-top:6px;padding:6px 12px;font-size:13px;">Agregar artículos</button>
+      </details>
+      <div data-swm-nc-items style="margin-top:6px;">${(q.items && q.items.filter((x) => !x.envio).length ? q.items.filter((x) => !x.envio) : [{}]).map(swmNcItemRow).join("")}</div>
       <button type="button" class="btn-secondary" data-swm-nc-add style="margin-top:8px;padding:6px 12px;font-size:13px;">+ Otro artículo</button>
+      <div class="grid">
+        <label>Tax de la tienda (%)<input data-n="taxPct" type="number" min="0" step="0.01" value="${q.taxPct != null ? q.taxPct : 8.25}"></label>
+        <label>Envío de la tienda (USD, si cobra)<input data-n="envioUSD" type="number" min="0" step="0.01" value="${((q.items || []).find((x) => x.envio) || {}).precioUSD || ""}"></label>
+      </div>
       <div class="grid">
         <label>Cruce<select data-n="cobro"><option value="peso" ${cobro === "peso" ? "selected" : ""}>Por peso (se cobra al enviar)</option><option value="comision" ${cobro === "comision" ? "selected" : ""}>15% del valor (se cobra ahora)</option></select></label>
         <label>Cruce 15% (vacío = automático)<input data-n="cruce" type="number" min="0" step="0.01"></label>
@@ -4812,16 +4839,21 @@ ${itemLines}
   function swmNcLeer(box) {
     const items = [...box.querySelectorAll("[data-swm-nc-item]")].map((row) => {
       const k = (n) => row.querySelector(`[data-k="${n}"]`).value;
-      return { nombre: k("nombre").trim(), tono: k("tono").trim(), cantidad: Math.max(1, parseInt(k("cantidad"), 10) || 1), precio: parseFloat(k("precio")) || 0 };
-    }).filter((x) => x.nombre || x.precio);
+      return { nombre: k("nombre").trim(), tono: k("tono").trim(), cantidad: Math.max(1, parseInt(k("cantidad"), 10) || 1), precioUSD: parseFloat(k("precioUSD")) || 0 };
+    }).filter((x) => x.nombre || x.precioUSD);
     const n = (k) => { const el = box.querySelector(`[data-n="${k}"]`); return el ? el.value : ""; };
-    const productos = Math.round(items.reduce((t, x) => t + x.precio * x.cantidad, 0) * 100) / 100;
+    // Estimado en pesos con el tipo de cambio de Config (el servidor hace la cuenta final).
+    const tc = pricingConfig.exchangeRate || 0;
+    const tax = n("taxPct") === "" ? 8.25 : parseFloat(n("taxPct")) || 0;
+    const usd = items.reduce((t, x) => t + x.precioUSD * x.cantidad, 0) * (1 + tax / 100) + (parseFloat(n("envioUSD")) || 0);
+    const productos = Math.round(usd * tc * 100) / 100;
     const cruce = n("cobro") === "comision" ? (n("cruce") !== "" ? parseFloat(n("cruce")) || 0 : Math.ceil(productos * 0.15)) : 0;
     return { items, productos, cruce, n };
   }
   function swmNcTotal(box) {
     const { productos, cruce } = swmNcLeer(box);
-    box.querySelector("[data-swm-nc-total]").innerHTML = productos ? `Productos ${formatPrice(productos)}${cruce ? ` + cruce ${formatPrice(cruce)}` : ""} = <b>${formatPrice(productos + cruce)}</b>` : "";
+    const tc = pricingConfig.exchangeRate || 0;
+    box.querySelector("[data-swm-nc-total]").innerHTML = productos ? `Productos con tax ${formatPrice(productos)}${cruce ? ` + cruce ${formatPrice(cruce)}` : ""} = <b>${formatPrice(productos + cruce)}</b> <small>(dólar a $${tc})</small>` : "";
   }
   const swmCompraLink = (c) => `${location.origin}/?ver=direccion-americana&compra=${encodeURIComponent(c.id)}`;
   function swmCompraWa(c) {
@@ -5067,6 +5099,21 @@ ${itemLines}
       swmNcTotal(box);
       return;
     }
+    if (t.closest("[data-swm-nc-paste-go]")) {
+      const box = t.closest("[data-swm-nc]");
+      const ta = box.querySelector("[data-swm-nc-paste]");
+      const items = swmNcParse(ta.value);
+      if (!items.length) { alert("No encontré artículos. Pon uno por renglón, por ejemplo: Winterberry Ice x2 $1.95"); return; }
+      const cont = box.querySelector("[data-swm-nc-items]");
+      // Quita los renglones vacíos antes de agregar los pegados.
+      cont.querySelectorAll("[data-swm-nc-item]").forEach((row) => { if (!row.querySelector('[data-k="nombre"]').value.trim()) row.remove(); });
+      cont.insertAdjacentHTML("beforeend", items.map(swmNcItemRow).join(""));
+      ta.value = "";
+      swmNcTotal(box);
+      const sinPrecio = items.filter((x) => !x.precioUSD).length;
+      showToast(`✅ ${items.length} artículo${items.length === 1 ? "" : "s"} agregado${items.length === 1 ? "" : "s"}${sinPrecio ? ` · ${sinPrecio} sin precio, ponlo a mano` : ""}`);
+      return;
+    }
     if (t.closest("[data-swm-nc-add]")) {
       t.closest("[data-swm-nc]").querySelector("[data-swm-nc-items]").insertAdjacentHTML("beforeend", swmNcItemRow());
       return;
@@ -5081,16 +5128,16 @@ ${itemLines}
       const box = ncSave.closest("[data-swm-nc]");
       const { items, n } = swmNcLeer(box);
       if (!n("email").trim()) { alert("Busca a la clienta o pon su correo."); return; }
-      if (!items.length || items.some((x) => !x.nombre || !(x.precio > 0))) { alert("Cada artículo necesita nombre y precio."); return; }
+      if (!items.length || items.some((x) => !x.nombre || !(x.precioUSD > 0))) { alert("Cada artículo necesita nombre y precio en dólares."); return; }
       const fotos = (await Promise.all([...(box.querySelector('[data-n="fotos"]').files || [])].slice(0, 8).map(swmResize))).filter(Boolean);
       if (box.dataset.editId) {
         const id = box.dataset.editId;
         swmEditCompraId = "";
-        const ok = await swmAct({ accion: "editar_compra", id, tienda: n("tienda"), items, cobro: n("cobro"), cruce: n("cruce"), notaClienta: n("notaClienta"), fotos }, ncSave);
+        const ok = await swmAct({ accion: "editar_compra", id, tienda: n("tienda"), items, taxPct: n("taxPct"), envioUSD: n("envioUSD"), cobro: n("cobro"), cruce: n("cruce"), notaClienta: n("notaClienta"), fotos }, ncSave);
         if (!ok) swmEditCompraId = id;
         return;
       }
-      const data = await swmAct({ accion: "crear_compra", email: n("email"), name: n("name"), phone: n("phone"), tienda: n("tienda"), items, cobro: n("cobro"), cruce: n("cruce"), notaClienta: n("notaClienta"), fotos }, ncSave);
+      const data = await swmAct({ accion: "crear_compra", email: n("email"), name: n("name"), phone: n("phone"), tienda: n("tienda"), items, taxPct: n("taxPct"), envioUSD: n("envioUSD"), cobro: n("cobro"), cruce: n("cruce"), notaClienta: n("notaClienta"), fotos }, ncSave);
       if (data && data.compra) {
         swmNuevaCompraOpen = false; swmTab = "compras"; swmSearch = ""; renderSwmAdmin();
         if (!data.tieneCuenta) alert(`Ese correo todavía no tiene cuenta. Cuando ${data.compra.name || "la clienta"} la cree con ${data.compra.email}, verá su cotización.`);
