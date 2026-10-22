@@ -45,6 +45,11 @@ function valorEnPesos(p, rates) {
 function crucePaquete(p, rates) {
   if (p.crucePagado) return 0;
   if (p.cobro === "comision") return crucePorComision(valorEnPesos(p, rates));
+  if (p.cobro === "auto") {
+    // "Lo que le salga más barato" (lo de ahora): por peso o el 15% de su valor.
+    const opciones = [p.cobrable ? crucePorPeso(p.cobrable) : null, valorEnPesos(p, rates) > 0 ? crucePorComision(valorEnPesos(p, rates)) : null].filter((x) => x != null);
+    return opciones.length ? Math.min(...opciones) : 0;
+  }
   return crucePorPeso(p.cobrable || 0);
 }
 
@@ -61,6 +66,71 @@ async function cotizacionSugerida(paquetes, consolidar) {
   // Servicios extra pedidos (revisión con fotos, separar paquete).
   const extras = paquetes.reduce((t, p) => t + (p.cargos || []).reduce((s, c) => s + (Number(c.monto) || 0), 0), 0);
   return { cruce: Math.ceil(cruce), consolidacion, sinRegistro, extras, kg, rate };
+}
+
+const escHTML = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+
+/* Cotiza un envío y le avisa a la clienta. Lo vacío usa lo sugerido.
+   opts: { envio (MXN), cruce?, consolidacion?, sinRegistro?, extras?, premioLealtad?, notaClienta? }
+   Regresa { envio } o { error, status }. La usan "Mandar cotización" y
+   "Generar guía" (que cotiza sola con el precio de la paquetería). */
+async function cotizarEnvio(id, b = {}) {
+  const envio0 = await getRecord("envio", id);
+  if (!envio0) return { error: "No existe ese envío.", status: 404 };
+  const paquetes = (await Promise.all((envio0.paqueteIds || []).map((x) => getRecord("paquete", x)))).filter(Boolean);
+  const sug = await cotizacionSugerida(paquetes, envio0.consolidar);
+  const num = (v) => (isFinite(Number(v)) ? Number(v) : 0);
+  const val = (v, d) => (v === "" || v == null ? d : round2(num(v)));
+  const envioMX = round2(num(b.envio));
+  // Cruce con descuento por lealtad (si le toca y Mae lo marcó).
+  let premioLealtad = !!envio0.premioLealtad;
+  if (b.premioLealtad && !premioLealtad) {
+    const suyos = (await listRecords("envio")).filter((e) => e.email === envio0.email);
+    if (!lealtadDe(suyos).disponibles) return { error: "Esta clienta no tiene descuento de lealtad disponible.", status: 409 };
+    premioLealtad = true;
+  } else if (b.premioLealtad === false) premioLealtad = false;
+  const cruceLleno = val(b.cruce, sug.cruce);
+  const cruce = premioLealtad ? round2(cruceLleno * (100 - LEALTAD_PCT) / 100) : cruceLleno;
+  const consolidacion = val(b.consolidacion, sug.consolidacion);
+  const sinRegistro = val(b.sinRegistro, sug.sinRegistro || 0);
+  const extras = val(b.extras, sug.extras || 0);
+  const at = new Date().toISOString();
+  const rec = await mutateRecord("envio", id, (e) => {
+    e.sugerido = { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro || 0, extras: sug.extras || 0, kg: sug.kg };
+    e.cotizacion = { cruce, consolidacion, sinRegistro, extras, envio: envioMX, total: round2(cruce + consolidacion + sinRegistro + extras + envioMX), at, ...(premioLealtad ? { premioLealtad: true, lealtadPct: LEALTAD_PCT, cruceSinDescuento: cruceLleno } : {}) };
+    e.premioLealtad = premioLealtad;
+    e.pago = { status: "pendiente", monto: e.cotizacion.total };
+    if (b.notaClienta != null) e.notaClienta = String(b.notaClienta).slice(0, 1000);
+    e.status = "cotizado";
+    e.history = [...(e.history || []), { at, status: "cotizado" }];
+    e.updatedAt = at;
+    return e;
+  });
+  const c = rec.cotizacion;
+  await avisar(rec, `tu envío ${rec.folio} está listo para pagar`, `
+    <h2 style="margin:0 0 8px;font-size:20px;">Tu envío a México está listo</h2>
+    <p style="font-size:14px;">${c.cruce ? `Cruce a México: <b>${formatPriceMXN(c.cruce)}</b>${c.premioLealtad ? ` (${c.lealtadPct}% de descuento por tu lealtad 🎁)` : ""}<br>` : ""}${c.consolidacion ? `Consolidación: <b>${formatPriceMXN(c.consolidacion)}</b><br>` : ""}${c.sinRegistro ? `Paquete(s) sin registrar: <b>${formatPriceMXN(c.sinRegistro)}</b><br>` : ""}${c.extras ? `Servicios extra (revisión / separar): <b>${formatPriceMXN(c.extras)}</b><br>` : ""}${c.envio ? `Envío a tu casa${rec.paqueteria ? ` (${escHTML(rec.paqueteria)})` : ""}: <b>${formatPriceMXN(c.envio)}</b><br>` : ""}Total a pagar: <b>${formatPriceMXN(c.total)}</b></p>
+    ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${escHTML(rec.notaClienta)}</p>` : ""}
+    <p style="font-size:14px;">Págalo con tarjeta o transferencia desde tu casillero${rec.guia ? " y en cuanto se acredite te mando tu guía" : " y lo preparo"}.</p>`);
+  return { envio: rec };
+}
+
+/* Envío pagado que ya tiene guía: sale solo y se le manda la guía. */
+async function despacharConGuia(rec) {
+  if (!rec || !rec.guia || rec.status !== "pagado") return rec;
+  const at = new Date().toISOString();
+  const out = await mutateRecord("envio", rec.id, (e) => {
+    if (e.status !== "pagado") return null;
+    e.status = "enviado"; e.enviadoAt = at;
+    e.history = [...(e.history || []), { at, status: "enviado" }];
+    return e;
+  });
+  if (!out) return rec;
+  await Promise.all((out.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => {
+    p.status = "enviado"; p.history = [...(p.history || []), { at, status: "enviado" }]; return p;
+  })));
+  await avisar(out, `tu envío ${out.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${escHTML(out.paqueteria)}</b><br>Guía: <b>${escHTML(out.guia)}</b></p>`);
+  return out;
 }
 
 function siteUrlFrom(event) {
@@ -121,8 +191,9 @@ async function aplicarPago(kind, id, { metodo, paymentId, monto } = {}) {
     await avisar(rec, `${rec.folio}: recibimos tu pago 💗`, `
       <h2 style="margin:0 0 8px;font-size:20px;">¡Pago recibido!</h2>
       <p style="font-size:14px;">Recibimos tu pago de ${formatPriceMXN(rec.pago.monto || (rec.cotizacion && rec.cotizacion.total))} de ${rec.folio}.
-      ${kind === "compra" ? "Ya voy a hacer tu compra; te aviso cuando la registre." : "Ya preparo tu envío; te mando la guía en cuanto salga."}</p>`);
+      ${kind === "compra" ? "Ya voy a hacer tu compra; te aviso cuando la registre." : rec.guia ? "Tu envío sale con esta guía; ahorita te la mando." : "Ya preparo tu envío; te mando la guía en cuanto salga."}</p>`);
     await premiarReferido(kind, rec).catch((err) => console.error("swm premio referido:", err));
+    if (kind === "envio" && rec.guia) return despacharConGuia(rec);
   }
   return rec;
 }
@@ -219,6 +290,6 @@ async function todoDe(email) {
 
 module.exports = {
   lealtadDe, codigoReferido, premiosDe,
-  ALMACENAJE_DIAS, round2, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
+  ALMACENAJE_DIAS, round2, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, cotizarEnvio, despacharConGuia, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
   formatPriceMXN,
 };

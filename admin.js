@@ -4530,6 +4530,14 @@ ${itemLines}
       ratesEl.querySelectorAll("[data-guia-rate]").forEach((l) => l.classList.toggle("selected", l === rateEl));
       rateEl.querySelector("input").checked = true;
       genBtn.disabled = false;
+      const cobro = card.querySelector("[data-cobro-base]");
+      if (cobro) {
+        const r = swmGuiaState[id].rates[swmGuiaState[id].selected];
+        const lealtad = card.querySelector("[data-g-lealtad]");
+        const cruce = Number(cobro.dataset.cruce) || 0;
+        const total = (Number(cobro.dataset.cobroBase) || 0) - (lealtad && lealtad.checked ? cruce / 2 : 0) + (Number(r.total) || 0);
+        genBtn.textContent = `2️⃣ Hacer guía y cobrarle ${formatPrice(total)}`;
+      }
       return;
     }
     const weight = parseFloat(g("peso"));
@@ -4555,7 +4563,7 @@ ${itemLines}
     if (!st || st.selected == null) { errEl.textContent = "Elige una paquetería primero."; return; }
     const envio = swmData.envios.find((x) => x.id === id);
     const pagado = envio && ["pagado", "en_mexico"].includes(envio.status);
-    if (!confirm(pagado ? "¿Generar la guía? Se cobra en tu cuenta de la paquetería y a la clienta le llega el aviso." : "¿Generar la guía ya? Se cobra en tu cuenta de la paquetería aunque todavía no te pague. A ella se la mando cuando pague y marques enviado.")) return;
+    if (!confirm(pagado ? "¿Generar la guía? Se cobra en tu cuenta de la paquetería y a la clienta le llega el aviso." : "¿Hacer la guía y cobrarle? La guía se paga en tu cuenta de la paquetería ya; a ella le llega lo que tiene que pagar y, en cuanto pague, su guía.")) return;
     const r = st.rates[st.selected];
     const destination = {
       name: g("nombre").slice(0, 30) || "Cliente", phone: g("telefono").replace(/[^0-9]/g, "").slice(-10),
@@ -4567,11 +4575,12 @@ ${itemLines}
     try {
       const res = await fetch("/.netlify/functions/admin-generate-guide", {
         method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ envioId: id, weight, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
+        body: JSON.stringify({ envioId: id, weight, total: r.total, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo generar la guía.");
-      showToast(data.guiaAnticipada ? `✅ Guía ${data.envio.guia} lista. Cuando pague, toca "Marcar enviado".` : `✅ Guía ${data.envio.guia} generada y aviso enviado`);
+      if (data.error) alert(data.error);
+      else showToast(data.guiaAnticipada ? `✅ Guía ${data.envio.guia} lista y cobro enviado (${formatPrice(data.envio.cotizacion.total)}). Cuando pague, le llega su guía sola.` : `✅ Guía ${data.envio.guia} generada y aviso enviado`);
       await loadSwm({ quiet: true });
     } catch (err) {
       errEl.textContent = err.message; genBtn.disabled = false; genBtn.textContent = label;
@@ -4691,7 +4700,7 @@ ${itemLines}
       <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">${fotosHtml(p)}<button type="button" class="btn-secondary" data-swm-cancel="paquete:${escapeHtml(p.id)}" style="padding:6px 12px;font-size:13px;">Ya dispuse de él</button></div>
     </div>` : ""}${sinDuena ? "" : `
-      <div class="meta">${swmWho(p)}<br>${p.origen === "sin_registro" ? `⚠️ Llegó sin registrar (cargo ${formatPrice(p.cargoSinRegistro || 0)})${p.datosPendientes ? " · <b>ella todavía no dice qué trae</b>" : ""} · ` : ""}${p.origen === "compra" ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "comision" ? (p.valorTotal && p.moneda ? `15% de ${Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${escapeHtml(p.moneda)}` : `15% de US$${Number(p.valorUSD || 0).toFixed(2)}`) : "por peso"}${p.contenido ? ` · ${escapeHtml(p.contenido)}` : ""}
+      <div class="meta">${swmWho(p)}<br>${p.origen === "sin_registro" ? `⚠️ Llegó sin registrar (cargo ${formatPrice(p.cargoSinRegistro || 0)})${p.datosPendientes ? " · <b>ella todavía no dice qué trae</b>" : ""} · ` : ""}${p.origen === "compra" ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "auto" ? "lo más barato (peso o 15%)" : p.cobro === "comision" ? (p.valorTotal && p.moneda ? `15% de ${Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${escapeHtml(p.moneda)}` : `15% de US$${Number(p.valorUSD || 0).toFixed(2)}`) : "por peso"}${p.contenido ? ` · ${escapeHtml(p.contenido)}` : ""}
         ${p.valorTotal ? `<br>Valor declarado (con tax, sin envío): <b>${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}</b>` : ""}${swmValorPesosHTML(p)}
         ${p.factura ? ` <button type="button" class="btn-secondary" data-swm-file="factura/paquete/${escapeHtml(p.id)}" style="padding:4px 10px;font-size:12px;">📄 Ver factura</button>` : ""}
         ${(p.facturas || []).length ? `<br>${p.facturas.map((f, i) => `<button type="button" class="btn-secondary" data-swm-file="factura/paquete/${escapeHtml(p.id)}/${Number(f.n ?? i)}" style="padding:4px 10px;font-size:12px;margin:2px 4px 2px 0;">📄 ${f.tipo === "application/pdf" ? "PDF" : "Captura"} ${i + 1}</button>`).join("")}` : ""}
@@ -4962,21 +4971,40 @@ ${itemLines}
 
   /* Guía real para un envío de Dirección americana (Envíos Perros /
      Skydropx), igual que en los pedidos de la tienda. */
-  function swmGuiaForm(e, anticipada = false) {
+  function swmGuiaForm(e, cobrar = false) {
     const d = e.direccion || {};
     const pk = (e.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
     const kg = Math.max(1, Math.ceil(pk.reduce((s, p) => s + (Number(p.kg) || Number(p.cobrable) || 0), 0)) || Math.ceil((e.sugerido && e.sugerido.kg) || 1));
     const inp = (k, l, v, extra = "") => `<label>${l}<input data-g="${k}" type="text" value="${escapeHtml(v || "")}" ${extra}></label>`;
-    return `<details style="margin-top:10px;"><summary style="cursor:pointer;font-weight:700;font-size:14px;">${anticipada ? "Paso 4 (opcional) · 📦 Generar la guía ya, sin esperar el pago" : "📦 Generar guía real (comparar precios)"}</summary>
-      ${anticipada ? `<div class="meta" style="color:#8a5a00;">⚠️ La guía se cobra en tu cuenta de la paquetería aunque la clienta todavía no pague. A ella se la mandamos cuando pague y marques "enviado".</div>` : ""}
-      <div class="grid" style="margin-top:8px;">
-        ${inp("peso", "Peso total de la caja (kg)", kg, 'inputmode="decimal"')}${inp("nombre", "Nombre", d.nombre)}${inp("telefono", "Teléfono", d.telefono)}
+    const dir = `<div class="grid" style="margin-top:8px;">
+        ${inp("nombre", "Nombre", d.nombre)}${inp("telefono", "Teléfono", d.telefono)}
         ${inp("calle", "Calle", d.calle)}${inp("ext", "Núm. exterior", "")}${inp("int", "Núm. interior", "")}
         ${inp("colonia", "Colonia", d.colonia)}${inp("ciudad", "Ciudad", d.ciudad)}${inp("estado", "Estado", d.estado)}${inp("cp", "Código postal", d.cp)}${inp("referencias", "Referencias", d.referencias)}
-      </div>
+      </div>`;
+    const rates = `<div data-guia-error style="color:#b33660;font-size:13px;margin-top:6px;"></div>
+      <div class="rate-options" data-guia-rates style="margin-top:6px;"></div>`;
+    if (cobrar) {
+      // Cobro en un solo paso: la guía + cruce + envío con el precio de la paquetería.
+      const s = e.sugerido || {};
+      const base = (s.cruce || 0) + (s.consolidacion || 0) + (s.sinRegistro || 0) + (s.extras || 0);
+      const libres = swmLealtadLibres(e.email);
+      return `<div data-cobro-base="${base}" data-cruce="${s.cruce || 0}" style="margin-top:10px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+          <label style="max-width:150px;">Peso de la caja (kg)<input data-g="peso" type="text" inputmode="decimal" value="${kg}"></label>
+          <button type="button" class="btn-secondary" data-guia-cotizar style="padding:8px 14px;">1️⃣ Ver precios de envío</button>
+        </div>
+        ${rates}
+        ${libres ? `<label class="swm-check" style="margin-top:8px;"><input type="checkbox" data-g-lealtad> 🎁 Cruce al 50% por lealtad (le quedan ${libres})</label>` : ""}
+        <details style="margin-top:8px;"><summary style="cursor:pointer;font-size:13px;color:#6b6370;">📍 Dirección de envío (revísala si quieres)</summary>${dir}</details>
+        <div style="margin-top:10px;"><button type="button" class="btn-primary" data-guia-generar disabled>2️⃣ Hacer guía y cobrarle</button></div>
+        <div class="meta" style="margin-top:4px;">Le cobro cruce ${formatPrice(base)} + el envío que elijas. Cuando pague, le llega su guía sola.</div>
+      </div>`;
+    }
+    return `<details style="margin-top:10px;"><summary style="cursor:pointer;font-weight:700;font-size:14px;">📦 Generar guía real (comparar precios)</summary>
+      <div class="grid" style="margin-top:8px;">${inp("peso", "Peso total de la caja (kg)", kg, 'inputmode="decimal"')}</div>
+      ${dir}
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-secondary" data-guia-cotizar>Cotizar paqueterías</button><button type="button" class="btn-primary" data-guia-generar disabled>Generar guía y avisarle</button></div>
-      <div data-guia-error style="color:#b33660;font-size:13px;margin-top:6px;"></div>
-      <div class="rate-options" data-guia-rates style="margin-top:6px;"></div>
+      ${rates}
     </details>`;
   }
 
@@ -4998,15 +5026,8 @@ ${itemLines}
     let action = "";
     if (e.status === "solicitado" || (e.status === "cotizado" && (!e.pago || e.pago.status === "pendiente"))) {
       const juarez = /ju[aá]rez/i.test(`${d.ciudad || ""}`);
-      action = `<div class="meta" style="margin-top:10px;font-weight:600;color:#a33a63;">Paso 1 · Cotiza la paquetería</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
-          <label style="max-width:140px;">Peso de la caja (kg)<input data-f="pesoEnvio" type="number" step="0.1" min="0.1" value="${sug.kg || pk.reduce((t, p) => t + (p.cobrable || p.kg || 0), 0) || 1}"></label>
-          <button type="button" class="btn-secondary" data-swm-envio-cotizar style="padding:8px 14px;">🚚 Cotizar envío a ${escapeHtml(d.cp || "su CP")}</button>
-          ${juarez ? `<button type="button" class="btn-secondary" data-swm-envio-personal style="padding:8px 14px;">📍 Entrega personal en Juárez ($0)</button>` : ""}
-        </div>
-        <div data-swm-envio-rates style="margin-top:6px;"></div>
-        <div class="meta" data-swm-envio-err style="color:#b42318;"></div>
-        <div class="meta" style="margin-top:10px;font-weight:600;color:#a33a63;">Paso 2 · Revisa los montos (toca una opción de arriba y se llena solo)</div>
+      // Lo de antes (montos a mano, sin guía): plegado, para casos especiales.
+      const manual = `<details style="margin-top:10px;"${e.guia ? "" : ""}><summary style="cursor:pointer;font-size:13px;color:#6b6370;">✏️ Cobrar sin guía o ajustar montos a mano</summary>
         <div class="grid">
           <label>Envío nacional (MXN)<input data-f="envio" type="number" step="0.01" min="0" value="${q ? q.envio : ""}"></label>
           <label>Cruce (vacío = ${formatPrice(sug.cruce || 0)})<input data-f="cruce" type="number" step="0.01" min="0" placeholder="${sug.cruce || 0}"></label>
@@ -5015,10 +5036,16 @@ ${itemLines}
           ${sug.extras ? `<label>Servicios extra (vacío = ${formatPrice(sug.extras)})<input data-f="extras" type="number" step="0.01" min="0" placeholder="${sug.extras}"></label>` : ""}
           <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(e.notaClienta || "")}"></label>
         </div>
-        ${swmLealtadLibres(e.email) || e.premioLealtad ? `<label class="swm-check" style="margin-top:8px;"><input type="checkbox" data-f="premioLealtad"${e.premioLealtad ? " checked" : ""}> 🎁 Cruce al 50% por lealtad (le ${e.premioLealtad ? "toca" : `quedan ${swmLealtadLibres(e.email)}`})</label>` : ""}
-        <div class="meta" style="margin-top:10px;font-weight:600;color:#a33a63;">Paso 3 · Mándasela</div>
-        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("envio", e)}</div>
-        ${e.guia ? `<div class="meta" style="margin-top:10px;">📦 Guía ya generada: <b>${escapeHtml(e.paqueteria || "")} ${escapeHtml(e.guia)}</b>. Cuando pague, toca "Marcar enviado" y se la mando.</div>` : swmGuiaForm(e, true)}`;
+        ${swmLealtadLibres(e.email) || e.premioLealtad ? `<label class="swm-check" style="margin-top:8px;"><input type="checkbox" data-f="premioLealtad"${e.premioLealtad ? " checked" : ""}> 🎁 Cruce al 50% por lealtad</label>` : ""}
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cobro" : "Mandar cobro"}</button></div>
+      </details>`;
+      action = e.guia
+        ? `<div class="meta" style="margin-top:10px;font-size:14px;">📦 Guía lista: <b>${escapeHtml(e.paqueteria || "")} ${escapeHtml(e.guia)}</b><br>⏳ Esperando que pague ${q ? formatPrice(q.total) : ""}. En cuanto pague, le llega su guía sola.</div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">${swmCancelBtn("envio", e)}</div>`
+        : `${juarez ? `<div style="margin-top:10px;"><button type="button" class="btn-secondary" data-swm-envio-personal>📍 Se lo entrego en Juárez: cobrarle solo el cruce (${formatPrice((sug.cruce || 0) + (sug.consolidacion || 0) + (sug.sinRegistro || 0) + (sug.extras || 0))})</button></div>` : ""}
+          ${swmGuiaForm(e, true)}
+          ${manual}
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">${swmCancelBtn("envio", e)}</div>`;
     } else if (e.status === "pagado" || e.status === "en_mexico") {
       action = `<div class="grid"><label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(e.paqueteria || "Estafeta")}"></label><label>Número de guía<input data-f="guia" type="text" value="${escapeHtml(e.guia || "")}"></label></div>
         <div style="display:flex;gap:8px;margin-top:10px;">${e.status === "pagado" ? `<button type="button" class="btn-secondary" data-swm-en-mexico>🇲🇽 Ya está en México</button>` : ""}<button type="button" class="btn-primary" data-swm-enviado>🚚 Marcar enviado (mandarle la guía)</button></div>
@@ -5029,7 +5056,7 @@ ${itemLines}
     return `<div class="swm-card" data-swm-id="${escapeHtml(e.id)}" data-kind="envio">
       <h4><span>${escapeHtml(e.folio)} · Envío a México</span>${swmPillA(st, ["solicitado", "pagado", "en_mexico"].includes(e.status) ? "new" : "")}</h4>
       <div class="meta">${swmWho(e)} · ${swmFecha(e.createdAt)}${e.consolidar ? " · <b>consolidar</b>" : ""}</div>
-      <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${pk.map((p) => `<li>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "")} · ${p.cobrable || "?"} kg · cruce ${p.crucePagado ? "ya pagado" : p.cobro === "comision" ? "15%" : "por peso"}</li>`).join("")}</ul>
+      <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${pk.map((p) => `<li>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "")} · ${p.cobrable || "?"} kg · cruce ${p.crucePagado ? "ya pagado" : p.cobro === "auto" ? "lo más barato" : p.cobro === "comision" ? "15%" : "por peso"}</li>`).join("")}</ul>
       <div class="meta">📍 ${escapeHtml([d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}</div>
       <div class="meta">Sugerido: cruce ${formatPrice(sug.cruce || 0)}${sug.consolidacion ? ` + consolidación ${formatPrice(sug.consolidacion)}` : ""}${sug.sinRegistro ? ` + sin registrar ${formatPrice(sug.sinRegistro)}` : ""}${sug.extras ? ` + extras ${formatPrice(sug.extras)}` : ""} · ${sug.kg || 0} kg en total</div>
       ${q ? `<div class="meta">Cotización: cruce ${formatPrice(q.cruce)}${q.consolidacion ? ` + consolidación ${formatPrice(q.consolidacion)}` : ""}${q.sinRegistro ? ` + sin registrar ${formatPrice(q.sinRegistro)}` : ""}${q.extras ? ` + extras ${formatPrice(q.extras)}` : ""} + envío ${formatPrice(q.envio)} = <b>${formatPrice(q.total)}</b></div>` : ""}
@@ -5239,30 +5266,8 @@ ${itemLines}
       const paquetes = [...card.querySelectorAll("[data-swm-pkg]")].map((row) => Object.fromEntries([...row.querySelectorAll("[data-k]")].map((i) => [i.dataset.k, i.value])));
       swmAct({ accion: "compra_comprada", id, paquetes }, btn);
     } else if (t.closest("[data-swm-envio-personal]")) {
-      card.querySelector('[data-f="envio"]').value = 0;
-      card.querySelector('[data-f="notaClienta"]').value ||= "Te lo entrego personalmente en Ciudad Juárez.";
-    } else if (t.closest("[data-swm-envio-rate]")) {
-      const r = t.closest("[data-swm-envio-rate]");
-      card.querySelectorAll("[data-swm-envio-rate]").forEach((l) => l.classList.toggle("selected", l === r));
-      r.querySelector("input").checked = true;
-      card.querySelector('[data-f="envio"]').value = r.dataset.total;
-    } else if (t.closest("[data-swm-envio-cotizar]")) {
-      const ratesEl = card.querySelector("[data-swm-envio-rates]");
-      const errEl = card.querySelector("[data-swm-envio-err]");
-      const weight = parseFloat(v("pesoEnvio"));
-      errEl.textContent = "";
-      if (!(weight > 0)) { errEl.textContent = "Escribe el peso de la caja."; return; }
-      ratesEl.textContent = "Cotizando en Envíos Perros y Skydropx...";
-      try {
-        const res = await fetch("/.netlify/functions/admin-shipping-rates", {
-          method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-          body: JSON.stringify({ envioId: id, weight }),
-        });
-        const data = await res.json();
-        if (!res.ok || !(data.rates || []).length) { ratesEl.textContent = ""; errEl.textContent = data.error || "No hay opciones de envío para ese código postal."; return; }
-        const badge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
-        ratesEl.innerHTML = data.rates.map((r, i) => `<label class="rate-option" data-swm-envio-rate data-total="${Number(r.total) || 0}"><input type="radio" name="envio-rate-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}</span></label>`).join("");
-      } catch (err) { ratesEl.textContent = ""; errEl.textContent = "No se pudo conectar con el servidor."; }
+      if (!confirm("¿Cobrarle solo el cruce? Le aviso que se lo entregas en Juárez.")) return;
+      swmAct({ accion: "cotizar_envio", id, envio: 0, notaClienta: "Te lo entrego personalmente en Ciudad Juárez." }, btn);
     } else if (t.closest("[data-swm-cotizar-envio]")) {
       if (v("envio") === "") { alert("Pon el costo del envío nacional."); return; }
       const premio = card.querySelector('[data-f="premioLealtad"]');
