@@ -2,7 +2,8 @@
 // preferencia de Mercado Pago, aplicar un pago y correos a la clienta.
 // La usan swm-client.js (clienta), admin-swm.js (Mae) y mp-webhook.js.
 
-const { getRecord, mutateRecord, listRecords } = require("./swm-store.js");
+const { randomUUID } = require("crypto");
+const { getRecord, mutateRecord, listRecords, nextFolio, saveRecord } = require("./swm-store.js");
 const { crucePorPeso, crucePorComision, consolidacionPorPeso, LEALTAD_CADA, LEALTAD_PCT, REFERIDO_MXN } = require("./swm-pricing.js");
 const { getCoupon, saveCoupon, listCoupons, normCode } = require("./coupons.js");
 const { sendEmail, baseEmailHTML, formatPriceMXN } = require("./email.js");
@@ -147,6 +148,52 @@ async function cotizarEnvio(id, b = {}) {
     ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${escHTML(rec.notaClienta)}</p>` : ""}
     <p style="font-size:14px;">Págalo con tarjeta o transferencia desde tu casillero${rec.guia ? " y en cuanto se acredite te mando tu guía" : " y lo preparo"}.</p>`);
   return { envio: rec };
+}
+
+/* Envío automático: en cuanto un paquete está listo en México, se arma (o se
+   le suma) su envío a casa con la dirección principal de su cuenta, sin que
+   la clienta tenga que pedirlo. Mae solo hace la guía y le cobra.
+   Regresa el envío o null (si falta su dirección o el paquete tiene algo
+   pendiente: datos, corrección o separación). */
+async function envioAutomatico(paqueteId) {
+  const p = await getRecord("paquete", paqueteId);
+  if (!p || !p.email || p.status !== "recibido" || !p.enMexicoAt || p.datosPendientes) return null;
+  if ((p.correccion && p.correccion.estado === "pedida") || (p.separar && p.separar.estado === "pedida")) return null;
+  const cuenta = await getCustomerByEmail(p.email);
+  const dirs = (cuenta && Array.isArray(cuenta.direcciones)) ? cuenta.direcciones : [];
+  const d = dirs.find((x) => x.principal) || dirs[0];
+  if (!d || !d.calle || !/^\d{5}$/.test(String(d.cp || ""))) return null;
+  const at = new Date().toISOString();
+  // Si ya tiene un envío abierto (todavía sin cobrar), el paquete se le suma.
+  const abierto = (await listRecords("envio", { email: p.email })).find((e) => e.status === "solicitado" && !e.guia);
+  let envio;
+  if (abierto) {
+    const ids = [...new Set([...(abierto.paqueteIds || []), p.id])];
+    const paquetes = (await Promise.all(ids.map((x) => getRecord("paquete", x)))).filter(Boolean);
+    const sug = await cotizacionSugerida(paquetes, ids.length > 1);
+    envio = await mutateRecord("envio", abierto.id, (e) => {
+      e.paqueteIds = ids; e.consolidar = ids.length > 1;
+      e.sugerido = { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro, extras: sug.extras, kg: sug.kg };
+      e.history = [...(e.history || []), { at, status: "paquete_agregado", paquete: p.folio }];
+      return e;
+    });
+  } else {
+    const sug = await cotizacionSugerida([p], false);
+    const direccion = Object.fromEntries(["nombre", "telefono", "calle", "colonia", "ciudad", "estado", "cp", "referencias"].map((k) => [k, String(d[k] || "")]));
+    envio = {
+      id: randomUUID(), folio: await nextFolio("envio"), email: p.email, name: p.name || (cuenta && cuenta.name) || "", phone: p.phone || (cuenta && cuenta.phone) || "",
+      paqueteIds: [p.id], consolidar: false, direccion, automatico: true,
+      status: "solicitado", sugerido: { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro, extras: sug.extras, kg: sug.kg },
+      cotizacion: null, pago: null, paqueteria: "", guia: "", notaClienta: "", notaPrivada: "",
+      history: [{ at, status: "solicitado", automatico: true }], createdAt: at, updatedAt: at,
+    };
+    await saveRecord("envio", envio);
+  }
+  await mutateRecord("paquete", p.id, (x) => {
+    if (x.status !== "recibido") return null;
+    x.status = "en_envio"; x.envioId = envio.id; return x;
+  });
+  return envio;
 }
 
 /* Envío pagado que ya tiene guía: sale solo y se le manda la guía. */
@@ -326,6 +373,6 @@ async function todoDe(email) {
 
 module.exports = {
   lealtadDe, codigoReferido, premiosDe,
-  ALMACENAJE_DIAS, round2, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, cotizarEnvio, despacharConGuia, ponerCruceAnticipado, porPagar, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
+  ALMACENAJE_DIAS, round2, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, cotizarEnvio, despacharConGuia, ponerCruceAnticipado, porPagar, envioAutomatico, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
   formatPriceMXN,
 };
