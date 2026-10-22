@@ -69,7 +69,8 @@ function leerDeclaracion(b, cobro, previos = 0) {
     const ct = real === "pdf" ? "application/pdf" : /^image\/[a-z0-9.+-]+$/i.test(f.contentType || "") ? f.contentType : "image/jpeg";
     facturas.push({ buf, ct, nombre: clip(f.filename, 120) });
   }
-  if (!rows.length && !facturas.length && !previos) return { error: "Sube capturas o la factura de tu compra, o escribe cada artículo con lo que costó." };
+  const queTrae = clip(b.queTrae, 300);
+  if (!rows.length && !facturas.length && !previos && !queTrae) return { error: "Escribe qué trae tu paquete (ej. maquillaje y 2 cremas)." };
   const valorTotal = Math.max(0, Math.min(1e9, parseFloat(b.valorTotal) || 0));
   const moneda = MONEDAS.includes(b.moneda) ? b.moneda : "";
   if (!(valorTotal > 0) || !moneda) return { error: "Escribe el valor total de los artículos (con tax, sin envío) y en qué moneda." };
@@ -79,7 +80,7 @@ function leerDeclaracion(b, cobro, previos = 0) {
   const fmt = (n) => Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
   const contenido = clip(rows.length
     ? rows.map((a) => `${a.cant > 1 ? `${a.cant}× ` : ""}${a.desc} (${fmt(a.costo)} ${moneda})`).join(", ")
-    : `Ver ${facturas.length + previos === 1 ? "captura" : `${facturas.length + previos} capturas`}`, 300);
+    : queTrae || `Ver ${facturas.length + previos === 1 ? "captura" : `${facturas.length + previos} capturas`}`, 300);
   return { datos: { articulos: rows, valorTotal, moneda, contenido, valorUSD }, facturas };
 }
 
