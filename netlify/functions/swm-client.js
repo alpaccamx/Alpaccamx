@@ -28,7 +28,7 @@ const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
 const { detectFileType } = require("./lib/file-signature.js");
 const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, casilleroDe } = require("./lib/swm-store.js");
-const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe, tiposDeCambio, lealtadDe, codigoReferido, premiosDe } = require("./lib/swm-core.js");
+const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe, tiposDeCambio, lealtadDe, codigoReferido, premiosDe, ponerCruceAnticipado, porPagar } = require("./lib/swm-core.js");
 const { REVISION_FOTOS, SEPARAR, COMISION_PCT, REFERIDO_MXN } = require("./lib/swm-pricing.js");
 const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/coupons.js");
 
@@ -157,7 +157,7 @@ exports.handler = async (event) => {
         const paqueteria = clip(b.paqueteria, 40);
         if (!paqueteria) return json(400, { error: "Elige con qué paquetería viene tu paquete (UPS, USPS, FedEx, Amazon...)." });
         if (!rastreo) return json(400, { error: "Pon el número de rastreo (guía) de tu paquete: sin él no podemos identificarlo cuando llegue." });
-        const cobro = COBROS.includes(b.cobro) ? b.cobro : "auto";
+        const cobro = COBROS.includes(b.cobro) ? b.cobro : "peso";
         const dec = leerDeclaracion(b, cobro);
         if (dec.error) return json(400, { error: dec.error });
         const repetida = await guiaRepetida(rastreo, me);
@@ -171,6 +171,7 @@ exports.handler = async (event) => {
           kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0, fotos: [], notaClienta: "", notaPrivada: "",
           history: [{ at: now(), status: "registrado" }], createdAt: now(), updatedAt: now(),
         };
+        ponerCruceAnticipado(rec, await tiposDeCambio());
         await saveRecord("paquete", rec);
         return json(200, { paquete: publico(rec) });
       }
@@ -191,7 +192,9 @@ exports.handler = async (event) => {
           p.history = [...(p.history || []), { at: now(), status: "datos_completados" }];
           return p;
         });
-        return json(200, { paquete: publico(updated) });
+        const rates = await tiposDeCambio();
+        const conCruce = await mutateRecord("paquete", rec.id, (p) => ponerCruceAnticipado(p, rates)) || updated;
+        return json(200, { paquete: publico(conCruce) });
       }
 
       case "editar_paquete": {
@@ -223,7 +226,9 @@ exports.handler = async (event) => {
           p.history = [...(p.history || []), { at: now(), status: "datos_editados" }];
           return p;
         });
-        return json(200, { paquete: publico(updated) });
+        const rates = await tiposDeCambio();
+        const conCruce = await mutateRecord("paquete", rec.id, (p) => ponerCruceAnticipado(p, rates)) || updated;
+        return json(200, { paquete: publico(conCruce) });
       }
 
       case "solicitar_compra": {
@@ -281,13 +286,13 @@ exports.handler = async (event) => {
       }
 
       case "pagar": {
-        const kind = b.kind === "compra" ? "compra" : b.kind === "envio" ? "envio" : null;
+        const kind = ["compra", "envio", "paquete"].includes(b.kind) ? b.kind : null;
         if (!kind) return json(400, { error: "Pago inválido." });
         const metodo = b.metodo === "mercadopago" ? "mercadopago" : "transferencia";
         const rec = await getRecord(kind, String(b.id || ""));
         if (!rec || rec.email !== me) return json(404, { error: "No encontramos esa cotización." });
-        if (rec.status !== "cotizado" || !rec.cotizacion) return json(409, { error: "Todavía no hay cotización para pagar." });
         if (rec.pago && rec.pago.status === "pagado") return json(409, { error: "Esto ya está pagado." });
+        if (!porPagar(kind, rec)) return json(409, { error: "Todavía no hay cotización para pagar." });
         let redirectUrl = null;
         if (metodo === "mercadopago") redirectUrl = await crearPreferenciaMP(kind, rec, event);
         const updated = await mutateRecord(kind, rec.id, (r) => {
@@ -299,11 +304,11 @@ exports.handler = async (event) => {
       }
 
       case "comprobante": {
-        const kind = b.kind === "compra" ? "compra" : b.kind === "envio" ? "envio" : null;
+        const kind = ["compra", "envio", "paquete"].includes(b.kind) ? b.kind : null;
         if (!kind || !b.dataBase64) return json(400, { error: "Falta el archivo." });
         const rec = await getRecord(kind, String(b.id || ""));
         if (!rec || rec.email !== me) return json(404, { error: "No encontramos esa cotización." });
-        if (rec.status !== "cotizado") return json(409, { error: "Esto ya no acepta comprobantes." });
+        if (!porPagar(kind, rec)) return json(409, { error: "Esto ya no acepta comprobantes." });
         let buf;
         try { buf = Buffer.from(String(b.dataBase64), "base64"); } catch { return json(400, { error: "El archivo no se pudo leer." }); }
         if (!buf.length || buf.length > MAX_BYTES) return json(400, { error: "El archivo debe pesar menos de 5 MB." });

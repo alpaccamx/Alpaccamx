@@ -339,6 +339,7 @@ function swmPendientes() {
   swm.envios.filter(porPagar).forEach((e) => out.push(["💳", `Paga tu envío ${e.folio} · ${swmMXN(e.cotizacion.total)}`, ir("envio", e)]));
   swm.compras.filter(porPagar).forEach((c) => out.push(["💳", `Paga tu compra ${c.folio} · ${swmMXN(c.cotizacion.total)}`, ir("compra", c)]));
   if (typeof direccionPrincipal === "function" && misDirecciones && !direccionPrincipal()) out.push(["📍", "Pon tu dirección de envío en México", "data-swm-dirmx-toggle"]);
+  swm.paquetes.filter((p) => swmPorPagar("paquete", p) && !(p.pago && p.pago.status === "revision")).forEach((p) => out.push(["💳", `Paga el cruce de ${p.folio} · ${swmMXN(p.pago.monto || 0)}`, ir("paquete", p)]));
   swm.paquetes.filter((p) => p.datosPendientes && p.status !== "cancelado").forEach((p) => out.push(["⚠️", `Dime qué trae ${p.folio} (llegó sin registrar)`, ir("paquete", p)]));
   swm.paquetes.filter((p) => p.correccion && p.correccion.estado === "pedida").forEach((p) => out.push(["✏️", `Corrige los datos de ${p.folio}`, ir("paquete", p)]));
   const listos = swm.paquetes.filter((p) => p.status === "recibido" && !p.datosPendientes);
@@ -478,7 +479,8 @@ function swmPaqueteCardHTML(p) {
     <p class="text-sm mt-2">${escapeHtml(desc || "Paquete")}${p.origen === "compra" ? ' <span class="text-xs text-lilac-ink">(compra de Mae)</span>' : ""}</p>
     ${p.contenido ? `<p class="text-xs text-ink/65">${escapeHtml(p.contenido)}</p>` : ""}
     ${p.valorTotal ? `<p class="text-xs text-ink/65">Valor declarado: ${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}${swmNumArchivos(p) ? ` · 📄 ${swmNumArchivos(p)} archivo${swmNumArchivos(p) === 1 ? "" : "s"} recibido${swmNumArchivos(p) === 1 ? "" : "s"}` : ""}</p>` : ""}
-    <p class="text-xs text-ink/65 mt-1">Cruce: ${p.crucePagado ? "ya pagado con tu compra" : p.cobro === "auto" ? "lo más barato (por peso o 15%), al pedir tu envío" : p.cobro === "comision" ? `15% del valor${swmValorPesos(Number(p.valorTotal) || 0, p.moneda) ? ` (≈ ${swmMXN(swmCruceComision(swmValorPesos(Number(p.valorTotal), p.moneda)))})` : ""}` : "por peso"}${p.cobrable ? ` · ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → ${swmMXN(swmCrucePeso(p.cobrable))}` : ""}` : ""}</p>
+    <p class="text-xs text-ink/65 mt-1">Cruce: ${p.crucePagado ? (p.pago ? "15% ya pagado ✅ (en tu envío solo pagas la guía)" : "ya pagado con tu compra") : p.cobro === "comision" && p.pago ? `15% por adelantado: ${swmMXN(p.pago.monto || 0)}` : p.cobro === "auto" ? "lo más barato (por peso o 15%), al pedir tu envío" : p.cobro === "comision" ? `15% del valor${swmValorPesos(Number(p.valorTotal) || 0, p.moneda) ? ` (≈ ${swmMXN(swmCruceComision(swmValorPesos(Number(p.valorTotal), p.moneda)))})` : ""}` : "por peso"}${p.cobrable ? ` · ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → ${swmMXN(swmCrucePeso(p.cobrable))}` : ""}` : ""}</p>
+    ${swmPagoHTML("paquete", p)}
     ${extra}
     ${fotos ? `<div class="mt-2 flex flex-wrap gap-2">${fotos}</div>` : ""}
     ${p.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(p.notaClienta)}</p>` : ""}
@@ -491,6 +493,7 @@ function swmPaqueteCardHTML(p) {
     ${p.datosPendientes ? `<form data-swm-completar="${escapeHtml(p.id)}" class="mt-3 rounded-xl bg-sale/[0.06] border border-sale/30 p-3 space-y-2" novalidate>
       <p class="text-sm"><b>⚠️ Este paquete llegó sin registrar.</b> Dime qué trae y cuánto costó para poder enviártelo. Se suma un cargo de <b>${swmMXN(p.cargoSinRegistro || 80)}</b> a tu envío.</p>
       ${swmDeclaracionHTML()}
+      ${swmCobroElegir(p.cobro)}
       <p data-c-err class="hidden text-xs text-sale"></p>
       <button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Guardar datos</button>
     </form>` : ""}` });
@@ -525,8 +528,12 @@ function swmExtrasHTML(p) {
   return out.join("");
 }
 
+/* ¿Tiene algo por pagar? (igual que porPagar en swm-core.js) */
+const swmPorPagar = (kind, r) => Boolean(r && r.cotizacion && !(r.pago && r.pago.status === "pagado")
+  && (kind === "paquete" ? !r.crucePagado && r.pago && r.status !== "cancelado" : r.status === "cotizado"));
+
 function swmPagoHTML(kind, r) {
-  if (r.status !== "cotizado" || !r.cotizacion) return "";
+  if (!swmPorPagar(kind, r)) return "";
   const total = r.cotizacion.total;
   if (r.pago && r.pago.status === "revision") {
     return `<div class="mt-3 rounded-xl bg-[#fff6e5] p-3 text-sm"><b>🔎 Estamos revisando tu comprobante</b><p class="text-xs mt-1">Te avisamos por correo en cuanto se confirme.</p></div>`;
@@ -541,7 +548,7 @@ function swmPagoHTML(kind, r) {
       <input type="radio" name="swm-pm-${k}" value="${v}" data-swm-pm="${k}" class="accent-[#c4466e] w-5 h-5 shrink-0"><span><b class="block text-sm">${t}</b><span class="block text-xs text-ink/70">${d}</span></span></label>`;
   return `<div class="mt-3 rounded-xl bg-pill p-3 space-y-2">
     <b class="block text-sm">Total a pagar: ${swmMXN(total)}</b>
-    ${r.cotizacion.cupon ? `<p class="text-xs text-rose-ink font-semibold">🎟️ Cupón ${escapeHtml(r.cotizacion.cupon)}: −${swmMXN(r.cotizacion.descuento)} (antes ${swmMXN(r.cotizacion.totalSinDescuento)})</p>`
+    ${kind === "paquete" ? "" : r.cotizacion.cupon ? `<p class="text-xs text-rose-ink font-semibold">🎟️ Cupón ${escapeHtml(r.cotizacion.cupon)}: −${swmMXN(r.cotizacion.descuento)} (antes ${swmMXN(r.cotizacion.totalSinDescuento)})</p>`
       : (!r.pago || r.pago.status === "pendiente") ? `<form data-swm-cupon="${escapeHtml(key)}" class="flex gap-2" novalidate><input data-cupon-code type="text" placeholder="¿Tienes un cupón?" class="flex-1 min-w-0 rounded-lg border border-ink/15 px-3 py-1.5 text-sm uppercase placeholder:normal-case" /><button type="submit" class="shrink-0 rounded-full border border-ink px-3 text-xs font-semibold">Aplicar</button></form><p data-cupon-msg class="hidden text-xs text-sale"></p>` : ""}
     ${r.pago && r.pago.rechazo ? `<p class="text-xs text-sale">${escapeHtml(r.pago.rechazo)}</p>` : ""}
     <p class="text-xs font-semibold text-ink/80">¿Cómo quieres pagar? (solo una vez)</p>
@@ -700,6 +707,13 @@ function swmActualizarEstimado(root) {
   out.textContent = `${moneda === "MXN" ? "" : `≈ ${swmMXN(pesos)} · `}${comision ? `tu cruce con el ${swm.comisionPct || 15}%: ${swmMXN(swmCruceComision(pesos))}` : "el cruce se cobra por peso cuando llegue"}`;
 }
 
+/* Cómo paga el cruce: por peso al final (con su envío) o el 15% ahora (y al
+   final solo la guía). */
+const swmCobroElegir = (actual = "peso") => `<fieldset class="space-y-2"><legend class="text-sm font-semibold">¿Cómo pagas el cruce a México?</legend>
+    <label class="flex gap-2 rounded-xl border-2 border-ink/15 bg-white p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="peso"${actual === "comision" ? "" : " checked"} class="mt-0.5 accent-[#c4466e]"><span><b>⚖️ Por peso, al final</b><span class="block text-xs text-ink/65">Lo pagas junto con tu envío a casa, según lo que pese la caja.</span></span></label>
+    <label class="flex gap-2 rounded-xl border-2 border-ink/15 bg-white p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="comision"${actual === "comision" ? " checked" : ""} class="mt-0.5 accent-[#c4466e]"><span><b>💲 15% de lo que costó, ahora</b><span class="block text-xs text-ink/65">Lo pagas al registrar y al final solo pagas la guía. Conviene si es pesado pero barato.</span><span data-wiz-est class="block text-xs font-semibold text-rose-ink"></span></span></label>
+  </fieldset>`;
+
 /* Editar lo registrado (mientras va en camino) o corregirlo cuando Mae lo pide. */
 const swmPuedeEditar = (p) => p.origen !== "compra" && !p.datosPendientes
   && (p.status === "registrado" || (p.correccion && p.correccion.estado === "pedida" && p.status === "recibido"));
@@ -714,6 +728,7 @@ function swmEditarFormHTML(p) {
       </div>` : ""}
       ${swmDeclaracionHTML(p)}
       ${n ? `<label class="flex items-center gap-2 text-xs"><input type="checkbox" data-e="quitar" class="accent-[#c4466e]" /> Quitar mis ${n} archivo${n === 1 ? "" : "s"} anterior${n === 1 ? "" : "es"} (si no, se suman los nuevos)</label>` : ""}
+      ${p.crucePagado || (p.pago && p.pago.status !== "pendiente") ? "" : swmCobroElegir(p.cobro)}
       <p data-c-err class="hidden text-xs text-sale"></p>
       <div class="flex gap-2"><button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Guardar cambios</button>
       ${p.correccion && p.correccion.estado === "pedida" ? "" : `<button type="button" data-swm-editar-toggle="${escapeHtml(p.id)}" class="rounded-full px-4 py-2 text-xs font-semibold text-ink/70">Cancelar</button>`}</div>
@@ -866,7 +881,7 @@ function swmFormHTML() {
         <div class="mt-1.5 h-2 rounded-full bg-ink/10"><div data-wiz-barra class="h-full rounded-full bg-rose-deep transition-all" style="width:${Math.round(100 / SWM_WIZ_N)}%"></div></div></div>
       ${paso(1, `<p class="text-xs text-ink/65">Regístralo en cuanto la tienda te dé el número de rastreo, antes de que llegue a la bodega.</p>
         <div class="grid gap-3 sm:grid-cols-2">${swmInput("swm-f-tienda", "¿En qué tienda compraste?", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}${swmPaqueteriaSelect('id="swm-f-paqueteria" required')}${swmInput("swm-f-rastreo", "Número de rastreo (guía) *", 'maxlength="80" required autocomplete="off"')}</div>`)}
-      ${paso(2, swmDeclaracionHTML() + swmAcepta() + `<p class="text-xs text-ink/65">💡 El cruce te lo cobro hasta que pidas tu envío, y siempre lo más barato: por peso o el 15% de lo que costó.</p>`)}
+      ${paso(2, swmDeclaracionHTML() + swmCobroElegir() + swmAcepta())}
       <p data-swm-err class="hidden rounded-xl bg-sale/10 px-3 py-2 text-sm text-sale" role="alert"></p>
       <div class="flex items-center gap-2">
         <button type="button" data-wiz-atras class="hidden rounded-full px-4 py-3 text-sm font-semibold text-ink/70 hover:bg-pill">← Atrás</button>
@@ -986,7 +1001,7 @@ async function submitSwmForm(form) {
     await loadSwm();
     swm.tab = tab;
     renderSwmCasillero();
-    document.getElementById("swm-form-box").innerHTML = `<p class="rounded-2xl bg-[#eef8f2] px-4 py-3 text-sm text-green-800">¡Listo! ${tab === "paquetes" ? "Registré tu paquete. Te aviso por correo cuando llegue al almacén." : "Recibí tu solicitud. Te mando la cotización por correo y aquí mismo."} 💗</p>`;
+    document.getElementById("swm-form-box").innerHTML = `<p class="rounded-2xl bg-[#eef8f2] px-4 py-3 text-sm text-green-800">¡Listo! ${tab === "paquetes" ? (body.cobro === "comision" ? "Registré tu paquete. Paga tu cruce del 15% arriba (en “Tu siguiente paso”) y al final solo pagas la guía." : "Registré tu paquete. Te aviso por correo cuando llegue al almacén.") : "Recibí tu solicitud. Te mando la cotización por correo y aquí mismo."} 💗</p>`;
   } catch (ex) {
     fail(ex.message);
     btn.disabled = false;
@@ -1063,7 +1078,7 @@ function updateSwmCalc() {
     ? (rate ? `15% de ~${swmMXN(usd * rate)}: <b class="text-ink">${swmMXN(cCom)}</b>` : `15% de US$${usd.toFixed(2)}: <b class="text-ink">US$${(usd * 0.15).toFixed(2)}</b>`)
     : "";
   const best = document.getElementById("swm-c-best");
-  best.textContent = cPeso && cCom ? `Tu cruce: ${swmMXN(Math.min(cPeso, cCom))} (te cobro lo más barato de los dos).` : "";
+  best.textContent = cPeso && cCom ? (cPeso <= cCom ? `Te conviene pagar por peso (ahorras ${swmMXN(cCom - cPeso)}).` : `Te conviene pagar el 15% (ahorras ${swmMXN(cPeso - cCom)}).`) : "";
 }
 
 function initSwm() {

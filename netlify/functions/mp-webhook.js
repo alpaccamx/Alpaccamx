@@ -53,7 +53,7 @@ exports.handler = async (event) => {
     // "swm|<kind>|<id>". No son pedidos de la tienda.
     if (String(payment.external_reference || "").startsWith("swm|")) {
       const [, kind, swmId] = String(payment.external_reference).split("|");
-      if (payment.status === "approved" && (kind === "compra" || kind === "envio") && swmId) {
+      if (payment.status === "approved" && ["compra", "envio", "paquete"].includes(kind) && swmId) {
         await aplicarPagoSwm(kind, swmId, { metodo: "mercadopago", paymentId: payment.id, monto: payment.transaction_amount });
       }
       return { statusCode: 200, body: "swm" };

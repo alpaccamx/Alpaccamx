@@ -93,7 +93,7 @@ exports.handler = async (event) => {
     }
     const key = qs.archivo;
     if (key) {
-      if (!/^(foto\/[0-9a-f-]{36}|comprobante\/(compra|envio)\/[0-9a-f-]{36}|factura\/paquete\/[0-9a-f-]{36}(\/\d{1,2})?)$/.test(key)) return json(400, { error: "Archivo inválido." });
+      if (!/^(foto\/[0-9a-f-]{36}|comprobante\/(compra|envio|paquete)\/[0-9a-f-]{36}|factura\/paquete\/[0-9a-f-]{36}(\/\d{1,2})?)$/.test(key)) return json(400, { error: "Archivo inválido." });
       const f = await getFile(key);
       if (!f) return json(404, { error: "No existe." });
       return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
@@ -351,13 +351,13 @@ exports.handler = async (event) => {
       }
 
       case "aprobar_pago": {
-        const kind = b.kind === "compra" ? "compra" : "envio";
+        const kind = ["compra", "paquete"].includes(b.kind) ? b.kind : "envio";
         const rec = await aplicarPago(kind, id, { metodo: "transferencia" });
         return rec ? json(200, { [kind]: rec }) : json(404, { error: "No existe." });
       }
 
       case "rechazar_pago": {
-        const kind = b.kind === "compra" ? "compra" : "envio";
+        const kind = ["compra", "paquete"].includes(b.kind) ? b.kind : "envio";
         const motivo = clip(b.motivo, 500) || "No pudimos validar tu comprobante.";
         const rec = await mutateRecord(kind, id, (r) => {
           if (!r.pago || r.pago.status === "pagado") return null;
