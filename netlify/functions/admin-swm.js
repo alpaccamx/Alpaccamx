@@ -13,10 +13,13 @@
 //   crear_envio       { email, paqueteIds[], direccion } (Mae junta paquetes de una clienta en una caja)
 //   editar_paquete    { id, tienda?, rastreo?, contenido?, valorUSD?, cobro?, kg?, alto?, ancho?, largo?, notaClienta?, notaPrivada? }
 //   cotizar_compra    { id, productos, cruce?, notaClienta? }   (MXN)
-//   crear_compra      { email, name?, phone?, tienda, items: [{ nombre, tono?, cantidad, precio }], cobro, cruce?, notaClienta?, fotos? }
+//   crear_compra      { email, name?, phone?, tienda, items: [{ nombre, tono?, cantidad, precioUSD }], taxPct?, envioUSD?, cobro, cruce?, notaClienta?, fotos? }
 //                     (Mae arma la cotización con lo que la clienta le mandó por WhatsApp;
-//                      precio = MXN por pieza; regresa la compra para mandarle el link)
-//   editar_compra     { id, tienda?, items, cobro, cruce?, notaClienta?, fotos? }
+//                      precioUSD = precio de la tienda por pieza, sin tax. Se pasa a pesos
+//                      con el tipo de cambio + el tax (8.25% si no viene); el envío de la
+//                      tienda va como un renglón aparte. Items viejos con "precio" (MXN) siguen sirviendo.
+//                      Regresa la compra para mandarle el link)
+//   editar_compra     { id, tienda?, items, taxPct?, envioUSD?, cobro, cruce?, notaClienta?, fotos? }
 //                     (corrige una cotización que todavía no se paga; si tenía cupón,
 //                      se recalcula el descuento)
 //   compra_comprada   { id, paquetes: [{ tienda, rastreo, contenido }] }
@@ -187,8 +190,14 @@ exports.handler = async (event) => {
       case "crear_compra":
       case "editar_compra": {
         const editar = b.accion === "editar_compra";
-        const items = leerItems(b.items);
-        if (!items.length) return json(400, { error: "Pon al menos un artículo con su precio." });
+        const enUSD = (Array.isArray(b.items) ? b.items : []).some((x) => num(x.precioUSD) > 0) || num(b.envioUSD) > 0;
+        const tc = enUSD ? (await tiposDeCambio()).USD : 0;
+        if (enUSD && !tc) return json(500, { error: "No pude leer el tipo de cambio (Config → Tipo de cambio)." });
+        const taxPct = b.taxPct === "" || b.taxPct == null ? 8.25 : Math.max(0, num(b.taxPct));
+        const items = leerItems(b.items, tc, taxPct);
+        if (num(b.envioUSD) > 0) items.push({ nombre: "Envío de la tienda", tono: "", cantidad: 1, precioUSD: round2(num(b.envioUSD)), precio: round2(num(b.envioUSD) * tc), envio: true });
+        if (!items.some((x) => !x.envio)) return json(400, { error: "Pon al menos un artículo con su precio." });
+        const extraUSD = enUSD ? { tipoCambio: tc, taxPct } : {};
         const cobro = b.cobro === "comision" ? "comision" : "peso";
         const productos = round2(items.reduce((t, x) => t + x.precio * x.cantidad, 0));
         const cruce = cobro === "comision" ? (b.cruce !== "" && b.cruce != null ? round2(num(b.cruce)) : crucePorComision(productos)) : 0;
@@ -203,7 +212,7 @@ exports.handler = async (event) => {
             const base = round2(productos + cruce);
             const viejo = c.cotizacion || {};
             const descuento = viejo.cupon && cup ? discountFor(cup, base) : viejo.cupon ? Math.min(viejo.descuento || 0, base) : 0;
-            c.cotizacion = { items, productos, cruce, total: round2(base - descuento), at: now(),
+            c.cotizacion = { items, productos, cruce, total: round2(base - descuento), at: now(), ...extraUSD,
               ...(viejo.cupon ? { cupon: viejo.cupon, descuento, totalSinDescuento: base } : {}) };
             c.cobro = cobro;
             if (b.tienda != null) c.tienda = clip(b.tienda, 80);
@@ -229,7 +238,7 @@ exports.handler = async (event) => {
           id: randomUUID(), folio: await nextFolio("compra"), email,
           name: (cuenta && cuenta.name) || clip(b.name, 120), phone: (cuenta && cuenta.phone) || clip(b.phone, 30),
           origen: "whatsapp", tienda: clip(b.tienda, 80), links: "", notas: "", capturas: fotos, cobro, status: "cotizado",
-          cotizacion: { items, productos, cruce, total: round2(productos + cruce), at: now() },
+          cotizacion: { items, productos, cruce, total: round2(productos + cruce), at: now(), ...extraUSD },
           pago: { status: "pendiente", monto: round2(productos + cruce) }, paqueteIds: [],
           notaClienta: clip(b.notaClienta, 1000), notaPrivada: "",
           history: [{ at: now(), status: "cotizado", por: "whatsapp" }], createdAt: now(), updatedAt: now(),
@@ -559,9 +568,17 @@ exports.handler = async (event) => {
   }
 };
 
-function leerItems(lista) {
+/* Precio por pieza en pesos. Con precioUSD (precio de la tienda sin tax) se
+   calcula: USD × (1 + tax) × tipo de cambio. */
+function leerItems(lista, tc = 0, taxPct = 0) {
   return (Array.isArray(lista) ? lista : []).slice(0, 60)
-    .map((x) => ({ nombre: clip(x.nombre, 200), tono: clip(x.tono, 100), cantidad: Math.max(1, Math.floor(num(x.cantidad)) || 1), precio: round2(num(x.precio)) }))
+    .filter((x) => !x.envio)
+    .map((x) => {
+      const it = { nombre: clip(x.nombre, 200), tono: clip(x.tono, 100), cantidad: Math.max(1, Math.floor(num(x.cantidad)) || 1) };
+      const usd = round2(num(x.precioUSD));
+      if (usd > 0 && tc > 0) return { ...it, precioUSD: usd, precio: round2(usd * (1 + taxPct / 100) * tc) };
+      return { ...it, precio: round2(num(x.precio)) };
+    })
     .filter((x) => x.nombre && x.precio > 0);
 }
 
