@@ -636,27 +636,22 @@ const swmDeclRow = (a = {}) => `<div data-decl-row style="display:grid;grid-temp
     <input data-d="cant" type="number" min="1" step="1" value="${Number(a.cant) || 1}" inputmode="numeric" aria-label="Cantidad" class="rounded-xl border border-ink/15 px-2 py-2 text-sm min-w-0" />
     <input data-d="costo" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Costo c/u" value="${a.costo || ""}" aria-label="Costo de cada uno" class="rounded-xl border border-ink/15 px-2 py-2 text-sm min-w-0" />
   </div>`;
-const swmDeclaracionHTML = (p = {}) => `<div data-decl class="space-y-3">
-    <label class="flex flex-col gap-1 text-sm font-semibold">¿Qué trae tu paquete? *
-      <input data-decl-que type="text" maxlength="300" placeholder="Ej. maquillaje y 2 cremas" value="${escapeHtml(!(p.articulos || []).length && p.contenido && !/^Ver \d* ?captura/.test(p.contenido) ? p.contenido : "")}" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>
-    <details class="rounded-xl bg-pill/40 px-3 py-2"${(p.articulos || []).length || swmNumArchivos(p) ? " open" : ""}>
-    <summary class="cursor-pointer text-xs font-semibold text-ink/75">📷 Subir captura o factura (opcional)</summary>
-    <div class="mt-2 space-y-3">
-    <label class="flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-dashed border-rose-deep/40 bg-blush/15 px-4 py-5 text-center hover:bg-blush/30 focus-within:ring-2 focus-within:ring-rose-deep">
+const swmDeclTexto = (p) => ((p.articulos || []).length
+  ? p.articulos.map((x) => `${x.desc}${x.cant > 1 ? ` x${x.cant}` : ""} $${x.costo}`).join("\n")
+  : p.contenido && !/^Ver \d* ?captura/.test(p.contenido) ? p.contenido : "");
+const swmDeclaracionHTML = (p = {}) => `<div data-decl data-previos="${swmNumArchivos(p)}" class="space-y-3">
+    <div>
+      <p class="text-sm font-semibold">¿Qué trae tu paquete? *</p>
+      <p class="text-xs text-ink/65">Sube capturas de tu compra <b>o</b> escribe qué trae y cuánto costó cada cosa.</p>
+    </div>
+    <label class="flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-dashed border-rose-deep/40 bg-blush/15 px-4 py-4 text-center hover:bg-blush/30 focus-within:ring-2 focus-within:ring-rose-deep">
       <span class="text-3xl" aria-hidden="true">📷</span>
       <b class="text-sm text-rose-ink">Subir capturas o factura</b>
       <span class="text-[11px] text-ink/60">Fotos o PDF · hasta ${SWM_MAX_ARCHIVOS}</span>
       <input data-decl-file type="file" multiple accept="application/pdf,image/*" class="sr-only" /></label>
     <p data-decl-files class="text-xs font-semibold text-green-800"></p>
-    <details data-decl-manual class="rounded-xl bg-pill/60 px-3 py-2"${(p.articulos || []).length ? " open" : ""}>
-      <summary class="cursor-pointer text-xs font-semibold text-ink/75">✍️ ¿No tienes capturas? Escribe tus artículos aquí</summary>
-      <div class="mt-2 space-y-2">
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 5.5rem;gap:0.5rem;" class=" text-[11px] font-semibold text-ink/60"><span>Artículo</span><span>Cant.</span><span>Costo c/u</span></div>
-        <div data-decl-rows class="space-y-2">${(p.articulos || []).length ? p.articulos.map(swmDeclRow).join("") : swmDeclRow() + swmDeclRow()}</div>
-        <button type="button" data-decl-add class="text-xs font-semibold text-rose-ink underline">+ Agregar otro artículo</button>
-      </div>
-    </details>
-    </div></details>
+    <label class="flex flex-col gap-1 text-xs font-semibold">✍️ O escríbelo aquí: qué trae y cuánto costó cada cosa
+      <textarea data-decl-que rows="3" maxlength="300" placeholder="Ej.&#10;Blush Rare Beauty $25&#10;Crema CeraVe x2 $36" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal">${escapeHtml(swmDeclTexto(p))}</textarea></label>
     <div>
       <p class="text-sm font-semibold">¿Cuánto costó todo? *</p>
       <p class="text-xs text-ink/65">El total de tus productos <b>con tax (impuestos), sin el envío</b>.</p>
@@ -762,7 +757,8 @@ function swmValidarDeclaracion(box) {
   if (articulos.some((a) => !a.desc || !(parseFloat(a.costo) > 0))) throw new Error("A cada artículo ponle qué es y cuánto costó.");
   const files = [...(box.querySelector("[data-decl-file]").files || [])];
   const queTrae = (box.querySelector("[data-decl-que]") || {}).value?.trim() || "";
-  if (!articulos.length && !files.length && !queTrae) throw new Error("Escribe qué trae tu paquete (ej. maquillaje y 2 cremas).");
+  const previos = Number(box.dataset.previos) || 0;
+  if (!articulos.length && !files.length && !previos && !(queTrae && /\d/.test(queTrae))) throw new Error("Sube capturas de tu compra o escribe qué trae y cuánto costó cada cosa (ej. Blush $25, crema $18).");
   if (files.length > SWM_MAX_ARCHIVOS) throw new Error(`Puedes subir hasta ${SWM_MAX_ARCHIVOS} capturas o archivos.`);
   const valorTotal = box.querySelector("[data-decl-total]").value;
   const moneda = box.querySelector("[data-decl-moneda]").value;
