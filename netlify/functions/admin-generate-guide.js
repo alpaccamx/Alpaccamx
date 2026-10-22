@@ -55,10 +55,13 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "Faltan datos para generar la guía." });
   }
 
+  let envioPagado = false;
   if (envioId) {
     const envio = await getRecord("envio", String(envioId));
     if (!envio) return jsonResponse(404, { error: "Envío no encontrado." });
-    if (!["pagado", "en_mexico"].includes(envio.status)) return jsonResponse(409, { error: "Ese envío no está pagado o ya se mandó." });
+    if (!["solicitado", "cotizado", "pagado", "en_mexico"].includes(envio.status)) return jsonResponse(409, { error: "Ese envío ya se mandó o está cancelado." });
+    if (envio.guia) return jsonResponse(409, { error: `Ese envío ya tiene guía (${envio.guia}).` });
+    envioPagado = ["pagado", "en_mexico"].includes(envio.status);
   } else {
     const existing = await getOrder(orderId);
     if (!existing) return jsonResponse(404, { error: "Pedido no encontrado." });
@@ -109,7 +112,19 @@ exports.handler = async (event) => {
       return jsonResponse(400, { error: "Paquetería no reconocida." });
     }
 
-    // Envío de Dirección americana: igual que "Marcar enviado" en admin-swm.
+    // Envío de Dirección americana todavía sin pagar: la guía se guarda y el
+    // envío sigue igual; al pagar, "Marcar enviado" ya la trae lista.
+    if (envioId && !envioPagado) {
+      const at = new Date().toISOString();
+      const rec = await mutateRecord("envio", String(envioId), (e) => {
+        e.paqueteria = carrierLabel; e.guia = trackingNumber; e.guiaAt = at;
+        e.history = [...(e.history || []), { at, status: e.status, guiaGenerada: provider }];
+        return e;
+      });
+      return jsonResponse(200, { envio: rec, guiaAnticipada: true });
+    }
+
+    // Envío de Dirección americana pagado: igual que "Marcar enviado" en admin-swm.
     if (envioId) {
       const at = new Date().toISOString();
       const rec = await mutateRecord("envio", String(envioId), (e) => {
