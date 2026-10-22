@@ -236,7 +236,7 @@ function renderSwmWelcome() {
     [tieneDirMx, "Pon tu dirección de envío en México", "A donde te mandamos tus paquetes cuando crucen. Solo se pone una vez.", `<button type="button" data-swm-dirmx-toggle class="mt-1 block text-xs font-semibold text-rose-ink underline">Poner mi dirección</button>${swm.dirMxOpen ? swmDirMxFormHTML() : ""}`],
     [swmCopio() || swm.paquetes.length > 0, "Copia tu dirección americana", "Úsala en tu tienda favorita, con tu código de casillero en el apellido.", '<button type="button" data-swm-abrir-dir class="mt-1 block text-xs font-semibold text-rose-ink underline">Ver mi dirección</button>'],
     [swm.paquetes.length > 0 || swm.compras.length > 0, "Registra tu primer paquete", "Cuando te den el número de rastreo. ¿Sin tarjeta americana? Usa Personal shopper \u2192 Compras en línea.", '<button type="button" data-swm-form="paquete" class="mt-1 block text-xs font-semibold text-rose-ink underline">Registrar paquete</button>'],
-    [swm.envios.length > 0, "Pide tu primer envío a casa", "Cuando tus paquetes crucen a México te aviso y lo pides aquí.", ""],
+    [swm.envios.length > 0, "Paga tu envío a casa", "Cuando tu paquete llegue, armo tu envío solita y aquí te sale lo que pagas.", ""],
   ];
   const hechos = pasos.filter((p) => p[0]).length;
   const show = Boolean(getCustomerToken()) && swm.loaded && !swm.error && hechos < pasos.length;

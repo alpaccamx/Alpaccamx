@@ -42,7 +42,7 @@ const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, g
 const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, SEPARAR, COMISION_PCT, LEALTAD_PCT } = require("./lib/swm-pricing.js");
 const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
 const { getCoupon, discountFor } = require("./lib/coupons.js");
-const { ALMACENAJE_DIAS, round2, cotizacionSugerida, cotizarEnvio, despacharConGuia, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
+const { ALMACENAJE_DIAS, round2, cotizacionSugerida, cotizarEnvio, despacharConGuia, envioAutomatico, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
 
 const num = (v) => Math.max(0, parseFloat(v) || 0);
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
@@ -53,12 +53,12 @@ const push = (r, status, extra) => { r.history = [...(r.history || []), { at: no
 
 /* Correos de un paquete: llegó al almacén y ya cruzó a México (aquí empieza
    a contar el almacenaje gratis). Regresan [asunto, html]. */
-function correoLlego(rec, yaEstaba, nFotos) {
+function correoLlego(rec, yaEstaba, nFotos, envio) {
   return [yaEstaba ? `actualicé tu paquete ${rec.folio} (peso, fotos o nota)` : `llegó tu paquete ${rec.folio} 📦`, `
     <h2 style="margin:0 0 8px;font-size:20px;">${yaEstaba ? "Actualicé tu paquete" : "¡Tu paquete llegó a nuestro almacén!"}</h2>
     <p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · "))}${rec.cobrable ? ` · ${rec.cobrable} kg` : ""}.${nFotos ? ` Te adjuntamos ${nFotos === 1 ? "la foto" : `las ${nFotos} fotos`} de tu paquete (también las ves en tu casillero).` : ""}</p>
     ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
-    <p style="font-size:14px;">Te avisamos en cuanto cruce a México; ahí entras a tu casillero y pides tu envío a casa (puedes juntarlo con otros paquetes).</p>`];
+    <p style="font-size:14px;">${yaEstaba ? "" : envio ? "Ya está en México 🇲🇽 y ya estoy preparando tu envío a casa. En cuanto tenga tu guía te llega lo que tienes que pagar." : "Ya está en México 🇲🇽. Para mandártelo, pon tu dirección de envío en tu casillero."}</p>`];
 }
 
 function correoEnMexico(rec) {
@@ -123,12 +123,15 @@ exports.handler = async (event) => {
           p.cobrable = pesoCobrable(p.kg, p.alto, p.ancho, p.largo);
           p.fotos = [...(p.fotos || []), ...fotos];
           if (b.notaClienta != null) p.notaClienta = clip(b.notaClienta, 1000);
-          if (p.status === "registrado") { p.status = "recibido"; p.receivedAt = now(); push(p, "recibido"); }
+          // Recibir = cruzar: en cuanto lo recibes ya cuenta como en México.
+          if (p.status === "registrado") { p.status = "recibido"; p.receivedAt = now(); p.enMexicoAt = p.enMexicoAt || now(); push(p, "recibido"); }
           return p;
         });
         if (!rec) return json(404, { error: "No existe ese paquete." });
-        await avisar(rec, ...correoLlego(rec, yaEstaba, fotos.length), fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
-        return json(200, { paquete: rec });
+        // Y su envío a casa se arma solo (si ya tiene su dirección guardada).
+        const envio = yaEstaba ? null : await envioAutomatico(rec.id).catch((err) => { console.error("swm envío automático:", err); return null; });
+        await avisar(rec, ...correoLlego(rec, yaEstaba, fotos.length, envio), fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
+        return json(200, { paquete: rec, envio });
       }
 
       case "sin_registrar": {
@@ -147,7 +150,7 @@ exports.handler = async (event) => {
           kg, alto, ancho, largo, cobrable: pesoCobrable(kg, alto, ancho, largo), fotos,
           datosPendientes: true, cargoSinRegistro: CARGO_SIN_REGISTRO,
           notaClienta: clip(b.notaClienta, 1000), notaPrivada: "",
-          receivedAt: now(), history: [{ at: now(), status: dueña ? "recibido_sin_registro" : "sin_dueña" }], createdAt: now(), updatedAt: now(),
+          receivedAt: now(), enMexicoAt: now(), history: [{ at: now(), status: dueña ? "recibido_sin_registro" : "sin_dueña" }], createdAt: now(), updatedAt: now(),
         };
         await saveRecord("paquete", p);
         if (dueña) await avisarSinRegistro(p);

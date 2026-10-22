@@ -13,6 +13,8 @@
 const crypto = require("crypto");
 const { getCustomerByEmail, updateCustomerFields } = require("./lib/customer-store.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
+const { listRecords } = require("./lib/swm-store.js");
+const { envioAutomatico } = require("./lib/swm-core.js");
 
 const MAX_DIRECCIONES = 8;
 const CAMPOS = { alias: 30, nombre: 100, telefono: 20, calle: 150, colonia: 100, ciudad: 80, estado: 60, cp: 5, referencias: 200 };
@@ -77,6 +79,14 @@ exports.handler = async (event) => {
   } catch (err) {
     console.error("Error guardando las direcciones de la clienta:", err);
     return json(500, { error: "No se pudo guardar. Intenta de nuevo." });
+  }
+  // Dirección americana: si ya tenía paquetes en México esperando su
+  // dirección, su envío a casa se arma solo.
+  if (body.accion === "guardar") {
+    try {
+      const listos = (await listRecords("paquete", { email })).filter((p) => p.status === "recibido" && p.enMexicoAt);
+      for (const p of listos) await envioAutomatico(p.id);
+    } catch (err) { console.error("swm envío automático:", err); }
   }
   return json(200, { direcciones: list });
 };

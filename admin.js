@@ -4725,7 +4725,7 @@ ${itemLines}
         <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(p.notaClienta || "")}"></label>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-        ${p.status === "registrado" ? `<button type="button" class="btn-primary" data-swm-recibir>📥 Marcar como recibido (y avisarle)</button>` : `<button type="button" class="btn-primary" data-swm-recibir>Guardar peso / fotos</button>`}
+        ${p.status === "registrado" ? `<button type="button" class="btn-primary" data-swm-recibir>📥 Recibido en México (y armar su envío)</button>` : `<button type="button" class="btn-primary" data-swm-recibir>Guardar peso / fotos</button>`}
       </div></details>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
         ${p.status === "recibido" && !p.enMexicoAt && !p.datosPendientes ? `<button type="button" class="btn-secondary" data-swm-pkg-mx>🇲🇽 Cruzado a México</button>` : ""}
@@ -5260,7 +5260,9 @@ ${itemLines}
     if (t.closest("[data-swm-recibir]")) {
       const input = card.querySelector('[data-f="fotos"]');
       const fotos = (await Promise.all([...(input.files || [])].slice(0, 6).map(swmResize))).filter(Boolean);
-      swmAct({ accion: "recibir_paquete", id, kg: v("kg"), alto: v("alto"), ancho: v("ancho"), largo: v("largo"), notaClienta: v("notaClienta"), fotos }, btn);
+      const nuevo = card.querySelector("[data-swm-recibir]").textContent.includes("Recibido en México");
+      const data = await swmAct({ accion: "recibir_paquete", id, kg: v("kg"), alto: v("alto"), ancho: v("ancho"), largo: v("largo"), notaClienta: v("notaClienta"), fotos }, btn);
+      if (data && nuevo) showToast(data.envio ? `✅ Recibido. Su envío ${data.envio.folio} ya está en "Envíos por cotizar": haz la guía y cóbrale.` : "✅ Recibido. Todavía no tiene su dirección guardada; le pedí que la ponga y su envío se arma solo.");
     } else if (t.closest("[data-swm-cotizar-compra]")) {
       if (!(parseFloat(v("productos")) > 0)) { alert("Pon el costo de los productos."); return; }
       swmAct({ accion: "cotizar_compra", id, productos: v("productos"), cruce: v("cruce"), notaClienta: v("notaClienta") }, btn);

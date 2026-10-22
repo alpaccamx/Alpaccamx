@@ -28,7 +28,7 @@ const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
 const { detectFileType } = require("./lib/file-signature.js");
 const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, casilleroDe } = require("./lib/swm-store.js");
-const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe, tiposDeCambio, lealtadDe, codigoReferido, premiosDe, ponerCruceAnticipado, porPagar } = require("./lib/swm-core.js");
+const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe, tiposDeCambio, lealtadDe, codigoReferido, premiosDe, ponerCruceAnticipado, porPagar, envioAutomatico } = require("./lib/swm-core.js");
 const { REVISION_FOTOS, SEPARAR, COMISION_PCT, REFERIDO_MXN } = require("./lib/swm-pricing.js");
 const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/coupons.js");
 
@@ -194,6 +194,7 @@ exports.handler = async (event) => {
         });
         const rates = await tiposDeCambio();
         const conCruce = await mutateRecord("paquete", rec.id, (p) => ponerCruceAnticipado(p, rates)) || updated;
+        await envioAutomatico(rec.id).catch((err) => console.error("swm envío automático:", err));
         return json(200, { paquete: publico(conCruce) });
       }
 
