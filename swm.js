@@ -311,17 +311,11 @@ function renderSwmCasillero() {
   if (swm.error) { el.innerHTML = h + `<p class="text-sm text-sale">${escapeHtml(swm.error)}</p>`; return; }
 
   const P = swm.paquetes.filter((p) => p.status !== "cancelado");
-  const kpi = (n, l) => `<div class="rounded-2xl bg-white/85 px-2 py-3 text-center shadow-sm"><b class="block text-xl font-bold tabular-nums">${n}</b><span class="text-[11px] text-ink/70">${l}</span></div>`;
   const tabs = [["paquetes", `Paquetes (${P.length})`], ["compras", `Compras (${swm.compras.filter((c) => c.status !== "cancelado").length})`], ["envios", `Envíos (${swm.envios.filter((e) => e.status !== "cancelado").length})`]];
   el.innerHTML = `${h}
     <div class="rounded-3xl bg-gradient-to-br from-blush/60 via-blush/25 to-lilac/25 p-4">
-      <div class="grid grid-cols-4 gap-2">
-        ${kpi(P.filter((p) => p.status === "registrado").length, "por llegar")}
-        ${kpi(P.filter((p) => p.status === "recibido" && !p.enMexicoAt).length, "en almacén")}
-        ${kpi(P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length, "en México")}
-        ${kpi(P.filter((p) => ["enviado", "entregado"].includes(p.status)).length, "enviados")}
-      </div>
       ${swmPendientesHTML()}
+      <p class="mt-3 px-1 text-xs text-ink/70">📦 ${P.filter((p) => p.status === "registrado").length} por llegar · ${P.filter((p) => p.status === "recibido" && !p.enMexicoAt).length} en almacén · ${P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length} en México · ${P.filter((p) => ["enviado", "entregado"].includes(p.status)).length} enviados</p>
       <div class="mt-3 grid gap-2 sm:grid-cols-3">
         ${[["paquete", "📦", "Registrar un paquete", "Ya compraste y lo mandaste a la dirección", "bg-[#fff4e0]"], ["compra", "🛍️", "Que Mae compre por mí", "Personal shopper: compras en línea", "bg-[#fde8f0]"], ["envio", "🚚", "Pedir mi envío a casa", "Cuando tus paquetes ya estén en México", "bg-[#e8f4ee]"]]
           .map(([f, ico, t, d, bg]) => `<button type="button" ${f === "compra" ? 'data-ps-open="linea"' : `data-swm-form="${f}"`} class="flex items-center gap-3 rounded-2xl bg-white px-3 py-3 text-left text-sm font-semibold hover:bg-white/80"><span class="shrink-0 w-11 h-11 rounded-xl ${bg} flex items-center justify-center text-2xl" aria-hidden="true">${ico}</span><span>${t}<span class="block text-xs font-normal text-ink/65">${d}</span></span></button>`).join("")}
@@ -355,12 +349,16 @@ function swmPendientes() {
   return out;
 }
 
+/* Arriba del casillero, UN siguiente paso grande; lo demás que tenga
+   pendiente, en chiquito debajo. Sin pendientes: registrar un paquete. */
 function swmPendientesHTML() {
   const items = swmPendientes();
-  if (!items.length) return swmActiva() ? `<p class="mt-3 rounded-2xl bg-white/85 px-4 py-3 text-sm">✨ <b>Todo en orden.</b> <span class="text-ink/70">Te avisamos cuando haya novedades.</span></p>` : "";
-  return `<div class="mt-3 rounded-2xl bg-white p-3 shadow-sm">
-      <p class="px-1 text-xs font-bold uppercase tracking-wide text-rose-ink">Lo que necesitas hacer</p>
-      <ul class="mt-2 space-y-1.5">${items.map(([ico, txt, attr]) => `<li><button type="button" ${attr} class="flex w-full items-center gap-3 rounded-xl bg-blush/25 px-3 py-2.5 text-left text-sm font-semibold hover:bg-blush/40"><span aria-hidden="true">${ico}</span><span class="flex-1">${escapeHtml(txt)}</span><span aria-hidden="true" class="text-rose-ink">→</span></button></li>`).join("")}</ul>
+  const [ico, txt, attr] = items[0] || ["📦", swmActiva() ? "Registra otro paquete" : "Registra tu primer paquete", 'data-swm-form="paquete"'];
+  const resto = items.slice(1);
+  return `<div>
+      <p class="px-1 text-xs font-bold uppercase tracking-wide text-rose-ink">${items.length ? "Tu siguiente paso" : swmActiva() ? "✨ Todo en orden" : "Empieza aquí"}</p>
+      <button type="button" ${attr} class="mt-2 flex w-full items-center gap-3 rounded-2xl bg-rose-deep px-4 py-4 text-left text-base font-semibold text-cream shadow-sm hover:bg-rose-ink"><span class="text-2xl" aria-hidden="true">${ico}</span><span class="flex-1">${escapeHtml(txt)}</span><span aria-hidden="true">→</span></button>
+      ${resto.length ? `<ul class="mt-2 space-y-1.5">${resto.map(([i, t, a]) => `<li><button type="button" ${a} class="flex w-full items-center gap-3 rounded-xl bg-white/85 px-3 py-2.5 text-left text-sm font-semibold hover:bg-white"><span aria-hidden="true">${i}</span><span class="flex-1">${escapeHtml(t)}</span><span aria-hidden="true" class="text-rose-ink">→</span></button></li>`).join("")}</ul>` : ""}
     </div>`;
 }
 
@@ -480,7 +478,7 @@ function swmPaqueteCardHTML(p) {
     <p class="text-sm mt-2">${escapeHtml(desc || "Paquete")}${p.origen === "compra" ? ' <span class="text-xs text-lilac-ink">(compra de Mae)</span>' : ""}</p>
     ${p.contenido ? `<p class="text-xs text-ink/65">${escapeHtml(p.contenido)}</p>` : ""}
     ${p.valorTotal ? `<p class="text-xs text-ink/65">Valor declarado: ${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}${swmNumArchivos(p) ? ` · 📄 ${swmNumArchivos(p)} archivo${swmNumArchivos(p) === 1 ? "" : "s"} recibido${swmNumArchivos(p) === 1 ? "" : "s"}` : ""}</p>` : ""}
-    <p class="text-xs text-ink/65 mt-1">Cruce: ${p.crucePagado ? "ya pagado con tu compra" : p.cobro === "comision" ? `15% del valor${swmValorPesos(Number(p.valorTotal) || 0, p.moneda) ? ` (≈ ${swmMXN(swmCruceComision(swmValorPesos(Number(p.valorTotal), p.moneda)))})` : ""}` : "por peso"}${p.cobrable ? ` · ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → ${swmMXN(swmCrucePeso(p.cobrable))}` : ""}` : ""}</p>
+    <p class="text-xs text-ink/65 mt-1">Cruce: ${p.crucePagado ? "ya pagado con tu compra" : p.cobro === "auto" ? "lo más barato (por peso o 15%), al pedir tu envío" : p.cobro === "comision" ? `15% del valor${swmValorPesos(Number(p.valorTotal) || 0, p.moneda) ? ` (≈ ${swmMXN(swmCruceComision(swmValorPesos(Number(p.valorTotal), p.moneda)))})` : ""}` : "por peso"}${p.cobrable ? ` · ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → ${swmMXN(swmCrucePeso(p.cobrable))}` : ""}` : ""}</p>
     ${extra}
     ${fotos ? `<div class="mt-2 flex flex-wrap gap-2">${fotos}</div>` : ""}
     ${p.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(p.notaClienta)}</p>` : ""}
@@ -493,7 +491,6 @@ function swmPaqueteCardHTML(p) {
     ${p.datosPendientes ? `<form data-swm-completar="${escapeHtml(p.id)}" class="mt-3 rounded-xl bg-sale/[0.06] border border-sale/30 p-3 space-y-2" novalidate>
       <p class="text-sm"><b>⚠️ Este paquete llegó sin registrar.</b> Dime qué trae y cuánto costó para poder enviártelo. Se suma un cargo de <b>${swmMXN(p.cargoSinRegistro || 80)}</b> a tu envío.</p>
       ${swmDeclaracionHTML()}
-      ${swmCobroRadios()}
       <p data-c-err class="hidden text-xs text-sale"></p>
       <button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Guardar datos</button>
     </form>` : ""}` });
@@ -616,13 +613,6 @@ const swmPaqueteriaSelect = (attrs, actual = "") => `<label class="flex flex-col
     ${SWM_PAQUETERIAS.map((x) => `<option value="${x}"${actual === x ? " selected" : ""}>${x}</option>`).join("")}
   </select></label>`;
 const swmInput = (id, label, attrs = "") => `<label class="flex flex-col gap-1 text-xs font-semibold">${label}<input id="${id}" ${attrs} class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" /></label>`;
-const swmCobroRadios = (actual = "peso") => `<fieldset class="space-y-2"><legend class="text-sm font-semibold">¿Cómo quieres pagar el cruce?</legend>
-    <p class="text-xs text-ink/65">El <b>cruce</b> es lo que cuesta pasar tu paquete de Estados Unidos a México. Elige lo que te salga mejor:</p>
-    <div class="grid gap-2 sm:grid-cols-2">
-    <label class="flex gap-2 rounded-xl border-2 border-ink/15 bg-white p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="peso"${actual === "comision" ? "" : " checked"} class="mt-0.5 accent-[#c4466e]"><span><b>⚖️ Por peso</b><span class="block text-xs text-ink/65">Según lo que pese la caja; lo pagas cuando pides tu envío. Conviene si tus productos son ligeros pero caros.</span></span></label>
-    <label class="flex gap-2 rounded-xl border-2 border-ink/15 bg-white p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-cobro" value="comision"${actual === "comision" ? " checked" : ""} class="mt-0.5 accent-[#c4466e]"><span><b>💲 15% de lo que costó</b><span class="block text-xs text-ink/65">El 15% del valor de tus productos, en pesos. Conviene si es pesado pero barato.</span><span data-wiz-est class="block text-xs font-semibold text-rose-ink"></span></span></label>
-    </div>
-  </fieldset>`;
 /* Qué trae el paquete: hasta 10 capturas o PDF de la factura/resumen o,
    si no sube nada, cada artículo con su costo escrito uno por uno; más el
    valor total de los artículos con tax, sin envío. Lo usan
@@ -724,7 +714,6 @@ function swmEditarFormHTML(p) {
       </div>` : ""}
       ${swmDeclaracionHTML(p)}
       ${n ? `<label class="flex items-center gap-2 text-xs"><input type="checkbox" data-e="quitar" class="accent-[#c4466e]" /> Quitar mis ${n} archivo${n === 1 ? "" : "s"} anterior${n === 1 ? "" : "es"} (si no, se suman los nuevos)</label>` : ""}
-      ${p.crucePagado ? "" : swmCobroRadios(p.cobro)}
       <p data-c-err class="hidden text-xs text-sale"></p>
       <div class="flex gap-2"><button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Guardar cambios</button>
       ${p.correccion && p.correccion.estado === "pedida" ? "" : `<button type="button" data-swm-editar-toggle="${escapeHtml(p.id)}" class="rounded-full px-4 py-2 text-xs font-semibold text-ink/70">Cancelar</button>`}</div>
@@ -823,7 +812,9 @@ function swmCompraWaLink(tienda) {
 
 /* "Registrar un paquete" en 3 pasos cortos: el paquete, qué trae y cómo
    paga el cruce. Cada paso se revisa antes de pasar al siguiente. */
-const SWM_WIZ_PASOS = ["Tu paquete", "Qué trae", "Cómo pagas el cruce"];
+// El cruce ya no se elige: se cobra lo más barato (por peso o 15%) al pedir el envío.
+const SWM_WIZ_PASOS = ["Tu paquete", "Qué trae"];
+const SWM_WIZ_N = SWM_WIZ_PASOS.length;
 
 function swmWizValidar(form, n) {
   if (n === 1) {
@@ -836,15 +827,14 @@ function swmWizValidar(form, n) {
 function swmWizIr(form, n) {
   form.dataset.paso = n;
   form.querySelectorAll("[data-wiz-paso]").forEach((el) => el.classList.toggle("hidden", Number(el.dataset.wizPaso) !== n));
-  form.querySelector("[data-wiz-barra]").style.width = `${Math.round((n / 3) * 100)}%`;
-  form.querySelector("[data-wiz-label]").textContent = `Paso ${n} de 3 · ${SWM_WIZ_PASOS[n - 1]}`;
+  form.querySelector("[data-wiz-barra]").style.width = `${Math.round((n / SWM_WIZ_N) * 100)}%`;
+  form.querySelector("[data-wiz-label]").textContent = `Paso ${n} de ${SWM_WIZ_N} · ${SWM_WIZ_PASOS[n - 1]}`;
   form.querySelector("[data-wiz-atras]").classList.toggle("hidden", n === 1);
-  form.querySelector("[data-wiz-sig]").classList.toggle("hidden", n === 3);
+  form.querySelector("[data-wiz-sig]").classList.toggle("hidden", n === SWM_WIZ_N);
   const submit = form.querySelector('button[type="submit"]');
-  submit.classList.toggle("hidden", n !== 3);
-  submit.classList.toggle("inline-flex", n === 3);
+  submit.classList.toggle("hidden", n !== SWM_WIZ_N);
+  submit.classList.toggle("inline-flex", n === SWM_WIZ_N);
   form.querySelector("[data-swm-err]").classList.add("hidden");
-  if (n === 3) swmActualizarEstimado(form);
   form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -872,12 +862,11 @@ function swmFormHTML() {
     const paso = (n, inner) => `<div data-wiz-paso="${n}" class="space-y-4${n === 1 ? "" : " hidden"}">${inner}</div>`;
     return `<form data-swm-submit data-wiz data-paso="1" class="rounded-3xl border border-ink/10 bg-white p-5 space-y-4 scroll-mt-28" novalidate>
       <div class="flex items-center justify-between"><b class="text-base">📦 Registrar un paquete</b><button type="button" data-swm-form="" aria-label="Cerrar" class="text-2xl leading-none text-ink/60">&times;</button></div>
-      <div><p data-wiz-label class="text-xs font-semibold text-ink/65">Paso 1 de 3 · ${SWM_WIZ_PASOS[0]}</p>
-        <div class="mt-1.5 h-2 rounded-full bg-ink/10"><div data-wiz-barra class="h-full rounded-full bg-rose-deep transition-all" style="width:33%"></div></div></div>
+      <div><p data-wiz-label class="text-xs font-semibold text-ink/65">Paso 1 de ${SWM_WIZ_N} · ${SWM_WIZ_PASOS[0]}</p>
+        <div class="mt-1.5 h-2 rounded-full bg-ink/10"><div data-wiz-barra class="h-full rounded-full bg-rose-deep transition-all" style="width:${Math.round(100 / SWM_WIZ_N)}%"></div></div></div>
       ${paso(1, `<p class="text-xs text-ink/65">Regístralo en cuanto la tienda te dé el número de rastreo, antes de que llegue a la bodega.</p>
         <div class="grid gap-3 sm:grid-cols-2">${swmInput("swm-f-tienda", "¿En qué tienda compraste?", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}${swmPaqueteriaSelect('id="swm-f-paqueteria" required')}${swmInput("swm-f-rastreo", "Número de rastreo (guía) *", 'maxlength="80" required autocomplete="off"')}</div>`)}
-      ${paso(2, swmDeclaracionHTML())}
-      ${paso(3, swmCobroRadios() + swmAcepta())}
+      ${paso(2, swmDeclaracionHTML() + swmAcepta() + `<p class="text-xs text-ink/65">💡 El cruce te lo cobro hasta que pidas tu envío, y siempre lo más barato: por peso o el 15% de lo que costó.</p>`)}
       <p data-swm-err class="hidden rounded-xl bg-sale/10 px-3 py-2 text-sm text-sale" role="alert"></p>
       <div class="flex items-center gap-2">
         <button type="button" data-wiz-atras class="hidden rounded-full px-4 py-3 text-sm font-semibold text-ink/70 hover:bg-pill">← Atrás</button>
@@ -964,7 +953,7 @@ async function submitSwmForm(form) {
   const val = (id) => (document.getElementById(id) ? document.getElementById(id).value : "");
   const fail = (m) => { err.textContent = m; err.classList.remove("hidden"); };
   err.classList.add("hidden");
-  if (form.hasAttribute("data-wiz") && Number(form.dataset.paso) < 3) { swmWizSiguiente(form); return; }
+  if (form.hasAttribute("data-wiz") && Number(form.dataset.paso) < SWM_WIZ_N) { swmWizSiguiente(form); return; }
   const cobro = (form.querySelector('input[name="swm-cobro"]:checked') || {}).value;
   let body;
   if (swm.form === "paquete") {
@@ -1074,7 +1063,7 @@ function updateSwmCalc() {
     ? (rate ? `15% de ~${swmMXN(usd * rate)}: <b class="text-ink">${swmMXN(cCom)}</b>` : `15% de US$${usd.toFixed(2)}: <b class="text-ink">US$${(usd * 0.15).toFixed(2)}</b>`)
     : "";
   const best = document.getElementById("swm-c-best");
-  best.textContent = cPeso && cCom ? (cPeso <= cCom ? `Te conviene pagar por peso (ahorras ${swmMXN(cCom - cPeso)}).` : `Te conviene pagar por el 15% (ahorras ${swmMXN(cPeso - cCom)}).`) : "";
+  best.textContent = cPeso && cCom ? `Tu cruce: ${swmMXN(Math.min(cPeso, cCom))} (te cobro lo más barato de los dos).` : "";
 }
 
 function initSwm() {

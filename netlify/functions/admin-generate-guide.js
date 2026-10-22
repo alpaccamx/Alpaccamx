@@ -27,7 +27,7 @@ const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { getRecord, mutateRecord } = require("./lib/swm-store.js");
-const { avisar } = require("./lib/swm-core.js");
+const { avisar, cotizarEnvio } = require("./lib/swm-core.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -112,16 +112,19 @@ exports.handler = async (event) => {
       return jsonResponse(400, { error: "Paquetería no reconocida." });
     }
 
-    // Envío de Dirección americana todavía sin pagar: la guía se guarda y el
-    // envío sigue igual; al pagar, "Marcar enviado" ya la trae lista.
+    // Envío de Dirección americana todavía sin pagar: se guarda la guía y se
+    // le cobra a la clienta (cruce + envío con el precio de la paquetería) en
+    // un solo paso. En cuanto paga, sale sola con esta guía (aplicarPago).
     if (envioId && !envioPagado) {
       const at = new Date().toISOString();
-      const rec = await mutateRecord("envio", String(envioId), (e) => {
+      await mutateRecord("envio", String(envioId), (e) => {
         e.paqueteria = carrierLabel; e.guia = trackingNumber; e.guiaAt = at;
         e.history = [...(e.history || []), { at, status: e.status, guiaGenerada: provider }];
         return e;
       });
-      return jsonResponse(200, { envio: rec, guiaAnticipada: true });
+      const r = await cotizarEnvio(String(envioId), { envio: Number(body.total) || 0, premioLealtad: !!body.premioLealtad });
+      if (r.error) return jsonResponse(200, { guiaAnticipada: true, error: `La guía ${trackingNumber} quedó lista, pero no se pudo cobrar: ${r.error}` });
+      return jsonResponse(200, { envio: r.envio, guiaAnticipada: true });
     }
 
     // Envío de Dirección americana pagado: igual que "Marcar enviado" en admin-swm.

@@ -32,7 +32,8 @@ const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe
 const { REVISION_FOTOS, SEPARAR, COMISION_PCT, REFERIDO_MXN } = require("./lib/swm-pricing.js");
 const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/coupons.js");
 
-const COBROS = ["peso", "comision"];
+// "auto": se cobra lo más barato entre por peso y el 15% (lo de ahora).
+const COBROS = ["auto", "peso", "comision"];
 const MAX_BYTES = 5 * 1024 * 1024;
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
 const now = () => new Date().toISOString();
@@ -156,7 +157,7 @@ exports.handler = async (event) => {
         const paqueteria = clip(b.paqueteria, 40);
         if (!paqueteria) return json(400, { error: "Elige con qué paquetería viene tu paquete (UPS, USPS, FedEx, Amazon...)." });
         if (!rastreo) return json(400, { error: "Pon el número de rastreo (guía) de tu paquete: sin él no podemos identificarlo cuando llegue." });
-        const cobro = COBROS.includes(b.cobro) ? b.cobro : "peso";
+        const cobro = COBROS.includes(b.cobro) ? b.cobro : "auto";
         const dec = leerDeclaracion(b, cobro);
         if (dec.error) return json(400, { error: dec.error });
         const repetida = await guiaRepetida(rastreo, me);
