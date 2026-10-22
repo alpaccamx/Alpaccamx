@@ -282,8 +282,11 @@ exports.handler = async (event) => {
         // ordenTienda: número de orden de la tienda, solo para Mae (no se le muestra a la clienta).
         const lista = (Array.isArray(b.paquetes) ? b.paquetes : []).map((x) => ({ tienda: clip(x.tienda, 80), rastreo: clip(x.rastreo, 80), ordenTienda: clip(x.orden, 80), contenido: clip(x.contenido, 300) })).filter((x) => x.tienda || x.rastreo || x.ordenTienda);
         if (!lista.length) return json(400, { error: "Pon al menos un paquete (tienda o número de orden)." });
+        // El contenido sale del resumen de la compra (ya no se escribe a mano).
+        const resumen = clip(((compra.cotizacion && compra.cotizacion.items) || []).filter((i) => !i.envio).map((i) => `${i.cantidad > 1 ? `${i.cantidad}× ` : ""}${i.nombre}`).join(", "), 300);
         const ids = [];
         for (const x of lista) {
+          if (!x.contenido) x.contenido = resumen;
           const p = {
             id: randomUUID(), folio: await nextFolio("paquete"), email: compra.email, name: compra.name, phone: compra.phone,
             origen: "compra", compraId: compra.id, ...x, valorUSD: 0, cobro: compra.cobro,
