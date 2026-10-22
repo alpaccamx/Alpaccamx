@@ -70,7 +70,7 @@ function leerDeclaracion(b, cobro, previos = 0) {
     facturas.push({ buf, ct, nombre: clip(f.filename, 120) });
   }
   const queTrae = clip(b.queTrae, 300);
-  if (!rows.length && !facturas.length && !previos && !queTrae) return { error: "Escribe qué trae tu paquete (ej. maquillaje y 2 cremas)." };
+  if (!rows.length && !facturas.length && !previos && !(queTrae && /\d/.test(queTrae))) return { error: "Sube capturas de tu compra o escribe qué trae y cuánto costó cada cosa (ej. Blush $25, crema $18)." };
   const valorTotal = Math.max(0, Math.min(1e9, parseFloat(b.valorTotal) || 0));
   const moneda = MONEDAS.includes(b.moneda) ? b.moneda : "";
   if (!(valorTotal > 0) || !moneda) return { error: "Escribe el valor total de los artículos (con tax, sin envío) y en qué moneda." };
