@@ -4455,7 +4455,8 @@ ${itemLines}
     return kg <= 15 ? SWM_TARIFA[kg] : SWM_TARIFA[15] + (kg - 15) * 120;
   }
   const swmFecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "short" }) : "");
-  const swmPorRevisar = () => [...swmData.compras.map((r) => ["compra", r]), ...swmData.envios.map((r) => ["envio", r])].filter(([, r]) => r.pago && r.pago.status === "revision" && r.status === "cotizado");
+  const swmPorRevisar = () => [...swmData.compras.map((r) => ["compra", r]), ...swmData.envios.map((r) => ["envio", r]), ...swmData.paquetes.map((r) => ["paquete", r])]
+    .filter(([k, r]) => r.pago && r.pago.status === "revision" && (k === "paquete" ? !r.crucePagado : r.status === "cotizado"));
 
   /* Lo que requiere que Mae haga algo. */
   function swmPendientes() {
@@ -4620,7 +4621,7 @@ ${itemLines}
       html = sec("Paquetes", P.filter(swmMatches), swmPaqueteCard) + sec("Compras", swmData.compras.filter(swmMatches), swmCompraCard) + sec("Envíos", swmData.envios.filter(swmMatches), swmEnvioCard)
         || `<p style="color:#5f5866;font-size:14px;">No encontré nada con "${escapeHtml(swmSearch)}".</p>`;
     } else if (swmTab === "acciones") {
-      html = sec("🔎 Pagos por revisar", pend.pagos.filter(([, r]) => swmMatches(r)), ([k, r]) => (k === "compra" ? swmCompraCard(r) : swmEnvioCard(r)))
+      html = sec("🔎 Pagos por revisar", pend.pagos.filter(([, r]) => swmMatches(r)), ([k, r]) => (k === "compra" ? swmCompraCard(r) : k === "paquete" ? swmPaqueteCard(r) : swmEnvioCard(r)))
         + sec("🛍️ Compras por cotizar", pend.cotizarCompra.filter(swmMatches), swmCompraCard)
         + sec("🛒 Compras pagadas: hay que comprar", pend.comprar.filter(swmMatches), swmCompraCard)
         + sec("🚚 Envíos por cotizar", pend.cotizarEnvio.filter(swmMatches), swmEnvioCard)
@@ -4695,6 +4696,7 @@ ${itemLines}
     const limite = swmData.diasSinDuena || 7;
     return `<div class="swm-card" data-swm-id="${escapeHtml(p.id)}" data-kind="paquete">
       <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.paqueteria ? ` · ${escapeHtml(p.paqueteria)}` : ""}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}</span>${swmValorAlto(p) ? swmPillA("⚠️ Valor alto", "new") : ""}${swmPillA(st, ["registrado", "sin_dueña"].includes(p.status) || p.datosPendientes ? "new" : "")}</h4>
+      ${p.pago ? `<div class="meta">💲 Cruce del 15% por adelantado: <b>${formatPrice(p.pago.monto || 0)}</b>${p.crucePagado ? " · ✅ pagado (en su envío solo se cobra la guía)" : ""}</div>${swmPagoBox("paquete", p)}` : ""}
       ${sinDuena ? `<div class="meta">Etiqueta: <b>${escapeHtml(p.etiqueta || "—")}</b> · ${p.cobrable || "?"} kg · llegó ${swmFecha(p.receivedAt)} · <b style="color:${diasAqui >= limite ? "#b33660" : "inherit"}">${diasAqui} día${diasAqui === 1 ? "" : "s"}${diasAqui >= limite ? ` (ya pasaron ${limite}: puedes disponer de él)` : ` de ${limite}`}</b></div>
       <div class="grid" style="grid-template-columns:1fr auto;align-items:end;"><label>Buscar a la dueña (nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Ej. Ana López"></label></div>
       <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
@@ -5042,7 +5044,7 @@ ${itemLines}
       action = e.guia
         ? `<div class="meta" style="margin-top:10px;font-size:14px;">📦 Guía lista: <b>${escapeHtml(e.paqueteria || "")} ${escapeHtml(e.guia)}</b><br>⏳ Esperando que pague ${q ? formatPrice(q.total) : ""}. En cuanto pague, le llega su guía sola.</div>
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">${swmCancelBtn("envio", e)}</div>`
-        : `${juarez ? `<div style="margin-top:10px;"><button type="button" class="btn-secondary" data-swm-envio-personal>📍 Se lo entrego en Juárez: cobrarle solo el cruce (${formatPrice((sug.cruce || 0) + (sug.consolidacion || 0) + (sug.sinRegistro || 0) + (sug.extras || 0))})</button></div>` : ""}
+        : `${juarez ? `<div style="margin-top:10px;"><button type="button" class="btn-secondary" data-swm-envio-personal>📍 Se lo entrego en Juárez: ${(sug.cruce || 0) + (sug.consolidacion || 0) + (sug.sinRegistro || 0) + (sug.extras || 0) ? `cobrarle solo el cruce (${formatPrice((sug.cruce || 0) + (sug.consolidacion || 0) + (sug.sinRegistro || 0) + (sug.extras || 0))})` : "no hay nada que cobrar"}</button></div>` : ""}
           ${swmGuiaForm(e, true)}
           ${manual}
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">${swmCancelBtn("envio", e)}</div>`;
