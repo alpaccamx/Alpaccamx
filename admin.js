@@ -4994,7 +4994,17 @@ ${itemLines}
     const q = e.cotizacion; const sug = e.sugerido || {};
     let action = "";
     if (e.status === "solicitado" || (e.status === "cotizado" && (!e.pago || e.pago.status === "pendiente"))) {
-      action = `<div class="grid">
+      const juarez = /ju[aá]rez/i.test(`${d.ciudad || ""}`);
+      action = `<div class="meta" style="margin-top:10px;font-weight:600;color:#a33a63;">Paso 1 · Cotiza la paquetería</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+          <label style="max-width:140px;">Peso de la caja (kg)<input data-f="pesoEnvio" type="number" step="0.1" min="0.1" value="${sug.kg || pk.reduce((t, p) => t + (p.cobrable || p.kg || 0), 0) || 1}"></label>
+          <button type="button" class="btn-secondary" data-swm-envio-cotizar style="padding:8px 14px;">🚚 Cotizar envío a ${escapeHtml(d.cp || "su CP")}</button>
+          ${juarez ? `<button type="button" class="btn-secondary" data-swm-envio-personal style="padding:8px 14px;">📍 Entrega personal en Juárez ($0)</button>` : ""}
+        </div>
+        <div data-swm-envio-rates style="margin-top:6px;"></div>
+        <div class="meta" data-swm-envio-err style="color:#b42318;"></div>
+        <div class="meta" style="margin-top:10px;font-weight:600;color:#a33a63;">Paso 2 · Revisa los montos (toca una opción de arriba y se llena solo)</div>
+        <div class="grid">
           <label>Envío nacional (MXN)<input data-f="envio" type="number" step="0.01" min="0" value="${q ? q.envio : ""}"></label>
           <label>Cruce (vacío = ${formatPrice(sug.cruce || 0)})<input data-f="cruce" type="number" step="0.01" min="0" placeholder="${sug.cruce || 0}"></label>
           <label>Consolidación (vacío = ${formatPrice(sug.consolidacion || 0)})<input data-f="consolidacion" type="number" step="0.01" min="0" placeholder="${sug.consolidacion || 0}"></label>
@@ -5003,7 +5013,8 @@ ${itemLines}
           <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(e.notaClienta || "")}"></label>
         </div>
         ${swmLealtadLibres(e.email) || e.premioLealtad ? `<label class="swm-check" style="margin-top:8px;"><input type="checkbox" data-f="premioLealtad"${e.premioLealtad ? " checked" : ""}> 🎁 Cruce al 50% por lealtad (le ${e.premioLealtad ? "toca" : `quedan ${swmLealtadLibres(e.email)}`})</label>` : ""}
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("envio", e)}</div>`;
+        <div class="meta" style="margin-top:10px;font-weight:600;color:#a33a63;">Paso 3 · Mándasela</div>
+        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-envio>${e.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${swmCancelBtn("envio", e)}</div>`;
     } else if (e.status === "pagado" || e.status === "en_mexico") {
       action = `<div class="grid"><label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(e.paqueteria || "Estafeta")}"></label><label>Número de guía<input data-f="guia" type="text" value="${escapeHtml(e.guia || "")}"></label></div>
         <div style="display:flex;gap:8px;margin-top:10px;">${e.status === "pagado" ? `<button type="button" class="btn-secondary" data-swm-en-mexico>🇲🇽 Ya está en México</button>` : ""}<button type="button" class="btn-primary" data-swm-enviado>🚚 Marcar enviado (mandarle la guía)</button></div>
@@ -5223,6 +5234,31 @@ ${itemLines}
     } else if (t.closest("[data-swm-comprada]")) {
       const paquetes = [...card.querySelectorAll("[data-swm-pkg]")].map((row) => Object.fromEntries([...row.querySelectorAll("[data-k]")].map((i) => [i.dataset.k, i.value])));
       swmAct({ accion: "compra_comprada", id, paquetes }, btn);
+    } else if (t.closest("[data-swm-envio-personal]")) {
+      card.querySelector('[data-f="envio"]').value = 0;
+      card.querySelector('[data-f="notaClienta"]').value ||= "Te lo entrego personalmente en Ciudad Juárez.";
+    } else if (t.closest("[data-swm-envio-rate]")) {
+      const r = t.closest("[data-swm-envio-rate]");
+      card.querySelectorAll("[data-swm-envio-rate]").forEach((l) => l.classList.toggle("selected", l === r));
+      r.querySelector("input").checked = true;
+      card.querySelector('[data-f="envio"]').value = r.dataset.total;
+    } else if (t.closest("[data-swm-envio-cotizar]")) {
+      const ratesEl = card.querySelector("[data-swm-envio-rates]");
+      const errEl = card.querySelector("[data-swm-envio-err]");
+      const weight = parseFloat(v("pesoEnvio"));
+      errEl.textContent = "";
+      if (!(weight > 0)) { errEl.textContent = "Escribe el peso de la caja."; return; }
+      ratesEl.textContent = "Cotizando en Envíos Perros y Skydropx...";
+      try {
+        const res = await fetch("/.netlify/functions/admin-shipping-rates", {
+          method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ envioId: id, weight }),
+        });
+        const data = await res.json();
+        if (!res.ok || !(data.rates || []).length) { ratesEl.textContent = ""; errEl.textContent = data.error || "No hay opciones de envío para ese código postal."; return; }
+        const badge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
+        ratesEl.innerHTML = data.rates.map((r, i) => `<label class="rate-option" data-swm-envio-rate data-total="${Number(r.total) || 0}"><input type="radio" name="envio-rate-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}</span></label>`).join("");
+      } catch (err) { ratesEl.textContent = ""; errEl.textContent = "No se pudo conectar con el servidor."; }
     } else if (t.closest("[data-swm-cotizar-envio]")) {
       if (v("envio") === "") { alert("Pon el costo del envío nacional."); return; }
       const premio = card.querySelector('[data-f="premioLealtad"]');
