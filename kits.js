@@ -117,7 +117,7 @@ function kitCardHTML(kit) {
       <div class="rounded-2xl bg-white/80 border border-ink/10 py-2"><b class="block text-2xl text-ink">${t.piezas}</b><span class="text-xs text-ink/70">piezas</span></div>
     </div>
     <div class="mt-4 rounded-2xl bg-white border border-ink/10 p-4 space-y-1.5 text-sm tabular-nums">
-      <div class="flex justify-between text-ink/60"><span>Lo vendes todo en</span><span class="line-through">${formatPrice(t.reventa.ventaTotal)}</span></div>
+      <div class="flex justify-between items-baseline rounded-xl bg-green-50 -mx-2 px-2 py-1.5 font-semibold text-green-800"><span>💰 Lo vendes todo en</span><span class="text-base font-extrabold">${formatPrice(t.reventa.ventaTotal)}</span></div>
       <div class="flex justify-between"><span>Productos</span><span>${formatPrice(t.productos)}</span></div>
       <div class="flex justify-between"><span>Envío ${kit.envioIncluido ? "(incluido)" : "aprox."}</span><span>${formatPrice(t.envio)}</span></div>
       <div class="flex justify-between font-bold text-ink border-t border-ink/10 pt-1.5"><span>Tu inversión</span><span>${formatPrice(t.total)}</span></div>
