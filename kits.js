@@ -62,7 +62,7 @@ function kitCardHTML(kit) {
       const r = t.reventa.lineas[l.sku] || {};
       const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
       return `
-      <li class="relative rounded-2xl bg-white border border-ink/10 p-3 flex flex-col">
+      <li><button type="button" data-open-product="${escapeAttr(p.id)}" aria-label="Ver ${escapeAttr(p.nombre)}" class="tap relative w-full h-full text-left rounded-2xl bg-white border border-ink/10 p-3 flex flex-col cursor-pointer hover:border-rose-deep hover:shadow-md transition">
         <span class="absolute top-2 right-2 rounded-full bg-[#5b2a2a] text-cream text-xs font-bold px-2 py-0.5">x${l.qty}</span>
         <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" class="w-full aspect-square object-contain rounded-xl bg-white" />
         <p class="mt-2 text-xs font-bold uppercase tracking-wide text-rose-deep">${escapeHtml(p.marca || "")}</p>
@@ -72,8 +72,9 @@ function kitCardHTML(kit) {
           <p class="inline-block rounded-lg bg-blush/40 px-2 py-0.5 text-base font-bold text-rose-deep tabular-nums">${formatPrice(p.precio)}</p>
           <p class="mt-1 text-ink/70">Te sale en <b class="tabular-nums">${formatPrice(Math.round(r.costo || 0))}</b> con envío</p>
           <p class="text-green-800">Véndelo en <b class="tabular-nums">${formatPrice(r.venta || 0)}</b></p>
+          <p class="mt-1.5 font-semibold text-rose-ink underline">Ver detalles</p>
         </div>
-      </li>`;
+      </button></li>`;
     })
     .join("");
   return `
