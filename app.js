@@ -5070,6 +5070,78 @@ function cartKoreaParcels() {
   );
 }
 
+/* Para revender: cuánto le sale cada pieza ya con envío y en cuánto
+   venderla. El envío de Corea se reparte por peso entre lo que viene de
+   Corea y el nacional entre todo. El precio sugerido queda un poco abajo
+   del de Amazon México (investigado a mano en
+   assets/data/precio-amazon.json, por marca + nombre sin tono); si no hay
+   dato, costo × 1.8. Nunca por debajo de costo × 1.3. */
+let precioAmazon = null;
+function cargarPrecioAmazon() {
+  if (precioAmazon) return;
+  precioAmazon = {};
+  fetch("./assets/data/precio-amazon.json")
+    .then((r) => (r.ok ? r.json() : {}))
+    .then((d) => {
+      precioAmazon = d || {};
+      actualizarReventa();
+    })
+    .catch(() => {});
+}
+
+function claveAmazon(p) {
+  const base = (p.nombre || "").replace(/\s\((#?[^)]*)\)$/, "").replace(/\s*-\s*\d+\s+[A-Za-zÀ-ÿ]+$/, "");
+  return `${p.marca || ""}|${base}`.toLowerCase();
+}
+
+// Sube al siguiente precio que termina en 9 ($359, $1,249).
+const precioEn9 = (x) => Math.ceil((x + 1) / 10) * 10 - 1;
+
+function cartReventa() {
+  const cp = document.getElementById("customer-cp").value.trim();
+  const s = cartShippingEstimate(cp);
+  const items = Object.entries(cart);
+  const kgCorea = items.reduce((t, [, it]) => t + (it.product.enStock ? 0 : (it.product.peso || 0) * it.qty), 0);
+  const kgTodo = cartWeight();
+  const lineas = {};
+  let costoTotal = 0;
+  let ventaTotal = 0;
+  for (const [id, it] of items) {
+    const kg = it.product.peso || 0;
+    const corea = s && !it.product.enStock && kgCorea > 0 ? (s.coreaMXN * kg) / kgCorea : 0;
+    const nacional = s && kgTodo > 0 ? (s.nacionalMXN * kg) / kgTodo : 0;
+    const costo = it.product.precio + corea + nacional;
+    const amazon = (precioAmazon && precioAmazon[claveAmazon(it.product)]) || 0;
+    const venta = Math.max(precioEn9(amazon ? amazon * 0.9 : costo * 1.8), precioEn9(costo * 1.3));
+    lineas[id] = { costo, venta, amazon };
+    costoTotal += costo * it.qty;
+    ventaTotal += venta * it.qty;
+  }
+  return { lineas, costoTotal, ventaTotal, conNacional: !!(s && s.hasNacional) || entregaPersonalActiva() };
+}
+
+function actualizarReventa() {
+  const box = document.getElementById("cart-reventa");
+  if (!box) return;
+  const items = Object.keys(cart);
+  box.classList.toggle("hidden", !items.length);
+  if (!items.length) return;
+  const r = cartReventa();
+  document.querySelectorAll("#cart-items [data-reventa]").forEach((el) => {
+    const l = r.lineas[el.dataset.reventa];
+    if (!l) return;
+    // Con pedidos chicos el envío por pieza pesa mucho y puede quedar arriba
+    // de Amazon: se avisa en vez de esconderlo.
+    const caro = l.amazon && l.venta > l.amazon;
+    el.innerHTML = `💰 Te sale en <b>${formatPrice(Math.round(l.costo))}</b> c/u con envío · 💡 Véndelo en <b>${formatPrice(l.venta)}</b>` +
+      (caro ? `<span class="block text-rose-ink">⚠️ En Amazon está en ~${formatPrice(l.amazon)}. Con un pedido más grande el envío por pieza baja.</span>`
+        : l.amazon ? ` <span class="text-ink/60">(Amazon ~${formatPrice(l.amazon)})</span>` : "");
+  });
+  document.getElementById("cart-reventa-venta").textContent = formatPrice(r.ventaTotal);
+  document.getElementById("cart-reventa-ganancia").textContent = formatPrice(r.ventaTotal - r.costoTotal);
+  document.getElementById("cart-reventa-nota").classList.toggle("hidden", r.conNacional);
+}
+
 /* Total de solo los productos que NO están en stock -- el pedido mínimo
    no aplica a los productos en stock (entrega inmediata). */
 function cartTotalNonStock() {
@@ -5337,6 +5409,7 @@ function renderGrandTotal() {
   document.getElementById("cart-grand-total-label").textContent = m === "card" ? "Total con tarjeta" : m === "transfer" ? "Total por transferencia" : "Total estimado";
   document.getElementById("cart-grand-total").textContent = formatPrice(m === "card" ? t.card : t.transfer);
   renderCouponUI();
+  actualizarReventa();
 }
 
 function renderCart() {
@@ -5407,6 +5480,7 @@ function renderCart() {
           <p class="text-sm font-semibold text-ink truncate">${escapeHtml(it.product.nombre)}</p>
           ${it.product.presentacion ? `<p class="text-xs text-ink/75">${escapeHtml(it.product.presentacion)}</p>` : ""}
           <p class="text-xs text-ink/75">${formatPrice(it.product.precio)} c/u</p>
+          <p class="text-xs text-green-800 leading-snug" data-reventa="${escapeAttr(id)}"></p>
           ${it.product.preorden && !it.product.enStock ? `<p class="text-xs font-semibold text-[#8a5a00]">⏳ Preorden: ~${PREORDEN_DIAS} días en llegar a la bodega de Corea</p>` : ""}
           <div class="mt-1 flex items-center gap-2" role="group" aria-label="Cantidad de ${name}">
             <button type="button" data-dec="${escapeAttr(id)}" aria-label="Quitar una pieza de ${name}" class="tap w-7 h-7 coarse:w-9 coarse:h-9 rounded-full border border-ink/20 text-ink text-base leading-none hover:bg-ink/5">−</button>
@@ -5426,6 +5500,8 @@ function renderCart() {
   wrap.querySelectorAll("[data-inc]").forEach((b) => b.addEventListener("click", () => changeQty(b.dataset.inc, 1)));
   wrap.querySelectorAll("[data-dec]").forEach((b) => b.addEventListener("click", () => changeQty(b.dataset.dec, -1)));
   wrap.querySelectorAll("[data-remove]").forEach((b) => b.addEventListener("click", () => removeFromCart(b.dataset.remove)));
+  cargarPrecioAmazon();
+  actualizarReventa();
   restoreCartFocus(wrap, focusBefore, document.getElementById("cart-drawer"));
 }
 
