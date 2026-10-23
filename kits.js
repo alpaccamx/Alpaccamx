@@ -124,7 +124,7 @@ function kitCardHTML(kit) {
     </div>
     <div class="mt-4 flex flex-wrap items-end justify-between gap-3">
       <div>${precioTxt}</div>
-      <p class="rounded-full bg-rose-deep text-cream font-bold px-4 py-2 text-sm">⭐ Ganancia aprox. ${formatPrice(ganancia)} (${pct}%)</p>
+      <p class="rounded-full bg-green-600 text-white font-bold px-4 py-2 text-sm shadow-sm">⭐ Ganancia aprox. ${formatPrice(ganancia)} (${pct}%)</p>
     </div>
     ${t.faltan ? `<p class="mt-3 text-xs text-rose-ink">${t.faltan === 1 ? "1 producto de este kit no está disponible por ahora" : `${t.faltan} productos de este kit no están disponibles por ahora`}; el kit se agrega sin ${t.faltan === 1 ? "él" : "ellos"}.</p>` : ""}
     <button type="button" data-kit-add="${kit.id}" class="tap mt-4 w-full rounded-full bg-rose-deep text-cream font-semibold py-3 hover:bg-rose-ink transition">🛒 Agregar el kit completo al carrito</button>
