@@ -31,7 +31,28 @@ async function loadKitsData() {
 /* Líneas del kit con el producto del catálogo; las que ya no existen o
    no están disponibles se marcan para avisar. */
 function kitLines(kit) {
-  return kit.items.map(([sku, qty]) => ({ sku, qty, product: products.find((p) => p.id === sku) || null }));
+  return kit.items.map(([sku, qty], i) => {
+    const elegido = kitSel[`${kit.id}:${i}`] || sku;
+    return { sku: elegido, qty, idx: i, base: sku, product: products.find((p) => p.id === elegido) || null };
+  });
+}
+
+/* Tono elegido por línea de kit ("kit:índice" -> SKU). Si no hay, va el
+   de assets/data/kits.json, que es el más popular. */
+const kitSel = {};
+
+const tonoDe = (p) => {
+  const m = /\(([^)]*)\)$/.exec(p.nombre || "");
+  return m ? m[1] : p.nombre;
+};
+
+/* Los otros tonos/versiones del mismo producto (misma marca, nombre y
+   presentación), disponibles. Igual que claveAmazon en app.js. */
+function kitTonos(sku) {
+  const base = products.find((p) => p.id === sku);
+  if (!base) return [];
+  const clave = claveAmazon(base);
+  return products.filter((p) => p.disponible && claveAmazon(p) === clave && (p.presentacion || "") === (base.presentacion || ""));
 }
 
 function kitTotals(kit) {
@@ -61,20 +82,30 @@ function kitCardHTML(kit) {
       const p = l.product;
       const r = t.reventa.lineas[l.sku] || {};
       const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
+      const tonos = kitTonos(l.base);
+      const selector = tonos.length > 1
+        ? `<label class="mt-2 block text-xs text-ink/70">Tono / versión <span class="text-ink/50">(⭐ el más popular)</span>
+            <select data-kit-tono="${escapeAttr(kit.id)}:${l.idx}" class="mt-0.5 w-full rounded-lg border border-ink/20 bg-white px-2 py-1.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-lilac">
+              ${tonos.map((o) => `<option value="${escapeAttr(o.id)}" ${o.id === p.id ? "selected" : ""}>${escapeHtml(tonoDe(o))}${o.precio !== p.precio ? ` (${formatPrice(o.precio)})` : ""}${o.id === l.base ? " ⭐" : ""}</option>`).join("")}
+            </select></label>`
+        : "";
       return `
-      <li><button type="button" data-open-product="${escapeAttr(p.id)}" aria-label="Ver ${escapeAttr(p.nombre)}" class="tap relative w-full h-full text-left rounded-2xl bg-white border border-ink/10 p-3 flex flex-col cursor-pointer hover:border-rose-deep hover:shadow-md transition">
+      <li class="relative rounded-2xl bg-white border border-ink/10 p-3 flex flex-col hover:border-rose-deep hover:shadow-md transition">
         <span class="absolute top-2 right-2 z-10 rounded-full bg-[#5b2a2a] text-cream text-lg sm:text-xl font-extrabold px-3.5 py-1 shadow-md ring-2 ring-white">x${l.qty}</span>
-        <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" class="w-full aspect-square object-contain rounded-xl bg-white" />
-        <p class="mt-2 text-xs font-bold uppercase tracking-wide text-rose-deep">${escapeHtml(p.marca || "")}</p>
-        <p class="text-sm text-ink leading-snug line-clamp-2">${escapeHtml(p.nombre)}</p>
+        <button type="button" data-open-product="${escapeAttr(p.id)}" aria-label="Ver ${escapeAttr(p.nombre)}" class="tap text-left cursor-pointer">
+          <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" class="w-full aspect-square object-contain rounded-xl bg-white" />
+          <p class="mt-2 text-xs font-bold uppercase tracking-wide text-rose-deep">${escapeHtml(p.marca || "")}</p>
+          <p class="text-sm text-ink leading-snug line-clamp-2">${escapeHtml(tonos.length > 1 ? p.nombre.replace(/\s\((#?[^)]*)\)$/, "") : p.nombre)}</p>
+        </button>
+        ${selector}
         <div class="mt-auto pt-2 text-xs leading-snug">
           <p class="text-ink/50 line-through tabular-nums">${formatPrice(r.venta || 0)}</p>
           <p class="inline-block rounded-lg bg-blush/40 px-2 py-0.5 text-base font-bold text-rose-deep tabular-nums">${formatPrice(p.precio)}</p>
           <p class="mt-1 text-ink/70">Te sale en <b class="tabular-nums">${formatPrice(Math.round(r.costo || 0))}</b> con envío</p>
           <p class="text-green-800">Véndelo en <b class="tabular-nums">${formatPrice(r.venta || 0)}</b></p>
-          <p class="mt-1.5 font-semibold text-rose-ink underline">Ver detalles</p>
+          <button type="button" data-open-product="${escapeAttr(p.id)}" class="tap mt-1.5 font-semibold text-rose-ink underline">Ver detalles</button>
         </div>
-      </button></li>`;
+      </li>`;
     })
     .join("");
   return `
@@ -97,7 +128,7 @@ function kitCardHTML(kit) {
     </div>
     ${t.faltan ? `<p class="mt-3 text-xs text-rose-ink">${t.faltan === 1 ? "1 producto de este kit no está disponible por ahora" : `${t.faltan} productos de este kit no están disponibles por ahora`}; el kit se agrega sin ${t.faltan === 1 ? "él" : "ellos"}.</p>` : ""}
     <button type="button" data-kit-add="${kit.id}" class="tap mt-4 w-full rounded-full bg-rose-deep text-cream font-semibold py-3 hover:bg-rose-ink transition">🛒 Agregar el kit completo al carrito</button>
-    <details class="mt-3 group">
+    <details data-kit-details="${kit.id}" class="mt-3 group">
       <summary class="cursor-pointer list-none text-center text-sm font-semibold text-rose-ink underline">Ver los ${t.lines.length} productos del kit</summary>
       <ul class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">${productosHTML}</ul>
     </details>
@@ -123,7 +154,9 @@ async function renderKits() {
     setTimeout(() => { if (currentHomeView === "kits") renderKits(); }, 700);
     return;
   }
+  const abiertos = [...wrap.querySelectorAll("details[data-kit-details][open]")].map((d) => d.dataset.kitDetails);
   wrap.innerHTML = data.kits.filter((k) => k.tipo === kitsTab).map(kitCardHTML).join("") || `<p class="text-center text-ink/70 py-10">Pronto habrá kits aquí.</p>`;
+  abiertos.forEach((id) => { const d = wrap.querySelector(`details[data-kit-details="${id}"]`); if (d) d.open = true; });
 }
 
 function addKitToCart(id) {
@@ -161,6 +194,13 @@ function initKitsSection() {
     }
     const add = e.target.closest("[data-kit-add]");
     if (add) addKitToCart(add.dataset.kitAdd);
+  });
+  sec.addEventListener("change", (e) => {
+    const sel = e.target.closest("[data-kit-tono]");
+    if (!sel) return;
+    kitSel[sel.dataset.kitTono] = sel.value;
+    const y = window.scrollY;
+    renderKits().then(() => window.scrollTo(0, y));
   });
 }
 
