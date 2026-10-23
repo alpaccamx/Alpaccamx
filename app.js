@@ -83,9 +83,9 @@ const CONFIG = {
   // se quitaron siguen en assets/hero por si quieres regresarlos.
   HERO_SLIDES: [
     {
-      imageCard: "assets/hero/hero-anua-oferta-30-card.webp",
-      imageAlt: "Oferta: hasta 30% de descuento en tus productos Anua favoritos -- ampolla 80+, sérum 10+, tónico 77+ y crema 100+.",
-      ctaHref: "?marca=ANUA",
+      imageCard: "assets/hero/hero-kit-emprende-card.webp",
+      imageAlt: "Kit Emprende: arma tu negocio de belleza -- skincare y maquillaje coreano listos para revender, 3 presupuestos desde $6,000.",
+      ctaHref: "?ver=kits",
     },
     {
       imageCard: "assets/hero/hero-anua-100-serum-card.webp",
@@ -126,6 +126,11 @@ const CONFIG = {
       imageCard: "assets/hero/hero-medicube-toner-card.webp",
       imageAlt: "Elige tu tónico Medicube: luminosidad, calma o ilumina. ¿Cuál es para ti?",
       ctaHref: "?q=medicube+toner",
+    },
+    {
+      imageCard: "assets/hero/hero-anua-oferta-30-card.webp",
+      imageAlt: "Oferta: hasta 30% de descuento en tus productos Anua favoritos -- ampolla 80+, sérum 10+, tónico 77+ y crema 100+.",
+      ctaHref: "?marca=ANUA",
     },
     {
       imageCard: "assets/hero/hero-pdrn-card.webp",
