@@ -84,7 +84,7 @@ const CONFIG = {
   HERO_SLIDES: [
     {
       imageCard: "assets/hero/hero-kit-emprende-card.webp",
-      imageAlt: "Kit Emprende: arma tu negocio de belleza -- skincare y maquillaje coreano listos para revender, 3 presupuestos desde $6,000.",
+      imageAlt: "Kit Emprende: arma tu negocio de belleza -- skincare y maquillaje coreano para surtir tu negocio, 3 presupuestos desde $6,000.",
       ctaHref: "?ver=kits",
     },
     {

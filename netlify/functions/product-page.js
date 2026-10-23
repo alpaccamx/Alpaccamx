@@ -115,7 +115,7 @@ async function ogImage(tipo, name) {
 }
 // Sube este número cuando se cambien las imágenes de assets/og: WhatsApp y
 // Facebook guardan la miniatura por URL y si no cambia siguen con la vieja.
-const OG_VERSION = 4;
+const OG_VERSION = 5;
 // Accesos "preocupación de piel" del inicio (CONFIG.SKIN_CONCERNS en app.js).
 const PREOCUPACIONES = {
   acne: ["Acné y granitos", "Skincare coreano para piel con acné: ácido salicílico, árbol de té y centella. Envíos a todo México."],
@@ -191,7 +191,7 @@ async function listingMeta(q) {
   }
   if (q.ver === "kits") {
     const image = await ogImage("ver", "kits");
-    return { title: "Kit Emprende · Kits de skincare y maquillaje coreano para revender · Alpacca", desc: "Kits armados con lo que más se vende, en tres presupuestos. Ve cuánto te sale cada pieza con envío y en cuánto venderla.", url: `${SITE}/?ver=kits`, image, ogSize: Boolean(image) };
+    return { title: "Kit Emprende · Skincare y maquillaje coreano para surtir tu negocio · Alpacca", desc: "Kits armados con lo más vendido de Corea y México, en tres presupuestos. Ve cuánto te sale cada pieza con envío y en cuánto venderla.", url: `${SITE}/?ver=kits`, image, ogSize: Boolean(image) };
   }
   if (q.ver === "personal-shopper") {
     const image = await ogImage("ver", "compras-en-vivo");
