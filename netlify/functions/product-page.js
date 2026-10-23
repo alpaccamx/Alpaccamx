@@ -115,7 +115,7 @@ async function ogImage(tipo, name) {
 }
 // Sube este número cuando se cambien las imágenes de assets/og: WhatsApp y
 // Facebook guardan la miniatura por URL y si no cambia siguen con la vieja.
-const OG_VERSION = 3;
+const OG_VERSION = 4;
 // Accesos "preocupación de piel" del inicio (CONFIG.SKIN_CONCERNS en app.js).
 const PREOCUPACIONES = {
   acne: ["Acné y granitos", "Skincare coreano para piel con acné: ácido salicílico, árbol de té y centella. Envíos a todo México."],
