@@ -5126,9 +5126,15 @@ function calcReventa(items, s) {
     const corea = s && !it.product.enStock && kgCorea > 0 ? (s.coreaMXN * kg) / kgCorea : 0;
     const nacional = s && kgTodo > 0 ? (s.nacionalMXN * kg) / kgTodo : 0;
     const costo = it.product.precio + corea + nacional;
+    // Las cajas se revenden por pieza: costo y precio sugerido por pieza
+    // ("Caja con 40 piezas" -> 40), y el de la caja es por pieza × piezas.
+    const m = /(\d+)\s*piezas?/i.exec(/^caja/i.test(it.product.presentacion || "") ? it.product.presentacion : "");
+    const piezas = m ? Number(m[1]) || 1 : 1;
+    const costoPieza = costo / piezas;
     const amazon = (precioAmazon && precioAmazon[claveAmazon(it.product)]) || 0;
-    const venta = Math.max(precioEn9(amazon ? amazon * 0.9 : costo * 1.8), precioEn9(costo * 1.3));
-    lineas[id] = { costo, venta, amazon };
+    const ventaPieza = Math.max(precioEn9(amazon ? amazon * 0.9 : costoPieza * 1.8), precioEn9(costoPieza * 1.3));
+    const venta = ventaPieza * piezas;
+    lineas[id] = { costo, venta, amazon, piezas, costoPieza, ventaPieza, ganancia: (venta - costo) * it.qty };
     costoTotal += costo * it.qty;
     ventaTotal += venta * it.qty;
   }
@@ -5160,10 +5166,12 @@ function actualizarReventa() {
     if (!l) return;
     // Con pedidos chicos el envío por pieza pesa mucho y puede quedar arriba
     // de Amazon: se avisa en vez de esconderlo.
-    const caro = l.amazon && l.venta > l.amazon;
-    el.innerHTML = `💰 Te sale en <b>${formatPrice(Math.round(l.costo))}</b> c/u con envío · 💡 Véndelo en <b>${formatPrice(l.venta)}</b>` +
+    const caro = l.amazon && l.ventaPieza > l.amazon;
+    const enCaja = l.piezas > 1 ? ` <span class="text-ink/60">(caja de ${l.piezas})</span>` : "";
+    el.innerHTML = `💰 Te sale en <b>${formatPrice(Math.round(l.costoPieza))}</b> por pieza con envío · 💡 Véndela en <b>${formatPrice(l.ventaPieza)}</b> c/u${enCaja}` +
       (caro ? `<span class="block text-rose-ink">⚠️ En Amazon está en ~${formatPrice(l.amazon)}. Con un pedido más grande el envío por pieza baja.</span>`
-        : l.amazon ? ` <span class="text-ink/60">(Amazon ~${formatPrice(l.amazon)})</span>` : "");
+        : l.amazon ? ` <span class="text-ink/60">(Amazon ~${formatPrice(l.amazon)})</span>` : "") +
+      `<span class="block font-semibold">⭐ Ganancia aprox.: ${formatPrice(Math.round(l.ganancia))}</span>`;
   });
   document.getElementById("cart-reventa-venta").textContent = formatPrice(r.ventaTotal);
   document.getElementById("cart-reventa-ganancia").textContent = formatPrice(r.ventaTotal - r.costoTotal);

@@ -99,10 +99,10 @@ function kitCardHTML(kit) {
         </button>
         ${selector}
         <div class="mt-auto pt-2 text-xs leading-snug">
-          <p class="text-ink/50 line-through tabular-nums">${formatPrice(r.venta || 0)}</p>
+          <p class="text-ink/50 line-through tabular-nums">${formatPrice(r.ventaPieza || 0)}</p>
           <p class="inline-block rounded-lg bg-blush/40 px-2 py-0.5 text-base font-bold text-rose-deep tabular-nums">${formatPrice(p.precio)}</p>
-          <p class="mt-1 text-ink/70">Te sale en <b class="tabular-nums">${formatPrice(Math.round(r.costo || 0))}</b> con envío</p>
-          <p class="text-green-800">Véndelo en <b class="tabular-nums">${formatPrice(r.venta || 0)}</b></p>
+          <p class="mt-1 text-ink/70">Te sale en <b class="tabular-nums">${formatPrice(Math.round(r.costoPieza || 0))}</b> con envío</p>
+          <p class="text-green-800">Véndelo en <b class="tabular-nums">${formatPrice(r.ventaPieza || 0)}</b></p>
           <button type="button" data-open-product="${escapeAttr(p.id)}" class="tap mt-1.5 font-semibold text-rose-ink underline">Ver detalles</button>
         </div>
       </li>`;
