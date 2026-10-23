@@ -76,7 +76,7 @@ function kitCardHTML(kit) {
   const tipoTxt = kit.tipo === "skincare" ? "Skincare coreano" : "Maquillaje coreano";
   const precioTxt = kit.envioIncluido
     ? `<p class="text-3xl sm:text-4xl font-extrabold text-rose-deep tabular-nums">${formatPrice(t.total)}</p><p class="text-xs font-semibold text-green-800">✅ Envío a todo México incluido</p>`
-    : `<p class="text-3xl sm:text-4xl font-extrabold text-rose-deep tabular-nums">${formatPrice(t.productos)}</p><p class="text-xs text-ink/70">+ envío (aprox. ${formatPrice(t.envio)})</p>`;
+    : `<p class="text-3xl sm:text-4xl font-extrabold text-rose-deep tabular-nums">${formatPrice(t.productos)}</p><p class="text-xs text-ink/70">+ envío a todo México: ${formatPrice(t.envio)}</p>`;
   const productosHTML = t.lines
     .map((l) => {
       const p = l.product;
@@ -119,7 +119,7 @@ function kitCardHTML(kit) {
     <div class="mt-4 rounded-2xl bg-white border border-ink/10 p-4 space-y-1.5 text-sm tabular-nums">
       <div class="flex justify-between items-baseline rounded-xl bg-green-50 -mx-2 px-2 py-1.5 font-semibold text-green-800"><span>💰 Lo vendes todo en</span><span class="text-base font-extrabold">${formatPrice(t.reventa.ventaTotal)}</span></div>
       <div class="flex justify-between"><span>Productos</span><span>${formatPrice(t.productos)}</span></div>
-      <div class="flex justify-between"><span>Envío ${kit.envioIncluido ? "(incluido)" : "aprox."}</span><span>${formatPrice(t.envio)}</span></div>
+      <div class="flex justify-between"><span>Envío a todo México${kit.envioIncluido ? " (incluido)" : ""}</span><span>${formatPrice(t.envio)}</span></div>
       <div class="flex justify-between font-bold text-ink border-t border-ink/10 pt-1.5"><span>Tu inversión</span><span>${formatPrice(t.total)}</span></div>
     </div>
     <div class="mt-4 flex flex-wrap items-end justify-between gap-3">
