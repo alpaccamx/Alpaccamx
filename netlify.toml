@@ -135,6 +135,11 @@
   to = "/?ver=personal-shopper"
   status = 301
 
+[[redirects]]
+  from = "/kits"
+  to = "/?ver=kits"
+  status = 301
+
 # Link corto del video de compras en vivo (personal shopper en USA).
 [[redirects]]
   from = "/personal-shopper-en-usa"
