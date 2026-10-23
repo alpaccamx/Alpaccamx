@@ -146,16 +146,82 @@ async function quoteRates({ weight, destination }) {
     }));
 }
 
-async function createShipment({ quotationId, rateId, carrierSlug, serviceCode }) {
-  return apiRequest("/api/v1/shipments", {
-    method: "POST",
-    body: JSON.stringify({
-      quotation_id: quotationId,
+/* Remitente: los datos completos (nombre, calle, teléfono, correo) están
+   en ENVIOS_PERROS_ORIGIN; SKYDROPX_ORIGIN solo trae CP/estado/ciudad. */
+function getSender() {
+  let ep = {};
+  try { ep = JSON.parse(process.env.ENVIOS_PERROS_ORIGIN || "{}"); } catch (err) { ep = {}; }
+  return ep;
+}
+
+const recorta = (v, n) => String(v || "").trim().slice(0, n);
+
+/* Crea la guía con la tarifa elegida. Skydropx pide remitente y
+   destinatario completos y, por la carta porte, el código SAT del
+   contenido (53131600: productos de cuidado personal y belleza) y el tipo
+   de empaque (4G: caja de cartón). La guía se genera aparte: se consulta el
+   envío hasta que trae número de guía (o se acaba el tiempo). */
+async function createShipment({ rateId, destination, declaredValue }) {
+  const s = getSender();
+  const o = getOrigin();
+  const d = destination || {};
+  const correo = s.email || "contacto@alpacca.mx";
+  const body = {
+    shipment: {
       rate_id: rateId,
-      carrier_name: carrierSlug,
-      service_level_code: serviceCode,
-    }),
-  });
+      printing_format: "standard",
+      address_from: {
+        name: recorta(s.name || s.company || "Alpacca", 30),
+        company: recorta(s.company || "Alpacca", 30),
+        street1: recorta(`${s.street || ""} ${s.exteriorNumber || ""}${s.interiorNumber ? ` Int ${s.interiorNumber}` : ""}`, 45),
+        phone: recorta(String(s.phone || "").replace(/[^0-9]/g, ""), 10),
+        email: correo,
+        reference: recorta(s.references || o.neighborhood || "Sin referencias", 30),
+      },
+      address_to: {
+        name: recorta(d.name || "Cliente", 30),
+        company: recorta(d.name || "Cliente", 30),
+        street1: recorta(`${d.street || ""} ${d.exteriorNumber || "S/N"}${d.interiorNumber ? ` Int ${d.interiorNumber}` : ""}`, 45),
+        phone: recorta(String(d.phone || "").replace(/[^0-9]/g, ""), 10),
+        email: d.email || correo,
+        reference: recorta(`${d.neighborhood ? `Col. ${d.neighborhood}. ` : ""}${d.references || ""}`, 30) || "Sin referencias",
+      },
+      packages: [
+        {
+          package_number: "1",
+          package_protected: false,
+          declared_value: Math.max(1, Math.round(Number(declaredValue) || 500)),
+          consignment_note: "53131600",
+          package_type: "4G",
+        },
+      ],
+    },
+  };
+  const created = await apiRequest("/api/v1/shipments", { method: "POST", body: JSON.stringify(body) });
+  const id = created && ((created.data && created.data.id) || created.id);
+  let info = shipmentInfo(created);
+  for (let i = 0; id && !info.trackingNumber && i < 4; i++) {
+    await new Promise((r) => setTimeout(r, 1500));
+    info = shipmentInfo(await apiRequest(`/api/v1/shipments/${id}`, { method: "GET" }));
+    if (info.failed) break;
+  }
+  return { id, ...info };
+}
+
+/* Número de guía, etiqueta y estado de un envío de Skydropx (el número y
+   la etiqueta vienen en el paquete, "included"). */
+function shipmentInfo(resp) {
+  const data = (resp && resp.data) || resp || {};
+  const attrs = data.attributes || data;
+  const pkgs = ((resp && resp.included) || []).filter((x) => x && x.attributes);
+  const pkg = pkgs.find((x) => x.attributes.tracking_number) || pkgs[0];
+  const status = String(attrs.workflow_status || "");
+  return {
+    trackingNumber: (pkg && pkg.attributes.tracking_number) || attrs.master_tracking_number || attrs.tracking_number || "",
+    labelUrl: (pkg && pkg.attributes.label_url) || attrs.label_url || "",
+    status,
+    failed: /fail|cancel|error/i.test(status),
+  };
 }
 
 async function getOrderLabels(orderId) {
