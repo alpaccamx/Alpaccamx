@@ -63,7 +63,7 @@ function kitCardHTML(kit) {
       const img = p.imagen || placeholderImg(p.categoria || "Alpacca", "#e9c3be");
       return `
       <li><button type="button" data-open-product="${escapeAttr(p.id)}" aria-label="Ver ${escapeAttr(p.nombre)}" class="tap relative w-full h-full text-left rounded-2xl bg-white border border-ink/10 p-3 flex flex-col cursor-pointer hover:border-rose-deep hover:shadow-md transition">
-        <span class="absolute top-2 right-2 rounded-full bg-[#5b2a2a] text-cream text-xs font-bold px-2 py-0.5">x${l.qty}</span>
+        <span class="absolute top-2 right-2 z-10 rounded-full bg-[#5b2a2a] text-cream text-lg sm:text-xl font-extrabold px-3.5 py-1 shadow-md ring-2 ring-white">x${l.qty}</span>
         <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" class="w-full aspect-square object-contain rounded-xl bg-white" />
         <p class="mt-2 text-xs font-bold uppercase tracking-wide text-rose-deep">${escapeHtml(p.marca || "")}</p>
         <p class="text-sm text-ink leading-snug line-clamp-2">${escapeHtml(p.nombre)}</p>
