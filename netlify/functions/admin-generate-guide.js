@@ -70,6 +70,7 @@ exports.handler = async (event) => {
   try {
     let trackingNumber;
     let carrierLabel;
+    let labelUrl = "";
 
     if (provider === "enviosperros") {
       const { courier, service } = body;
@@ -97,16 +98,11 @@ exports.handler = async (event) => {
       const { quotationId, rateId, carrierSlug, serviceCode } = body;
       if (!quotationId || !rateId) return jsonResponse(400, { error: "Falta la paquetería elegida." });
 
-      const shipment = await skydropx.createShipment({ quotationId, rateId, carrierSlug, serviceCode });
-      // La documentación pública de Skydropx no muestra el formato
-      // completo de esta respuesta -- se registra completa en los logs
-      // para poder ajustar rápido si el número de guía no sale de aquí.
-      console.log("Respuesta de Skydropx al crear el envío:", JSON.stringify(shipment));
-
-      trackingNumber =
-        (shipment && (shipment.tracking_number || shipment.master_tracking_number)) ||
-        (shipment && shipment.data && shipment.data.tracking_number) ||
-        "Revisa el número de guía en tu panel de Skydropx";
+      const shipment = await skydropx.createShipment({ rateId, destination, declaredValue: body.declaredValue });
+      console.log("Skydropx guía:", JSON.stringify(shipment));
+      if (shipment.failed) return jsonResponse(502, { error: `Skydropx no pudo generar la guía (estado: ${shipment.status}). Revisa tu panel de Skydropx.` });
+      trackingNumber = shipment.trackingNumber || `Revisa el número de guía en tu panel de Skydropx (envío ${shipment.id || ""})`.trim();
+      labelUrl = shipment.labelUrl || "";
       carrierLabel = `${carrierSlug || "Skydropx"} ${serviceCode || ""}`.trim();
     } else {
       return jsonResponse(400, { error: "Paquetería no reconocida." });
@@ -163,9 +159,13 @@ exports.handler = async (event) => {
 
     return jsonResponse(200, { order, whatsappSent });
   } catch (err) {
-    console.error(`Error generando guía con ${provider}:`, err.status, err.body || err.message);
-    const detail = err.body && (err.body.message || err.body.error);
-    return jsonResponse(502, { error: detail || "No se pudo generar la guía." });
+    console.error(`Error generando guía con ${provider}:`, err.status, JSON.stringify(err.body || err.message));
+    // Se muestra lo que respondió la paquetería (antes solo salía "No se
+    // pudo generar la guía" y no había forma de saber por qué).
+    const b = err.body;
+    const detail = b && (typeof b === "string" ? b : b.message || b.error || b.errors || b);
+    const texto = typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : err.message;
+    return jsonResponse(502, { error: `No se pudo generar la guía${err.status ? ` (HTTP ${err.status})` : ""}: ${String(texto || "").slice(0, 400)}` });
   }
 };
 
