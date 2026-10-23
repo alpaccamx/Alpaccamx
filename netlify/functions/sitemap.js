@@ -19,6 +19,7 @@ exports.handler = async () => {
     { loc: `${BASE}?ver=direccion-americana`, pri: "0.7" },
     { loc: `${BASE}?ver=como-comprar`, pri: "0.6" },
     { loc: `${BASE}?ver=personal-shopper`, pri: "0.7" },
+    { loc: `${BASE}?ver=kits`, pri: "0.7" },
     { loc: `${BASE}?ver=personal-shopper-en-usa`, pri: "0.6" },
   ];
   try {

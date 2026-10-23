@@ -2047,6 +2047,7 @@ function getMenuItems() {
 
   items.push({ type: "link", label: "🇺🇸 Dirección americana · Compras en EE.UU.", href: "#swm-section" });
   items.push({ type: "link", label: "🛍️ Personal shopper", href: "#ps-section" });
+  items.push({ type: "link", label: "🎁 Kits para emprender", href: "#kits-section" });
 
   if (!document.getElementById("skintype-section").classList.contains("hidden")) {
     items.push({ type: "link", label: "🧴 Test de tipo de piel · Arma tu rutina", href: "#skintype-section" });
@@ -4035,6 +4036,7 @@ const DEFAULT_VIEW_ROUTES = {
   americano: { ver: "americano" },
   swm: { ver: "direccion-americana" },
   ps: { ver: "personal-shopper" },
+  kits: { ver: "kits" },
   piel: { ver: "tipo-de-piel" },
 };
 
@@ -4062,6 +4064,7 @@ function showHomeView(view, route) {
   document.getElementById("americano-section").classList.toggle("hidden", view !== "americano");
   document.getElementById("swm-section").classList.toggle("hidden", view !== "swm");
   document.getElementById("ps-section").classList.toggle("hidden", view !== "ps");
+  document.getElementById("kits-section").classList.toggle("hidden", view !== "kits");
 }
 
 function renderSearchResults(query, { restore = false } = {}) {
@@ -4591,6 +4594,7 @@ function setRouteMeta(r) {
   else if (r.ver === "tipo-de-piel") { title = "Test de tipo de piel: arma tu rutina coreana — Alpacca"; canonical += "?ver=tipo-de-piel"; }
   else if (r.ver === "como-comprar") { title = "Cómo comprar en Alpacca (video de 1 minuto)"; canonical += "?ver=como-comprar"; }
   else if (r.ver === "personal-shopper") { title = r.tipo === "en-tienda" ? "Personal shopper: compras en vivo en tiendas de EE.UU. · Alpacca" : r.tipo === "en-linea" ? "Personal shopper: yo compro en línea por ti en EE.UU. · Alpacca" : "Personal shopper en EE.UU. · Alpacca"; canonical += "?ver=personal-shopper"; }
+  else if (r.ver === "kits") { title = r.tipo === "maquillaje" ? "Kits de maquillaje coreano para emprender · Alpacca" : "Kits de skincare coreano para emprender · Alpacca"; canonical += "?ver=kits"; }
   else if (r.ver === "personal-shopper-en-usa") { title = "Personal shopper en USA: compras en vivo con Mae (video) · Alpacca"; canonical += "?ver=personal-shopper-en-usa"; }
   else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
   document.title = title;
@@ -4629,6 +4633,7 @@ function openRouteView(params, restore) {
   else if (ver === "como-comprar") { showHomeView("home", { ver }); openHowToVideo(); }
   else if (ver === "personal-shopper-en-usa" && typeof openPsSection === "function") { openPsSection("tienda", { restore }); openHowToVideo("envivo"); }
   else if (ver === "personal-shopper" && typeof openPsSection === "function") openPsSection({ "en-linea": "linea", "en-tienda": "tienda" }[params.get("tipo")] || "", { restore });
+  else if (ver === "kits" && typeof openKitsSection === "function") openKitsSection(params.get("tipo") === "maquillaje" ? "maquillaje" : "skincare", { restore });
   else if ((ver === "shopwithmae" || ver === "direccion-americana") && typeof openSwmSection === "function") openSwmSection({ restore });
   else if (ver === "americano" && americanoProducts.length) showHomeView("americano");
   else if (ver === "mis-pedidos") { showHomeView("home"); if (!restore) openAccountPanel(); }
@@ -5099,10 +5104,15 @@ const precioEn9 = (x) => Math.ceil((x + 1) / 10) * 10 - 1;
 
 function cartReventa() {
   const cp = document.getElementById("customer-cp").value.trim();
-  const s = cartShippingEstimate(cp);
-  const items = Object.entries(cart);
+  const r = calcReventa(Object.entries(cart), cartShippingEstimate(cp));
+  return { ...r, conNacional: r.conNacional || entregaPersonalActiva() };
+}
+
+/* items: [[id, { product, qty }]], s: resultado de shippingEstimate (o
+   null). También lo usan los kits (kits.js). */
+function calcReventa(items, s) {
   const kgCorea = items.reduce((t, [, it]) => t + (it.product.enStock ? 0 : (it.product.peso || 0) * it.qty), 0);
-  const kgTodo = cartWeight();
+  const kgTodo = items.reduce((t, [, it]) => t + (it.product.peso || 0) * it.qty, 0);
   const lineas = {};
   let costoTotal = 0;
   let ventaTotal = 0;
@@ -5117,7 +5127,20 @@ function cartReventa() {
     costoTotal += costo * it.qty;
     ventaTotal += venta * it.qty;
   }
-  return { lineas, costoTotal, ventaTotal, conNacional: !!(s && s.hasNacional) || entregaPersonalActiva() };
+  return { lineas, costoTotal, ventaTotal, conNacional: !!(s && s.hasNacional) };
+}
+
+/* Envío nacional más caro de la tabla para ese peso (para los kits con
+   "envío incluido": así alcanza para cualquier estado). */
+function nacionalMaxMXN(pesoKg) {
+  const zonas = new Map();
+  for (const r of shippingNacionalRates) {
+    if (pesoKg > r.pesoKg) continue;
+    const k = `${r.cpMin}-${r.cpMax}`;
+    const prev = zonas.get(k);
+    if (!prev || r.pesoKg < prev.pesoKg) zonas.set(k, r);
+  }
+  return Math.max(0, ...[...zonas.values()].map((r) => r.costoMXN));
 }
 
 function actualizarReventa() {
@@ -7552,6 +7575,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (href === "swm-section" && typeof openSwmSection === "function") {
       e.preventDefault();
       openSwmSection();
+      return;
+    }
+    if (href === "kits-section" && typeof openKitsSection === "function") {
+      e.preventDefault();
+      openKitsSection();
       return;
     }
     if (href === "ps-section" && typeof openPsSection === "function") {
