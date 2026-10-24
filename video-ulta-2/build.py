@@ -271,11 +271,11 @@ def capa_beneficios(t, marcas):
     if c: capa_cta(d, c, 1450 + (1 - c) * 40, cx=W * 0.36, ynota=265) if ALPACA else capa_cta(d, c, 1480 + (1 - c) * 40)
     return O
 
-def escena_final(n):
+def escena_final(n, e):
     filas = []
     for key, marca, nombre, clip, ini, usd, alp, yu, ya in PRODUCTOS:
         filas.append((CORTOS[key], mxn(usd * TC), mxn(alp), round(usd * TC) - alp))
-    marcas = TIEMPOS[-1].get("marcas")  # cuándo dice cada beneficio y "alpacca.mx" (de voz.py)
+    marcas = e.get("marcas")  # cuándo dice cada beneficio y "alpacca.mx" (de voz.py)
     for k in range(n):
         t = k / FPS
         L = Image.new("RGBA", (W, H), (255, 255, 255, 255))
@@ -294,12 +294,59 @@ def escena_final(n):
             paste(L, im, (W * 0.77 - im.width / 2, 1535 - im.height / 2 + bob), min(1.0, ta / 0.15))
         yield L
 
+WA = (37, 211, 102); WA_OSC = (18, 140, 76)
+
+def emoji(ch, size):
+    f = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf", 109)
+    im = Image.new("RGBA", (140, 140)); ImageDraw.Draw(im).text((70, 70), ch, font=f, embedded_color=True, anchor="mm")
+    return im.crop(im.getbbox()).resize((size, size), Image.LANCZOS)
+
+COMUNIDAD = ["Novedades", "Descuentos", "Emprendemos juntas"]
+
+def escena_comunidad(n, e):
+    """invitación al grupo de WhatsApp: cada punto entra cuando la voz lo dice; al final, cómo pedir la invitación"""
+    marcas = e.get("marcas") or [1.0, 1.8, 2.6, 3.6]
+    ojos = emoji("💬", 60); carta = emoji("💌", 64)
+    for k in range(n):
+        t = k / FPS
+        L = Image.new("RGBA", (W, H), (255, 255, 255, 255)); O = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(O)
+        a = ease(t / 0.35); al = int(255 * a)
+        # pastilla verde "Grupo de WhatsApp"
+        f = F("Bold", 44); txt = "Grupo de WhatsApp"; w = f.getlength(txt) + 90
+        d.rounded_rectangle((W / 2 - w / 2 - 20, 230, W / 2 + w / 2 + 20, 330), 50, fill=WA + (al,))
+        d.text((W / 2 + 45, 282), txt, font=f, fill=(255, 255, 255, al), anchor="mm")
+        text_c(d, W / 2, 410 + (1 - a) * 30, "Únete a nuestra\ncomunidad", F("ExtraBold", 92), INK + (al,))
+        for j, s in enumerate(COMUNIDAD):
+            b = ease((t - marcas[j]) / 0.3)
+            if not b: continue
+            y = 680 + j * 175 + (1 - b) * 40; al_ = int(255 * b)
+            d.rounded_rectangle((110, y, W - 110, y + 140), 40, fill=((232, 250, 239) if j % 2 == 0 else (245, 250, 247)) + (al_,))
+            cx, cy = 200, y + 70
+            d.ellipse((cx - 42, cy - 42, cx + 42, cy + 42), fill=WA + (al_,))
+            d.line(((cx - 20, cy + 2), (cx - 5, cy + 17), (cx + 22, cy - 15)), fill=(255, 255, 255, al_), width=10, joint="curve")
+            d.text((280, y + 72), s, font=F("ExtraBold", 56), fill=INK + (al_,), anchor="lm")
+        c = ease((t - marcas[3]) / 0.35)
+        if c:
+            al_ = int(255 * c); y = 1240 + (1 - c) * 40
+            d.rounded_rectangle((80, y, W - 80, y + 290), 48, fill=WA_OSC + (al_,))
+            text_c(d, W / 2, y + 38, "Comenta este video\no mándame mensaje", F("ExtraBold", 56), (255, 255, 255, al_), lh=1.2)
+            text_c(d, W / 2 - 36, y + 200, "y te envío la invitación", F("SemiBold", 44), (220, 255, 230, al_))
+        L.alpha_composite(O)
+        paste(L, ojos, (W / 2 - (F("Bold", 44).getlength("Grupo de WhatsApp") + 90) / 2 + 22, 250), a)
+        if c:
+            paste(L, carta, (W / 2 - 36 + F("SemiBold", 44).getlength("y te envío la invitación") / 2 + 16, 1240 + (1 - c) * 40 + 196), c)
+            if ALPACA:
+                s = 0.5 + 0.5 * back((t - marcas[3]) / 0.4); bob = math.sin((t - marcas[3]) * 3.2) * 8
+                im = ALPACA.resize((int(ALPACA.width * s * 0.95), int(ALPACA.height * s * 0.95)), Image.BILINEAR)
+                paste(L, im, (W / 2 - im.width / 2, 1720 - im.height / 2 + bob), min(1.0, (t - marcas[3]) / 0.15))
+        yield L
+
 # Tiempos: si existe tiempos.json (de voz.py) cada escena dura lo que su frase y las
 # capturas entran cuando se dice cada precio; si no, los tiempos de abajo (sin voz).
 _tj = os.path.join(AQUI, "tiempos.json")
 TIEMPOS = json.load(open(_tj)) if os.path.exists(_tj) else (
-    [{"dur": 3.0}, {"dur": 2.2}] + [{"dur": 4.6, "ulta": 1.7, "alp": 3.15}] * len(PRODUCTOS) + [{"dur": 6.0}])
-assert len(TIEMPOS) == len(PRODUCTOS) + 3
+    [{"dur": 3.0}, {"dur": 2.2}] + [{"dur": 4.6, "ulta": 1.7, "alp": 3.15}] * len(PRODUCTOS) + [{"dur": 6.0}, {"dur": 6.0}])
+assert len(TIEMPOS) == len(PRODUCTOS) + 4  # gancho, intro, productos, beneficios, comunidad
 
 def escenas():
     # cuadros por escena sobre una línea de tiempo acumulada (así no se desfasa del audio)
@@ -312,7 +359,8 @@ def escenas():
     for i, prod in enumerate(PRODUCTOS, 1):
         e = TIEMPOS[i + 1]
         yield from escena_producto(i, prod, n[i + 1], q(e["ulta"]), q(e["alp"]), q(ini[i + 1]))
-    yield from escena_final(n[-1])
+    yield from escena_final(n[-2], TIEMPOS[-2])
+    yield from escena_comunidad(n[-1], TIEMPOS[-1])
 
 if __name__ == "__main__":
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
