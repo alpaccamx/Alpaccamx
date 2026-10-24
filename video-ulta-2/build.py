@@ -24,12 +24,11 @@ FECHA = "24 oct 2026"
 PRODUCTOS = [
     ("probio",    "SKIN1004", "Probio-Cica Intensive\nAmpoule 95 ml",   "IMG_0550", 35.5,  34.00, 309, 775.6, 719.4),
     ("whiterice", "Dr.Melaxin", "Peel Shot White\nRice Ampoule",        "IMG_0547", 9.0,   26.00, 273, 751.6, 667.9),
-    ("oil",       "ANUA", "Heartleaf Pore Control\nCleansing Oil",      "IMG_0547", 28.6,  20.00, 261, 776.6, 691.9),
+    ("powder",    "ANUA", "Rice Enzyme Brightening\nCleansing Powder",  "IMG_0547", 33.4,  18.00, 232, 800.6, 691.9),
     ("rice70",    "ANUA", "Rice 70 Glow\nMilky Toner 250 ml",           "IMG_0547", 26.6,  21.00, 276, 776.6, 691.9),
-    ("azelaic",   "ANUA", "Azelaic Acid 10\nHyaluron Serum",            "IMG_0547", 34.5,  22.00, 281, 800.6, 719.4),
-    ("pdrncream", "ANUA", "PDRN Hyaluronic Acid\n100 Cream",            "IMG_0548", 0.5,   24.00, 303, 800.6, 719.4),
+    ("ceramide",  "ANUA", "7 Rice Ceramide\nBarrier Serum",             "IMG_0547", 37.0,  22.00, 281, 776.6, 691.9),
+    ("pdrnfoam",  "ANUA", "PDRN Hyaluronic Acid\nCleansing Foam",       "IMG_0548", 0.5,   15.00, 188, 800.6, 719.4),
     ("pdrnserum", "ANUA", "PDRN Capsule\n100 Serum",                    "IMG_0548", 14.5,  28.00, 354, 776.6, 691.9),
-    ("glowpad",   "COSRX", "Peptide Collagen\nLifting Glow Pad",        "IMG_0548", 105.5, 26.00, 324, 775.6, 695.4),
     ("hyalcream", "COSRX", "Hyaluronic Acid\nIntensive Cream",          "IMG_0548", 129.5, 25.00, 257, 751.6, 667.9),
     ("b5",        "SKIN1004", "Tea-Trica\nB5 Cream",                    "IMG_0550", 0.2,   25.00, 205, 776.6, 691.9),
 ]
@@ -139,9 +138,9 @@ def marca_precio(L, box, t, color, w=10, pad=16, m=40):
         f = max(0.0, min(1.0, total - k))
         if f: d.line((a, (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)), fill=color, width=w)
 
-CORTOS = {"probio": "SKIN1004 Probio-Cica", "whiterice": "Dr.Melaxin Peel Shot", "oil": "Anua Cleansing Oil",
-          "rice70": "Anua Rice 70 Toner", "azelaic": "Anua Azelaic Serum", "pdrncream": "Anua PDRN Cream",
-          "pdrnserum": "Anua PDRN Serum", "glowpad": "COSRX Glow Pad", "hyalcream": "COSRX Hyaluronic Cream",
+CORTOS = {"probio": "SKIN1004 Probio-Cica", "whiterice": "Dr.Melaxin Peel Shot", "powder": "Anua Rice Enzyme Powder",
+          "rice70": "Anua Rice 70 Toner", "ceramide": "Anua 7 Rice Ceramide", "pdrnfoam": "Anua PDRN Foam",
+          "pdrnserum": "Anua PDRN Serum", "hyalcream": "COSRX Hyaluronic Cream",
           "b5": "SKIN1004 B5 Cream"}
 
 # ---------- escenas ----------
@@ -159,6 +158,8 @@ def escena_texto(fr_gen, lineas, sub=None):
             if b: pill(d, W / 2, y + 96 * 1.12 * (lineas.count("\n") + 1) + 70, sub, F("Bold", 48), PINK + (int(255 * b),), (255, 255, 255, int(255 * b)))
         L.alpha_composite(O); yield L
 
+# segundos del clip en los que sí se ve el producto (si es menos que lo normal, se ve más lento)
+SPAN = {"powder": 2.6, "b5": 2.8}
 SFX = []  # (segundo, sonido): click, glitter y pop (recortados del video de sonidos de TikTok que mandó Mae)
 S = 0.5    # tamaño de las capturas chiquitas
 _sombra = Image.new("L", (1, H)); [_sombra.putpixel((0, y), int(170 * max(0, (y - 900) / (H - 900)) ** 1.3)) for y in range(H)]
@@ -199,7 +200,7 @@ def escena_producto(i, prod, n, nu, na, f0=0):
     xl, xr, y = W * 0.27, W * 0.73, 1000
     SFX.append(((f0 + nu) / FPS, "click")); SFX.append(((f0 + na) / FPS, "glitter"))
     SFX.append(((f0 + na) / FPS + 0.5, "pop"))  # cuando sale el "Ahorras $..."
-    vel = min(1.0, 4.8 / (n / FPS))  # en cámara lenta para que el clip no se salga del producto
+    vel = min(1.0, SPAN.get(key, 4.8) / (n / FPS))  # en cámara lenta para que el clip no se salga del producto
     for k, fr in enumerate(frames(clip, ini, n, speed=vel)):
         t = k / FPS
         L = fr.copy(); a = ease(t / 0.3); paste(L, tit, (0, (1 - a) * -40), a)

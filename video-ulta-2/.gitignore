@@ -1,2 +1,4 @@
 voz/*.wav
 voz/lista.txt
+voz/frase*.mp3
+voz/frase*.json

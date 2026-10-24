@@ -1,7 +1,7 @@
 """Voz de Mae para "Ulta vs Alpacca, parte 2": genera las frases de narracion.json con
 ElevenLabs (con tiempos por letra), las junta con una pausa y escribe
 tiempos.json para que build.py ponga cada escena y cada captura cuando se dice."""
-import base64, json, os, subprocess, urllib.request
+import base64, hashlib, json, os, shutil, subprocess, urllib.request
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 VOZ_DIR = os.path.join(AQUI, "voz")
@@ -12,17 +12,23 @@ VEL = 1.1  # la voz se acelera 10% (atempo no cambia el tono ni la entonación)
 SR = 44100
 
 
+def clave(texto):  # las frases ya generadas se guardan por su texto: solo se piden a ElevenLabs las nuevas
+    return hashlib.sha1(f"{MODELO}|{ESTABILIDAD}|{texto}".encode()).hexdigest()[:12]
+
+
 def tts(texto, n):
-    j = os.path.join(VOZ_DIR, f"frase{n:02d}.json")
-    if not os.path.exists(j):
+    os.makedirs(os.path.join(VOZ_DIR, "cache"), exist_ok=True)
+    k = os.path.join(VOZ_DIR, "cache", clave(texto))
+    if not os.path.exists(k + ".json"):
         req = urllib.request.Request(
             f"https://api.elevenlabs.io/v1/text-to-speech/{VOZ}/with-timestamps?output_format=mp3_44100_128",
             data=json.dumps({"text": texto, "model_id": MODELO, "voice_settings": {"stability": ESTABILIDAD}}).encode(),
             headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req) as r: d = json.load(r)
-        open(os.path.join(VOZ_DIR, f"frase{n:02d}.mp3"), "wb").write(base64.b64decode(d.pop("audio_base64")))
-        json.dump(d, open(j, "w"), ensure_ascii=False)
-    return json.load(open(j))
+        open(k + ".mp3", "wb").write(base64.b64decode(d.pop("audio_base64")))
+        json.dump(d, open(k + ".json", "w"), ensure_ascii=False)
+    shutil.copy(k + ".mp3", os.path.join(VOZ_DIR, f"frase{n:02d}.mp3"))
+    return json.load(open(k + ".json"))
 
 
 def cortar(n, ini, fin):  # solo la parte con voz, en wav

@@ -22,15 +22,14 @@ FECHA = "24 oct 2026"
 
 # nombre, clip, inicio (s), precio Ulta USD, precio Alpacca MXN, caja del precio en cada captura (px css: y)
 PRODUCTOS = [
-    ("foam",     "ANUA", "Heartleaf Pore Deep\nCleansing Foam",  "IMG_0547", 31.2,  14.00, 187, 800.6, 719.4),
+    ("foam",     "ANUA", "Heartleaf Pore Deep\nCleansing Foam",  "IMG_0548", 53.0,  14.00, 187, 800.6, 719.4),
     ("niacin",   "ANUA", "Niacinamide 10\nTXA 4 Serum",          "IMG_0547", 51.6,  22.00, 281, 800.6, 691.9),
     ("snail92",  "COSRX", "Advanced Snail 92\nAll In One Cream", "IMG_0548", 120.0, 21.90, 251, 751.6, 667.9),
     ("snail96",  "COSRX", "Advanced Snail 96\nMucin Essence",    "IMG_0547", 96.0,  20.90, 224, 751.6, 751.9),
     ("peptide",  "COSRX", "The 6 Peptide\nSkin Booster",         "IMG_0548", 74.5,  21.00, 301, 775.6, 667.9),
     ("eyepatch", "COSRX", "Peptide Collagen\nHydrogel Eye Patch", "IMG_0547", 125.0, 23.00, 288, 751.6, 667.9),
-    ("fixer",    "TIRTIR", "Mask Fit\nMake Up Fixer",            "IMG_0549", 1.0,   15.00, 173, 776.6, 751.9),
     ("toner",    "TIRTIR", "Milk Skin Toner\n150 ml",            "IMG_0548", 161.0, 25.00, 301, 751.6, 751.9),
-    ("althea",   "Dr. Althea", "345 Relief Cream",               "IMG_0546", 0.0,   27.00, 324, 751.6, 691.9),
+    ("althea147", "Dr. Althea", "147 Barrier Cream",             "IMG_0545", 41.3,  27.00, 324, 800.6, 691.9),
 ]
 
 _fc = {}
@@ -140,7 +139,7 @@ def marca_precio(L, box, t, color, w=10, pad=16, m=40):
 
 CORTOS = {"foam": "Anua Heartleaf Foam", "niacin": "Anua Niacinamide Serum", "snail92": "COSRX Snail 92 Cream",
           "snail96": "COSRX Snail 96 Essence", "peptide": "COSRX 6 Peptide Booster", "eyepatch": "COSRX Eye Patch",
-          "fixer": "TIRTIR Make Up Fixer", "toner": "TIRTIR Milk Toner", "althea": "Dr. Althea 345 Cream"}
+          "toner": "TIRTIR Milk Toner", "althea147": "Dr. Althea 147 Cream"}
 
 # ---------- escenas ----------
 def escena_texto(fr_gen, lineas, sub=None):
