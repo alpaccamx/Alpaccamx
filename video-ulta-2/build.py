@@ -219,7 +219,7 @@ def escena_producto(i, prod, n, nu, na, f0=0):
                 paste(L, bd, (W / 2 - bd.width / 2, 1815 - bd.height / 2), min(1.0, tb / 0.1))
         yield L
 
-ALPACA = Image.open(os.path.join(os.path.dirname(AQUI), "assets", "alpaca-cuenta.webp")).convert("RGBA").resize((300, 300), Image.LANCZOS)
+ALPACA = None  # sin alpaca en la parte 2 (Mae no quiso la del regalo)
 BENEFICIOS = [("Pagas en pesos", "transferencia o tarjeta"), ("Te llega a tu casa", "envíos a todo México"),
               ("Te atiendo yo", "por WhatsApp, en todo tu pedido"), ("¿Lo revendes?", "por caja te sale aún más barato")]
 
@@ -267,7 +267,7 @@ def capa_beneficios(t, marcas):
         d.text((245, y + 62), tit, font=F("ExtraBold", 54), fill=INK + (al_,), anchor="lm")
         d.text((245, y + 122), sub, font=F("Medium", 38), fill=GREY + (al_,), anchor="lm")
     c = ease((t - marcas[-1]) / 0.35)
-    if c: capa_cta(d, c, 1450 + (1 - c) * 40, cx=W * 0.36, ynota=265)
+    if c: capa_cta(d, c, 1450 + (1 - c) * 40, cx=W * 0.36, ynota=265) if ALPACA else capa_cta(d, c, 1480 + (1 - c) * 40)
     return O
 
 def escena_final(n):
@@ -287,7 +287,7 @@ def escena_final(n):
         if t > cambio:
             L.alpha_composite(capa_beneficios(t - cambio, [m - cambio for m in marcas]))
         ta = t - marcas[-1]  # la alpaca entra con "alpacca.mx" y se mece
-        if ta > 0:
+        if ta > 0 and ALPACA:
             s = 0.5 + 0.5 * back(ta / 0.4); bob = math.sin(ta * 3.2) * 8
             im = ALPACA.resize((int(ALPACA.width * s), int(ALPACA.height * s)), Image.BILINEAR)
             paste(L, im, (W * 0.77 - im.width / 2, 1535 - im.height / 2 + bob), min(1.0, ta / 0.15))
