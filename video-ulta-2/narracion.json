@@ -1,14 +1,16 @@
 [
  {
-  "texto": "[excited] Parte dos: más precios de Ulta contra mi tienda."
+  "texto": "[excited] Parte dos. Esta ampolleta en Ulta cuesta seiscientos treinta y nueve pesos. [confident] Conmigo, trescientos nueve. [playful] Y me faltaron un montón. ¡Vamos!",
+  "marcas": [
+   "seiscientos",
+   "Conmigo",
+   "Y me faltaron"
+  ]
  },
  {
-  "texto": "[playful] Me faltaron un montón de productos coreanos. [excited] ¡Vamos!"
- },
- {
-  "texto": "Ampolleta Probio-Cica de Skin mil cuatro: en Ulta, seiscientos treinta y nueve pesos. [confident] Conmigo, trescientos nueve.",
-  "ulta_en": "en Ulta",
-  "alp_en": "Conmigo"
+  "texto": "Crema de ácido hialurónico de cos ar ex: cuatrocientos setenta, [confident] contra doscientos cincuenta y siete.",
+  "ulta_en": "cuatrocientos setenta",
+  "alp_en": "contra"
  },
  {
   "texto": "Peel Shot de arroz blanco de Doctor Melaxin: en Ulta, cuatrocientos ochenta y nueve. [confident] Conmigo, doscientos setenta y tres.",
@@ -16,13 +18,8 @@
   "alp_en": "Conmigo"
  },
  {
-  "texto": "Polvo limpiador de arroz de Anua: trescientos treinta y ocho, [confident] contra doscientos treinta y dos.",
-  "ulta_en": "trescientos treinta y ocho",
-  "alp_en": "contra"
- },
- {
-  "texto": "Tónico Rice setenta de Anua: trescientos noventa y cinco, [confident] contra doscientos setenta y seis.",
-  "ulta_en": "trescientos noventa y cinco",
+  "texto": "Sérum PDRN de Anua: quinientos veintiséis, [confident] contra trescientos cincuenta y cuatro.",
+  "ulta_en": "quinientos veintiséis",
   "alp_en": "contra"
  },
  {
@@ -31,33 +28,23 @@
   "alp_en": "contra"
  },
  {
-  "texto": "Limpiador PDRN de Anua: doscientos ochenta y dos, [confident] contra ciento ochenta y ocho.",
-  "ulta_en": "doscientos ochenta y dos,",
+  "texto": "Tónico Rice setenta de Anua: trescientos noventa y cinco, [confident] contra doscientos setenta y seis.",
+  "ulta_en": "trescientos noventa y cinco",
   "alp_en": "contra"
  },
  {
-  "texto": "Sérum PDRN de Anua: quinientos veintiséis, [confident] contra trescientos cincuenta y cuatro.",
-  "ulta_en": "quinientos veintiséis",
-  "alp_en": "contra"
- },
- {
-  "texto": "Crema de ácido hialurónico de cos ar ex: cuatrocientos setenta, [confident] contra doscientos cincuenta y siete.",
-  "ulta_en": "cuatrocientos setenta",
-  "alp_en": "contra"
- },
- {
-  "texto": "Y la última: crema B cinco de Skin mil cuatro. Cuatrocientos setenta, [confident] contra doscientos cinco.",
+  "texto": "Y la que más me sorprendió: crema B cinco de Skin mil cuatro. Cuatrocientos setenta, [confident] contra doscientos cinco.",
   "ulta_en": "Cuatrocientos setenta",
   "alp_en": "contra"
  },
  {
-  "texto": "[warm] Es el mismo producto coreano, original, pero en pesos y sin cruzar la frontera. Pagas con transferencia o tarjeta, te llega a tu casa en todo México, y yo te acompaño por WhatsApp en todo tu pedido. [excited] Y si lo revendes, por caja te sale todavía más barato. [warm] Entra a alpacca punto eme equis y arma tu pedido.",
+  "texto": "[warm] Es el mismo producto coreano, original, pero en pesos: pagas con transferencia o tarjeta y te llega a tu casa en todo México. [excited] Y si lo revendes, por caja te sale más barato. [warm] Pide en alpacca punto eme equis.",
   "marcas": [
-   "Pagas",
+   "pagas",
    "te llega",
-   "WhatsApp",
+   "México",
    "revendes",
-   "Entra"
+   "Pide"
   ]
  },
  {

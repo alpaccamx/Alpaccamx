@@ -20,16 +20,15 @@ BLUSH = (253, 236, 242); ULTA = (243, 113, 33); GREEN = (22, 150, 80)
 TC = 18.8   # MXN por USD, el que eligió Mae
 FECHA = "24 oct 2026"
 
+# el del gancho (primer segundo): también entra en la tabla final
+GANCHO = ("probio",    "SKIN1004", "Probio-Cica Intensive\nAmpoule 95 ml",   "IMG_0550", 35.5,  34.00, 309, 775.6, 719.4)
 # nombre, clip, inicio (s), precio Ulta USD, precio Alpacca MXN, caja del precio en cada captura (px css: y)
 PRODUCTOS = [
-    ("probio",    "SKIN1004", "Probio-Cica Intensive\nAmpoule 95 ml",   "IMG_0550", 35.5,  34.00, 309, 775.6, 719.4),
-    ("whiterice", "Dr.Melaxin", "Peel Shot White\nRice Ampoule",        "IMG_0547", 9.0,   26.00, 273, 751.6, 667.9),
-    ("powder",    "ANUA", "Rice Enzyme Brightening\nCleansing Powder",  "IMG_0547", 33.4,  18.00, 232, 800.6, 691.9),
-    ("rice70",    "ANUA", "Rice 70 Glow\nMilky Toner 250 ml",           "IMG_0547", 26.6,  21.00, 276, 776.6, 691.9),
-    ("ceramide",  "ANUA", "7 Rice Ceramide\nBarrier Serum",             "IMG_0547", 37.0,  22.00, 281, 776.6, 691.9),
-    ("pdrnfoam",  "ANUA", "PDRN Hyaluronic Acid\nCleansing Foam",       "IMG_0548", 0.5,   15.00, 188, 800.6, 719.4),
-    ("pdrnserum", "ANUA", "PDRN Capsule\n100 Serum",                    "IMG_0548", 14.5,  28.00, 354, 776.6, 691.9),
     ("hyalcream", "COSRX", "Hyaluronic Acid\nIntensive Cream",          "IMG_0548", 129.5, 25.00, 257, 751.6, 667.9),
+    ("whiterice", "Dr.Melaxin", "Peel Shot White\nRice Ampoule",        "IMG_0547", 9.0,   26.00, 273, 751.6, 667.9),
+    ("pdrnserum", "ANUA", "PDRN Capsule\n100 Serum",                    "IMG_0548", 14.5,  28.00, 354, 776.6, 691.9),
+    ("ceramide",  "ANUA", "7 Rice Ceramide\nBarrier Serum",             "IMG_0547", 37.0,  22.00, 281, 776.6, 691.9),
+    ("rice70",    "ANUA", "Rice 70 Glow\nMilky Toner 250 ml",           "IMG_0547", 26.6,  21.00, 276, 776.6, 691.9),
     ("b5",        "SKIN1004", "Tea-Trica\nB5 Cream",                    "IMG_0550", 0.2,   25.00, 205, 776.6, 691.9),
 ]
 
@@ -273,7 +272,7 @@ def capa_beneficios(t, marcas):
 
 def escena_final(n, e):
     filas = []
-    for key, marca, nombre, clip, ini, usd, alp, yu, ya in PRODUCTOS:
+    for key, marca, nombre, clip, ini, usd, alp, yu, ya in [GANCHO] + PRODUCTOS:
         filas.append((CORTOS[key], mxn(usd * TC), mxn(alp), round(usd * TC) - alp))
     marcas = e.get("marcas")  # cuándo dice cada beneficio y "alpacca.mx" (de voz.py)
     for k in range(n):
@@ -298,10 +297,56 @@ WA = (37, 211, 102); WA_OSC = (18, 140, 76)
 
 def emoji(ch, size):
     f = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf", 109)
-    im = Image.new("RGBA", (140, 140)); ImageDraw.Draw(im).text((70, 70), ch, font=f, embedded_color=True, anchor="mm")
-    return im.crop(im.getbbox()).resize((size, size), Image.LANCZOS)
+    im = Image.new("RGBA", (220, 220)); ImageDraw.Draw(im).text((110, 110), ch, font=f, embedded_color=True, anchor="mm")
+    im = im.crop(im.getbbox())  # se escala por la altura, sin deformar
+    return im.resize((max(1, round(im.width * size / im.height)), size), Image.LANCZOS)
 
 COMUNIDAD = ["Novedades", "Descuentos", "Emprendemos juntas"]
+
+def precio_pill(L, cx, cy, etiqueta, monto, fondo, tachado=False, a=1.0):
+    fe, fm = F("Bold", 34), F("ExtraBold", 84)
+    w = max(fe.getlength(etiqueta), fm.getlength(monto)) + 80
+    P = Image.new("RGBA", (int(w) + 20, 190)); d = ImageDraw.Draw(P); cxp = P.width / 2
+    d.rounded_rectangle((10, 10, P.width - 10, 180), 40, fill=fondo)
+    d.text((cxp, 53), etiqueta, font=fe, fill=(255, 255, 255), anchor="mm")
+    d.text((cxp, 117), monto, font=fm, fill=(255, 255, 255), anchor="mm")
+    if tachado:
+        mw = fm.getlength(monto); d.line((cxp - mw / 2 - 8, 125, cxp + mw / 2 + 8, 105), fill=(255, 255, 255), width=8)
+    s = 0.6 + 0.4 * back(a / 1.0) if a < 1 else 1.0
+    if s != 1: P = P.resize((int(P.width * s), int(P.height * s)), Image.BILINEAR)
+    paste(L, P, (cx - P.width / 2, cy - P.height / 2), min(1.0, a * 3))
+
+def escena_gancho(n, e, f0=0):
+    """primer segundo: el producto más impactante con su precio en Ulta (tachado) contra el de Alpacca, como la portada"""
+    key, marca, nombre, clip, ini, usd, alp, yu, ya = GANCHO
+    m = e.get("marcas") or [0.4, 1.4, 2.6]
+    SFX.append(((f0 + round(m[0] * FPS)) / FPS, "click")); SFX.append(((f0 + round(m[1] * FPS)) / FPS, "glitter"))
+    SFX.append(((f0 + round(m[1] * FPS)) / FPS + 0.5, "pop"))
+    ahorro = round(usd * TC) - alp; badge = etiqueta(f"Ahorras {mxn(ahorro)}", GREEN, F("ExtraBold", 54))
+    vel = min(1.0, 3.0 / (n / FPS))
+    titulo = 'Ulta vs\nmi tienda'; sub = 'Parte 2'
+    for k, fr in enumerate(frames(clip, ini, n, speed=vel)):
+        t = k / FPS
+        L = fr.copy(); L.alpha_composite(SOMBRA)
+        O = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(O)
+        y0 = 300
+        if sub:
+            f = F("ExtraBold", 54); w = f.getlength(sub)
+            d.rounded_rectangle((W / 2 - w / 2 - 40, 250, W / 2 + w / 2 + 40, 340), 45, fill=PINK)
+            d.text((W / 2, 297), sub, font=f, fill=(255, 255, 255), anchor="mm"); y0 = 380
+        text_c(d, W / 2, y0, titulo, F("ExtraBold", 104), (255, 255, 255), stroke=7, sfill=(0, 0, 0))
+        text_c(d, 230, 1238, marca + " " + nombre.split(chr(10))[0].split(" ")[0], F("Bold", 42), (255, 255, 255), stroke=4, sfill=(0, 0, 0))
+        L.alpha_composite(O)
+        if t >= m[0]: precio_pill(L, 230, 1380, "En Ulta", f"{mxn(usd * TC)}", ULTA, True, (t - m[0]) / 0.35)
+        if t >= m[1]: precio_pill(L, 230, 1580, "Conmigo", f"{mxn(alp)}", PINK, False, (t - m[1]) / 0.35)
+        if t >= m[1] + 0.5:
+            tb = t - m[1] - 0.5; s = 0.6 + 0.4 * back(tb / 0.3); bd = badge.resize((int(badge.width * s), int(badge.height * s)))
+            paste(L, bd, (W / 2 - bd.width / 2, 1790 - bd.height / 2), min(1.0, tb / 0.1))
+        if ALPACA:
+            s = 0.5 + 0.5 * back(t / 0.45); bob = math.sin(t * 3.2) * 8
+            im = ALPACA.resize((int(ALPACA.width * s * 1.2), int(ALPACA.height * s * 1.2)), Image.BILINEAR)
+            paste(L, im, (790 - im.width / 2, 1470 - im.height / 2 + bob), min(1.0, t / 0.15))
+        yield L
 
 def escena_comunidad(n, e):
     """invitación al grupo de WhatsApp: cada punto entra cuando la voz lo dice; al final, cómo pedir la invitación"""
@@ -345,8 +390,8 @@ def escena_comunidad(n, e):
 # capturas entran cuando se dice cada precio; si no, los tiempos de abajo (sin voz).
 _tj = os.path.join(AQUI, "tiempos.json")
 TIEMPOS = json.load(open(_tj)) if os.path.exists(_tj) else (
-    [{"dur": 3.0}, {"dur": 2.2}] + [{"dur": 4.6, "ulta": 1.7, "alp": 3.15}] * len(PRODUCTOS) + [{"dur": 6.0}, {"dur": 6.0}])
-assert len(TIEMPOS) == len(PRODUCTOS) + 4  # gancho, intro, productos, beneficios, comunidad
+    [{"dur": 4.0}] + [{"dur": 4.6, "ulta": 1.7, "alp": 3.15}] * len(PRODUCTOS) + [{"dur": 6.0}, {"dur": 6.0}])
+assert len(TIEMPOS) == len(PRODUCTOS) + 3  # gancho, productos, beneficios, comunidad
 
 def escenas():
     # cuadros por escena sobre una línea de tiempo acumulada (así no se desfasa del audio)
@@ -354,11 +399,10 @@ def escenas():
     for e in TIEMPOS: ini.append(ini[-1] + e["dur"])
     q = lambda s: int(round(s * FPS))
     n = [q(ini[j + 1]) - q(ini[j]) for j in range(len(TIEMPOS))]
-    yield from escena_texto(frames("IMG_0552", 0.0, n[0], speed=1.5), "Ulta vs\nmi tienda", "Parte 2")
-    yield from escena_texto(frames("IMG_0543", 3.0, n[1]), "Me faltaron\nun montón", "más K-Beauty")
+    yield from escena_gancho(n[0], TIEMPOS[0], 0)
     for i, prod in enumerate(PRODUCTOS, 1):
-        e = TIEMPOS[i + 1]
-        yield from escena_producto(i, prod, n[i + 1], q(e["ulta"]), q(e["alp"]), q(ini[i + 1]))
+        e = TIEMPOS[i]
+        yield from escena_producto(i, prod, n[i], q(e["ulta"]), q(e["alp"]), q(ini[i]))
     yield from escena_final(n[-2], TIEMPOS[-2])
     yield from escena_comunidad(n[-1], TIEMPOS[-1])
 

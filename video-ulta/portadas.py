@@ -17,8 +17,9 @@ def F(n, s): return ImageFont.truetype(f"{FONTS}/Poppins-{n}.ttf", s)
 
 def emoji(ch, size):
     f = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf", 109)
-    im = Image.new("RGBA", (140, 140)); ImageDraw.Draw(im).text((70, 70), ch, font=f, embedded_color=True, anchor="mm")
-    return im.crop(im.getbbox()).resize((size, size), Image.LANCZOS)
+    im = Image.new("RGBA", (220, 220)); ImageDraw.Draw(im).text((110, 110), ch, font=f, embedded_color=True, anchor="mm")
+    im = im.crop(im.getbbox())  # se escala por la altura, sin deformar
+    return im.resize((max(1, round(im.width * size / im.height)), size), Image.LANCZOS)
 
 
 def texto(L, xy, s, font, fill=(255, 255, 255), stroke=6, anchor="mm"):
