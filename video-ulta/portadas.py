@@ -15,9 +15,16 @@ INK = (17, 17, 17); PINK = (238, 108, 146); DEEP = (196, 70, 110); ULTA = (243, 
 def F(n, s): return ImageFont.truetype(f"{FONTS}/Poppins-{n}.ttf", s)
 
 
+RAIZ_EMOJI = os.path.join(AQUI, "emoji")
+
 def emoji(ch, size):
-    f = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf", 109)
-    im = Image.new("RGBA", (220, 220)); ImageDraw.Draw(im).text((110, 110), ch, font=f, embedded_color=True, anchor="mm")
+    """emoji con el diseño de iPhone (PNG en video-ulta/emoji); si falta, el de Noto"""
+    png = os.path.join(RAIZ_EMOJI, "%x.png" % ord(ch))
+    if os.path.exists(png):
+        im = Image.open(png).convert("RGBA")
+    else:
+        f = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf", 109)
+        im = Image.new("RGBA", (220, 220)); ImageDraw.Draw(im).text((110, 110), ch, font=f, embedded_color=True, anchor="mm")
     im = im.crop(im.getbbox())  # se escala por la altura, sin deformar
     return im.resize((max(1, round(im.width * size / im.height)), size), Image.LANCZOS)
 

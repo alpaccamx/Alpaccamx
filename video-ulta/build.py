@@ -192,12 +192,13 @@ def banner():
     """etiqueta verde de WhatsApp que se queda arriba a media escena"""
     if not _banner:
         f1, f2 = F("ExtraBold", 46), F("SemiBold", 34)
-        w = int(max(f1.getlength("Comenta COMUNIDAD") + 80, f2.getlength("y te invito a mi grupo de WhatsApp")) + 90)
+        l1, l2 = "Comenta “Me quiero unir”", "y te mando la invitación a mi grupo de WhatsApp"
+        w = int(max(f1.getlength(l1) + 80, f2.getlength(l2)) + 90)
         B = Image.new("RGBA", (w, 150)); d = ImageDraw.Draw(B)
         d.rounded_rectangle((0, 0, w - 1, 149), 40, fill=(18, 140, 76, 240))
-        e = emoji("💬", 54); B.alpha_composite(e, (int(w / 2 - f1.getlength("Comenta COMUNIDAD") / 2 - e.width / 2 - 10), 16))
-        d.text((w / 2 + e.width / 2, 48), "Comenta COMUNIDAD", font=f1, fill=(255, 255, 255), anchor="mm")
-        d.text((w / 2, 110), "y te invito a mi grupo de WhatsApp", font=f2, fill=(220, 255, 230), anchor="mm")
+        e = emoji("💬", 54); B.alpha_composite(e, (int(w / 2 - f1.getlength(l1) / 2 - e.width / 2 - 10), 16))
+        d.text((w / 2 + e.width / 2, 48), l1, font=f1, fill=(255, 255, 255), anchor="mm")
+        d.text((w / 2, 110), l2, font=f2, fill=(220, 255, 230), anchor="mm")
         _banner.append(B)
     return _banner[0]
 
@@ -321,9 +322,16 @@ def escena_final(n, e):
 
 WA = (37, 211, 102); WA_OSC = (18, 140, 76)
 
+RAIZ_EMOJI = os.path.join(os.path.dirname(AQUI), "video-ulta", "emoji")
+
 def emoji(ch, size):
-    f = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf", 109)
-    im = Image.new("RGBA", (220, 220)); ImageDraw.Draw(im).text((110, 110), ch, font=f, embedded_color=True, anchor="mm")
+    """emoji con el diseño de iPhone (PNG en video-ulta/emoji); si falta, el de Noto"""
+    png = os.path.join(RAIZ_EMOJI, "%x.png" % ord(ch))
+    if os.path.exists(png):
+        im = Image.open(png).convert("RGBA")
+    else:
+        f = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf", 109)
+        im = Image.new("RGBA", (220, 220)); ImageDraw.Draw(im).text((110, 110), ch, font=f, embedded_color=True, anchor="mm")
     im = im.crop(im.getbbox())  # se escala por la altura, sin deformar
     return im.resize((max(1, round(im.width * size / im.height)), size), Image.LANCZOS)
 
@@ -400,7 +408,7 @@ def escena_comunidad(n, e):
         if c:
             al_ = int(255 * c); y = 1240 + (1 - c) * 40
             d.rounded_rectangle((80, y, W - 80, y + 290), 48, fill=WA_OSC + (al_,))
-            text_c(d, W / 2, y + 38, "Comenta este video\no mándame mensaje", F("ExtraBold", 56), (255, 255, 255, al_), lh=1.2)
+            text_c(d, W / 2, y + 38, "Comenta “Me quiero unir”\no mándame mensaje", F("ExtraBold", 56), (255, 255, 255, al_), lh=1.2)
             text_c(d, W / 2 - 36, y + 200, "y te envío la invitación", F("SemiBold", 44), (220, 255, 230, al_))
         L.alpha_composite(O)
         paste(L, ojos, (W / 2 - (F("Bold", 44).getlength("Grupo de WhatsApp") + 90) / 2 + 22, 250), a)
