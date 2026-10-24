@@ -2733,7 +2733,7 @@ function renderProductSheet(p) {
           ? `✅ <b>Stock en México</b>: entrega inmediata y sin pedido mínimo. ${stockBadgeHTML(p)}`
           : `🇰🇷 Se pide a Corea. Cuenta para el pedido mínimo de ${formatPrice(CONFIG.MIN_ORDER_MXN || 0)}.`}</p>
         ${p.preorden && !p.enStock ? `<p class="rounded-xl bg-[#fff6e5] border border-[#e8c67a] px-3 py-2 text-sm text-[#6b4700]">⏳ <b>${PREORDEN_AVISO.replace(/^Preorden:/, "Preorden:</b>")}</p>` : ""}
-        <div class="flex flex-col gap-2 sticky bottom-0 z-10 -mx-4 px-4 pt-2 pb-3 bg-cream/95 backdrop-blur border-t border-ink/10 sm:static sm:mx-0 sm:px-0 sm:pt-0 sm:pb-0 sm:bg-transparent sm:border-0">
+        <div data-sheet-actions class="flex flex-col gap-2">
           ${out
             ? `<button type="button" data-restock="${escapeAttr(p.id)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
                 class="h-12 rounded-full border border-rose/60 text-rose-ink font-semibold hover:bg-rose/10 transition">🔔 Avísame cuando vuelva</button>`
@@ -2755,8 +2755,40 @@ function renderProductSheet(p) {
           ${p.marca ? `<button type="button" data-sheet-brand="${escapeAttr(p.marca)}" class="self-start text-sm font-semibold text-rose-ink underline underline-offset-2">Ver todo de ${escapeHtml(p.marca)} →</button>` : ""}
         </div>
       </div>
+    </div>
+    <div data-sheet-stickybar aria-hidden="true" class="sm:hidden sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-cream/95 backdrop-blur border-t border-ink/10 flex items-center gap-3 transition duration-200 translate-y-full opacity-0 pointer-events-none">
+      <div class="min-w-0 flex-1 leading-tight tabular-nums">
+        <p class="text-lg font-bold text-ink">${formatPrice(p.precio)}</p>
+        <p class="text-xs text-ink/70 truncate">${escapeHtml(p.nombre)}</p>
+      </div>
+      ${out
+        ? `<button type="button" tabindex="-1" data-restock="${escapeAttr(p.id)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
+            class="h-12 shrink-0 rounded-full border border-rose/60 px-5 text-rose-ink font-semibold">🔔 Avísame</button>`
+        : `<button type="button" tabindex="-1" data-sheet-add="${escapeAttr(p.id)}" class="h-12 shrink-0 rounded-full bg-ink px-6 text-cream font-semibold hover:bg-ink/85 transition">${p.preorden && !p.enStock ? "Preordenar" : "Agregar al carrito"}</button>`}
     </div>`;
+  watchSheetStickyBar();
   loadProductInfo(p);
+}
+
+/* En celular, al bajar a leer la descripción el botón de "Agregar al
+   carrito" se queda arriba; esta barra aparece abajo, al alcance del
+   pulgar, solo mientras el botón original no se ve. */
+let sheetStickyObserver = null;
+function watchSheetStickyBar() {
+  if (sheetStickyObserver) sheetStickyObserver.disconnect();
+  const body = document.getElementById("product-body");
+  const actions = body.querySelector("[data-sheet-actions]");
+  const bar = body.querySelector("[data-sheet-stickybar]");
+  if (!actions || !bar || typeof IntersectionObserver === "undefined") return;
+  sheetStickyObserver = new IntersectionObserver(([entry]) => {
+    const show = !entry.isIntersecting;
+    bar.classList.toggle("translate-y-full", !show);
+    bar.classList.toggle("opacity-0", !show);
+    bar.classList.toggle("pointer-events-none", !show);
+    bar.setAttribute("aria-hidden", show ? "false" : "true");
+    bar.querySelectorAll("button").forEach((b) => b.setAttribute("tabindex", show ? "0" : "-1"));
+  }, { root: body.parentElement, threshold: 0 });
+  sheetStickyObserver.observe(actions);
 }
 
 function openProductSheet(id, { fromRoute = false } = {}) {
@@ -5583,7 +5615,57 @@ function renderCart() {
   wrap.querySelectorAll("[data-remove]").forEach((b) => b.addEventListener("click", () => removeFromCart(b.dataset.remove)));
   cargarPrecioAmazon();
   actualizarReventa();
+  updateCartSteps();
   restoreCartFocus(wrap, focusBefore, document.getElementById("cart-drawer"));
+}
+
+/* Barra de pasos arriba del carrito (Productos → Tus datos → Envío →
+   Pago): marca con palomita lo que ya está completo, resalta lo que
+   sigue y al tocar un paso lleva a esa parte del formulario. */
+const CART_STEPS = [
+  { label: "Productos", target: "cart-items", fields: [] },
+  { label: "Tus datos", target: "customer-name", fields: ["customer-name", "customer-phone"] },
+  { label: "Envío", target: "customer-street", fields: ["customer-street", "customer-colonia", "customer-municipio", "customer-cp", "customer-estado"] },
+  { label: "Pago", target: "pay-method", fields: [] },
+];
+function cartStepDone(i) {
+  if (i === 0) return Object.keys(cart).length > 0;
+  if (i === 3) return Boolean(document.querySelector('input[name="pay-method"]:checked'));
+  return CART_STEPS[i].fields.every((id) => {
+    const el = document.getElementById(id);
+    return el && String(el.value || "").trim() && el.checkValidity();
+  });
+}
+function updateCartSteps() {
+  const nav = document.getElementById("cart-steps");
+  const form = document.getElementById("quote-form");
+  if (!nav || !form) return;
+  const show = Object.keys(cart).length > 0 && !form.classList.contains("hidden");
+  nav.classList.toggle("hidden", !show);
+  if (!show) return;
+  const done = CART_STEPS.map((_, i) => cartStepDone(i));
+  const current = done.indexOf(false);
+  nav.querySelector("ol").innerHTML = CART_STEPS.map((st, i) => {
+    const cls = done[i] ? "bg-green-600 text-white" : i === current ? "bg-rose-deep text-cream" : "bg-ink/10 text-ink/60";
+    return `${i ? `<li aria-hidden="true" class="h-px flex-1 min-w-2 ${done[i - 1] ? "bg-green-600" : "bg-ink/15"}"></li>` : ""}
+      <li><button type="button" data-cart-step="${i}" ${i === current ? 'aria-current="step"' : ""} class="flex items-center gap-1.5 whitespace-nowrap py-1 ${i === current ? "text-ink" : "text-ink/70"}">
+        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold ${cls}">${done[i] ? "✓" : i + 1}</span>${st.label}</button></li>`;
+  }).join("");
+}
+function initCartSteps() {
+  const nav = document.getElementById("cart-steps");
+  const form = document.getElementById("quote-form");
+  if (!nav || !form) return;
+  form.addEventListener("input", updateCartSteps);
+  form.addEventListener("change", updateCartSteps);
+  nav.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-cart-step]");
+    if (!b) return;
+    const st = CART_STEPS[Number(b.dataset.cartStep)];
+    const el = document.getElementById(st.target);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
 }
 
 /* Cada cambio de cantidad vuelve a pintar las líneas del carrito, y eso
@@ -5626,6 +5708,7 @@ function updateCartLoginGate() {
     if (nameInput && !nameInput.value && myAccountCache.name) nameInput.value = myAccountCache.name;
     if (phoneInput && !phoneInput.value && myAccountCache.phone) phoneInput.value = myAccountCache.phone;
   }
+  updateCartSteps();
 }
 
 /* Si se loguea/registra viniendo del aviso de "inicia sesión para
@@ -5657,6 +5740,7 @@ function closeCart() {
   // próxima vez que se abra.
   document.getElementById("quote-success-panel").classList.add("hidden");
   document.getElementById("quote-form").classList.remove("hidden");
+  updateCartSteps();
 }
 
 /* ======================================================================
@@ -6065,6 +6149,7 @@ const ORDER_FAILED_MESSAGE =
    dejar el pedido sin comprobante. */
 function showQuoteSuccess(orderId, proofFailed) {
   document.getElementById("quote-form").classList.add("hidden");
+  updateCartSteps();
   const panel = document.getElementById("quote-success-panel");
   panel.classList.remove("hidden");
   document.getElementById("success-order-id").textContent = orderId.slice(0, 8).toUpperCase();
@@ -7674,6 +7759,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initWhatsAppFloat();
   initAccountPanel();
   initPhoneMasks();
+  initCartSteps();
   initWishlist();
   initRestock();
   initReviews();
