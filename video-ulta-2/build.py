@@ -40,6 +40,7 @@ def F(n, s):
     return _fc[n, s]
 
 def ease(x): x = max(0.0, min(1.0, x)); return 1 - (1 - x) ** 3
+def back(x): x = max(0.0, min(1.0, x)); c = 1.7; return 1 + (c + 1) * (x - 1) ** 3 + c * (x - 1) ** 2
 
 def mxn(v): return f"${v:,.0f}"
 
@@ -123,14 +124,13 @@ def capa_precio(es_ulta, usd, alp):
         d.text((W / 2, 1744), txt, font=f, fill=(255, 255, 255), anchor="mm")
     return L
 
-def marca_precio(L, box, t, color):
-    """rectángulo que se dibuja alrededor del precio"""
+def marca_precio(L, box, t, color, w=10, pad=16, m=40):
+    """rectángulo que se dibuja alrededor del precio (m = margen de sombra de la tarjeta)"""
     p = ease(t / 0.35)
     if p <= 0: return
-    x0, y0, x1, y1 = box; pad = 16
+    x0, y0, x1, y1 = box
     d = ImageDraw.Draw(L)
-    w = 10
-    rect = (x0 - pad, y0 - pad, x1 + pad, min(y1 + pad, L.height - 40 - w / 2 - 2))
+    rect = (x0 - pad, y0 - pad, x1 + pad, min(y1 + pad, L.height - m - w / 2 - 2))
     # se dibuja en orden: arriba, derecha, abajo, izquierda
     segs = [((rect[0], rect[1]), (rect[2], rect[1])), ((rect[2], rect[1]), (rect[2], rect[3])),
             ((rect[2], rect[3]), (rect[0], rect[3])), ((rect[0], rect[3]), (rect[0], rect[1]))]
@@ -159,25 +159,63 @@ def escena_texto(fr_gen, lineas, sub=None):
             if b: pill(d, W / 2, y + 96 * 1.12 * (lineas.count("\n") + 1) + 70, sub, F("Bold", 48), PINK + (int(255 * b),), (255, 255, 255, int(255 * b)))
         L.alpha_composite(O); yield L
 
-def escena_producto(i, prod, n, nu, na):
-    """n cuadros en total; la captura de Ulta entra en el cuadro nu y la de Alpacca en na"""
+SFX = []  # (segundo, sonido): clicks/brillos que se mezclan con la voz
+S = 0.5    # tamaño de las capturas chiquitas
+_sombra = Image.new("L", (1, H)); [_sombra.putpixel((0, y), int(170 * max(0, (y - 900) / (H - 900)) ** 1.3)) for y in range(H)]
+SOMBRA = Image.new("RGBA", (W, H), (0, 0, 0, 255)); SOMBRA.putalpha(_sombra.resize((W, H)))
+
+def mini(card, box):
+    c = card.resize((int(card.width * S), int(card.height * S)), Image.LANCZOS)
+    return c, tuple(v * S for v in box)
+
+def etiqueta(texto, fondo, f=None):
+    f = f or F("Bold", 34); w = f.getlength(texto)
+    L = Image.new("RGBA", (int(w) + 60, 70)); d = ImageDraw.Draw(L)
+    d.rounded_rectangle((0, 0, L.width - 1, 69), 35, fill=fondo)
+    d.text((L.width / 2, 37), texto, font=f, fill=(255, 255, 255), anchor="mm")
+    return L
+
+def aparece(L, card, box, color, cx, y, t):
+    """la captura chiquita entra con rebote y un destello blanco; luego se marca el precio"""
+    s = 0.7 + 0.3 * back(t / 0.32)
+    c = card.copy(); marca_precio(c, box, t - 0.3, color, w=6, pad=8, m=int(40 * S))
+    if s != 1: c = c.resize((max(1, int(c.width * s)), max(1, int(c.height * s))), Image.BILINEAR)
+    fl = max(0.0, 1 - t / 0.2)
+    if fl:
+        wht = Image.new("RGBA", c.size, (255, 255, 255, 0)); m = int(40 * S * s)
+        ImageDraw.Draw(wht).rounded_rectangle((m, m, c.width - m, c.height - m), int(36 * S), fill=(255, 255, 255, int(235 * fl)))
+        c.alpha_composite(wht)
+    paste(L, c, (cx - c.width / 2, y + (card.height - c.height) / 2), min(1.0, t / 0.08))
+
+def escena_producto(i, prod, n, nu, na, f0=0):
+    """el clip corre toda la escena; la captura de Ulta entra (chiquita, a la izquierda) en el
+    cuadro nu y la de Alpacca (a la derecha) en na; f0 = primer cuadro de la escena en el video"""
     key, marca, nombre, clip, ini, usd, alp, yu, ya = prod
     tit = capa_titulo(i, marca, nombre)
-    cu, bu = captura("ulta-" + key, yu, True); ca, ba = captura("alp-" + key, ya, False)
-    pu, pa = capa_precio(True, usd, alp), capa_precio(False, usd, alp)
-    last = None
-    for k, fr in enumerate(frames(clip, ini, nu)):
-        L = fr.copy(); a = ease(k / FPS / 0.3); paste(L, tit, (0, (1 - a) * -40), a); last = fr; yield L
-    bg = fondo_borroso(last)
-    for card, box, capa, color, m in ((cu, bu, pu, ULTA, na - nu), (ca, ba, pa, PINK, n - na)):
-        x = (W - card.width) / 2
-        for k in range(m):
-            t = k / FPS; L = bg.copy()
-            a = ease(t / 0.28)
-            c = card.copy(); marca_precio(c, box, t - 0.3, color)
-            paste(L, c, (x, 190 + (1 - a) * 120), a)
-            paste(L, capa, (0, (1 - a) * 30), a)
-            yield L
+    (cu, bu), (ca, ba) = mini(*captura("ulta-" + key, yu, True)), mini(*captura("alp-" + key, ya, False))
+    ahorro = round((1 - alp / (usd * TC)) * 100)
+    eu = etiqueta(f"${usd:.0f} USD = {mxn(usd * TC)}", ULTA); ea = etiqueta(f"{mxn(alp)} pesos", PINK)
+    badge = etiqueta(f"{ahorro}% menos", GREEN, F("ExtraBold", 54))
+    xl, xr, y = W * 0.27, W * 0.73, 1000
+    SFX.append(((f0 + nu) / FPS, "click")); SFX.append(((f0 + na) / FPS, "brillo"))
+    vel = min(1.0, 4.8 / (n / FPS))  # en cámara lenta para que el clip no se salga del producto
+    for k, fr in enumerate(frames(clip, ini, n, speed=vel)):
+        t = k / FPS
+        L = fr.copy(); a = ease(t / 0.3); paste(L, tit, (0, (1 - a) * -40), a)
+        if k >= nu:
+            tu = (k - nu) / FPS
+            L.alpha_composite(SOMBRA) if tu > 0.25 else paste(L, SOMBRA, (0, 0), tu / 0.25)
+            aparece(L, cu, bu, ULTA, xl, y, tu)
+            paste(L, eu, (xl - eu.width / 2, y + cu.height - 6), ease((tu - 0.3) / 0.25))
+        if k >= na:
+            ta = (k - na) / FPS
+            aparece(L, ca, ba, PINK, xr, y, ta)
+            paste(L, ea, (xr - ea.width / 2, y + ca.height - 6), ease((ta - 0.3) / 0.25))
+            tb = ta - 0.5
+            if tb > 0:
+                s = 0.6 + 0.4 * back(tb / 0.3); bd = badge.resize((int(badge.width * s), int(badge.height * s)))
+                paste(L, bd, (W / 2 - bd.width / 2, 1815 - bd.height / 2), min(1.0, tb / 0.1))
+        yield L
 
 def escena_final(n):
     filas = []
@@ -229,7 +267,7 @@ def escenas():
     yield from escena_texto(frames("IMG_0543", 3.0, n[1]), "Me faltaron\nun montón", "más K-Beauty")
     for i, prod in enumerate(PRODUCTOS, 1):
         e = TIEMPOS[i + 1]
-        yield from escena_producto(i, prod, n[i + 1], q(e["ulta"]), q(e["alp"]))
+        yield from escena_producto(i, prod, n[i + 1], q(e["ulta"]), q(e["alp"]), q(ini[i + 1]))
     yield from escena_final(n[-1])
 
 if __name__ == "__main__":
@@ -243,6 +281,16 @@ if __name__ == "__main__":
     voz = os.path.join(AQUI, "voz", "narracion.wav")
     if os.path.exists(_tj) and os.path.exists(voz):  # se le pone la voz
         final = OUT.replace(".mp4", "-voz.mp4")
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", OUT, "-i", voz, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-                        "-shortest", "-movflags", "+faststart", final], check=True)
+        # voz + clicks/brillos (cada sonido entra con su retraso, más bajito que la voz)
+        GAN = {"click": 0.35, "brillo": 0.45}
+        ins, fil = ["-i", OUT, "-i", voz], ["[1:a]aformat=channel_layouts=stereo[v]"]
+        for j, (t, s) in enumerate(SFX):
+            ins += ["-i", os.path.join(AQUI, "sfx", s + ".mp3")]
+            ms = int(t * 1000)
+            fil.append(f"[{j + 2}:a]aformat=channel_layouts=stereo,adelay={ms}|{ms},volume={GAN[s]}[s{j}]")
+        fil.append("[v]" + "".join(f"[s{j}]" for j in range(len(SFX))) + f"amix=inputs={len(SFX) + 1}:normalize=0:duration=first[a]")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", *ins, "-filter_complex", ";".join(fil), "-map", "0:v", "-map", "[a]",
+                        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", final], check=True)
         print("ok", final)
+    else:
+        print("OJO: sin voz/narracion.wav o tiempos.json; corre primero python3 voz.py (usa las frases guardadas)")
