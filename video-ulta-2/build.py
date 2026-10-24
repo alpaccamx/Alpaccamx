@@ -17,7 +17,7 @@ W, H, FPS = 1080, 1920, 30
 INK = (17, 17, 17); GREY = (120, 120, 128); PINK = (238, 108, 146); DEEP = (196, 70, 110)
 BLUSH = (253, 236, 242); ULTA = (243, 113, 33); GREEN = (22, 150, 80)
 
-TC = 18.69          # MXN por USD, 24 oct 2026 (open.er-api.com)
+TC = 18.8   # MXN por USD, el que eligió Mae
 FECHA = "24 oct 2026"
 
 # nombre, clip, inicio (s), precio Ulta USD, precio Alpacca MXN, caja del precio en cada captura (px css: y)
@@ -247,7 +247,7 @@ def capa_tabla(t, filas):
 
 def capa_cta(d, c, y=1530, cx=W / 2, ynota=120):
     pill(d, cx, y, "alpacca.mx", F("ExtraBold", 64), PINK + (int(255 * c),), (255, 255, 255, int(255 * c)), padx=50, pady=22)
-    nota = (f"Precios del {FECHA}. Ulta: precio en ulta.com, sin impuestos, a ${TC} por dólar.\n"
+    nota = (f"Precios del {FECHA}. Ulta: precio en ulta.com, sin impuestos, a ${TC:.2f} por dólar.\n"
             "Alpacca: precio por transferencia, pieza individual; se pide a Corea\n"
             "y cuenta para el pedido mínimo de $6,000.")
     text_c(d, W / 2, y + ynota, nota, F("Medium", 25), GREY + (int(255 * c),), lh=1.4)
