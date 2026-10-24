@@ -186,6 +186,33 @@ def aparece(L, card, box, color, cx, y, t):
         c.alpha_composite(wht)
     paste(L, c, (cx - c.width / 2, y + (card.height - c.height) / 2), min(1.0, t / 0.08))
 
+CON_BANNER = (2, 3, 4)  # productos durante los que se ve la invitación a la comunidad
+_banner = []
+
+def banner():
+    """etiqueta verde de WhatsApp que se queda arriba a media escena"""
+    if not _banner:
+        f1, f2 = F("ExtraBold", 46), F("SemiBold", 34)
+        w = int(max(f1.getlength("Comenta COMUNIDAD") + 80, f2.getlength("y te invito a mi grupo de WhatsApp")) + 90)
+        B = Image.new("RGBA", (w, 150)); d = ImageDraw.Draw(B)
+        d.rounded_rectangle((0, 0, w - 1, 149), 40, fill=(18, 140, 76, 240))
+        e = emoji("💬", 54); B.alpha_composite(e, (int(w / 2 - f1.getlength("Comenta COMUNIDAD") / 2 - e.width / 2 - 10), 16))
+        d.text((w / 2 + e.width / 2, 48), "Comenta COMUNIDAD", font=f1, fill=(255, 255, 255), anchor="mm")
+        d.text((w / 2, 110), "y te invito a mi grupo de WhatsApp", font=f2, fill=(220, 255, 230), anchor="mm")
+        _banner.append(B)
+    return _banner[0]
+
+def pon_banner(L, i, k, n):
+    if i not in CON_BANNER: return
+    B = banner(); t = k / FPS
+    entra = ease(t / 0.4) if i == CON_BANNER[0] else 1.0
+    sale = 1 - ease((t - (n / FPS - 0.35)) / 0.35) if i == CON_BANNER[-1] else 1.0
+    a = min(entra, sale)
+    if a <= 0: return
+    s = 1 + 0.03 * math.sin(t * 4.0)  # late suavecito
+    im = B.resize((int(B.width * s), int(B.height * s)), Image.BILINEAR)
+    paste(L, im, (W / 2 - im.width / 2, 510 - im.height / 2 - (1 - a) * 60), a)
+
 def escena_producto(i, prod, n, nu, na, f0=0):
     """el clip corre toda la escena; la captura de Ulta entra (chiquita, a la izquierda) en el
     cuadro nu y la de Alpacca (a la derecha) en na; f0 = primer cuadro de la escena en el video"""
@@ -202,6 +229,7 @@ def escena_producto(i, prod, n, nu, na, f0=0):
     for k, fr in enumerate(frames(clip, ini, n, speed=vel)):
         t = k / FPS
         L = fr.copy(); a = ease(t / 0.3); paste(L, tit, (0, (1 - a) * -40), a)
+        pon_banner(L, i, k, n)
         if k >= nu:
             tu = (k - nu) / FPS
             L.alpha_composite(SOMBRA) if tu > 0.25 else paste(L, SOMBRA, (0, 0), tu / 0.25)
