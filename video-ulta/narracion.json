@@ -16,7 +16,7 @@
   "alp_en": "Conmigo"
  },
  {
-  "texto": "Crema Snail noventa y dos de coserreequis: cuatrocientos nueve, [confident] contra doscientos cincuenta y uno.",
+  "texto": "Crema Snail noventa y dos de cos erreequis: cuatrocientos nueve, [confident] contra doscientos cincuenta y uno.",
   "ulta_en": "cuatrocientos nueve",
   "alp_en": "contra"
  },
@@ -31,7 +31,7 @@
   "alp_en": "contra"
  },
  {
-  "texto": "Parches para ojos de coserreequis: cuatrocientos treinta, [confident] contra doscientos ochenta y ocho.",
+  "texto": "Parches para ojos de cos erreequis: cuatrocientos treinta, [confident] contra doscientos ochenta y ocho.",
   "ulta_en": "cuatrocientos treinta",
   "alp_en": "contra"
  },
@@ -41,7 +41,12 @@
   "alp_en": "contra"
  },
  {
-  "texto": "Crema ciento cuarenta y siete de Doctor Althea: quinientos cinco, [confident] contra trescientos veinticuatro.",
+  "texto": "Crema tres cuatro cinco de Doctor Altia: en la tienda ya ni había. En Ulta cuesta quinientos cinco, [confident] contra trescientos veinticuatro.",
+  "ulta_en": "quinientos cinco",
+  "alp_en": "contra"
+ },
+ {
+  "texto": "Crema ciento cuarenta y siete de Doctor Altia: quinientos cinco, [confident] contra trescientos veinticuatro.",
   "ulta_en": "quinientos cinco",
   "alp_en": "contra"
  },

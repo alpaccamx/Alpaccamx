@@ -5,7 +5,7 @@ de la tienda y no se usa: si ya corriste voz.py, se le pone la voz de Mae
 
 Uso: python3 build.py CARPETA_DE_CLIPS [salida.mp4]
 La carpeta de clips tiene los IMG_05xx.MOV originales del iPhone."""
-import json, os, subprocess, sys
+import json, math, os, subprocess, sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -29,6 +29,7 @@ PRODUCTOS = [
     ("peptide",  "COSRX", "The 6 Peptide\nSkin Booster",         "IMG_0548", 74.5,  21.00, 301, 775.6, 667.9),
     ("eyepatch", "COSRX", "Peptide Collagen\nHydrogel Eye Patch", "IMG_0547", 125.0, 23.00, 288, 751.6, 667.9),
     ("toner",    "TIRTIR", "Milk Skin Toner\n150 ml",            "IMG_0548", 161.0, 25.00, 301, 751.6, 751.9),
+    ("althea",   "Dr. Althea", "345 Relief Cream",               "IMG_0546", 0.0,   27.00, 324, 751.6, 691.9),
     ("althea147", "Dr. Althea", "147 Barrier Cream",             "IMG_0545", 41.3,  27.00, 324, 800.6, 691.9),
 ]
 
@@ -139,7 +140,7 @@ def marca_precio(L, box, t, color, w=10, pad=16, m=40):
 
 CORTOS = {"foam": "Anua Heartleaf Foam", "niacin": "Anua Niacinamide Serum", "snail92": "COSRX Snail 92 Cream",
           "snail96": "COSRX Snail 96 Essence", "peptide": "COSRX 6 Peptide Booster", "eyepatch": "COSRX Eye Patch",
-          "toner": "TIRTIR Milk Toner", "althea147": "Dr. Althea 147 Cream"}
+          "toner": "TIRTIR Milk Toner", "althea": "Dr. Althea 345 Cream", "althea147": "Dr. Althea 147 Cream"}
 
 # ---------- escenas ----------
 def escena_texto(fr_gen, lineas, sub=None):
@@ -156,6 +157,8 @@ def escena_texto(fr_gen, lineas, sub=None):
             if b: pill(d, W / 2, y + 96 * 1.12 * (lineas.count("\n") + 1) + 70, sub, F("Bold", 48), PINK + (int(255 * b),), (255, 255, 255, int(255 * b)))
         L.alpha_composite(O); yield L
 
+# segundos del clip en los que sí se ve el producto (si es menos que lo normal, se ve más lento)
+SPAN = {"althea": 4.0}  # el clip de la 345 dura 4 s (Mae señala el lugar vacío: no había en stock)
 SFX = []  # (segundo, sonido): click, glitter y pop (recortados del video de sonidos de TikTok que mandó Mae)
 S = 0.5    # tamaño de las capturas chiquitas
 _sombra = Image.new("L", (1, H)); [_sombra.putpixel((0, y), int(170 * max(0, (y - 900) / (H - 900)) ** 1.3)) for y in range(H)]
@@ -196,7 +199,7 @@ def escena_producto(i, prod, n, nu, na, f0=0):
     xl, xr, y = W * 0.27, W * 0.73, 1000
     SFX.append(((f0 + nu) / FPS, "click")); SFX.append(((f0 + na) / FPS, "glitter"))
     SFX.append(((f0 + na) / FPS + 0.5, "pop"))  # cuando sale el "Ahorras $..."
-    vel = min(1.0, 4.8 / (n / FPS))  # en cámara lenta para que el clip no se salga del producto
+    vel = min(1.0, SPAN.get(key, 4.8) / (n / FPS))  # en cámara lenta para que el clip no se salga del producto
     for k, fr in enumerate(frames(clip, ini, n, speed=vel)):
         t = k / FPS
         L = fr.copy(); a = ease(t / 0.3); paste(L, tit, (0, (1 - a) * -40), a)
@@ -215,6 +218,7 @@ def escena_producto(i, prod, n, nu, na, f0=0):
                 paste(L, bd, (W / 2 - bd.width / 2, 1815 - bd.height / 2), min(1.0, tb / 0.1))
         yield L
 
+ALPACA = Image.open(os.path.join(os.path.dirname(AQUI), "assets", "alpaca-surtir.webp")).convert("RGBA").resize((300, 300), Image.LANCZOS)
 BENEFICIOS = [("Pagas en pesos", "transferencia o tarjeta"), ("Te llega a tu casa", "envíos a todo México"),
               ("Te atiendo yo", "por WhatsApp, en todo tu pedido"), ("¿Lo revendes?", "por caja te sale aún más barato")]
 
@@ -239,12 +243,12 @@ def capa_tabla(t, filas):
         d.text((950, y + 2), f"-{mxn(ah)}", font=F("Bold", 30), fill=(255, 255, 255, al_), anchor="mm")
     return O
 
-def capa_cta(d, c, y=1530):
-    pill(d, W / 2, y, "alpacca.mx", F("ExtraBold", 64), PINK + (int(255 * c),), (255, 255, 255, int(255 * c)), padx=50, pady=22)
+def capa_cta(d, c, y=1530, cx=W / 2, ynota=120):
+    pill(d, cx, y, "alpacca.mx", F("ExtraBold", 64), PINK + (int(255 * c),), (255, 255, 255, int(255 * c)), padx=50, pady=22)
     nota = (f"Precios del {FECHA}. Ulta: precio en ulta.com, sin impuestos, a ${TC} por dólar.\n"
             "Alpacca: precio por transferencia, pieza individual; se pide a Corea\n"
             "y cuenta para el pedido mínimo de $6,000.")
-    text_c(d, W / 2, y + 120, nota, F("Medium", 25), GREY + (int(255 * c),), lh=1.4)
+    text_c(d, W / 2, y + ynota, nota, F("Medium", 25), GREY + (int(255 * c),), lh=1.4)
 
 def capa_beneficios(t, marcas):
     """'¿Por qué comprar conmigo?': cada beneficio entra cuando la voz lo dice; al final, alpacca.mx"""
@@ -262,7 +266,7 @@ def capa_beneficios(t, marcas):
         d.text((245, y + 62), tit, font=F("ExtraBold", 54), fill=INK + (al_,), anchor="lm")
         d.text((245, y + 122), sub, font=F("Medium", 38), fill=GREY + (al_,), anchor="lm")
     c = ease((t - marcas[-1]) / 0.35)
-    if c: capa_cta(d, c, 1450 + (1 - c) * 40)
+    if c: capa_cta(d, c, 1450 + (1 - c) * 40, cx=W * 0.36, ynota=265)
     return O
 
 def escena_final(n):
@@ -281,6 +285,11 @@ def escena_final(n):
             paste(L, capa_tabla(t, filas), (0, -s * 80), 1 - s)
         if t > cambio:
             L.alpha_composite(capa_beneficios(t - cambio, [m - cambio for m in marcas]))
+        ta = t - marcas[-1]  # la alpaca entra con "alpacca.mx" y se mece
+        if ta > 0:
+            s = 0.5 + 0.5 * back(ta / 0.4); bob = math.sin(ta * 3.2) * 8
+            im = ALPACA.resize((int(ALPACA.width * s), int(ALPACA.height * s)), Image.BILINEAR)
+            paste(L, im, (W * 0.77 - im.width / 2, 1535 - im.height / 2 + bob), min(1.0, ta / 0.15))
         yield L
 
 # Tiempos: si existe tiempos.json (de voz.py) cada escena dura lo que su frase y las
