@@ -215,38 +215,73 @@ def escena_producto(i, prod, n, nu, na, f0=0):
                 paste(L, bd, (W / 2 - bd.width / 2, 1815 - bd.height / 2), min(1.0, tb / 0.1))
         yield L
 
+BENEFICIOS = [("Pagas en pesos", "transferencia o tarjeta"), ("Te llega a tu casa", "envíos a todo México"),
+              ("Te atiendo yo", "por WhatsApp, en todo tu pedido"), ("¿Lo revendes?", "por caja te sale aún más barato")]
+
+def capa_tabla(t, filas):
+    O = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(O)
+    a = ease(t / 0.3)
+    text_c(d, W / 2, 120, "Mismo producto coreano", F("ExtraBold", 70), INK + (int(255 * a),))
+    text_c(d, W / 2, 210, "en pesos, sin cruzar la frontera", F("SemiBold", 44), GREY + (int(255 * a),))
+    y0 = 320
+    d.text((90, y0), "Producto", font=F("SemiBold", 30), fill=GREY, anchor="lm")
+    d.text((700, y0), "Ulta", font=F("Bold", 32), fill=ULTA, anchor="rm")
+    d.text((870, y0), "Alpacca", font=F("Bold", 32), fill=PINK, anchor="rm")
+    for j, (nm, u, al, ah) in enumerate(filas):
+        b = ease((t - 0.25 - j * 0.12) / 0.3)
+        if not b: continue
+        y = y0 + 70 + j * min(118, 1060 // len(filas)); al_ = int(255 * b)
+        d.rounded_rectangle((60, y - 48, W - 60, y + 48), 28, fill=(BLUSH if j % 2 == 0 else (248, 248, 250)) + (al_,))
+        d.text((90, y), nm, font=F("SemiBold", 32), fill=INK + (al_,), anchor="lm")
+        d.text((700, y), u, font=F("SemiBold", 36), fill=GREY + (al_,), anchor="rm")
+        d.text((870, y), al, font=F("ExtraBold", 38), fill=DEEP + (al_,), anchor="rm")
+        d.rounded_rectangle((890, y - 26, 1010, y + 26), 26, fill=GREEN + (al_,))
+        d.text((950, y + 2), f"-{mxn(ah)}", font=F("Bold", 30), fill=(255, 255, 255, al_), anchor="mm")
+    return O
+
+def capa_cta(d, c, y=1530):
+    pill(d, W / 2, y, "alpacca.mx", F("ExtraBold", 64), PINK + (int(255 * c),), (255, 255, 255, int(255 * c)), padx=50, pady=22)
+    nota = (f"Precios del {FECHA}. Ulta: precio en ulta.com, sin impuestos, a ${TC} por dólar.\n"
+            "Alpacca: precio por transferencia, pieza individual; se pide a Corea\n"
+            "y cuenta para el pedido mínimo de $6,000.")
+    text_c(d, W / 2, y + 120, nota, F("Medium", 25), GREY + (int(255 * c),), lh=1.4)
+
+def capa_beneficios(t, marcas):
+    """'¿Por qué comprar conmigo?': cada beneficio entra cuando la voz lo dice; al final, alpacca.mx"""
+    O = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(O)
+    a = ease(t / 0.35)
+    text_c(d, W / 2, 250 + (1 - a) * 30, "¿Por qué comprar\nconmigo?", F("ExtraBold", 80), INK + (int(255 * a),))
+    for j, (tit, sub) in enumerate(BENEFICIOS):
+        b = ease((t - marcas[j]) / 0.3)
+        if not b: continue
+        y = 560 + j * 205 + (1 - b) * 40; al_ = int(255 * b)
+        d.rounded_rectangle((70, y, W - 70, y + 170), 40, fill=(BLUSH if j % 2 == 0 else (248, 248, 250)) + (al_,))
+        cx, cy = 165, y + 85
+        d.ellipse((cx - 46, cy - 46, cx + 46, cy + 46), fill=PINK + (al_,))
+        d.line(((cx - 22, cy + 2), (cx - 6, cy + 18), (cx + 24, cy - 16)), fill=(255, 255, 255, al_), width=11, joint="curve")
+        d.text((245, y + 62), tit, font=F("ExtraBold", 54), fill=INK + (al_,), anchor="lm")
+        d.text((245, y + 122), sub, font=F("Medium", 38), fill=GREY + (al_,), anchor="lm")
+    c = ease((t - marcas[-1]) / 0.35)
+    if c: capa_cta(d, c, 1450 + (1 - c) * 40)
+    return O
+
 def escena_final(n):
     filas = []
     for key, marca, nombre, clip, ini, usd, alp, yu, ya in PRODUCTOS:
         filas.append((CORTOS[key], mxn(usd * TC), mxn(alp), round(usd * TC) - alp))
+    marcas = TIEMPOS[-1].get("marcas")  # cuándo dice cada beneficio y "alpacca.mx" (de voz.py)
     for k in range(n):
         t = k / FPS
-        L = Image.new("RGBA", (W, H), (255, 255, 255, 255)); O = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(O)
-        a = ease(t / 0.3)
-        text_c(d, W / 2, 120, "Mismo producto coreano", F("ExtraBold", 70), INK + (int(255 * a),))
-        text_c(d, W / 2, 210, "en pesos, sin cruzar la frontera", F("SemiBold", 44), GREY + (int(255 * a),))
-        y0 = 320
-        d.text((90, y0), "Producto", font=F("SemiBold", 30), fill=GREY, anchor="lm")
-        d.text((700, y0), "Ulta", font=F("Bold", 32), fill=ULTA, anchor="rm")
-        d.text((870, y0), "Alpacca", font=F("Bold", 32), fill=PINK, anchor="rm")
-        for j, (n, u, al, ah) in enumerate(filas):
-            b = ease((t - 0.25 - j * 0.12) / 0.3)
-            if not b: continue
-            y = y0 + 70 + j * min(118, 1060 // len(filas)); al_ = int(255 * b)
-            d.rounded_rectangle((60, y - 48, W - 60, y + 48), 28, fill=(BLUSH if j % 2 == 0 else (248, 248, 250)) + (al_,))
-            d.text((90, y), n, font=F("SemiBold", 32), fill=INK + (al_,), anchor="lm")
-            d.text((700, y), u, font=F("SemiBold", 36), fill=GREY + (al_,), anchor="rm")
-            d.text((870, y), al, font=F("ExtraBold", 38), fill=DEEP + (al_,), anchor="rm")
-            d.rounded_rectangle((890, y - 26, 1010, y + 26), 26, fill=GREEN + (al_,))
-            d.text((950, y + 2), f"-{mxn(ah)}", font=F("Bold", 30), fill=(255, 255, 255, al_), anchor="mm")
-        c = ease((t - 1.6) / 0.4)
-        if c:
-            pill(d, W / 2, 1530, "alpacca.mx", F("ExtraBold", 64), PINK + (int(255 * c),), (255, 255, 255, int(255 * c)), padx=50, pady=22)
-            nota = (f"Precios del {FECHA}. Ulta: precio en ulta.com, sin impuestos, a ${TC} por dólar.\n"
-                    "Alpacca: precio por transferencia, pieza individual; se pide a Corea\n"
-                    "y cuenta para el pedido mínimo de $6,000.")
-            text_c(d, W / 2, 1650, nota, F("Medium", 25), GREY + (int(255 * c),), lh=1.4)
-        L.alpha_composite(O); yield L
+        L = Image.new("RGBA", (W, H), (255, 255, 255, 255))
+        if not marcas:  # sin voz: la tabla y alpacca.mx
+            O = capa_tabla(t, filas); capa_cta(ImageDraw.Draw(O), ease((t - 1.6) / 0.4)); L.alpha_composite(O); yield L; continue
+        cambio = marcas[0] - 0.45  # la tabla se va justo antes del primer beneficio
+        if t < cambio + 0.35:
+            s = ease((t - cambio) / 0.35) if t > cambio else 0
+            paste(L, capa_tabla(t, filas), (0, -s * 80), 1 - s)
+        if t > cambio:
+            L.alpha_composite(capa_beneficios(t - cambio, [m - cambio for m in marcas]))
+        yield L
 
 # Tiempos: si existe tiempos.json (de voz.py) cada escena dura lo que su frase y las
 # capturas entran cuando se dice cada precio; si no, los tiempos de abajo (sin voz).

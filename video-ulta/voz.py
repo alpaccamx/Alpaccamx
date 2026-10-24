@@ -61,7 +61,9 @@ for n, f in enumerate(frases, 1):
     if "ulta_en" in f:
         esc["ulta"] = round(off + (st[texto.index(f["ulta_en"])] - ini) / VEL - 0.12, 3)
         esc["alp"] = round(off + (st[texto.index(f["alp_en"])] - ini) / VEL - 0.12, 3)
-    escenas.append({k: round(v, 3) for k, v in esc.items()})
+    if "marcas" in f:  # momentos en que se dicen ciertas palabras (para que algo aparezca justo ahí)
+        esc["marcas"] = [round(off + (st[texto.index(m)] - ini) / VEL - 0.1, 3) for m in f["marcas"]]
+    escenas.append({k: (round(v, 3) if not isinstance(v, list) else v) for k, v in esc.items()})
     partes += [f"frase{n:02d}.wav"] + (["sil.wav"] if n < len(frases) else ["sil_fin.wav"])
     print(n, escenas[-1], f["texto"])
 
