@@ -5029,8 +5029,11 @@ ${itemLines}
     if (e.status === "solicitado" || (e.status === "cotizado" && (!e.pago || e.pago.status === "pendiente"))) {
       const juarez = /ju[aá]rez/i.test(`${d.ciudad || ""}`);
       // Lo de antes (montos a mano, sin guía): plegado, para casos especiales.
-      const manual = `<details style="margin-top:10px;"${e.guia ? "" : ""}><summary style="cursor:pointer;font-size:13px;color:#6b6370;">✏️ Cobrar sin guía o ajustar montos a mano</summary>
+      const manual = `<details style="margin-top:10px;"${e.guia ? "" : ""}><summary style="cursor:pointer;font-size:13px;color:#6b6370;">✏️ Anotar la guía a mano o ajustar montos</summary>
+        <div class="meta" style="margin-top:6px;">Si hiciste la guía por fuera, anótala aquí: le llega sola en cuanto pague. Si no, déjala vacía.</div>
         <div class="grid">
+          <label>Paquetería<input data-f="paqueteria" type="text" placeholder="Estafeta" value="${escapeHtml(e.paqueteria || "")}"></label>
+          <label>Número de guía (opcional)<input data-f="guia" type="text" value=""></label>
           <label>Envío nacional (MXN)<input data-f="envio" type="number" step="0.01" min="0" value="${q ? q.envio : ""}"></label>
           <label>Cruce (vacío = ${formatPrice(sug.cruce || 0)})<input data-f="cruce" type="number" step="0.01" min="0" placeholder="${sug.cruce || 0}"></label>
           <label>Consolidación (vacío = ${formatPrice(sug.consolidacion || 0)})<input data-f="consolidacion" type="number" step="0.01" min="0" placeholder="${sug.consolidacion || 0}"></label>
@@ -5054,6 +5057,12 @@ ${itemLines}
         ${e.guia ? "" : swmGuiaForm(e)}`;
     } else if (e.status === "enviado") {
       action = `<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-secondary" data-swm-entregado>🎁 Marcar entregado</button></div>`;
+    }
+    if (e.status === "enviado" || e.status === "entregado") {
+      action += `<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:13px;color:#6b6370;">✏️ Corregir la guía</summary>
+        <div class="grid"><label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(e.paqueteria || "Estafeta")}"></label><label>Número de guía<input data-f="guia" type="text" value="${escapeHtml(e.guia || "")}"></label></div>
+        <div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-primary" data-swm-corregir-guia>💾 Guardar y avisarle</button></div>
+      </details>`;
     }
     return `<div class="swm-card" data-swm-id="${escapeHtml(e.id)}" data-kind="envio">
       <h4><span>${escapeHtml(e.folio)} · Envío a México</span>${swmPillA(st, ["solicitado", "pagado", "en_mexico"].includes(e.status) ? "new" : "")}</h4>
@@ -5275,7 +5284,7 @@ ${itemLines}
     } else if (t.closest("[data-swm-cotizar-envio]")) {
       if (v("envio") === "") { alert("Pon el costo del envío nacional."); return; }
       const premio = card.querySelector('[data-f="premioLealtad"]');
-      swmAct({ accion: "cotizar_envio", id, envio: v("envio"), cruce: v("cruce"), consolidacion: v("consolidacion"), sinRegistro: v("sinRegistro"), extras: v("extras"), notaClienta: v("notaClienta"), ...(premio ? { premioLealtad: premio.checked } : {}) }, btn);
+      swmAct({ accion: "cotizar_envio", id, envio: v("envio"), cruce: v("cruce"), consolidacion: v("consolidacion"), sinRegistro: v("sinRegistro"), extras: v("extras"), notaClienta: v("notaClienta"), paqueteria: v("paqueteria"), guia: v("guia"), ...(premio ? { premioLealtad: premio.checked } : {}) }, btn);
     } else if (t.closest("[data-swm-revision-hecha]")) {
       const input = card.querySelector('[data-f="revFotos"]');
       const fotos = (await Promise.all([...(input.files || [])].slice(0, 10).map(swmResize))).filter(Boolean);
@@ -5296,6 +5305,9 @@ ${itemLines}
     } else if (t.closest("[data-swm-enviado]")) {
       if (!v("guia")) { alert("Pon el número de guía."); return; }
       swmAct({ accion: "marcar_enviado", id, paqueteria: v("paqueteria"), guia: v("guia") }, btn);
+    } else if (t.closest("[data-swm-corregir-guia]")) {
+      if (!v("guia")) { alert("Pon el número de guía."); return; }
+      swmAct({ accion: "corregir_guia", id, paqueteria: v("paqueteria"), guia: v("guia") }, btn);
     } else if (t.closest("[data-swm-entregado]")) {
       swmAct({ accion: "marcar_entregado", id }, btn);
     }
