@@ -1,15 +1,15 @@
 [
- {"texto": "[excited] ¡Parte dos! Más precios de Ulta contra mi tienda."},
- {"texto": "[playful] Me faltaron un montón de productos coreanos... [excited] ¡vamos!"},
- {"texto": "[excited] Ampolleta Probio-Cica de Skin ten o four: en Ulta... [surprised] ¡seiscientos treinta y cinco pesos! [confident] Conmigo... trescientos nueve.", "ulta_en": "en Ulta", "alp_en": "Conmigo"},
- {"texto": "[curious] Peel Shot de arroz blanco de Doctor Melaxin: en Ulta... [surprised] ¡cuatrocientos ochenta y seis! [confident] Conmigo... doscientos setenta y tres.", "ulta_en": "en Ulta", "alp_en": "Conmigo"},
- {"texto": "[excited] Aceite desmaquillante de Anua: trescientos setenta y cuatro... [confident] contra doscientos sesenta y uno.", "ulta_en": "trescientos setenta y cuatro", "alp_en": "contra"},
- {"texto": "Tónico Rice setenta de Anua: [surprised] ¡trescientos noventa y dos! [confident] contra doscientos setenta y seis.", "ulta_en": "trescientos noventa y dos", "alp_en": "contra"},
- {"texto": "[curious] Sérum de ácido azelaico de Anua: cuatrocientos once... [confident] contra doscientos ochenta y uno.", "ulta_en": "cuatrocientos once", "alp_en": "contra"},
- {"texto": "Crema PDRN de Anua: [surprised] ¡cuatrocientos cuarenta y nueve! [confident] contra trescientos tres.", "ulta_en": "cuatrocientos cuarenta y nueve", "alp_en": "contra"},
- {"texto": "[excited] Sérum PDRN de Anua: [surprised] ¡quinientos veintitrés! [confident] contra trescientos cincuenta y cuatro.", "ulta_en": "quinientos veintitrés", "alp_en": "contra"},
- {"texto": "Pads de colágeno de COSRX: cuatrocientos ochenta y seis... [confident] contra trescientos veinticuatro.", "ulta_en": "cuatrocientos ochenta y seis", "alp_en": "contra"},
- {"texto": "[curious] Crema de ácido hialurónico de COSRX: [surprised] ¡cuatrocientos sesenta y siete! [confident] contra doscientos cincuenta y siete.", "ulta_en": "cuatrocientos sesenta y siete", "alp_en": "contra"},
- {"texto": "[excited] Y la última: crema B cinco de Skin ten o four. [surprised] ¡Cuatrocientos sesenta y siete! [playful] contra doscientos cinco.", "ulta_en": "Cuatrocientos sesenta y siete", "alp_en": "contra"},
- {"texto": "[warm] Mismo producto, original de Corea, en pesos, y sin cruzar la frontera. [calm] Se pide a Corea, con pedido mínimo de seis mil pesos. [excited] ¡Pídelo en alpacca punto em equis!"}
+ {"texto": "[warm] Parte dos: más precios de Ulta contra mi tienda."},
+ {"texto": "Me faltaron un montón de productos coreanos. Vamos."},
+ {"texto": "Ampolleta Probio-Cica de Skin ten o four: en Ulta, seiscientos treinta y cinco pesos. [confident] Conmigo, trescientos nueve.", "ulta_en": "en Ulta", "alp_en": "Conmigo"},
+ {"texto": "Peel Shot de arroz blanco de Doctor Melaxin: en Ulta, cuatrocientos ochenta y seis. [confident] Conmigo, doscientos setenta y tres.", "ulta_en": "en Ulta", "alp_en": "Conmigo"},
+ {"texto": "Aceite desmaquillante de Anua: trescientos setenta y cuatro, [confident] contra doscientos sesenta y uno.", "ulta_en": "trescientos setenta y cuatro", "alp_en": "contra"},
+ {"texto": "Tónico Rice setenta de Anua: trescientos noventa y dos, [confident] contra doscientos setenta y seis.", "ulta_en": "trescientos noventa y dos", "alp_en": "contra"},
+ {"texto": "Sérum de ácido azelaico de Anua: cuatrocientos once, [confident] contra doscientos ochenta y uno.", "ulta_en": "cuatrocientos once", "alp_en": "contra"},
+ {"texto": "Crema PDRN de Anua: cuatrocientos cuarenta y nueve, [confident] contra trescientos tres.", "ulta_en": "cuatrocientos cuarenta y nueve", "alp_en": "contra"},
+ {"texto": "Sérum PDRN de Anua: quinientos veintitrés, [confident] contra trescientos cincuenta y cuatro.", "ulta_en": "quinientos veintitrés", "alp_en": "contra"},
+ {"texto": "Pads de colágeno de COSRX: cuatrocientos ochenta y seis, [confident] contra trescientos veinticuatro.", "ulta_en": "cuatrocientos ochenta y seis", "alp_en": "contra"},
+ {"texto": "Crema de ácido hialurónico de COSRX: cuatrocientos sesenta y siete, [confident] contra doscientos cincuenta y siete.", "ulta_en": "cuatrocientos sesenta y siete", "alp_en": "contra"},
+ {"texto": "Y la última: crema B cinco de Skin ten o four. Cuatrocientos sesenta y siete, [confident] contra doscientos cinco.", "ulta_en": "Cuatrocientos sesenta y siete", "alp_en": "contra"},
+ {"texto": "[warm] Mismo producto, original de Corea, en pesos y sin cruzar la frontera. Se pide a Corea, con pedido mínimo de seis mil pesos. Pídelo en alpacca punto em equis."}
 ]

@@ -6,7 +6,7 @@ import base64, json, os, subprocess, urllib.request
 AQUI = os.path.dirname(os.path.abspath(__file__))
 VOZ_DIR = os.path.join(AQUI, "voz")
 VOZ = "BSKpxzmNBPkRKNFMmKrv"
-MODELO, ESTABILIDAD = "eleven_v4", 0.3  # v4 con etiquetas de emoción ([excited], [surprised]...); no se leen en voz alta
+MODELO, ESTABILIDAD = "eleven_v4", 0.5  # v4 con pocas etiquetas de tono ([warm], [confident]); no se leen en voz alta
 INICIO, PAUSA, COLA = 0.25, 0.28, 1.6
 VEL = 1.1  # la voz se acelera 10% (atempo no cambia el tono ni la entonación)
 SR = 44100
