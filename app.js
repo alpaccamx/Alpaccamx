@@ -6567,7 +6567,7 @@ function renderMisDirecciones() {
   document.getElementById("addr-list").innerHTML = (list.length ? list.map((d) => `<div class="rounded-2xl border ${d.principal ? "border-rose-deep/40 bg-blush/15" : "border-ink/10 bg-white"} p-3 text-sm">
       <div class="flex items-center justify-between gap-2"><b>📍 ${escapeHtml(d.alias || "Mi dirección")}</b>${d.principal ? '<span class="rounded-full bg-rose-deep px-2 py-0.5 text-[10px] font-bold text-cream">PRINCIPAL</span>' : ""}</div>
       <p class="mt-1">${escapeHtml(d.nombre)}</p><p class="text-ink/75">${escapeHtml(direccionLinea(d))}</p>${d.telefono ? `<p class="text-xs text-ink/60">Tel. ${escapeHtml(d.telefono)}</p>` : ""}
-      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1">${btn(`data-addr-edit="${escapeAttr(d.id)}"`, "Editar", "text-rose-ink")}${d.principal ? "" : btn(`data-addr-principal="${escapeAttr(d.id)}"`, "Usar como principal")}${btn(`data-addr-del="${escapeAttr(d.id)}"`, "Borrar")}</div>
+      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1">${btn(`data-addr-edit="${escapeAttr(d.id)}"`, "Editar", "text-rose-ink")}${d.principal ? "" : btn(`data-addr-principal="${escapeAttr(d.id)}"`, "Usar como principal")}${btn(`data-addr-del="${escapeAttr(d.id)}"`, "Borrar", "text-red-700")}</div>
     </div>`).join("") : '<p class="rounded-2xl bg-pill px-4 py-5 text-center text-sm text-ink/70">Todavía no tienes direcciones guardadas. Agrega una y ya no tendrás que escribirla al pedir.</p>')
     + (list.length < MAX_DIRECCIONES ? '<button type="button" data-addr-new class="w-full rounded-full border-2 border-dashed border-rose-deep/40 py-2.5 text-sm font-semibold text-rose-ink hover:bg-blush/20">+ Agregar dirección</button>' : "");
 }
@@ -6612,7 +6612,7 @@ function initMisDirecciones() {
     const pri = t.closest("[data-addr-principal]");
     if (pri) { direccionesPost({ accion: "principal", id: pri.dataset.addrPrincipal }).then(renderMisDirecciones, (err) => alert(err.message)); return; }
     const del = t.closest("[data-addr-del]");
-    if (del && confirm("¿Borrar esta dirección?")) direccionesPost({ accion: "borrar", id: del.dataset.addrDel }).then(renderMisDirecciones, (err) => alert(err.message));
+    if (del && confirm("¿Borrar esta dirección? Esto no se puede deshacer.")) direccionesPost({ accion: "borrar", id: del.dataset.addrDel }).then(renderMisDirecciones, (err) => alert(err.message));
   });
   view.addEventListener("submit", async (e) => {
     const form = e.target.closest("[data-addr-form]");
