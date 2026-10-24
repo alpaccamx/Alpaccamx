@@ -159,7 +159,7 @@ def escena_texto(fr_gen, lineas, sub=None):
             if b: pill(d, W / 2, y + 96 * 1.12 * (lineas.count("\n") + 1) + 70, sub, F("Bold", 48), PINK + (int(255 * b),), (255, 255, 255, int(255 * b)))
         L.alpha_composite(O); yield L
 
-SFX = []  # (segundo, sonido): clicks/brillos que se mezclan con la voz
+SFX = []  # (segundo, sonido): click, glitter y pop (recortados del video de sonidos de TikTok que mandó Mae)
 S = 0.5    # tamaño de las capturas chiquitas
 _sombra = Image.new("L", (1, H)); [_sombra.putpixel((0, y), int(170 * max(0, (y - 900) / (H - 900)) ** 1.3)) for y in range(H)]
 SOMBRA = Image.new("RGBA", (W, H), (0, 0, 0, 255)); SOMBRA.putalpha(_sombra.resize((W, H)))
@@ -197,7 +197,8 @@ def escena_producto(i, prod, n, nu, na, f0=0):
     eu = etiqueta(f"${usd:.0f} USD = {mxn(usd * TC)}", ULTA); ea = etiqueta(f"{mxn(alp)} pesos", PINK)
     badge = etiqueta(f"Ahorras {mxn(ahorro)}", GREEN, F("ExtraBold", 54))
     xl, xr, y = W * 0.27, W * 0.73, 1000
-    SFX.append(((f0 + nu) / FPS, "click")); SFX.append(((f0 + na) / FPS, "brillo"))
+    SFX.append(((f0 + nu) / FPS, "click")); SFX.append(((f0 + na) / FPS, "glitter"))
+    SFX.append(((f0 + na) / FPS + 0.5, "pop"))  # cuando sale el "Ahorras $..."
     vel = min(1.0, 4.8 / (n / FPS))  # en cámara lenta para que el clip no se salga del producto
     for k, fr in enumerate(frames(clip, ini, n, speed=vel)):
         t = k / FPS
@@ -282,10 +283,10 @@ if __name__ == "__main__":
     if os.path.exists(_tj) and os.path.exists(voz):  # se le pone la voz
         final = OUT.replace(".mp4", "-voz.mp4")
         # voz + clicks/brillos (cada sonido entra con su retraso, más bajito que la voz)
-        GAN = {"click": 0.35, "brillo": 0.45}
+        GAN = {"click": 0.3, "glitter": 0.35, "pop": 0.35}
         ins, fil = ["-i", OUT, "-i", voz], ["[1:a]aformat=channel_layouts=stereo[v]"]
         for j, (t, s) in enumerate(SFX):
-            ins += ["-i", os.path.join(AQUI, "sfx", s + ".mp3")]
+            ins += ["-i", os.path.join(AQUI, "sfx", s + ".wav")]
             ms = int(t * 1000)
             fil.append(f"[{j + 2}:a]aformat=channel_layouts=stereo,adelay={ms}|{ms},volume={GAN[s]}[s{j}]")
         fil.append("[v]" + "".join(f"[s{j}]" for j in range(len(SFX))) + f"amix=inputs={len(SFX) + 1}:normalize=0:duration=first[a]")
