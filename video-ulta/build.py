@@ -218,7 +218,8 @@ def escena_producto(i, prod, n, nu, na, f0=0):
                 paste(L, bd, (W / 2 - bd.width / 2, 1815 - bd.height / 2), min(1.0, tb / 0.1))
         yield L
 
-ALPACA = Image.open(os.path.join(os.path.dirname(AQUI), "assets", "alpaca-surtir.webp")).convert("RGBA").resize((300, 300), Image.LANCZOS)
+ALPACA = Image.open(os.path.join(AQUI, "alpaca.png")).convert("RGBA")  # dibujo de Mae para este video
+ALPACA = ALPACA.resize((int(ALPACA.width * 340 / ALPACA.height), 340), Image.LANCZOS)
 BENEFICIOS = [("Pagas en pesos", "transferencia o tarjeta"), ("Te llega a tu casa", "envíos a todo México"),
               ("Te atiendo yo", "por WhatsApp, en todo tu pedido"), ("¿Lo revendes?", "por caja te sale aún más barato")]
 
