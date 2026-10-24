@@ -29,6 +29,7 @@
 //   aprobar_pago      { kind, id }
 //   rechazar_pago     { kind, id, motivo }
 //   marcar_enviado    { id, paqueteria, guia }
+//   corregir_guia     { id, paqueteria, guia }
 //   marcar_entregado  { id }
 //   cancelar          { kind, id, motivo? }
 //   notas             { kind, id, notaClienta?, notaPrivada? }
@@ -461,6 +462,18 @@ exports.handler = async (event) => {
         if (!rec) return json(404, { error: "No existe ese envío." });
         await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => { p.status = "enviado"; push(p, "enviado"); return p; })));
         await avisar(rec, `tu envío ${rec.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${esc(rec.paqueteria)}</b>${rec.guia ? `<br>Guía: <b>${esc(rec.guia)}</b>` : ""}</p>`);
+        return json(200, { envio: rec });
+      }
+
+      // Corregir la paquetería o el número de guía de un envío que ya salió.
+      case "corregir_guia": {
+        if (!clip(b.guia, 80)) return json(400, { error: "Pon el número de guía." });
+        const rec = await mutateRecord("envio", id, (e) => {
+          if (!["enviado", "entregado"].includes(e.status)) return null;
+          e.paqueteria = clip(b.paqueteria, 40) || "Estafeta"; e.guia = clip(b.guia, 80); e.updatedAt = now(); return e;
+        });
+        if (!rec) return json(409, { error: "Ese envío todavía no sale." });
+        await avisar(rec, `corregimos la guía de tu envío ${rec.folio} 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">Tu guía correcta</h2><p style="font-size:14px;">Paquetería: <b>${esc(rec.paqueteria)}</b><br>Guía: <b>${esc(rec.guia)}</b></p>`);
         return json(200, { envio: rec });
       }
 

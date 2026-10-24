@@ -125,6 +125,9 @@ async function cotizarEnvio(id, b = {}) {
     e.cotizacion = { cruce, consolidacion, sinRegistro, extras, envio: envioMX, total: round2(cruce + consolidacion + sinRegistro + extras + envioMX), at, ...(premioLealtad ? { premioLealtad: true, lealtadPct: LEALTAD_PCT, cruceSinDescuento: cruceLleno } : {}) };
     e.premioLealtad = premioLealtad;
     if (b.notaClienta != null) e.notaClienta = String(b.notaClienta).slice(0, 1000);
+    // Guía hecha por fuera (anotada a mano): sale sola en cuanto pague.
+    const guia = String(b.guia ?? "").trim().slice(0, 80);
+    if (guia) { e.guia = guia; e.paqueteria = String(b.paqueteria ?? "").trim().slice(0, 40) || "Estafeta"; }
     if (e.cotizacion.total > 0) {
       e.pago = { status: "pendiente", monto: e.cotizacion.total };
       e.status = "cotizado";
@@ -139,6 +142,7 @@ async function cotizarEnvio(id, b = {}) {
   });
   const c = rec.cotizacion;
   if (!(c.total > 0)) {
+    if (rec.guia) return { envio: await despacharConGuia(rec) };
     await avisar(rec, `tu envío ${rec.folio} está listo`, `<h2 style="margin:0 0 8px;font-size:20px;">Tu envío está listo</h2><p style="font-size:14px;">No tienes nada que pagar: tu cruce ya estaba pagado.${rec.notaClienta ? ` ${escHTML(rec.notaClienta)}` : ""}</p>`);
     return { envio: rec };
   }
