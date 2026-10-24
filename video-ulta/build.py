@@ -1,10 +1,11 @@
 """Video "Ulta vs Alpacca": clips de la tienda Ulta + capturas de ulta.com y de
-alpacca.mx con el precio marcado. 1080x1920, 30 fps, sin audio (los clips
-traen la música de la tienda; el sonido se pone en TikTok/Instagram).
+alpacca.mx con el precio marcado. 1080x1920, 30 fps. Los clips traen la música
+de la tienda y no se usa: si ya corriste voz.py, se le pone la voz de Mae
+(salida-voz.mp4) y la música se pone en TikTok/Instagram.
 
 Uso: python3 build.py CARPETA_DE_CLIPS [salida.mp4]
 La carpeta de clips tiene los IMG_05xx.MOV originales del iPhone."""
-import os, subprocess, sys
+import json, os, subprocess, sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -65,12 +66,13 @@ def paste(base, im, xy, a=1.0):
     base.alpha_composite(im, (int(xy[0]), int(xy[1])))
 
 # ---------- clips ----------
-def frames(clip, start, dur, speed=1.0):
+def frames(clip, start, n, speed=1.0):
+    dur = n / FPS + 0.2
     vf = f"setpts=PTS/{speed},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS}"
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-ss", str(start), "-t", f"{dur * speed:.3f}",
                           "-i", os.path.join(CLIPS, clip + ".MOV"), "-vf", vf, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
                          stdout=subprocess.PIPE)
-    n, last = int(round(dur * FPS)), None
+    last = None
     for _ in range(n):
         b = p.stdout.read(W * H * 3)
         if len(b) == W * H * 3: last = Image.frombytes("RGB", (W, H), b).convert("RGBA")
@@ -141,7 +143,7 @@ CORTOS = {"foam": "Anua Heartleaf Foam", "niacin": "Anua Niacinamide Serum", "sn
           "fixer": "TIRTIR Make Up Fixer", "toner": "TIRTIR Milk Toner", "althea": "Dr. Althea 345 Cream"}
 
 # ---------- escenas ----------
-def escena_texto(fr_gen, dur, lineas, sub=None):
+def escena_texto(fr_gen, lineas, sub=None):
     for k, fr in enumerate(fr_gen):
         t = k / FPS
         L = fr.copy()
@@ -155,19 +157,19 @@ def escena_texto(fr_gen, dur, lineas, sub=None):
             if b: pill(d, W / 2, y + 96 * 1.12 * (lineas.count("\n") + 1) + 70, sub, F("Bold", 48), PINK + (int(255 * b),), (255, 255, 255, int(255 * b)))
         L.alpha_composite(O); yield L
 
-def escena_producto(i, prod):
+def escena_producto(i, prod, n, nu, na):
+    """n cuadros en total; la captura de Ulta entra en el cuadro nu y la de Alpacca en na"""
     key, marca, nombre, clip, ini, usd, alp, yu, ya = prod
     tit = capa_titulo(i, marca, nombre)
     cu, bu = captura("ulta-" + key, yu, True); ca, ba = captura("alp-" + key, ya, False)
     pu, pa = capa_precio(True, usd, alp), capa_precio(False, usd, alp)
-    A, B = 1.7, 1.45  # clip, cada captura
     last = None
-    for k, fr in enumerate(frames(clip, ini, A)):
+    for k, fr in enumerate(frames(clip, ini, nu)):
         L = fr.copy(); a = ease(k / FPS / 0.3); paste(L, tit, (0, (1 - a) * -40), a); last = fr; yield L
     bg = fondo_borroso(last)
-    for card, box, capa, color in ((cu, bu, pu, ULTA), (ca, ba, pa, PINK)):
+    for card, box, capa, color, m in ((cu, bu, pu, ULTA, na - nu), (ca, ba, pa, PINK, n - na)):
         x = (W - card.width) / 2
-        for k in range(int(round(B * FPS))):
+        for k in range(m):
             t = k / FPS; L = bg.copy()
             a = ease(t / 0.28)
             c = card.copy(); marca_precio(c, box, t - 0.3, color)
@@ -175,11 +177,11 @@ def escena_producto(i, prod):
             paste(L, capa, (0, (1 - a) * 30), a)
             yield L
 
-def escena_final(dur):
+def escena_final(n):
     filas = []
     for key, marca, nombre, clip, ini, usd, alp, yu, ya in PRODUCTOS:
         filas.append((CORTOS[key], mxn(usd * TC), mxn(alp), round((1 - alp / (usd * TC)) * 100)))
-    for k in range(int(round(dur * FPS))):
+    for k in range(n):
         t = k / FPS
         L = Image.new("RGBA", (W, H), (255, 255, 255, 255)); O = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(O)
         a = ease(t / 0.3)
@@ -208,12 +210,25 @@ def escena_final(dur):
             text_c(d, W / 2, 1650, nota, F("Medium", 25), GREY + (int(255 * c),), lh=1.4)
         L.alpha_composite(O); yield L
 
+# Tiempos: si existe tiempos.json (de voz.py) cada escena dura lo que su frase y las
+# capturas entran cuando se dice cada precio; si no, los tiempos de abajo (sin voz).
+_tj = os.path.join(AQUI, "tiempos.json")
+TIEMPOS = json.load(open(_tj)) if os.path.exists(_tj) else (
+    [{"dur": 3.0}, {"dur": 2.2}] + [{"dur": 4.6, "ulta": 1.7, "alp": 3.15}] * len(PRODUCTOS) + [{"dur": 6.0}])
+assert len(TIEMPOS) == len(PRODUCTOS) + 3
+
 def escenas():
-    yield from escena_texto(frames("IMG_0553", 0.0, 3.0, speed=2.0), 3.0, "Fui a ULTA\na comparar precios", "vs mi tienda")
-    yield from escena_texto(frames("IMG_0543", 0.4, 2.2), 2.2, "Su sección de\nK-Beauty", "¿es más barato?")
+    # cuadros por escena sobre una línea de tiempo acumulada (así no se desfasa del audio)
+    ini = [0.0]
+    for e in TIEMPOS: ini.append(ini[-1] + e["dur"])
+    q = lambda s: int(round(s * FPS))
+    n = [q(ini[j + 1]) - q(ini[j]) for j in range(len(TIEMPOS))]
+    yield from escena_texto(frames("IMG_0553", 0.0, n[0], speed=2.0), "Fui a ULTA\na comparar precios", "vs mi tienda")
+    yield from escena_texto(frames("IMG_0543", 0.4, n[1]), "Su sección de\nK-Beauty", "¿es más barato?")
     for i, prod in enumerate(PRODUCTOS, 1):
-        yield from escena_producto(i, prod)
-    yield from escena_final(6.0)
+        e = TIEMPOS[i + 1]
+        yield from escena_producto(i, prod, n[i + 1], q(e["ulta"]), q(e["alp"]))
+    yield from escena_final(n[-1])
 
 if __name__ == "__main__":
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
@@ -223,3 +238,9 @@ if __name__ == "__main__":
     for fr in escenas():
         p.stdin.write(fr.convert("RGB").tobytes()); n += 1
     p.stdin.close(); p.wait(); print("ok", OUT, f"{n / FPS:.1f}s")
+    voz = os.path.join(AQUI, "voz", "narracion.wav")
+    if os.path.exists(_tj) and os.path.exists(voz):  # se le pone la voz
+        final = OUT.replace(".mp4", "-voz.mp4")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", OUT, "-i", voz, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                        "-shortest", "-movflags", "+faststart", final], check=True)
+        print("ok", final)
