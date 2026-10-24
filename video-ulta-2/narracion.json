@@ -1,10 +1,9 @@
 [
  {
-  "texto": "[excited] Parte dos. Esta ampolleta en Ulta cuesta seiscientos treinta y nueve pesos. [confident] Conmigo, trescientos nueve. [playful] Y me faltaron un montón. ¡Vamos!",
+  "texto": "[excited] Parte dos. Esta ampolleta en Ulta cuesta seiscientos treinta y nueve pesos. [confident] Conmigo, trescientos nueve.",
   "marcas": [
    "seiscientos",
-   "Conmigo",
-   "Y me faltaron"
+   "Conmigo"
   ]
  },
  {
@@ -25,11 +24,6 @@
  {
   "texto": "Sérum siete Rice Ceramide de Anua: cuatrocientos catorce, [confident] contra doscientos ochenta y uno.",
   "ulta_en": "cuatrocientos catorce",
-  "alp_en": "contra"
- },
- {
-  "texto": "Tónico Rice setenta de Anua: trescientos noventa y cinco, [confident] contra doscientos setenta y seis.",
-  "ulta_en": "trescientos noventa y cinco",
   "alp_en": "contra"
  },
  {

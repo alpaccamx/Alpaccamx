@@ -27,7 +27,6 @@ PRODUCTOS = [
     ("snail96",  "COSRX", "Advanced Snail 96\nMucin Essence",    "IMG_0547", 96.0,  20.90, 224, 751.6, 751.9),
     ("snail92",  "COSRX", "Advanced Snail 92\nAll In One Cream", "IMG_0548", 120.0, 21.90, 251, 751.6, 667.9),
     ("eyepatch", "COSRX", "Peptide Collagen\nHydrogel Eye Patch", "IMG_0547", 125.0, 23.00, 288, 751.6, 667.9),
-    ("niacin",   "ANUA", "Niacinamide 10\nTXA 4 Serum",          "IMG_0547", 51.6,  22.00, 281, 800.6, 691.9),
     ("toner",    "TIRTIR", "Milk Skin Toner\n150 ml",            "IMG_0548", 161.0, 25.00, 301, 751.6, 751.9),
     ("althea147", "Dr. Althea", "147 Barrier Cream",             "IMG_0545", 41.3,  27.00, 324, 800.6, 691.9),
 ]

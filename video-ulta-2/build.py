@@ -28,7 +28,6 @@ PRODUCTOS = [
     ("whiterice", "Dr.Melaxin", "Peel Shot White\nRice Ampoule",        "IMG_0547", 9.0,   26.00, 273, 751.6, 667.9),
     ("pdrnserum", "ANUA", "PDRN Capsule\n100 Serum",                    "IMG_0548", 14.5,  28.00, 354, 776.6, 691.9),
     ("ceramide",  "ANUA", "7 Rice Ceramide\nBarrier Serum",             "IMG_0547", 37.0,  22.00, 281, 776.6, 691.9),
-    ("rice70",    "ANUA", "Rice 70 Glow\nMilky Toner 250 ml",           "IMG_0547", 26.6,  21.00, 276, 776.6, 691.9),
     ("b5",        "SKIN1004", "Tea-Trica\nB5 Cream",                    "IMG_0550", 0.2,   25.00, 205, 776.6, 691.9),
 ]
 

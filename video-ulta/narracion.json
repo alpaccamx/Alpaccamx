@@ -1,10 +1,9 @@
 [
  {
-  "texto": "[excited] Esta crema en Ulta cuesta quinientos ocho pesos, y ni la tenían. [confident] Conmigo, trescientos veinticuatro. [curious] Así que fui a comparar todo el skincare coreano.",
+  "texto": "[excited] Esta crema en Ulta cuesta quinientos ocho pesos, y ni la tenían. [confident] Conmigo, trescientos veinticuatro.",
   "marcas": [
    "quinientos ocho",
-   "Conmigo",
-   "Así que"
+   "Conmigo"
   ]
  },
  {
@@ -21,11 +20,6 @@
   "texto": "Parches para ojos de cos ar ex: cuatrocientos treinta y dos, [confident] contra doscientos ochenta y ocho.",
   "ulta_en": "cuatrocientos treinta y dos",
   "alp_en": "contra"
- },
- {
-  "texto": "Sérum de niacinamida de Anua: en Ulta, cuatrocientos catorce. [confident] Conmigo, doscientos ochenta y uno.",
-  "ulta_en": "en Ulta",
-  "alp_en": "Conmigo"
  },
  {
   "texto": "Milk Toner de TIRTIR: cuatrocientos setenta, [confident] contra trescientos uno.",
