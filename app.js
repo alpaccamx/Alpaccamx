@@ -555,6 +555,51 @@ function wishlistButtonHTML(id) {
 /* Un solo listener delegado (en vez de "wire" en cada grid) para que
    funcione en CUALQUIER tarjeta de producto sin importar en qué sección
    se pintó -- catálogo, búsqueda, marca, stock, favoritos, etc. */
+/* Teléfonos: mientras escribe se agrupan los dígitos (55 1234 5678 o
+   656 123 4567) y, si no son 10, el aviso dice exactamente qué falta.
+   Los servidores ya guardan solo los dígitos, así que los espacios no
+   afectan búsquedas ni avisos. Un número que empieza con "+" (extranjero)
+   se deja como lo escriba. */
+const PHONE_INPUTS = ["customer-phone", "signup-phone", "settings-phone", "restock-phone", "americano-customer-phone"];
+function formatPhoneMX(v) {
+  if (/^\s*\+/.test(v)) return v;
+  const d = v.replace(/\D/g, "").slice(0, 10);
+  const corto = /^(55|56|33|81)/.test(d);
+  const a = corto ? 2 : 3, b = 6;
+  if (d.length <= a) return d;
+  if (d.length <= b) return `${d.slice(0, a)} ${d.slice(a)}`;
+  return `${d.slice(0, a)} ${d.slice(a, b)} ${d.slice(b)}`;
+}
+function phoneProblem(v) {
+  const t = String(v || "").trim();
+  if (!t) return "";
+  const n = t.replace(/\D/g, "").length;
+  if (/^\+/.test(t)) return n >= 11 ? "" : "Revisa tu número: con lada internacional lleva al menos 11 dígitos.";
+  return n === 10 ? "" : `Tu teléfono debe tener 10 dígitos (llevas ${n}).`;
+}
+function initPhoneMasks() {
+  for (const id of PHONE_INPUTS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const check = () => el.setCustomValidity(phoneProblem(el.value));
+    el.addEventListener("input", () => {
+      // Solo se reacomoda si escribe al final, para no brincarle el cursor.
+      if (el.selectionStart === el.value.length) el.value = formatPhoneMX(el.value);
+      check();
+    });
+    el.addEventListener("blur", () => { el.value = formatPhoneMX(el.value); check(); });
+    // Al prellenarse desde la cuenta o vaciarse al cerrar, se revisa de nuevo.
+    el.addEventListener("focus", check);
+    check();
+  }
+  const cp = document.getElementById("customer-cp");
+  if (cp) cp.addEventListener("input", () => {
+    const d = cp.value.replace(/\D/g, "").slice(0, 5);
+    if (d !== cp.value) cp.value = d;
+    cp.setCustomValidity(d && d.length !== 5 ? `El código postal lleva 5 dígitos (llevas ${d.length}).` : "");
+  });
+}
+
 function initWishlist() {
   updateWishlistCountBadge();
   document.addEventListener("click", (e) => {
@@ -7628,6 +7673,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderBenefits();
   initWhatsAppFloat();
   initAccountPanel();
+  initPhoneMasks();
   initWishlist();
   initRestock();
   initReviews();
