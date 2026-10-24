@@ -29,7 +29,7 @@ PRODUCTOS = [
     ("peptide",  "COSRX", "The 6 Peptide\nSkin Booster",         "IMG_0548", 74.5,  21.00, 301, 775.6, 667.9),
     ("eyepatch", "COSRX", "Peptide Collagen\nHydrogel Eye Patch", "IMG_0547", 125.0, 23.00, 288, 751.6, 667.9),
     ("fixer",    "TIRTIR", "Mask Fit\nMake Up Fixer",            "IMG_0549", 1.0,   15.00, 173, 776.6, 751.9),
-    ("toner",    "TIRTIR", "Milk Skin Toner",                    "IMG_0548", 161.0, 25.00, 160, 751.6, 751.9),
+    ("toner",    "TIRTIR", "Milk Skin Toner\n150 ml",            "IMG_0548", 161.0, 25.00, 301, 751.6, 751.9),
     ("althea",   "Dr. Althea", "345 Relief Cream",               "IMG_0546", 0.6,   27.00, 324, 751.6, 691.9),
 ]
 
