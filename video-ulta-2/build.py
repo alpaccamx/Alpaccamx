@@ -193,9 +193,9 @@ def escena_producto(i, prod, n, nu, na, f0=0):
     key, marca, nombre, clip, ini, usd, alp, yu, ya = prod
     tit = capa_titulo(i, marca, nombre)
     (cu, bu), (ca, ba) = mini(*captura("ulta-" + key, yu, True)), mini(*captura("alp-" + key, ya, False))
-    ahorro = round((1 - alp / (usd * TC)) * 100)
+    ahorro = round(usd * TC) - alp  # en pesos, con los mismos números redondeados que se muestran
     eu = etiqueta(f"${usd:.0f} USD = {mxn(usd * TC)}", ULTA); ea = etiqueta(f"{mxn(alp)} pesos", PINK)
-    badge = etiqueta(f"{ahorro}% menos", GREEN, F("ExtraBold", 54))
+    badge = etiqueta(f"Ahorras {mxn(ahorro)}", GREEN, F("ExtraBold", 54))
     xl, xr, y = W * 0.27, W * 0.73, 1000
     SFX.append(((f0 + nu) / FPS, "click")); SFX.append(((f0 + na) / FPS, "brillo"))
     vel = min(1.0, 4.8 / (n / FPS))  # en cámara lenta para que el clip no se salga del producto
@@ -220,7 +220,7 @@ def escena_producto(i, prod, n, nu, na, f0=0):
 def escena_final(n):
     filas = []
     for key, marca, nombre, clip, ini, usd, alp, yu, ya in PRODUCTOS:
-        filas.append((CORTOS[key], mxn(usd * TC), mxn(alp), round((1 - alp / (usd * TC)) * 100)))
+        filas.append((CORTOS[key], mxn(usd * TC), mxn(alp), round(usd * TC) - alp))
     for k in range(n):
         t = k / FPS
         L = Image.new("RGBA", (W, H), (255, 255, 255, 255)); O = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(O)
@@ -240,7 +240,7 @@ def escena_final(n):
             d.text((700, y), u, font=F("SemiBold", 36), fill=GREY + (al_,), anchor="rm")
             d.text((870, y), al, font=F("ExtraBold", 38), fill=DEEP + (al_,), anchor="rm")
             d.rounded_rectangle((890, y - 26, 1010, y + 26), 26, fill=GREEN + (al_,))
-            d.text((950, y + 2), f"-{ah}%", font=F("Bold", 30), fill=(255, 255, 255, al_), anchor="mm")
+            d.text((950, y + 2), f"-{mxn(ah)}", font=F("Bold", 30), fill=(255, 255, 255, al_), anchor="mm")
         c = ease((t - 1.6) / 0.4)
         if c:
             pill(d, W / 2, 1530, "alpacca.mx", F("ExtraBold", 64), PINK + (int(255 * c),), (255, 255, 255, int(255 * c)), padx=50, pady=22)
