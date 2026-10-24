@@ -425,8 +425,8 @@ def escena_comunidad(n, e):
 # capturas entran cuando se dice cada precio; si no, los tiempos de abajo (sin voz).
 _tj = os.path.join(AQUI, "tiempos.json")
 TIEMPOS = json.load(open(_tj)) if os.path.exists(_tj) else (
-    [{"dur": 4.0}] + [{"dur": 4.6, "ulta": 1.7, "alp": 3.15}] * len(PRODUCTOS) + [{"dur": 6.0}, {"dur": 6.0}])
-assert len(TIEMPOS) == len(PRODUCTOS) + 3  # gancho, productos, beneficios, comunidad
+    [{"dur": 4.0}, {"dur": 3.5}] + [{"dur": 4.6, "ulta": 1.7, "alp": 3.15}] * len(PRODUCTOS) + [{"dur": 6.0}, {"dur": 6.0}])
+assert len(TIEMPOS) == len(PRODUCTOS) + 4  # gancho, contexto, productos, beneficios, comunidad
 
 def escenas():
     # cuadros por escena sobre una línea de tiempo acumulada (así no se desfasa del audio)
@@ -435,9 +435,12 @@ def escenas():
     q = lambda s: int(round(s * FPS))
     n = [q(ini[j + 1]) - q(ini[j]) for j in range(len(TIEMPOS))]
     yield from escena_gancho(n[0], TIEMPOS[0], 0)
+    # contexto: entrando a la tienda (el clip completo se acelera para que quepa en la frase)
+    vel = (9.5 - 0.5) / (n[1] / FPS)
+    yield from escena_texto(frames("IMG_0552", 0.5, n[1], speed=vel), "Me faltaron\nun montón", "más precios de Ulta")
     for i, prod in enumerate(PRODUCTOS, 1):
-        e = TIEMPOS[i]
-        yield from escena_producto(i, prod, n[i], q(e["ulta"]), q(e["alp"]), q(ini[i]))
+        e = TIEMPOS[i + 1]
+        yield from escena_producto(i, prod, n[i + 1], q(e["ulta"]), q(e["alp"]), q(ini[i + 1]))
     yield from escena_final(n[-2], TIEMPOS[-2])
     yield from escena_comunidad(n[-1], TIEMPOS[-1])
 
