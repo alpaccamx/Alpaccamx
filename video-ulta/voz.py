@@ -6,8 +6,9 @@ import base64, json, os, subprocess, urllib.request
 AQUI = os.path.dirname(os.path.abspath(__file__))
 VOZ_DIR = os.path.join(AQUI, "voz")
 VOZ = "BSKpxzmNBPkRKNFMmKrv"
+MODELO, ESTABILIDAD = "eleven_v4", 0.5  # v4 con pocas etiquetas de tono ([warm], [confident]); no se leen en voz alta
 INICIO, PAUSA, COLA = 0.25, 0.28, 1.6
-VEL = 1.1  # la voz se acelera 10% (atempo no cambia el tono)
+VEL = 1.1  # la voz se acelera 10% (atempo no cambia el tono ni la entonación)
 SR = 44100
 
 
@@ -16,7 +17,7 @@ def tts(texto, n):
     if not os.path.exists(j):
         req = urllib.request.Request(
             f"https://api.elevenlabs.io/v1/text-to-speech/{VOZ}/with-timestamps?output_format=mp3_44100_128",
-            data=json.dumps({"text": texto, "model_id": "eleven_multilingual_v2"}).encode(),
+            data=json.dumps({"text": texto, "model_id": MODELO, "voice_settings": {"stability": ESTABILIDAD}}).encode(),
             headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req) as r: d = json.load(r)
         open(os.path.join(VOZ_DIR, f"frase{n:02d}.mp3"), "wb").write(base64.b64decode(d.pop("audio_base64")))

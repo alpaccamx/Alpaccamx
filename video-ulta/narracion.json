@@ -1,14 +1,14 @@
 [
- {"texto": "Fui a Ulta a comparar precios de skincare coreano contra mi tienda."},
- {"texto": "Esta es su sección de K-Beauty. ¿Será más barato?"},
- {"texto": "Foam de Anua: en Ulta, doscientos sesenta y dos pesos. Conmigo, ciento ochenta y siete.", "ulta_en": "en Ulta", "alp_en": "Conmigo"},
- {"texto": "Sérum de niacinamida de Anua: en Ulta, cuatrocientos once. Conmigo, doscientos ochenta y uno.", "ulta_en": "en Ulta", "alp_en": "Conmigo"},
- {"texto": "Crema Snail noventa y dos de COSRX: cuatrocientos nueve, contra doscientos cincuenta y uno.", "ulta_en": "cuatrocientos nueve", "alp_en": "contra"},
- {"texto": "Esencia Snail noventa y seis: trescientos noventa y uno, contra doscientos veinticuatro.", "ulta_en": "trescientos noventa y uno", "alp_en": "contra"},
- {"texto": "Six Peptide Booster: trescientos noventa y dos, contra trescientos uno.", "ulta_en": "trescientos noventa y dos", "alp_en": "contra"},
- {"texto": "Parches para ojos de COSRX: cuatrocientos treinta, contra doscientos ochenta y ocho.", "ulta_en": "cuatrocientos treinta", "alp_en": "contra"},
- {"texto": "Fijador de TIRTIR: doscientos ochenta, contra ciento setenta y tres.", "ulta_en": "doscientos ochenta,", "alp_en": "contra"},
- {"texto": "Milk Toner de TIRTIR: cuatrocientos sesenta y siete, contra trescientos uno.", "ulta_en": "cuatrocientos sesenta y siete", "alp_en": "contra"},
- {"texto": "Crema tres cuatro cinco de Doctor Althea: quinientos cinco, contra trescientos veinticuatro.", "ulta_en": "quinientos cinco", "alp_en": "contra"},
- {"texto": "Mismo producto, original de Corea, en pesos y sin cruzar la frontera. Se pide a Corea, con pedido mínimo de seis mil pesos. Pídelo en alpacca punto em equis."}
+ {"texto": "[excited] Fui a Ulta a comparar precios de skincare coreano contra mi tienda."},
+ {"texto": "[curious] Esta es su sección de K-Beauty. ¿Será más barato?"},
+ {"texto": "Foam de Anua: en Ulta, doscientos sesenta y dos pesos. [confident] Conmigo, ciento ochenta y siete.", "ulta_en": "en Ulta", "alp_en": "Conmigo"},
+ {"texto": "Sérum de niacinamida de Anua: en Ulta, cuatrocientos once. [confident] Conmigo, doscientos ochenta y uno.", "ulta_en": "en Ulta", "alp_en": "Conmigo"},
+ {"texto": "Crema Snail noventa y dos de coserreequis: cuatrocientos nueve, [confident] contra doscientos cincuenta y uno.", "ulta_en": "cuatrocientos nueve", "alp_en": "contra"},
+ {"texto": "Esencia Snail noventa y seis: trescientos noventa y uno, [confident] contra doscientos veinticuatro.", "ulta_en": "trescientos noventa y uno", "alp_en": "contra"},
+ {"texto": "Six Peptide Booster: trescientos noventa y dos, [confident] contra trescientos uno.", "ulta_en": "trescientos noventa y dos", "alp_en": "contra"},
+ {"texto": "Parches para ojos de coserreequis: cuatrocientos treinta, [confident] contra doscientos ochenta y ocho.", "ulta_en": "cuatrocientos treinta", "alp_en": "contra"},
+ {"texto": "Fijador de TIRTIR: doscientos ochenta, [confident] contra ciento setenta y tres.", "ulta_en": "doscientos ochenta,", "alp_en": "contra"},
+ {"texto": "Milk Toner de TIRTIR: cuatrocientos sesenta y siete, [confident] contra trescientos uno.", "ulta_en": "cuatrocientos sesenta y siete", "alp_en": "contra"},
+ {"texto": "Crema tres cuatro cinco de Doctor Althea: quinientos cinco, [confident] contra trescientos veinticuatro.", "ulta_en": "quinientos cinco", "alp_en": "contra"},
+ {"texto": "[warm] Mismo producto, original de Corea, en pesos y sin cruzar la frontera. Se pide a Corea, con pedido mínimo de seis mil pesos. Pídelo en alpacca punto eme equis."}
 ]
