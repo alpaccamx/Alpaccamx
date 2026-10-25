@@ -2806,6 +2806,9 @@ function openProductSheet(id, { fromRoute = false } = {}) {
   const overlay = document.getElementById("product-overlay");
   overlay.classList.remove("opacity-0", "pointer-events-none");
   document.title = `${p.marca ? `${p.marca} ` : ""}${p.nombre} — Alpacca`;
+  // Para que "Compartir" de Safari mande el link del producto y no el de la portada.
+  const canon = document.querySelector('link[rel="canonical"]');
+  if (canon) canon.href = productShareUrl(p);
   if (!fromRoute) {
     try {
       const search = `?p=${encodeURIComponent(p.stockSku || p.id)}`;
@@ -4722,7 +4725,9 @@ function setRouteMeta(r) {
   else if (r.ver === "personal-shopper") { title = r.tipo === "en-tienda" ? "Personal shopper: compras en vivo en tiendas de EE.UU. · Alpacca" : r.tipo === "en-linea" ? "Personal shopper: yo compro en línea por ti en EE.UU. · Alpacca" : "Personal shopper en EE.UU. · Alpacca"; canonical += "?ver=personal-shopper"; }
   else if (r.ver === "kits") { title = r.tipo === "maquillaje" ? "Kits de maquillaje coreano para emprender · Alpacca" : "Kits de skincare coreano para emprender · Alpacca"; canonical += "?ver=kits"; }
   else if (r.ver === "personal-shopper-en-usa") { title = "Personal shopper en USA: compras en vivo con Mae (video) · Alpacca"; canonical += "?ver=personal-shopper-en-usa"; }
-  else if (r.q) title = `Resultados para "${r.q}" — Alpacca`;
+  // Safari y algunos navegadores comparten el link "canónico": sin el
+  // ?q= se compartía solo alpacca.mx y no la búsqueda.
+  else if (r.q) { title = `Resultados para "${r.q}" — Alpacca`; canonical += `?q=${encodeURIComponent(r.q)}`; }
   document.title = title;
   const link = document.querySelector('link[rel="canonical"]');
   if (link) link.href = canonical;
