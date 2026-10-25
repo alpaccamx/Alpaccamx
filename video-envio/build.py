@@ -331,9 +331,8 @@ def escena_gancho(n, e, f0):
     SFX.append((0.3, "pop")); SFX.append((m[0], "click")); SFX.append((m[1], "click")); SFX.append((dur - 0.4, "glitter"))
     for f in range(n):
         t = f / FPS; L = fondo((f0 + f) / FPS)
-        s, al = entra(t, 0.0)
-        pon(L, linea("La historia", "ExtraBold", 112, INK), W / 2, 300, s, al)
-        pon(L, linea("de tu pedido 📦", "ExtraBold", 112, PINK), W / 2, 430, s, al)
+        pon(L, linea("La historia", "ExtraBold", 112, INK), W / 2, 300)  # desde el primer cuadro (es la portada)
+        pon(L, linea("de tu pedido 📦", "ExtraBold", 112, PINK), W / 2, 430)
         im = surtir_hablando(boca(f0 + f))
         sombra(L, W / 2, CY + im.height / 2 - 6, im.width * 0.6)
         pon(L, im, W / 2 + 6 * math.sin(t * 1.7), CY + 10 * math.sin(t * 3.2))
