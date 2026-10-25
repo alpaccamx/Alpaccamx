@@ -13,6 +13,7 @@
 const bcrypt = require("bcryptjs");
 const { getCustomerByEmail, updateCustomerFields } = require("./lib/customer-store.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
+const { phone10 } = require("./lib/phone.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -30,7 +31,7 @@ exports.handler = async (event) => {
   }
 
   const name = String(body.name || "").trim();
-  const phone = String(body.phone || "").replace(/[^0-9]/g, "");
+  const phone = phone10(body.phone);
   const currentPassword = String(body.currentPassword || "");
   const newPassword = String(body.newPassword || "");
 

@@ -10,6 +10,7 @@ const bcrypt = require("bcryptjs");
 const { createCustomer, getCustomerByEmail, normalizeEmail } = require("./lib/customer-store.js");
 const { signCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
+const { phone10 } = require("./lib/phone.js");
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -34,7 +35,7 @@ exports.handler = async (event) => {
 
   const name = String(body.name || "").trim();
   const email = normalizeEmail(body.email);
-  const phone = String(body.phone || "").replace(/[^0-9]/g, "");
+  const phone = phone10(body.phone);
   const password = String(body.password || "");
 
   if (!name) return jsonResponse(400, { error: "Falta tu nombre." });
