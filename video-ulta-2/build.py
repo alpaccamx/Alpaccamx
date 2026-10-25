@@ -359,7 +359,7 @@ def escena_gancho(n, e, f0=0):
     SFX.append(((f0 + round(m[1] * FPS)) / FPS + 0.5, "pop"))
     ahorro = round(usd * TC) - alp; badge = etiqueta(f"Ahorras {mxn(ahorro)}", GREEN, F("ExtraBold", 54))
     vel = min(1.0, 3.0 / (n / FPS))
-    titulo = 'Ulta vs\nmi tienda'; sub = 'Parte 2'
+    titulo = 'Ulta vs\nAlpacca'; sub = 'Parte 2'
     for k, fr in enumerate(frames(clip, ini, n, speed=vel)):
         t = k / FPS
         L = fr.copy(); L.alpha_composite(SOMBRA)
