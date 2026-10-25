@@ -8,6 +8,7 @@
 const { randomUUID } = require("crypto");
 const { saveRestockRequest } = require("./lib/blob-store.js");
 const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
+const { phone10 } = require("./lib/phone.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -30,7 +31,7 @@ exports.handler = async (event) => {
   const sku = String(body.sku || "").trim();
   const productName = String(body.productName || "").trim();
   const marca = String(body.marca || "").trim();
-  const phone = String(body.phone || "").replace(/[^0-9]/g, "");
+  const phone = phone10(body.phone);
   const name = String(body.name || "").trim();
 
   if (!productName) return jsonResponse(400, { error: "Falta el producto." });

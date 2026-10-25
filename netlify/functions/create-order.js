@@ -47,6 +47,7 @@ const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderPendingEmailHTML } = require("./lib/email.js");
 const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
+const { phone10 } = require("./lib/phone.js");
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -101,7 +102,7 @@ exports.handler = async (event) => {
 
   // Datos mínimos de contacto y envío: el servidor no confía en que el
   // formulario del navegador los haya validado.
-  const phoneDigits = String((customer && customer.phone) || "").replace(/\D/g, "");
+  const phoneDigits = phone10(customer && customer.phone);
   if (phoneDigits.length !== 10) {
     return jsonResponse(400, { error: "El teléfono debe tener 10 dígitos." });
   }
@@ -222,7 +223,7 @@ exports.handler = async (event) => {
     createdAt: new Date().toISOString(),
     customer: {
       name: String((customer && customer.name) || ""),
-      phone: String((customer && customer.phone) || ""),
+      phone: phoneDigits,
       cp: String((customer && customer.cp) || ""),
       street: String((customer && customer.street) || ""),
       colonia: String((customer && customer.colonia) || ""),

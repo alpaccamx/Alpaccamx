@@ -558,24 +558,29 @@ function wishlistButtonHTML(id) {
 /* Teléfonos: mientras escribe se agrupan los dígitos (55 1234 5678 o
    656 123 4567) y, si no son 10, el aviso dice exactamente qué falta.
    Los servidores ya guardan solo los dígitos, así que los espacios no
-   afectan búsquedas ni avisos. Un número que empieza con "+" (extranjero)
-   se deja como lo escriba. */
+   afectan búsquedas ni avisos. Si el autocompletado pone la lada de país
+   (+52, +1) se quita sola. */
 const PHONE_INPUTS = ["customer-phone", "signup-phone", "settings-phone", "restock-phone", "americano-customer-phone"];
+function phone10(v) {
+  const d = String(v || "").replace(/\D/g, "");
+  // Quita la lada de país que mete el autocompletado (+52, 52 1, +1).
+  if (d.length === 13 && d.startsWith("521")) return d.slice(3);
+  if (d.length === 12 && d.startsWith("52")) return d.slice(2);
+  if (d.length === 11 && d.startsWith("1")) return d.slice(1);
+  return d;
+}
 function formatPhoneMX(v) {
-  if (/^\s*\+/.test(v)) return v;
-  const d = v.replace(/\D/g, "").slice(0, 10);
-  const corto = /^(55|56|33|81)/.test(d);
-  const a = corto ? 2 : 3, b = 6;
+  const d = phone10(v);
+  if (d.length > 10) return d;
+  const a = /^(55|56|33|81)/.test(d) ? 2 : 3;
   if (d.length <= a) return d;
-  if (d.length <= b) return `${d.slice(0, a)} ${d.slice(a)}`;
-  return `${d.slice(0, a)} ${d.slice(a, b)} ${d.slice(b)}`;
+  if (d.length <= 6) return `${d.slice(0, a)} ${d.slice(a)}`;
+  return `${d.slice(0, a)} ${d.slice(a, 6)} ${d.slice(6)}`;
 }
 function phoneProblem(v) {
-  const t = String(v || "").trim();
-  if (!t) return "";
-  const n = t.replace(/\D/g, "").length;
-  if (/^\+/.test(t)) return n >= 11 ? "" : "Revisa tu número: con lada internacional lleva al menos 11 dígitos.";
-  return n === 10 ? "" : `Tu teléfono debe tener 10 dígitos (llevas ${n}).`;
+  const n = phone10(v).length;
+  if (!n) return "";
+  return n === 10 ? "" : `Escribe tu número a 10 dígitos, sin +52 (ej. 663 104 9876). Llevas ${n}.`;
 }
 function initPhoneMasks() {
   for (const id of PHONE_INPUTS) {
