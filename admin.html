@@ -503,6 +503,87 @@
   .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 96px; z-index: 1100; background: #2b2b2b; color: #fff; border-radius: 14px; padding: 12px 16px; font-size: 15px; box-shadow: 0 6px 20px rgba(0,0,0,.25); display: flex; gap: 12px; align-items: center; max-width: calc(100% - 32px); }
   .toast button { background: #c4466e; color: #fff; border-radius: 999px; padding: 8px 12px; font-size: 14px; white-space: nowrap; }
   @media (min-width: 700px) { .toast { bottom: 24px; } }
+
+  /* ===== Diseño 2026: barra lateral oscura y tarjetas en tonos pastel ===== */
+  body { background: #f6f4f9; }
+  .nav-logo { display: none; }
+  .home-card { border-radius: 22px; border: 1px solid #efeaf5; box-shadow: 0 1px 2px rgba(40, 20, 60, .04), 0 8px 24px rgba(80, 50, 120, .06); }
+  .todo-card {
+    border: none; border-radius: 20px; padding: 16px;
+    background: linear-gradient(135deg, #efe8ff, #fbf9ff);
+    box-shadow: 0 1px 2px rgba(40, 20, 60, .05), 0 6px 18px rgba(80, 50, 120, .07);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .todo-card .n { color: #4b3a8c; }
+  .todo-card.hot { background: linear-gradient(135deg, #ffe6c7, #fff7ec); }
+  .todo-card.hot .n { color: #9a6200; }
+  .todo-card.pink { background: linear-gradient(135deg, #fcd6e4, #fff1f6); }
+  .todo-card.pink .n { color: #c4466e; }
+  .todo-card.blue { background: linear-gradient(135deg, #d8e6ff, #f2f7ff); }
+  .todo-card.blue .n { color: #2a5bb8; }
+  .todo-card.zero { background: #fff; box-shadow: 0 1px 2px rgba(40, 20, 60, .05); }
+  .todo-card.zero .n { color: #2b2b2b; }
+  .sales-row div { border-radius: 16px; padding: 14px 12px; transition: transform .18s ease, box-shadow .18s ease; }
+  .sales-row div:nth-child(1) { background: linear-gradient(135deg, #ece4ff, #faf8ff); }
+  .sales-row div:nth-child(2) { background: linear-gradient(135deg, #dcf3e7, #f5fcf8); }
+  .sales-row div:nth-child(3) { background: linear-gradient(135deg, #d9e8ff, #f4f8ff); }
+  .bars .bar i { background: linear-gradient(180deg, #cdbcf6, #f3c3d3); border-radius: 6px 6px 2px 2px; }
+  .bars .bar.today i { background: linear-gradient(180deg, #8b6be0, #c4466e); }
+  .more-btn { border-radius: 20px; border-color: #efeaf5; box-shadow: 0 1px 2px rgba(40, 20, 60, .04); transition: transform .18s ease, box-shadow .18s ease; }
+  @media (hover: hover) {
+    .todo-card:hover, .more-btn:hover, .sales-row div:hover { transform: translateY(-4px); box-shadow: 0 2px 4px rgba(40, 20, 60, .06), 0 14px 28px rgba(80, 50, 120, .12); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .todo-card, .more-btn, .sales-row div, .nav-btn, .nav-btn::after { transition: none !important; }
+    .todo-card:hover, .more-btn:hover, .sales-row div:hover { transform: none; }
+  }
+
+  /* Celular: barra oscura abajo */
+  @media (max-width: 699px) {
+    .toolbar { background: #1f1a24; grid-template-columns: repeat(7, 1fr); box-shadow: 0 -4px 20px rgba(31, 26, 36, .25); }
+    .nav-btn { color: #cfc8d6; font-size: 10.5px; padding: 7px 0; }
+    .nav-btn .nav-ico { font-size: 19px; }
+    .nav-btn.active { background: #e9e1fb; color: #2b2142; }
+    .todo-card.wide { grid-column: 1 / -1; }
+    .sales-row div { padding: 10px 8px; }
+    .sales-row b { font-size: 16px; }
+  }
+
+  /* Computadora y tablet: barra lateral oscura con íconos; el nombre sale al pasar el mouse */
+  @media (min-width: 700px) {
+    body { padding-left: 116px; }
+    .toolbar {
+      position: fixed; top: 16px; bottom: 16px; left: 16px; width: 76px; margin: 0; z-index: 900;
+      flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 8px;
+      padding: 16px 0; background: #1f1a24; border-radius: 28px; box-shadow: 0 10px 30px rgba(31, 26, 36, .25);
+    }
+    .nav-logo {
+      display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin-bottom: 10px;
+      border-radius: 16px; font-size: 24px; background: linear-gradient(135deg, #c9b6f5, #f3c3d3);
+    }
+    .nav-btn {
+      width: 48px; height: 48px; padding: 0; justify-content: center; flex: none;
+      background: transparent; color: #cfc8d6; border-radius: 999px; transition: background .15s ease;
+    }
+    .nav-btn .nav-txt { display: none; }
+    .nav-btn .nav-ico { font-size: 21px; line-height: 1; }
+    .nav-btn:hover { background: rgba(255, 255, 255, .1); }
+    .nav-btn.active { background: #e9e1fb; }
+    .nav-btn::after {
+      content: attr(data-tip); position: absolute; left: calc(100% + 16px); top: 50%; transform: translate(-4px, -50%);
+      background: #1f1a24; color: #fff; padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
+      white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s ease, transform .15s ease;
+      box-shadow: 0 6px 16px rgba(31, 26, 36, .2);
+    }
+    .nav-btn:hover::after, .nav-btn:focus-visible::after { opacity: 1; transform: translate(0, -50%); }
+    .nav-btn .nav-badge { position: absolute; top: -2px; right: -4px; }
+    #more-toggle { margin-top: auto; }
+  }
+  @media (min-width: 700px) and (max-height: 560px) {
+    .toolbar { gap: 2px; padding: 10px 0; }
+    .nav-logo { display: none; }
+    .nav-btn { width: 42px; height: 42px; }
+  }
 </style>
 </head>
 <body>
@@ -520,12 +601,14 @@
   <!-- Secciones del admin: una pantalla a la vez (en celular la barra va
        fija abajo, en computadora arriba). -->
   <nav class="toolbar" id="toolbar" aria-label="Secciones del admin" style="display:none;">
-    <button type="button" class="nav-btn active" data-view="inicio" aria-current="page"><span class="nav-ico" aria-hidden="true">🏠</span><span class="nav-txt">Inicio</span></button>
-    <button type="button" class="nav-btn" data-view="pedidos"><span class="nav-ico" aria-hidden="true">🧾</span><span class="nav-txt">Pedidos</span></button>
-    <button type="button" class="nav-btn" id="clients-toggle" data-view="clientas"><span class="nav-ico" aria-hidden="true">👩</span><span class="nav-txt">Clientas</span></button>
-    <button type="button" class="nav-btn" id="catalog-toggle" data-view="catalogo"><span class="nav-ico" aria-hidden="true">🏷️</span><span class="nav-txt">Catálogo</span></button>
-    <button type="button" class="nav-btn" id="inventory-toggle" data-view="inventario"><span class="nav-ico" aria-hidden="true">📦</span><span class="nav-txt">Stock MX</span></button>
-    <button type="button" class="nav-btn" id="more-toggle" data-view="mas"><span class="nav-ico" aria-hidden="true">☰</span><span class="nav-txt">Más</span><span class="nav-badge" id="more-badge" style="display:none;"></span></button>
+    <span class="nav-logo" aria-hidden="true">🌸</span>
+    <button type="button" class="nav-btn active" data-view="inicio" data-tip="Inicio" aria-current="page"><span class="nav-ico" aria-hidden="true">🏠</span><span class="nav-txt">Inicio</span></button>
+    <button type="button" class="nav-btn" data-view="pedidos" data-tip="Pedidos"><span class="nav-ico" aria-hidden="true">🧾</span><span class="nav-txt">Pedidos</span></button>
+    <button type="button" class="nav-btn" data-view="swm" data-tip="Dirección americana" aria-label="Dirección americana"><span class="nav-ico" aria-hidden="true">🇺🇸</span><span class="nav-txt">EE.UU.</span><span class="nav-badge" id="swm-nav-badge" style="display:none;"></span></button>
+    <button type="button" class="nav-btn" id="clients-toggle" data-view="clientas" data-tip="Clientas"><span class="nav-ico" aria-hidden="true">👩</span><span class="nav-txt">Clientas</span></button>
+    <button type="button" class="nav-btn" id="catalog-toggle" data-view="catalogo" data-tip="Catálogo"><span class="nav-ico" aria-hidden="true">🏷️</span><span class="nav-txt">Catálogo</span></button>
+    <button type="button" class="nav-btn" id="inventory-toggle" data-view="inventario" data-tip="Stock en México" aria-label="Stock en México"><span class="nav-ico" aria-hidden="true">📦</span><span class="nav-txt">Stock</span></button>
+    <button type="button" class="nav-btn" id="more-toggle" data-view="mas" data-tip="Más secciones" aria-label="Más secciones"><span class="nav-ico" aria-hidden="true">☰</span><span class="nav-txt">Más</span><span class="nav-badge" id="more-badge" style="display:none;"></span></button>
   </nav>
 
   <!-- Inicio: lo que hay que hacer hoy + ventas -->
