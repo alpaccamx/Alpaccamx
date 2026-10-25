@@ -5,6 +5,7 @@ la música se pone en TikTok/Instagram.
 
 Uso: python3 build.py [salida.mp4]"""
 import json, math, os, random, subprocess, sys
+import numpy as np
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
@@ -151,11 +152,11 @@ def ruta(L, pos, t):
 # ---------- dibujos (animados: parpadean, respiran y se mecen; hélice y llantas giran) ----------
 # en px del dibujo original: ojos (x, y, radio aprox.), y lo que se mueve en cada uno
 ANIM = {
-    "empacando":  dict(ojos=[(415, 520, 40), (645, 455, 40)], menea=1.0),
-    "avion":      dict(ojos=[(598, 375, 34), (778, 440, 34)], helice=(232, 840, 215)),
-    "camion":     dict(ojos=[(962, 365, 30), (1118, 333, 28)], llantas=[(455, 845, 58), (968, 882, 62)]),
-    "revisando":  dict(ojos=[(562, 458, 40), (742, 494, 34)], menea=1.0),
-    "entregando": dict(ojos=[(542, 575, 35), (725, 530, 35)], menea=0.6, lampara=(245, 520),
+    "empacando":  dict(ojos=[(415, 520, 40), (645, 455, 40)], boca=(508, 540, 592, 607), menea=1.0),
+    "avion":      dict(ojos=[(598, 375, 34), (778, 440, 34)], boca=(622, 450, 705, 508), helice=(232, 840, 215)),
+    "camion":     dict(ojos=[(962, 365, 30), (1118, 333, 28)], boca=(1018, 386, 1095, 448), llantas=[(455, 845, 58), (968, 882, 62)]),
+    "revisando":  dict(ojos=[(562, 458, 40), (742, 494, 34)], boca=(595, 526, 660, 603), menea=1.0),
+    "entregando": dict(ojos=[(542, 575, 35), (725, 530, 35)], boca=(603, 591, 680, 658), menea=0.6, lampara=(245, 520),
                        zona=[(300, 270), (480, 260), (630, 185), (820, 185), (880, 380), (975, 680), (975, 960),
                              (900, 1175), (460, 1175), (395, 900), (305, 520)]),
 }
@@ -243,18 +244,46 @@ def sombra(L, cx, cy, w, a=60):
 
 CY = 830  # centro de los dibujos
 
-def anima_dibujo(L, i, t, n_dur, marcas):
+def _envolvente():
+    """qué tan fuerte habla Mae en cada cuadro (0 a 1): con eso la alpaca abre y cierra la boca"""
+    voz = os.path.join(AQUI, "voz", "narracion.wav")
+    if not os.path.exists(voz): return np.zeros(1)
+    x = np.frombuffer(subprocess.check_output(["ffmpeg", "-v", "error", "-i", voz, "-ac", "1", "-ar", "16000", "-f", "s16le", "-"]),
+                      np.int16).astype(float) / 32768
+    n = int(len(x) * FPS / 16000)
+    r = np.array([np.sqrt(np.mean(x[int(i * 16000 / FPS):int((i + 1) * 16000 / FPS)] ** 2) + 1e-12) for i in range(n)])
+    r = np.clip(r / np.percentile(r, 95), 0, 1) ** 0.8
+    r[r < 0.12] = 0
+    a = np.zeros(n)
+    for i in range(n): a[i] = max(r[i], a[i - 1] * 0.55 if i else 0)  # abre rápido, cierra suave
+    return a
+BOCA = _envolvente()
+def boca(fg): return float(BOCA[fg]) if 0 <= fg < len(BOCA) else 0.0
+
+def habla(im, k, caja, a):
+    """abre la boca: estira hacia abajo lo que está bajo el labio (más abierta mientras más fuerte habla)"""
+    x0, y0, x1, y1 = (v * k for v in caja); w, h = x1 - x0, y1 - y0
+    rx0, rx1, ry0, ry1 = int(x0 - 0.25 * w), int(x1 + 0.25 * w), int(y0), int(y1 + 1.3 * h)
+    reg = im.crop((rx0, ry0, rx1, ry1))
+    est = reg.resize((reg.width, max(1, int(reg.height * (0.74 + 0.6 * a)))), Image.BICUBIC)
+    m = Image.new("L", est.size, 0)
+    ImageDraw.Draw(m).ellipse((0.1 * est.width, -0.6 * est.height, 0.9 * est.width, 0.97 * est.height), fill=255)
+    im = im.copy(); im.paste(est, (rx0, ry0), m.filter(ImageFilter.GaussianBlur(max(2, w * 0.12))))
+    return im
+
+def anima_dibujo(L, i, t, n_dur, marcas, voz=0.0):
     nombre = PASOS[i][3]; A = ANIM[nombre]; ojos = parpadea(t, i * 0.9)
     if nombre == "avion":  # llega volando desde la derecha (el avión ve a la izquierda) entre nubes
         for k, (y, sz, v) in enumerate(((610, 120, 260), (1010, 150, 200), (760, 100, 320))):
             x = (W + 200 - (t * v + k * 420)) % (W + 400) - 200
             pon(L, emoji("☁️", sz), x, y)
-        im = gira_helice(dibujo(nombre, 560, cerrado=ojos), escala(nombre, 560), A["helice"], t)
+        im = habla(dibujo(nombre, 560, cerrado=ojos), escala(nombre, 560), A["boca"], voz)
+        im = gira_helice(im, escala(nombre, 560), A["helice"], t)
         im = im.rotate(4 * math.sin(t * 2.6), resample=Image.BICUBIC, expand=True)
         x = W / 2 + 800 * (1 - ease(t / 0.9)) + 14 * math.sin(t * 1.3)
         pon(L, im, x, CY + 22 * math.sin(t * 3.0))
     elif nombre == "camion":  # entra manejando desde la izquierda, con la carretera moviéndose y las llantas girando
-        im = dibujo(nombre, 560, 860, cerrado=ojos).copy()
+        im = habla(dibujo(nombre, 560, 860, cerrado=ojos), escala(nombre, 560, 860), A["boca"], voz)
         im = gira_llantas(im, escala(nombre, 560, 860), A["llantas"], -t * 520)
         piso = CY + im.height / 2 - 14
         d = ImageDraw.Draw(L)
@@ -267,7 +296,7 @@ def anima_dibujo(L, i, t, n_dur, marcas):
         im = im.resize((int(im.width / sy), int(im.height * sy)), Image.BILINEAR)
         pon(L, im, x, piso + 14 - im.height / 2 - abs(math.sin(t * 7)) * 8)
     else:  # aparece con rebote, se mece desde los pies y respira
-        base = dibujo(nombre, 560, cerrado=ojos)
+        base = habla(dibujo(nombre, 560, cerrado=ojos), escala(nombre, 560), A["boca"], voz)
         s, a = entra(t, 0.05, 0.5)
         f = A.get("menea", 1.0)
         mov = menea(base, f * 22 * math.sin(t * 3.4), 1 + f * 0.035 * math.sin(t * 6.8))
@@ -298,21 +327,48 @@ def anima_dibujo(L, i, t, n_dur, marcas):
 
 # ---------- escenas ----------
 def escena_gancho(n, e, f0):
-    m = e["marcas"]
-    SFX.append((m[0], "click")); SFX.append((m[1] + 0.8, "glitter"))
+    m = e["marcas"]; dur = n / FPS
+    SFX.append((0.3, "pop")); SFX.append((m[0], "click")); SFX.append((m[1], "click")); SFX.append((dur - 0.4, "glitter"))
     for f in range(n):
         t = f / FPS; L = fondo((f0 + f) / FPS)
-        pon(L, linea("¿Cómo llega", "ExtraBold", 112, INK), W / 2, 300)
-        pon(L, linea("tu pedido? 📦", "ExtraBold", 112, PINK), W / 2, 430)
-        im = dibujo_alpaca_surtir()
+        s, al = entra(t, 0.0)
+        pon(L, linea("La historia", "ExtraBold", 112, INK), W / 2, 300, s, al)
+        pon(L, linea("de tu pedido 📦", "ExtraBold", 112, PINK), W / 2, 430, s, al)
+        im = surtir_hablando(boca(f0 + f))
         sombra(L, W / 2, CY + im.height / 2 - 6, im.width * 0.6)
-        pon(L, im, W / 2, CY + 10 * math.sin(t * 3.2))
-        s, al = entra(t, m[0])
-        pon(L, linea("De Corea 🇰🇷 hasta tu casa 🏠", "Bold", 52, INK), W / 2, 1160, s, al)
-        s, al = entra(t, m[1] + 0.5)
-        pon(L, pastilla("En 5 pasos", "Bold", 40, (252, 214, 226), DEEP), W / 2, 1250, s, al)
-        ruta(L, 3 * ease((t - m[0]) / (m[1] + 0.8 - m[0])), t)
+        pon(L, im, W / 2 + 6 * math.sin(t * 1.7), CY + 10 * math.sin(t * 3.2))
+        pon(L, emoji("👋", 110).rotate(18 * math.sin(t * 9), resample=Image.BICUBIC, expand=True), W / 2 + 250, CY - 170, *entra(t, 0.2))
+        pon(L, globo("¡Hola! Soy Mae de Alpacca 👋"), W / 2, 1165, *entra(t, 0.3))
+        s, al = entra(t, m[1])
+        pon(L, pastilla("De Corea 🇰🇷 hasta tu casa 🏠", "Bold", 40, (252, 214, 226), DEEP), W / 2, 1262, s, al)
+        ruta(L, 3 * ease((t - m[1]) / max(0.5, dur - 0.4 - m[1])), t)
         yield L
+
+def surtir_hablando(a):
+    """la alpaca del gancho tiene la boca cerrada: se le dibuja una boquita (suavizada) que se abre al hablar"""
+    im = dibujo_alpaca_surtir()
+    if a <= 0.05: return im
+    k = 540 / 480; bx, by = (207 - 28) * k, 175 * k  # bajo la sonrisa (px del dibujo ya recortado)
+    S = 4; w, h = 12 * k * (0.8 + 0.3 * a), 16 * k * a + 4
+    capa = Image.new("RGBA", (int(4 * w * S), int(4 * h * S) + 8)); d = ImageDraw.Draw(capa)
+    cx, cy = capa.width / 2, 4
+    d.ellipse((cx - w * S, cy, cx + w * S, cy + h * S), fill=(112, 36, 50, 255))
+    d.ellipse((cx - w * 0.62 * S, cy + h * 0.45 * S, cx + w * 0.62 * S, cy + h * 0.98 * S), fill=(238, 118, 140, 255))
+    capa = capa.resize((capa.width // S, capa.height // S), Image.LANCZOS)
+    im = im.copy(); im.alpha_composite(capa, (int(bx - capa.width / 2), int(by - 1))); return im
+
+@lru_cache(None)
+def globo(s, sz=46):
+    """globo de diálogo blanco con la colita hacia la alpaca"""
+    t = linea(s, "Bold", sz, INK); pw, ph = 40, 18
+    im = Image.new("RGBA", (t.width + 2 * pw, t.height + 2 * ph + 26)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle((0, 26, im.width - 1, im.height - 1), (im.height - 26) // 2, fill=WHITE)
+    c = im.width / 2; d.polygon([(c - 26, 30), (c + 2, 0), (c + 20, 30)], fill=WHITE)
+    im.alpha_composite(t, (pw, 26 + ph))
+    sh = Image.new("RGBA", (im.width + 40, im.height + 40)); sh.alpha_composite(im, (20, 26))
+    a = sh.getchannel("A").point(lambda v: int(v * 0.14)).filter(ImageFilter.GaussianBlur(10))
+    out = Image.new("RGBA", sh.size, (196, 70, 110, 0)); out.putalpha(a); out.alpha_composite(im, (20, 20))
+    return out
 
 @lru_cache(None)
 def dibujo_alpaca_surtir():
@@ -335,9 +391,9 @@ def escena_paso(i, n, e, f0):
         pon(L, titulo_ajustado(nom, "ExtraBold", 112, INK), W / 2, 330, s, al)
         s, al = entra(t, m[0])
         pon(L, pastilla("⏱ " + tiempo, "Bold", 54, color, WHITE), W / 2, 480, s, al)
-        anima_dibujo(L, i, t, dur, m)
+        anima_dibujo(L, i, t, dur, m, boca(f0 + f))
         s, al = entra(t, 0.5)
-        pon(L, linea(texto, "Bold", 50, INK), W / 2, 1160, s, al)
+        pon(L, globo(texto), W / 2, 1165, s, al)
         if extra:
             s, al = entra(t, m[1])
             pon(L, pastilla(extra, "Bold", 40, suave, mezcla(color, INK, 0.25)), W / 2, 1250, s, al)
@@ -376,7 +432,7 @@ def escena_total(n, e, f0):
         sombra(L, W / 2, 1200 + bolsa.height / 2 - 6, bolsa.width * 0.7)
         pon(L, bolsa, W / 2, y + 8 * math.sin(t * 3.2))
         s, al = entra(t, m[3])
-        pon(L, pastilla("Pide en alpacca.mx 💗", "ExtraBold", 56, PINK, WHITE), W / 2, 1450, s, al)
+        pon(L, pastilla("Te espero en alpacca.mx 💗", "ExtraBold", 56, PINK, WHITE), W / 2, 1450, s, al)
         yield L
 
 def escenas():
