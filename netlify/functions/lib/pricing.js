@@ -122,6 +122,7 @@ function csvToProducts(text) {
   // Solo del servidor (no está en app.js): el costo en ABW, que se guarda
   // en cada pedido para calcular la ganancia en /admin.html.
   const iPrecioUsd = findCol(headers, ["precio usd"]);
+  const iPreDias = findCol(headers, ["dias preorden", "días preorden"]);
 
   return rows
     .slice(1)
@@ -149,6 +150,7 @@ function csvToProducts(text) {
         presentacion: get(iPresentacion),
         disponible,
         preorden,
+        preordenDias: get(iPreDias).replace(/[^0-9-]/g, "").slice(0, 10),
         costoUSD: parseFloat(normalizeMoneyCell(get(iPrecioUsd))) || 0,
       };
     })
@@ -500,7 +502,7 @@ async function priceOrder({ source, items, customer, soldMap, sinMinimo = false,
       peso: main.peso || 0,
       presentacion: main.presentacion || "",
       costoUSD: main.costoUSD || 0,
-      ...(main.preorden ? { preorden: true } : {}),
+      ...(main.preorden ? { preorden: true, ...(main.preordenDias ? { preordenDias: main.preordenDias } : {}) } : {}),
     });
   }
 
