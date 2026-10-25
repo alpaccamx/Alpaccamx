@@ -3226,12 +3226,17 @@ ${itemLines}
       { n: count("por_abw"), label: "Por pedir a ABW", hint: "Ver lista de compra", go: "abw", cls: "pink" },
       { n: count("esperando_abw"), label: "Esperando ABW", hint: "Ya pedidos, en camino", go: "esperando_abw" },
       { n: count("por_enviar"), label: "Por enviar", hint: "Generar guía", go: "por_enviar", cls: "hot" },
+      { n: swmLoaded ? swmNewCount : "…", label: "Dirección americana", hint: "Cotizar, comprar o enviar", go: "swm", cls: "blue" },
       { n: restockCount == null ? "…" : restockCount, label: "Avisos de restock", hint: "Clientas esperando", go: "restock" },
     ];
     // Lo que tiene pendientes va primero; lo que está en 0 queda chiquito al final.
     cards.sort((a, b) => (Number(b.n) > 0) - (Number(a.n) > 0));
+    // En celular van de dos en dos: si las que tienen pendientes son impares,
+    // la última ocupa todo el ancho para no estirar una tarjeta en 0 a su lado.
+    const hot = cards.filter((c) => Number(c.n) > 0);
+    if (hot.length % 2) hot[hot.length - 1].wide = true;
     todoEl.innerHTML = cards
-      .map((c) => `<button type="button" class="todo-card ${c.n ? c.cls || "" : "zero"}" data-home-go="${c.go}">
+      .map((c) => `<button type="button" class="todo-card ${c.n ? c.cls || "" : "zero"}${c.wide ? " wide" : ""}" data-home-go="${c.go}">
         <span class="n">${c.n}</span><span>${c.label}</span><span class="hint">${c.hint} ›</span></button>`)
       .join("");
 
@@ -4275,6 +4280,7 @@ ${itemLines}
   const baseTitle = document.title;
   let usaPendingCount = 0;
   let swmNewCount = 0;
+  let swmLoaded = false;
 
   function notifyEnabled() {
     try { return localStorage.getItem(NOTIFY_KEY) === "1"; } catch (e) { return false; }
@@ -4285,7 +4291,7 @@ ${itemLines}
   }
 
   function updateMoreBadge() {
-    const n = (restockCount || 0) + (usaPendingCount || 0) + (swmNewCount || 0);
+    const n = (restockCount || 0) + (usaPendingCount || 0);
     const el = document.getElementById("more-badge");
     if (!el) return;
     el.textContent = n ? String(n) : "";
@@ -4483,13 +4489,18 @@ ${itemLines}
       const data = await res.json();
       if (!res.ok) { if (!quiet) setStatus(data.error || "No se pudo cargar la dirección americana."); return; }
       swmData = data;
+      swmLoaded = true;
       const pend = swmPendientes();
       swmNewCount = pend.cotizarCompra.length + pend.comprar.length + pend.cotizarEnvio.length + pend.enviar.length + pend.pagos.length + pend.sinDuena.length + pend.extras.length + pend.correcciones.length;
       const badge = document.getElementById("swm-badge");
       badge.textContent = swmNewCount ? String(swmNewCount) : "";
       badge.style.display = swmNewCount ? "inline-flex" : "none";
+      const navBadge = document.getElementById("swm-nav-badge");
+      navBadge.textContent = badge.textContent;
+      navBadge.style.display = badge.style.display;
       updateMoreBadge();
       if (currentView === "swm") renderSwmAdmin();
+      if (currentView === "inicio") renderHome();
     } catch (err) {
       if (!quiet) setStatus("No se pudo conectar con el servidor.");
     } finally {
@@ -5362,7 +5373,7 @@ ${itemLines}
     restock: { el: "restock-requests-panel", title: "🔔 Avisos de restock", nav: "mas" },
     resenas: { el: "reviews-panel", title: "⭐ Reseñas", nav: "mas" },
     usa: { el: "usa-orders-panel", title: "🛍️ Encargos USA", nav: "mas" },
-    swm: { el: "swm-panel", title: "🇺🇸 Dirección americana", nav: "mas" },
+    swm: { el: "swm-panel", title: "🇺🇸 Dirección americana" },
     ajustes: { el: "settings-view", title: "⚙️ Ajustes", nav: "mas" },
     papelera: { el: "trash-view", title: "🗑️ Papelera", nav: "mas" },
     revision: { el: "revision-view", title: "🔄 Revisión ABW", nav: "mas" },
@@ -5632,7 +5643,7 @@ ${itemLines}
     if (!c) return;
     const go = c.dataset.homeGo;
     if (go === "abw") showView("compras");
-    else if (go === "restock") showView("restock");
+    else if (go === "restock" || go === "swm") showView(go);
     else goToOrders(go);
   });
   document.getElementById("abw-filtro").addEventListener("click", (e) => {
