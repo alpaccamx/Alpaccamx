@@ -88,7 +88,38 @@ def parte2():
     return L
 
 
+def parte1_a():
+    """versión A: igual al gancho del video"""
+    L = base("video-ulta", 0.15)
+    texto(L, (W / 2, 960), "¿Ulta o", F("ExtraBold", 150), stroke=9)
+    f = F("ExtraBold", 150); texto(L, (W / 2 - 45, 1120), "Alpacca?", f, fill=(255, 205, 222), stroke=9)
+    L.alpha_composite(emoji("👀", 110), (int(W / 2 - 45 + f.getlength("Alpacca?") / 2 + 10), 1060))
+    texto(L, (230, 1262), "Dr. Althea 345", F("Bold", 40), stroke=4)
+    precio(L, 230, 1380, "En Ulta", "$508", ULTA, tachado=True)
+    precio(L, 230, 1580, "Conmigo", "$324", PINK)
+    alpaca(L, "video-ulta", 790, 1470, 420)
+    return L
+
+
+def parte2_a():
+    """versión A: igual al gancho del video"""
+    L = base("video-ulta-2", 0.1)
+    d = ImageDraw.Draw(L); f = F("ExtraBold", 58); w = f.getlength("PARTE 2")
+    d.rounded_rectangle((W / 2 - w / 2 - 40, 300, W / 2 + w / 2 + 40, 400), 50, fill=PINK)
+    d.text((W / 2, 352), "PARTE 2", font=f, fill=(255, 255, 255), anchor="mm")
+    texto(L, (W / 2, 525), "Ulta vs", F("ExtraBold", 150), stroke=9)
+    f = F("ExtraBold", 150); texto(L, (W / 2 - 45, 690), "Alpacca", f, fill=(255, 205, 222), stroke=9)
+    L.alpha_composite(emoji("😳", 110), (int(W / 2 - 45 + f.getlength("Alpacca") / 2 + 10), 632))
+    texto(L, (max(230, F("Bold", 38).getlength("SKIN1004 Probio-Cica") / 2 + 50), 1262), "SKIN1004 Probio-Cica", F("Bold", 38), stroke=4)
+    precio(L, 230, 1380, "En Ulta", "$639", ULTA, tachado=True)
+    precio(L, 230, 1580, "Conmigo", "$309", PINK)
+    alpaca(L, "video-ulta-2", 790, 1470, 430)
+    return L
+
+
 if __name__ == "__main__":
-    for carpeta, fn in (("video-ulta", parte1), ("video-ulta-2", parte2)):
-        out = os.path.join(RAIZ, carpeta, "portada.jpg")
-        fn().convert("RGB").save(out, quality=92); print("ok", out)
+    # A = igual al gancho; B = enfocada en el ahorro (para probar cuál funciona mejor)
+    for carpeta, fa, fb in (("video-ulta", parte1_a, parte1), ("video-ulta-2", parte2_a, parte2)):
+        for nombre, fn in (("portada-a.jpg", fa), ("portada-b.jpg", fb)):
+            out = os.path.join(RAIZ, carpeta, nombre)
+            fn().convert("RGB").save(out, quality=92); print("ok", out)
