@@ -6,7 +6,7 @@ la música se pone en TikTok/Instagram.
 Uso: python3 build.py [salida.mp4]"""
 import json, math, os, random, subprocess, sys
 from functools import lru_cache
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
@@ -148,12 +148,93 @@ def ruta(L, pos, t):
         pon(L, linea(nom, "Bold", 30, DEEP if listo else GREY), x, RY + 82)
     pon(L, emoji("📦", 66), xp, RY - 95 - abs(math.sin(t * 5)) * 10)
 
-# ---------- dibujos ----------
+# ---------- dibujos (animados: parpadean, respiran y se mecen; hélice y llantas giran) ----------
+# en px del dibujo original: ojos (x, y, radio aprox.), y lo que se mueve en cada uno
+ANIM = {
+    "empacando":  dict(ojos=[(415, 520, 40), (645, 455, 40)], menea=1.0),
+    "avion":      dict(ojos=[(598, 375, 34), (778, 440, 34)], helice=(232, 840, 215)),
+    "camion":     dict(ojos=[(962, 365, 30), (1118, 333, 28)], llantas=[(455, 845, 58), (968, 882, 62)]),
+    "revisando":  dict(ojos=[(562, 458, 40), (742, 494, 34)], menea=1.0),
+    "entregando": dict(ojos=[(542, 575, 35), (725, 530, 35)], menea=0.6, lampara=(245, 520),
+                       zona=[(300, 270), (480, 260), (630, 185), (820, 185), (880, 380), (975, 680), (975, 960),
+                             (900, 1175), (460, 1175), (395, 900), (305, 520)]),
+}
+
+def _original(nombre): return Image.open(os.path.join(AQUI, "dibujos", nombre + ".png")).convert("RGBA")
+
+def _cierra_ojos(im, ojos):
+    """dibuja los ojos cerrados (‿) sobre la lana, para el parpadeo"""
+    im = im.copy(); px = im.load(); d = ImageDraw.Draw(im)
+    for cx, cy, r in ojos:
+        # caja real del ojo: los pixeles oscuros alrededor del punto
+        xs, ys = [], []
+        for y in range(int(cy - 1.6 * r), int(cy + 1.6 * r)):
+            for x in range(int(cx - 1.6 * r), int(cx + 1.6 * r)):
+                p = px[x, y]
+                if p[3] > 200 and (p[0] + p[1] + p[2]) / 3 < 95: xs.append(x); ys.append(y)
+        x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+        # color de la lana: el de arriba del ojo
+        muestra = sorted((px[x, int(y0 - 0.5 * r)] for x in range(x0, x1)), key=lambda p: sum(p[:3]))
+        lana = muestra[len(muestra) // 2]
+        capa = Image.new("RGBA", im.size, lana[:3] + (255,))
+        m = Image.new("L", im.size, 0); ImageDraw.Draw(m).ellipse((x0 - 6, y0 - 6, x1 + 6, y1 + 6), fill=255)
+        im.paste(capa, (0, 0), m.filter(ImageFilter.GaussianBlur(3)))
+        h = y1 - y0
+        d.arc((x0 + 2, y0 + h * 0.15, x1 - 2, y0 + h * 0.75), 15, 165, fill=(58, 38, 34), width=max(7, (x1 - x0) // 7))
+    return im
+
 @lru_cache(None)
-def dibujo(nombre, alto, ancho_max=10_000):
-    im = Image.open(os.path.join(AQUI, "dibujos", nombre + ".png")).convert("RGBA"); im = im.crop(im.getbbox())
+def dibujo(nombre, alto, ancho_max=10_000, cerrado=False):
+    im = _original(nombre)
+    if cerrado: im = _cierra_ojos(im, ANIM[nombre]["ojos"])
     k = min(alto / im.height, ancho_max / im.width)
     return im.resize((int(im.width * k), int(im.height * k)), Image.LANCZOS)
+
+def escala(nombre, alto, ancho_max=10_000):
+    o = _tam(nombre); return min(alto / o[1], ancho_max / o[0])
+
+@lru_cache(None)
+def _tam(nombre): return _original(nombre).size
+
+def parpadea(t, fase=0.0):  # cierra los ojos ~0.13 s cada 2.7 s (y a veces dos veces seguidas)
+    c = (t + fase) % 2.7
+    return c < 0.13 or 0.3 < c < 0.4 and int((t + fase) / 2.7) % 3 == 1
+
+def menea(im, sway, sy):
+    """se mece desde los pies (la punta se mueve 'sway' px) y se estira/aplasta (sy) sin cambiar el volumen"""
+    P = int(abs(sway)) + 6
+    w, h = im.size; c = Image.new("RGBA", (w + 2 * P, h)); c.alpha_composite(im, (P, 0)); W2 = c.width
+    malla, tiras = [], 16
+    for j in range(tiras):
+        y0, y1 = h * j / tiras, h * (j + 1) / tiras
+        d0, d1 = sway * ((h - y0) / h) ** 1.6, sway * ((h - y1) / h) ** 1.6
+        malla.append(((0, int(y0), W2, int(y1)), (-d0, y0, -d1, y1, W2 - d1, y1, W2 - d0, y0)))
+    c = c.transform(c.size, Image.MESH, malla, Image.BILINEAR)
+    return c.resize((max(1, int(W2 / sy)), max(1, int(h * sy))), Image.BILINEAR)
+
+def gira_llantas(im, k, llantas, ang):
+    for cx, cy, r in llantas:
+        R = int(r * k) + 2; x, y = int(cx * k), int(cy * k)
+        pedazo = im.crop((x - R, y - R, x + R, y + R)).rotate(ang, resample=Image.BICUBIC)
+        m = Image.new("L", (2 * R, 2 * R), 0); ImageDraw.Draw(m).ellipse((2, 2, 2 * R - 3, 2 * R - 3), fill=255)
+        im.paste(pedazo, (x - R, y - R), m.filter(ImageFilter.GaussianBlur(1)))
+    return im
+
+def gira_helice(im, k, helice, t):
+    """disco borroso + aspas girando encima de la hélice"""
+    cx, cy, r = helice; cx, cy, R = cx * k, cy * k, r * k
+    capa = Image.new("RGBA", im.size); d = ImageDraw.Draw(capa)
+    d.ellipse((cx - R, cy - R, cx + R, cy + R), fill=(255, 228, 238, 120))
+    for estela, a in ((0, 200), (0.18, 110), (0.36, 50)):  # aspas con estela
+        for b in range(3):
+            ang = -t * 21 - estela + b * 2 * math.pi / 3
+            ex, ey = cx + math.cos(ang) * R * 0.92, cy + math.sin(ang) * R * 0.92
+            pts = [(cx + math.cos(ang + s) * R * 0.25, cy + math.sin(ang + s) * R * 0.25) for s in (-0.5, 0.5)]
+            d.polygon([pts[0], (ex + math.cos(ang + 1.57) * R * 0.16, ey + math.sin(ang + 1.57) * R * 0.16),
+                       (ex - math.cos(ang + 1.57) * R * 0.16, ey - math.sin(ang + 1.57) * R * 0.16), pts[1]], fill=(246, 150, 180, a))
+    capa = capa.filter(ImageFilter.GaussianBlur(2))
+    d = ImageDraw.Draw(capa); d.ellipse((cx - R * 0.2, cy - R * 0.2, cx + R * 0.2, cy + R * 0.2), fill=(226, 180, 90, 255))
+    im = im.copy(); im.alpha_composite(capa); return im
 
 def sombra(L, cx, cy, w, a=60):
     if w < 20: return
@@ -163,17 +244,18 @@ def sombra(L, cx, cy, w, a=60):
 CY = 830  # centro de los dibujos
 
 def anima_dibujo(L, i, t, n_dur, marcas):
-    nombre = PASOS[i][3]
+    nombre = PASOS[i][3]; A = ANIM[nombre]; ojos = parpadea(t, i * 0.9)
     if nombre == "avion":  # llega volando desde la derecha (el avión ve a la izquierda) entre nubes
         for k, (y, sz, v) in enumerate(((610, 120, 260), (1010, 150, 200), (760, 100, 320))):
             x = (W + 200 - (t * v + k * 420)) % (W + 400) - 200
             pon(L, emoji("☁️", sz), x, y)
-        im = dibujo(nombre, 560)
-        im = im.rotate(3 * math.sin(t * 2.6), resample=Image.BICUBIC, expand=True)
-        x = W / 2 + 800 * (1 - ease(t / 0.9))
-        pon(L, im, x, CY + 18 * math.sin(t * 3.0))
-    elif nombre == "camion":  # entra manejando desde la izquierda, con la carretera moviéndose
-        im = dibujo(nombre, 560, 860)
+        im = gira_helice(dibujo(nombre, 560, cerrado=ojos), escala(nombre, 560), A["helice"], t)
+        im = im.rotate(4 * math.sin(t * 2.6), resample=Image.BICUBIC, expand=True)
+        x = W / 2 + 800 * (1 - ease(t / 0.9)) + 14 * math.sin(t * 1.3)
+        pon(L, im, x, CY + 22 * math.sin(t * 3.0))
+    elif nombre == "camion":  # entra manejando desde la izquierda, con la carretera moviéndose y las llantas girando
+        im = dibujo(nombre, 560, 860, cerrado=ojos).copy()
+        im = gira_llantas(im, escala(nombre, 560, 860), A["llantas"], -t * 520)
         piso = CY + im.height / 2 - 14
         d = ImageDraw.Draw(L)
         d.rounded_rectangle((0, piso - 6, W, piso + 34), 20, fill=(214, 200, 210))
@@ -181,12 +263,26 @@ def anima_dibujo(L, i, t, n_dur, marcas):
             x = (k * 180 - t * 420) % (W + 180) - 90
             d.rounded_rectangle((x, piso + 10, x + 90, piso + 20), 5, fill=WHITE)
         x = W / 2 - 900 * (1 - ease(t / 0.9))
-        pon(L, im, x, CY - abs(math.sin(t * 7)) * 7)
-    else:  # aparece con rebote y se mece
-        im = dibujo(nombre, 560)
+        sy = 1 + 0.025 * math.sin(t * 14)  # el camión rebota y se aplasta un poquito
+        im = im.resize((int(im.width / sy), int(im.height * sy)), Image.BILINEAR)
+        pon(L, im, x, piso + 14 - im.height / 2 - abs(math.sin(t * 7)) * 8)
+    else:  # aparece con rebote, se mece desde los pies y respira
+        base = dibujo(nombre, 560, cerrado=ojos)
         s, a = entra(t, 0.05, 0.5)
-        sombra(L, W / 2, CY + im.height / 2 - 10, im.width * 0.7 * s)
-        pon(L, im, W / 2, CY + 10 * math.sin(t * 3.2), s, a)
+        f = A.get("menea", 1.0)
+        mov = menea(base, f * 22 * math.sin(t * 3.4), 1 + f * 0.035 * math.sin(t * 6.8))
+        if "zona" in A:  # solo se mueve la alpaca; la casita se queda quieta
+            k = escala(nombre, 560)
+            c = Image.new("RGBA", base.size); c.paste(mov, (-((mov.width - base.width) // 2), base.height - mov.height)); mov = c
+            m = Image.new("L", base.size, 0); ImageDraw.Draw(m).polygon([(x * k, y * k) for x, y in A["zona"]], fill=255)
+            out = base.copy(); out.paste(mov, (0, 0), m.filter(ImageFilter.GaussianBlur(8))); mov = out
+            lx, ly = (v * k for v in A["lampara"])  # la lamparita brilla
+            brillo = Image.new("RGBA", base.size); ImageDraw.Draw(brillo).ellipse((lx - 70, ly - 70, lx + 70, ly + 70),
+                                                                               fill=(255, 226, 150, int(70 + 60 * math.sin(t * 5))))
+            mov.alpha_composite(brillo.filter(ImageFilter.GaussianBlur(25)))
+        bot = CY + base.height / 2
+        sombra(L, W / 2, bot - 10, base.width * 0.7 * s)
+        pon(L, mov, W / 2, bot - mov.height * s / 2, s, a)
         if nombre == "revisando" and len(marcas) > 1:  # sello de "Revisado" cuando lo dice
             s2, a2 = entra(t, marcas[1], 0.45)
             sello = pastilla("✅ Revisado", "ExtraBold", 46, (40, 170, 150), WHITE)
