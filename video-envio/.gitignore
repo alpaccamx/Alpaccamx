@@ -1,0 +1,6 @@
+voz/*.wav
+voz/lista.txt
+voz/frase*.mp3
+voz/frase*.json
+__pycache__/
+Envio.mp4

@@ -1,0 +1,9 @@
+[
+ {"texto": "[excited] ¿Cómo llega tu pedido desde Corea hasta tu casa? [warm] Te lo explico.", "marcas": ["Corea", "casa"]},
+ {"texto": "Uno: cuando haces tu pedido, lo preparamos en nuestra bodega en Corea. Tarda de uno a dos días hábiles, porque sábados y domingos no se trabaja.", "marcas": ["Tarda", "porque"]},
+ {"texto": "Dos: viaja en avión por DHL Express a nuestra bodega en Estados Unidos, de dos a tres días hábiles. Así se facilita la importación y ahorras en gastos de aduana.", "marcas": ["de dos", "Así"]},
+ {"texto": "Tres: lo cruzamos a México por tierra, de uno a dos días hábiles.", "marcas": ["de uno", "días"]},
+ {"texto": "Cuatro: ya en México, revisamos tu pedido, lo reempaquetamos y lo mandamos por la paquetería que elegiste. Eso toma un día hábil.", "marcas": ["un día", "revisamos"]},
+ {"texto": "[excited] Y cinco: ¡te llega a tu casa! De dos a cinco días hábiles por envío terrestre, o de uno a dos por express.", "marcas": ["De dos", "o de uno"]},
+ {"texto": "[warm] En total, de siete a trece días hábiles por terrestre, o de seis a diez por express. Son tiempos estimados y pueden variar por días festivos o la paquetería. [excited] Pide en alpacca punto eme equis.", "marcas": ["de siete", "o de seis", "Son tiempos", "Pide"]}
+]
