@@ -3010,7 +3010,39 @@ function searchConcepts(q) {
   return concepts;
 }
 
+/* "sheet mask" / mascarilla de hoja: primero las que se llaman así y
+   luego las demás mascarillas de hoja (de papel, tela o gel en hoja)
+   aunque su nombre no lo diga -- se reconocen por la capacidad ("x 10
+   sheets", "1 hoja", "27ml x 5") o por nombres típicos ("Mask Pack",
+   "Essence Mask", "Hydrogel"). No cuentan las de dormir, wash-off,
+   arcilla, peel-off, labios, ojos, nariz, pies, manos ni cabello. */
+const SHEET_QUERY = /^(sheet ?masks?|mask ?sheets?|sheets?|mascarillas? (de |en )?(hoja|hojas|papel|tela)|hoja de mascarilla|mascarillas? hoja)$/;
+const SHEET_MASK = /\bmasks?\b|masque|mascarilla|\bpacks?\b/;
+const SHEET_BODY = /\blip|eye|nose|foot|feet|\bhand|hair|scalp|neck|\bchin\b|patch|\bpads?\b|steam|mask fit|brush|cleanser|cushion|foundation/;
+const SHEET_NOT = /sleep|overnight|wash[ -]?off|clay|mud|peel[ -]?off|model+ing|rubber|powder|bubble|foam|stick|cream mask|cream pack|balm|scrub|capsule|film|wrapping|zombie|carbonated|jelly pack|pore pack|soap/;
+const SHEET_TYPICAL = /mask ?pack|essence mask|ampoule mask|ampule mask|serum mask|facial mask|face mask|real .*mask|mask set|gel mask|hydrogel|tencel|cellulose|cotton mask|\d[ -]?step|daily mask|energy mask|care mask|relief mask|soothing mask|moisture mask|calming mask|hydrating mask|brightening mask|glow mask|essential mask/;
+// 2 = se llama "sheet mask", 1 = es de hoja aunque no lo diga, 0 = no.
+function sheetMaskLevel(p) {
+  if (p._sheet !== undefined) return p._sheet;
+  const n = normalizeForSearch(p.nombre || "");
+  const c = normalizeForSearch(p.capacidad || "");
+  let v = 0;
+  if (SHEET_MASK.test(n) && !SHEET_BODY.test(n)) {
+    if (/sheet/.test(n)) v = 2;
+    else if (/sheet|hoja|mascarilla/.test(c)) v = 1;
+    else if (SHEET_NOT.test(n)) v = 0;
+    else if (/\bmasks?\b/.test(n) && /\d\s*(ml|g)\s*x\s*\d|^\d+\s*(ea|pcs?|piezas?)$/.test(c)) v = 1;
+    else if (SHEET_TYPICAL.test(n)) v = 1;
+  }
+  p._sheet = v;
+  return v;
+}
+function isSheetQuery(q) {
+  return SHEET_QUERY.test(normalizeForSearch(q).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim());
+}
+
 function searchMatches(q) {
+  if (isSheetQuery(q)) return products.filter((p) => sheetMaskLevel(p) > 0);
   const concepts = searchConcepts(q);
   if (!concepts.length) return [];
   return products.filter((p) => {
@@ -4422,6 +4454,13 @@ function searchRelevance(p, nq, words) {
 function rankByRelevance(items, query) {
   const nq = normalizeForSearch(query).replace(/[^a-z0-9&+.-]+/g, " ").trim();
   const words = nq.split(" ").filter((w) => w && !SEARCH_STOPWORDS.has(w));
+  if (isSheetQuery(query)) {
+    // Las que se llaman "sheet mask" primero, luego las demás de hoja.
+    return items
+      .map((it, i) => ({ it, i, s: sheetMaskLevel(it) * 1000 + searchRelevance(it, nq, words) + (it.enStock ? 0.001 : 0) }))
+      .sort((a, b) => b.s - a.s || a.i - b.i)
+      .map((x) => x.it);
+  }
   return items
     .map((it, i) => ({ it, i, s: searchRelevance(it, nq, words) + (it.enStock ? 0.001 : 0) }))
     .sort((a, b) => b.s - a.s || a.i - b.i)
