@@ -369,7 +369,8 @@ def escena_gancho(n, e, f0=0):
             d.rounded_rectangle((W / 2 - w / 2 - 40, 250, W / 2 + w / 2 + 40, 340), 45, fill=PINK)
             d.text((W / 2, 297), sub, font=f, fill=(255, 255, 255), anchor="mm"); y0 = 380
         text_c(d, W / 2, y0, titulo, F("ExtraBold", 104), (255, 255, 255), stroke=7, sfill=(0, 0, 0))
-        text_c(d, 230, 1238, marca + " " + nombre.split(chr(10))[0].split(" ")[0], F("Bold", 42), (255, 255, 255), stroke=4, sfill=(0, 0, 0))
+        lab = marca + " " + nombre.split(chr(10))[0].split(" ")[0]; fl = F("Bold", 42)
+        text_c(d, max(230, fl.getlength(lab) / 2 + 50), 1238, lab, fl, (255, 255, 255), stroke=4, sfill=(0, 0, 0))  # sin salirse por la izquierda
         L.alpha_composite(O)
         if t >= m[0]: precio_pill(L, 230, 1380, "En Ulta", f"{mxn(usd * TC)}", ULTA, True, (t - m[0]) / 0.35)
         if t >= m[1]: precio_pill(L, 230, 1580, "Conmigo", f"{mxn(alp)}", PINK, False, (t - m[1]) / 0.35)

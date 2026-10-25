@@ -81,7 +81,7 @@ def parte2():
     texto(L, (W / 2, 520), "Hasta $330", F("ExtraBold", 140), stroke=9)
     texto(L, (W / 2 - 50, 670), "menos", F("ExtraBold", 110), stroke=8, fill=(255, 225, 235))
     L.alpha_composite(emoji("😳", 110), (int(W / 2 + F("ExtraBold", 110).getlength("menos") / 2 - 20), 612))
-    texto(L, (230, 1262), "SKIN1004 Probio-Cica", F("Bold", 38), stroke=4)
+    texto(L, (max(230, F("Bold", 38).getlength("SKIN1004 Probio-Cica") / 2 + 50), 1262), "SKIN1004 Probio-Cica", F("Bold", 38), stroke=4)
     precio(L, 230, 1380, "En Ulta", "$639", ULTA, tachado=True)
     precio(L, 230, 1580, "Conmigo", "$309", PINK)
     alpaca(L, "video-ulta-2", 790, 1470, 430)
