@@ -115,7 +115,7 @@ async function ogImage(tipo, name) {
 }
 // Sube este número cuando se cambien las imágenes de assets/og: WhatsApp y
 // Facebook guardan la miniatura por URL y si no cambia siguen con la vieja.
-const OG_VERSION = 5;
+const OG_VERSION = 6;
 // Accesos "preocupación de piel" del inicio (CONFIG.SKIN_CONCERNS en app.js).
 const PREOCUPACIONES = {
   acne: ["Acné y granitos", "Skincare coreano para piel con acné: ácido salicílico, árbol de té y centella. Envíos a todo México."],
@@ -194,7 +194,7 @@ async function listingMeta(q) {
     return { title: "Kit Emprende · Skincare y maquillaje coreano para surtir tu negocio · Alpacca", desc: "Kits armados con lo más vendido de Corea y México, en tres presupuestos. Ve cuánto te sale cada pieza con envío y en cuánto venderla.", url: `${SITE}/?ver=kits`, image, ogSize: Boolean(image) };
   }
   if (q.ver === "personal-shopper") {
-    const image = await ogImage("ver", "compras-en-vivo");
+    const image = await ogImage("ver", "personal-shopper");
     return { title: "Personal shopper en EE.UU. · Alpacca", desc: "Compras en línea (tú armas tu carrito y yo lo compro) o compras en vivo en tiendas de EE.UU. por videollamada. Todo cruzado a México.", url: `${SITE}/?ver=personal-shopper`, image, ogSize: Boolean(image) };
   }
   if (["personal-shopper-en-usa", "personalshopperenusa", "compras-en-vivo"].includes(q.ver)) {
