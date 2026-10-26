@@ -669,41 +669,52 @@
     .nav-btn .nav-badge { position: static !important; margin-left: auto; }
   }
 
-  /* ===== Igual que la tienda: blanco, Inter, pastillas grises que se ponen negras al elegirlas ===== */
+  /* ===== Rosa Alpacca: los rosas de la tienda (rose, blush) en tonos suaves ===== */
   @font-face { font-family: "Ready to Party"; src: url(fonts/ReadyToParty-latin.woff2) format("woff2"), url(fonts/ReadyToParty.ttf) format("truetype"); font-display: swap; }
-  :root { --font: "Inter", system-ui, sans-serif; --bg: #fff; --surface: #fff; --line: #ebebeb; --text: #111; --muted: #6b6b6b;
-    --accent: #111; --accent-ink: #fff; --accent-soft: #f7f7fb; --nav-bg: #fff; --nav-ink: #444;
-    --nav-active-bg: #f7f7fb; --nav-active-ink: #111; --chip-bg: #f7f7fb; --chip-ink: #333; --radius: 16px; --radius-sm: 999px; --shadow: none; }
+  :root { --font: "Inter", system-ui, sans-serif; --bg: #fffafc; --surface: #fff; --line: #f6dfe7; --text: #2b1f25; --muted: #7d6570;
+    --accent: #fde8f0; --accent-ink: #b33660; --accent-soft: #fff2f6; --nav-bg: #fff4f8; --nav-ink: #6e4a59;
+    --nav-active-bg: #fbd9e5; --nav-active-ink: #b33660; --chip-bg: #fff0f5; --chip-ink: #6e4a59; --radius: 16px; --radius-sm: 999px; --shadow: none; }
   body { font-size: 15px; }
   h1, h2, h3, h4 { letter-spacing: -.02em; }
-  .adm-head h1 { color: #111 !important; font-weight: 700 !important; }
-  /* Botones como "Agregar" de la tienda: borde negro; se rellenan al pasar el mouse */
-  .btn-primary { background: #fff !important; color: #111 !important; border: 1.5px solid #111 !important; border-radius: 999px !important; }
-  .btn-primary:hover:not(:disabled) { filter: none; background: #111 !important; color: #fff !important; }
-  .sales-row div, .sales-row div:nth-child(n), .report-kpis div { border-radius: 12px !important; }
-  @media (min-width: 700px) { .nav-btn, .nav-btn .nav-txt::after { font-size: 14.5px !important; } }
-  .btn-secondary { border: 1px solid #e5e5e5; background: #fff; }
+  .adm-head h1 { color: #c4466e !important; font-weight: 700 !important; }
+  .filters label.filters-label, .swm-card .meta b { color: inherit; }
+  .filters label.filters-label { color: #a0687e !important; }
+  /* Botones: rosa clarito con letra rosa fuerte; más rosa al pasar el mouse */
+  .btn-primary { background: #fde8f0 !important; color: #b33660 !important; border: 1.5px solid #f4b8cc !important; border-radius: 999px !important; }
+  .btn-primary:hover:not(:disabled) { filter: none; background: #f6cadb !important; }
+  .btn-secondary { border: 1px solid #f3d5e0; background: #fff; color: #6e4a59; }
   .btn-danger { background: #fff !important; color: #c22d2d !important; border: 1px solid #f0c4c4; }
+  .btn-ghost { color: #a0687e !important; }
+  .sales-row div, .sales-row div:nth-child(n), .report-kpis div { border-radius: 12px !important; }
+  @media (min-width: 700px) { .nav-btn, .nav-btn .nav-txt::after { font-size: 14.5px !important; } .toolbar { border-right-color: #f8dbe6 !important; } }
+  /* Pastillas: rosita; la elegida, rosa Alpacca */
   .tab, #swm-filters button.btn-secondary { border: none !important; }
-  .tab.active, #swm-filters button.on { background: #111 !important; color: #fff !important; }
-  input[type="text"], input[type="search"], input[type="number"], input[type="password"], textarea, select { border-radius: 8px !important; border-color: #e5e5e5 !important; }
-  input:focus, textarea:focus, select:focus { outline: 2px solid #ece9f5; border-color: #8b84ac !important; }
-  /* Logo como en la tienda */
+  .tab.active, #swm-filters button.on { background: #ee6c92 !important; color: #fff !important; }
+  input[type="text"], input[type="search"], input[type="number"], input[type="password"], textarea, select { border-radius: 8px !important; border-color: #f1d3de !important; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid #fde8f0; border-color: #ee6c92 !important; }
+  /* Logo y menú */
   .nav-logo::before { display: none !important; }
   .nav-logo::after { font: 400 32px/1 "Ready to Party", var(--font) !important; color: #ee6c92 !important; letter-spacing: 0 !important; }
+  .nav-btn .nav-ico { color: #e07a9b; }
+  .nav-btn.active .nav-ico { color: #c4466e; }
   .nav-badge { background: #ee6c92 !important; color: #fff !important; }
   .nav-btn { font-weight: 500 !important; }
   .nav-btn.active { font-weight: 700 !important; }
-  /* Tarjetas de "por hacer": blancas; las que tienen pendientes, con un rosita muy leve como la tienda */
+  .nav-btn:hover { background: #fde8f0 !important; }
+  /* Tarjetas */
   .todo-card::before { display: none; }
-  .todo-card:not(.zero) { background: #fff7fa !important; border-color: #f8dbe6 !important; }
-  .todo-card.hot:not(.zero) { background: #fff6e5 !important; border-color: #f6e2bd !important; }
-  .todo-card .n { color: #111 !important; font-weight: 700; }
-  .todo-card.zero .n { color: #c4c4c4 !important; }
-  .sales-row div, .sales-row div:nth-child(n), .report-kpis div { background: #f7f7fb !important; }
+  .todo-card:not(.zero) { background: #fde8f0 !important; border-color: #f8cfdd !important; }
+  .todo-card.hot:not(.zero) { background: #fff1e3 !important; border-color: #f6dcbd !important; }
+  .todo-card .n { color: #c4466e !important; font-weight: 700; }
+  .todo-card.hot .n { color: #a3620c !important; }
+  .todo-card.zero .n { color: #e3c3cf !important; }
+  .sales-row div, .sales-row div:nth-child(n), .report-kpis div { background: #fff2f6 !important; }
+  .sales-row b { color: #b33660; }
   .bars .bar i { background: #f6cadb !important; } .bars .bar.today i { background: #ee6c92 !important; }
-  .swm-cli-n { background: #f7f7fb; color: #111; }
-  .cs-total, .order-card .total, .client-row .sp { color: #111 !important; }
+  .swm-cli-n { background: #fde8f0; color: #b33660; }
+  .cs-total, .order-card .total, .client-row .sp { color: #c4466e !important; }
+  .card-summary:hover { background: #fff7fa; }
+  details.help > summary, .edit-hint button, .order-card .customer a { color: #c4466e !important; }
 </style>
 </head>
 <body>
