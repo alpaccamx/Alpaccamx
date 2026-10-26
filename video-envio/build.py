@@ -431,7 +431,7 @@ def escena_total(n, e, f0):
         sombra(L, W / 2, 1200 + bolsa.height / 2 - 6, bolsa.width * 0.7)
         pon(L, bolsa, W / 2, y + 8 * math.sin(t * 3.2))
         s, al = entra(t, m[3])
-        pon(L, pastilla("Te espero en alpacca.mx 💗", "ExtraBold", 56, PINK, WHITE), W / 2, 1450, s, al)
+        pon(L, pastilla("Nos vemos en alpacca.mx 💗", "ExtraBold", 56, PINK, WHITE), W / 2, 1450, s, al)
         yield L
 
 def escenas():
