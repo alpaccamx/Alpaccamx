@@ -759,6 +759,7 @@
     <button type="button" class="more-btn" data-goto="swm"><span class="ico" aria-hidden="true">🇺🇸</span><span>Dirección americana<small>Casillero EE.UU.: paquetes, compras y envíos</small></span><span class="nav-badge" id="swm-badge" style="display:none;"></span></button>
     <!-- "Encargos USA" (libreta manual vieja) ya no se usa: todo vive en Dirección americana. -->
     <span id="usa-orders-badge" hidden></span>
+    <button type="button" class="more-btn" data-goto="preventa"><span class="ico" aria-hidden="true">🛍️</span><span>Preventa<small>Apartados con anticipo (ej. Sephora Sale)</small></span><span class="nav-badge" id="preventa-badge" style="display:none;"></span></button>
     <button type="button" class="more-btn" data-goto="cupones"><span class="ico" aria-hidden="true">🎟️</span><span>Cupones<small>Descuentos para la tienda y la dirección americana</small></span></button>
     <button type="button" class="more-btn" data-goto="revision"><span class="ico" aria-hidden="true">🔄</span><span>Revisión ABW<small>Precios y agotados que cambiaron en ABW</small></span><span class="nav-badge" id="revision-badge" style="display:none;"></span></button>
     <button type="button" class="more-btn" data-goto="ajustes"><span class="ico" aria-hidden="true">⚙️</span><span>Ajustes<small>Tipo de cambio, comisiones, descuento</small></span></button>
@@ -925,8 +926,16 @@
 
   <p id="status" role="status" style="display:none;"></p>
 
+  <!-- Preventa (ej. Sephora Sale): productos con cupo que las clientas apartan con anticipo -->
+  <div class="filters" id="preventa-view" style="display:none;">
+    <details class="help"><summary>¿Cómo funciona?</summary><p>1) Llena la campaña y prende "Preventa abierta". 2) Sube los productos con su precio por pieza y cuántas piezas hay para apartar. 3) Tus clientas apartan en alpacca.mx/?ver=preventa pagando el anticipo (tarjeta o transferencia; las transferencias las apruebas aquí). 4) Cuando llegue la mercancía, dale "Ya llegó" a cada apartado (o "Llegó todo"): les llega un aviso para pagar el resto + envío. 5) Cuando paguen, mándalo con su guía o márcalo entregado. La preventa se cierra sola en la fecha de cierre.</p></details>
+    <div id="pv-admin"><p class="abw-intro">Cargando…</p></div>
+    <datalist id="pv-paqs"><option>Estafeta</option><option>DHL</option><option>FedEx</option><option>Paquetexpress</option><option>J&amp;T</option><option>99minutos</option><option>Redpack</option></datalist>
+  </div>
+
   <div class="filters" id="inventory-panel" style="display:none;">
     <label class="filters-label">📦 Inventario (Stock)</label>
+    <button class="btn-primary" type="button" data-goto="preventa">🛍️ Preventa (apartados con anticipo)</button>
     <details class="help"><summary>¿Cómo funciona?</summary><p>Edita el nombre, marca, precio y lo demás de un producto ya publicado, o suma/resta piezas -- se guarda directo en tu Google Sheet, no necesitas abrirlo a mano. "🗑️ Quitar" deja el producto vacío en el Sheet (no se le borra la fila), así que desaparece del sitio pero tu Sheet no se desacomoda.</p></details>
 
     <button class="btn-secondary" id="add-stock-toggle" type="button">➕ Agregar producto en Stock</button>

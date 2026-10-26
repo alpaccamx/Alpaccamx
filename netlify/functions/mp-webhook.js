@@ -19,6 +19,7 @@ const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderConfirmedEmailHTML } = require("./lib/email.js");
 
 const { aplicarPago: aplicarPagoSwm } = require("./lib/swm-core.js");
+const { aplicarPago: aplicarPagoPreventa } = require("./lib/preventa-core.js");
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -57,6 +58,15 @@ exports.handler = async (event) => {
         await aplicarPagoSwm(kind, swmId, { metodo: "mercadopago", paymentId: payment.id, monto: payment.transaction_amount });
       }
       return { statusCode: 200, body: "swm" };
+    }
+
+    // Pagos de la preventa (anticipo o resto): "pv|<id>|<etapa>".
+    if (String(payment.external_reference || "").startsWith("pv|")) {
+      const [, pvId, etapa] = String(payment.external_reference).split("|");
+      if (payment.status === "approved" && pvId && ["anticipo", "resto"].includes(etapa)) {
+        await aplicarPagoPreventa(pvId, etapa, { metodo: "mercadopago", paymentId: payment.id, monto: payment.transaction_amount });
+      }
+      return { statusCode: 200, body: "preventa" };
     }
 
     const orderId = payment.external_reference;
