@@ -1,0 +1,9 @@
+[
+ {"texto": "[curious] ¿Sabías que tu pedido viaja más de diez mil kilómetros para llegar a ti? [warm] Todo empieza en Seúl.", "marcas": ["Todo", "Seúl"]},
+ {"texto": "En nuestra bodega lo preparo con mucho cariño, en uno a dos días hábiles.", "marcas": ["en uno", "días"]},
+ {"texto": "[playful] Luego volamos en DHL Express a Estados Unidos: dos a tres días.", "marcas": ["dos a tres", "días"]},
+ {"texto": "Cruzamos a México por tierra: uno a dos días.", "marcas": ["uno a dos", "días"]},
+ {"texto": "Lo reviso con lupa y lo mando a tu paquetería en un día.", "marcas": ["en un día", "reviso"]},
+ {"texto": "[excited] ¡Y toco a tu puerta! De dos a cinco días, o uno a dos por express.", "marcas": ["De dos", "o uno"]},
+ {"texto": "[warm] En total, de siete a trece días hábiles, o de seis a diez por express; son tiempos estimados. [excited] Te espero en alpacca punto eme equis.", "marcas": ["de siete", "o de seis", "son tiempos", "Te espero"]}
+]

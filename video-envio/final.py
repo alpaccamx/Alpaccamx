@@ -1,26 +1,35 @@
 """Versión "story time" de la historia de tu pedido: los clips animados con Seedance (Dreamina) +
 la voz de Mae como narradora + títulos de cada paso + el cierre con los tiempos totales (de build.py).
-1080x1920, 30 fps. Uso: python3 final.py  -> Historia-pedido.mp4 y Historia-pedido-voz.mp4"""
+1080x1920, 30 fps. Uso: python3 final.py  -> Historia-pedido-voz.mp4 (93 s)
+     VERSION=corto python3 final.py  -> Historia-pedido-corto-voz.mp4 (38 s, para TikTok)"""
 import json, os, subprocess, sys
-sys.argv = [sys.argv[0], os.path.join(os.path.dirname(os.path.abspath(__file__)), "Historia-pedido.mp4")]
+SUF = "-corto" if os.environ.get("VERSION") == "corto" else ""
+sys.argv = [sys.argv[0], os.path.join(os.path.dirname(os.path.abspath(__file__)), f"Historia-pedido{SUF}.mp4")]
 import build as b
 from PIL import Image, ImageFilter
 
 AQUI, W, H, FPS = b.AQUI, b.W, b.H, b.FPS
 OUT = sys.argv[1]
-T = b.TIEMPOS
+T = json.load(open(os.path.join(AQUI, f"tiempos{SUF}.json")))
 WHITE, INK = b.WHITE, b.INK
 
 # clip, segundo de inicio y fin que se usan (se ajusta la velocidad para que dure lo mismo que la frase)
 CLIPS = [("1-seul", 0.0, 15.0), ("2-bodega", 0.0, 15.0), ("3-avion", 0.0, 15.0),
          ("4-camion", 0.0, min(15.0, T[3]["dur"])), ("5-revision", 1.5, min(15.0, 1.5 + T[4]["dur"])),
          ("6-entrega", max(0.0, 15.0 - T[5]["dur"]), 15.0)]
+if SUF:  # versión corta: los pedacitos más bonitos de cada clip
+    CLIPS = [("1-seul", 0.0, min(15.0, T[0]["dur"] * 1.15)), ("2-bodega", 5.0, 5.0 + T[1]["dur"] * 1.1),
+             ("3-avion", 15.0 - T[2]["dur"] * 1.15, 15.0), ("4-camion", 0.0, T[3]["dur"] * 1.1),
+             ("5-revision", 6.0, 6.0 + T[4]["dur"] * 1.1), ("6-entrega", 15.0 - T[5]["dur"] * 1.1, 15.0)]
 # paso, título, días, color, extra (sale en la 2a marca)
 PASOS = [(1, "Orden", "1–2 días hábiles", (238, 108, 146), "📅 Sáb y dom no se trabaja"),
          (2, "Envío a USA", "2–3 días hábiles", (74, 144, 226), "Ahorras en gastos de aduana 💗"),
          (3, "Cruce a México", "1–2 días hábiles", (150, 110, 220), None),
          (4, "Revisión y envío", "1 día hábil", (40, 170, 150), None),
          (5, "Entrega", "2–5 días hábiles", (238, 108, 146), "⚡ Express: 1–2 días hábiles")]
+if SUF:  # en la corta las escenas duran 4-5 s: solo se deja el extra del express
+    PASOS = [p[:4] + ((p[4] if p[0] == 5 else None),) for p in PASOS]
+GANCHO = ("Tu pedido viaja", "+10,000 km 📦") if SUF else ("La historia", "de tu pedido 📦")
 
 
 def clip(nombre, ini, fin, n):
@@ -45,8 +54,8 @@ def escena_gancho(n, e):
     for f, L in enumerate(clip(*CLIPS[0], n)):
         t = f / FPS
         a = 1.0 if t < 4.2 else max(0.0, 1 - (t - 4.2) / 0.4)  # el título se va cuando ya entró la historia
-        b.pon(L, titulo("La historia", 80, INK), W / 2, 545, 1, a)
-        b.pon(L, titulo("de tu pedido 📦", 80, b.PINK), W / 2, 645, 1, a)
+        b.pon(L, titulo(GANCHO[0], 80, INK), W / 2, 545, 1, a)
+        b.pon(L, titulo(GANCHO[1], 80, b.PINK), W / 2, 645, 1, a)
         yield L
 
 
@@ -101,7 +110,7 @@ from PIL import ImageDraw
 
 def _palabras():
     """(segundo, palabra) de toda la narración, ya sin las etiquetas de tono ([warm]...)"""
-    frases = json.load(open(os.path.join(AQUI, "narracion.json"))); out = []; t0 = 0.0
+    frases = json.load(open(os.path.join(AQUI, f"narracion{SUF}.json"))); out = []; t0 = 0.0
     for n, (fr, e) in enumerate(zip(frases, T)):
         k = hashlib.sha1(f"eleven_v4|0.5|{fr['texto']}".encode()).hexdigest()[:12]
         a = json.load(open(os.path.join(AQUI, "voz", "cache", k + ".json")))["alignment"]
@@ -199,7 +208,7 @@ if __name__ == "__main__":
         subtitula(fr, cnt / FPS)
         p.stdin.write(fr.convert("RGB").tobytes()); cnt += 1
     p.stdin.close(); p.wait(); print("ok", OUT, f"{cnt / FPS:.1f}s")
-    voz = os.path.join(AQUI, "voz", "narracion.wav"); final = OUT.replace(".mp4", "-voz.mp4")
+    voz = os.path.join(AQUI, f"voz{SUF}", "narracion.wav"); final = OUT.replace(".mp4", "-voz.mp4")
     GAN = {"click": 0.3, "glitter": 0.35, "pop": 0.35}
     ins, fil = ["-i", OUT, "-i", voz], ["[1:a]aformat=channel_layouts=stereo[v]"]
     for j, (t, s) in enumerate(b.SFX):

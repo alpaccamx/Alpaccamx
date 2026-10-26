@@ -1,10 +1,11 @@
 """Voz de Mae para la animación de tiempos de envío: genera las frases de narracion.json con
 ElevenLabs (con tiempos por letra), las junta con una pausa y escribe
 tiempos.json para que build.py ponga cada escena y cada captura cuando se dice."""
-import base64, hashlib, json, os, shutil, subprocess, urllib.request
+import base64, hashlib, json, os, shutil, subprocess, sys, urllib.request
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-VOZ_DIR = os.path.join(AQUI, "voz")
+SUF = ("-" + sys.argv[1]) if len(sys.argv) > 1 else ""  # p. ej. "python3 voz.py corto" usa narracion-corto.json
+VOZ_DIR = os.path.join(AQUI, "voz" + SUF)
 VOZ = "BSKpxzmNBPkRKNFMmKrv"
 MODELO, ESTABILIDAD = "eleven_v4", 0.5  # v4 con pocas etiquetas de tono ([warm], [confident]); no se leen en voz alta
 INICIO, PAUSA, COLA = 0.25, 0.28, 1.6
@@ -17,8 +18,8 @@ def clave(texto):  # las frases ya generadas se guardan por su texto: solo se pi
 
 
 def tts(texto, n):
-    os.makedirs(os.path.join(VOZ_DIR, "cache"), exist_ok=True)
-    k = os.path.join(VOZ_DIR, "cache", clave(texto))
+    os.makedirs(os.path.join(AQUI, "voz", "cache"), exist_ok=True)
+    k = os.path.join(AQUI, "voz", "cache", clave(texto))
     if not os.path.exists(k + ".json"):
         req = urllib.request.Request(
             f"https://api.elevenlabs.io/v1/text-to-speech/{VOZ}/with-timestamps?output_format=mp3_44100_128",
@@ -41,7 +42,7 @@ def silencio(seg, ruta):
 
 
 os.makedirs(VOZ_DIR, exist_ok=True)
-frases = json.load(open(os.path.join(AQUI, "narracion.json")))
+frases = json.load(open(os.path.join(AQUI, f"narracion{SUF}.json")))
 escenas, partes = [], []
 silencio(INICIO, os.path.join(VOZ_DIR, "sil_ini.wav")); silencio(PAUSA, os.path.join(VOZ_DIR, "sil.wav"))
 silencio(COLA, os.path.join(VOZ_DIR, "sil_fin.wav"))
@@ -70,5 +71,5 @@ for n, f in enumerate(frases, 1):
 with open(os.path.join(VOZ_DIR, "lista.txt"), "w") as fh: fh.writelines(f"file '{p}'\n" for p in partes)
 subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", os.path.join(VOZ_DIR, "lista.txt"),
                 os.path.join(VOZ_DIR, "narracion.wav")], check=True)
-json.dump(escenas, open(os.path.join(AQUI, "tiempos.json"), "w"), indent=1)
+json.dump(escenas, open(os.path.join(AQUI, f"tiempos{SUF}.json"), "w"), indent=1)
 print("total", round(sum(e["dur"] for e in escenas), 2), "s")

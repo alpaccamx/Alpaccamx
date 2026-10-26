@@ -6,3 +6,7 @@ __pycache__/
 Envio.mp4
 prueba-*.mp4
 Historia-pedido.mp4
+voz-corto/*.wav
+voz-corto/lista.txt
+voz-corto/frase*.mp3
+Historia-pedido-corto.mp4
