@@ -1110,7 +1110,7 @@
           (it.nombre && it.nombre.toLowerCase().includes(term))
         );
         const marcaHTML = marca ? `<strong>${highlightMatch(marca, term)}</strong> — ` : "";
-        return `<li${isMatch ? ' class="item-hit"' : ""}>${marcaHTML}${highlightMatch(it.nombre, term)} x${it.qty}${it.enStock ? " · en stock" : ""}${it.preorden ? " · ⏳ preorden (21 días)" : ""} <span class="unit-price">(${formatPrice(precio)} c/u)</span> — ${formatPrice(precio * it.qty)}</li>`;
+        return `<li${isMatch ? ' class="item-hit"' : ""}>${marcaHTML}${highlightMatch(it.nombre, term)} x${it.qty}${it.enStock ? " · en stock" : ""}${it.preorden ? ` · ⏳ preorden (${escapeHtml(String(it.preordenDias || "21").replace("-", " a "))} días)` : ""} <span class="unit-price">(${formatPrice(precio)} c/u)</span> — ${formatPrice(precio * it.qty)}</li>`;
       })
       .join("");
   }

@@ -181,6 +181,42 @@ async function updateRows(body) {
   }
 }
 
+/* Agregar una columna nueva al final del encabezado (si no existe ya).
+   Body: { addHeader: "Dias Preorden", dryRun } */
+async function addHeader(body) {
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  const name = String(body.addHeader || "").trim().slice(0, 60);
+  if (!name) return jsonResponse(400, { error: "Falta el nombre de la columna." });
+  const token = await getAccessToken();
+  if (!token) return jsonResponse(500, { error: "No se pudo autenticar con Google Sheets." });
+  try {
+    const meta = await api(token, `${spreadsheetId}?fields=sheets.properties`);
+    const sheet = (meta.sheets || []).find((s) => s.properties.sheetId === CATALOG_GID);
+    if (!sheet) return jsonResponse(500, { error: "No encontré la pestaña del catálogo en el Sheet." });
+    const quoted = `'${sheet.properties.title.replace(/'/g, "''")}'`;
+    const header = ((await api(token, `${spreadsheetId}/values/${encodeURIComponent(`${quoted}!1:1`)}`)).values || [])[0] || [];
+    const existing = header.findIndex((h) => String(h || "").trim().toLowerCase() === name.toLowerCase());
+    if (existing >= 0) return jsonResponse(200, { exists: true, column: columnLetter(existing) });
+    const col = columnLetter(header.length);
+    if (body.dryRun) return jsonResponse(200, { dryRun: true, column: col });
+    if (header.length >= (sheet.properties.gridProperties ? sheet.properties.gridProperties.columnCount : Infinity)) {
+      await api(token, `${spreadsheetId}:batchUpdate`, {
+        method: "POST",
+        body: JSON.stringify({ requests: [{ appendDimension: { sheetId: CATALOG_GID, dimension: "COLUMNS", length: 1 } }] }),
+      });
+    }
+    await api(token, `${spreadsheetId}/values/${encodeURIComponent(`${quoted}!${col}1`)}?valueInputOption=RAW`, {
+      method: "PUT",
+      body: JSON.stringify({ values: [[name]] }),
+    });
+    console.log(`Catálogo: columna "${name}" agregada en ${col}`);
+    return jsonResponse(200, { added: true, column: col });
+  } catch (err) {
+    console.error("Error agregando columna al catálogo:", err);
+    return jsonResponse(502, { error: `Google Sheets: ${err.message}` });
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
 
@@ -199,6 +235,7 @@ exports.handler = async (event) => {
   }
   if (Array.isArray(body.moves)) return moveRows(body);
   if (Array.isArray(body.updates)) return updateRows(body);
+  if (typeof body.addHeader === "string") return addHeader(body);
 
   const input = Array.isArray(body.rows) ? body.rows : [];
   if (!input.length) return jsonResponse(400, { error: "No hay renglones para agregar." });

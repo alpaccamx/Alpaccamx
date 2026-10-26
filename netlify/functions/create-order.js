@@ -244,7 +244,7 @@ exports.handler = async (event) => {
       precio: line.precio,
       precioBase: line.precioBase,
       enStock: line.enStock,
-      ...(line.preorden ? { preorden: true } : {}),
+      ...(line.preorden ? { preorden: true, ...(line.preordenDias ? { preordenDias: line.preordenDias } : {}) } : {}),
       // Costo en ABW (Precio USD del catálogo) ese día, para la ganancia
       // estimada en /admin.html. 0 = sin costo en el Sheet.
       costoUSD: line.costoUSD || 0,

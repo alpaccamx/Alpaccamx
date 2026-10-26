@@ -1095,13 +1095,15 @@ function csvToProducts(text) {
   const iPresentacion = findCol(headers, ["presentacion", "presentación", "empaque", "variante", "unidad"]);
   const iCapacidad = findCol(headers, ["capacidad", "contenido", "tamaño", "tamano", "capacity"]);
   const iPais = findCol(headers, ["país", "pais", "country"]);
+  const iPreDias = findCol(headers, ["dias preorden", "días preorden"]);
 
   return rows
     .slice(1)
     .map((r, n) => {
       const get = (i) => (i >= 0 && r[i] != null ? r[i].trim() : "");
       const disponibleRaw = get(iDisponible).toLowerCase();
-      // "PREORDEN": ABW lo surte en ~21 días; se puede pedir, con aviso.
+      // "PREORDEN": ABW lo surte con unos días de espera (columna "Dias
+      // Preorden": "7-14", "30"…; vacía = 21); se puede pedir, con aviso.
       const preorden = disponibleRaw === "preorden";
       // "OCULTO": ya no existe en ABW; no se muestra en la tienda.
       if (disponibleRaw === "oculto") return null;
@@ -1129,6 +1131,7 @@ function csvToProducts(text) {
         descripcion: get(iDescripcion),
         disponible,
         preorden,
+        preordenDias: get(iPreDias).replace(/[^0-9-]/g, ""),
         destacado: splitTags(get(iDestacado)),
         tipoPiel: splitTags(get(iTipoPiel)),
         pais: get(iPais),
@@ -2365,14 +2368,20 @@ function agotadoBadgeHTML() {
   return `<span class="bg-ink/85 text-cream text-xs font-semibold px-2 py-0.5 rounded-sm">Agotado</span>`;
 }
 
-/* Preorden: ABW tarda ~21 días en tenerlo en la bodega de Corea. */
-const PREORDEN_DIAS = 21;
-const PREORDEN_AVISO = `Preorden: tarda unos ${PREORDEN_DIAS} días en llegar a la bodega de Corea, y después sigue el envío a México.`;
-function preordenBadgeHTML() {
-  return `<span class="bg-[#fff1d6] text-[#8a5a00] border border-[#e8c67a] text-xs font-semibold px-2 py-0.5 rounded-sm">⏳ Preorden · ${PREORDEN_DIAS} días</span>`;
+/* Preorden: ABW tarda unos días en tenerlo en la bodega de Corea (21 si el
+   Sheet no dice otra cosa en "Dias Preorden"; "7-14" se muestra "7 a 14"). */
+const PREORDEN_DIAS = "21";
+function preordenDiasTxt(p) {
+  return ((p && p.preordenDias) || PREORDEN_DIAS).replace("-", " a ");
+}
+function preordenAviso(p) {
+  return `Preorden: tarda unos ${preordenDiasTxt(p)} días en llegar a la bodega de Corea, y después sigue el envío a México.`;
+}
+function preordenBadgeHTML(p) {
+  return `<span class="bg-[#fff1d6] text-[#8a5a00] border border-[#e8c67a] text-xs font-semibold px-2 py-0.5 rounded-sm">⏳ Preorden · ${preordenDiasTxt(p)} días</span>`;
 }
 function cardBadgeHTML(p) {
-  return !p.disponible ? agotadoBadgeHTML() : p.preorden ? preordenBadgeHTML() : "";
+  return !p.disponible ? agotadoBadgeHTML() : p.preorden ? preordenBadgeHTML(p) : "";
 }
 
 /* Agrupa variantes de tono/color o tipo/aroma del mismo producto en una
@@ -2737,7 +2746,7 @@ function renderProductSheet(p) {
         <p class="text-sm text-ink/80">${p.enStock
           ? `✅ <b>Stock en México</b>: entrega inmediata y sin pedido mínimo. ${stockBadgeHTML(p)}`
           : `🇰🇷 Se pide a Corea. Cuenta para el pedido mínimo de ${formatPrice(CONFIG.MIN_ORDER_MXN || 0)}.`}</p>
-        ${p.preorden && !p.enStock ? `<p class="rounded-xl bg-[#fff6e5] border border-[#e8c67a] px-3 py-2 text-sm text-[#6b4700]">⏳ <b>${PREORDEN_AVISO.replace(/^Preorden:/, "Preorden:</b>")}</p>` : ""}
+        ${p.preorden && !p.enStock ? `<p class="rounded-xl bg-[#fff6e5] border border-[#e8c67a] px-3 py-2 text-sm text-[#6b4700]">⏳ <b>${preordenAviso(p).replace(/^Preorden:/, "Preorden:</b>")}</p>` : ""}
         <div data-sheet-actions class="flex flex-col gap-2">
           ${out
             ? `<button type="button" data-restock="${escapeAttr(p.id)}" data-restock-name="${escapeAttr((p.marca ? p.marca + " -- " : "") + p.nombre)}" data-restock-sku="${escapeAttr(p.sku || p.id)}" data-restock-marca="${escapeAttr(p.marca || "")}"
@@ -5643,7 +5652,7 @@ function renderCart() {
           ${it.product.presentacion ? `<p class="text-xs text-ink/75">${escapeHtml(it.product.presentacion)}</p>` : ""}
           <p class="text-xs text-ink/75">${formatPrice(it.product.precio)} c/u</p>
           <p class="text-xs text-green-800 leading-snug" data-reventa="${escapeAttr(id)}"></p>
-          ${it.product.preorden && !it.product.enStock ? `<p class="text-xs font-semibold text-[#8a5a00]">⏳ Preorden: ~${PREORDEN_DIAS} días en llegar a la bodega de Corea</p>` : ""}
+          ${it.product.preorden && !it.product.enStock ? `<p class="text-xs font-semibold text-[#8a5a00]">⏳ Preorden: ~${preordenDiasTxt(it.product)} días en llegar a la bodega de Corea</p>` : ""}
           <div class="mt-1 flex items-center gap-2" role="group" aria-label="Cantidad de ${name}">
             <button type="button" data-dec="${escapeAttr(id)}" aria-label="Quitar una pieza de ${name}" class="tap w-7 h-7 coarse:w-9 coarse:h-9 rounded-full border border-ink/20 text-ink text-base leading-none hover:bg-ink/5">−</button>
             <span class="text-sm w-5 text-center">${it.qty}</span>
