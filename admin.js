@@ -4617,7 +4617,7 @@ ${itemLines}
       ["mexico", `🇲🇽 En México (${P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length})`],
       ["sindueña", `❓ Sin dueña (${P.filter((p) => p.status === "sin_dueña").length})`],
       ["compras", `🛍️ Compras (${swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status)).length})`],
-      ["envios", `🚚 Envíos (${swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status)).length})`],
+      ["envios", `📦 Por mandar (${swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status)).length})`],
       ["enviados", `✈️ Enviados (${swmData.envios.filter((e) => e.status === "enviado").length})`],
       ["entregados", `✅ Entregados (${swmData.envios.filter((e) => e.status === "entregado").length})`],
       ["historial", "🗂️ Historial"],
@@ -4976,7 +4976,7 @@ ${itemLines}
         <div class="meta" style="font-weight:700;margin-top:8px;">Dirección de entrega${ultimo ? " (la de su último envío)" : ""}</div>
         <div class="grid">${inp("nombre", "Nombre de quien recibe")}${inp("telefono", "Teléfono")}${inp("calle", "Calle y número")}${inp("colonia", "Colonia")}${inp("ciudad", "Ciudad")}${inp("estado", "Estado")}${inp("cp", "Código postal", 'maxlength="5" inputmode="numeric"')}${inp("referencias", "Referencias")}</div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-cons-save>📦 Crear envío en una sola caja</button><button type="button" class="btn-secondary" data-cons-toggle="">Cancelar</button></div>
-        <div class="meta">Después lo cotizas en "Envíos" como siempre y a ella le llega para pagar.</div>
+        <div class="meta">Después lo cotizas en "Por mandar" como siempre y a ella le llega para pagar.</div>
       </div>` : "";
     // "Ya lo mandé": paquetes sueltos o que ya tienen envío; se anota la guía a mano y pasan a Enviados.
     const mandables = ps.filter((p) => (p.status === "recibido" && !p.datosPendientes) || p.status === "en_envio");
