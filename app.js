@@ -2760,7 +2760,7 @@ function renderProductSheet(p) {
         </div>
         <div class="border-t border-ink/10 pt-4 flex flex-col gap-3 text-sm">
           ${desc
-            ? `<p class="text-ink/85 leading-relaxed max-w-prose">${escapeHtml(desc)}</p>`
+            ? `<p class="text-ink/85 leading-relaxed max-w-prose whitespace-pre-line">${escapeHtml(desc)}</p>`
             : info === undefined || info === null
               ? `<p class="text-ink/60">Cargando descripción…</p>`
               : ""}
