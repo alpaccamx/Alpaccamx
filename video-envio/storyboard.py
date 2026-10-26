@@ -15,29 +15,29 @@ IMG = {"hola": "../assets/alpaca-surtir.webp", "corea": "dibujos/empacando.png",
 
 # (título, duración, [(dibujo, cámara, acción)])
 SEG = [
-    ("Hello! I'm Mae", D[0], [
-        ("hola", "Close-up", "The alpaca pops into frame and waves hello at the camera, sparkles around."),
-        ("hola", "Medium shot", "She hugs a stack of pink gift boxes and nods happily, hearts float up."),
-        ("corea", "Slow pull-back", "Reveal a cute pastel-pink warehouse with a Korean flag behind her."),
+    ("A morning in Seoul", D[0], [
+        ("hola", "Wide, slow tracking", "Morning in Seoul: the alpaca walks happily down a cute street with cherry blossoms, N Seoul Tower (Namsan) on the hill behind."),
+        ("hola", "Medium, follow", "She arrives at a cute small warehouse, smiles and waves at the camera inviting us in."),
+        ("corea", "Push-in", "She walks inside: tall shelves and stacks of cardboard boxes with pink tape, a Korean flag on the wall."),
     ]),
-    ("Korea warehouse", D[1], [
-        ("corea", "Wide shot", "Inside the pink warehouse: shelves full of Korean skincare. A new order pops up on a tablet."),
-        ("corea", "Medium, slow push-in", "The alpaca picks products and gently places them in a box with tissue paper."),
-        ("corea", "Close-up", "She closes the box with the Korean flag sticker, gives it a happy pat."),
+    ("Packing your order", D[1], [
+        ("corea", "Medium shot", "A new order pops up on a tablet with a little heart; the alpaca gets excited."),
+        ("corea", "Slow push-in", "She picks skincare products from the shelves and gently places them in a box with pink tissue paper."),
+        ("corea", "Close-up", "She closes the box with a Korean flag sticker, then yawns and stretches (weekend rest) with a smile."),
     ]),
-    ("Flight to the USA", D[2], [
-        ("avion", "Medium shot", "The alpaca pilot loads the box into her pink plane and puts on her goggles."),
-        ("avion", "Wide, tracking", "The plane flies over the ocean among fluffy clouds, propeller spinning, she waves."),
-        ("avion", "Wide shot", "The plane lands gently at a pink warehouse with a US flag."),
+    ("Flying to the USA", D[2], [
+        ("avion", "Medium shot", "The alpaca puts on her pilot goggles and loads the box into her pink plane at the airport."),
+        ("avion", "Wide, tracking", "The plane flies over the ocean among fluffy clouds, propeller spinning, she waves happily."),
+        ("avion", "Wide shot", "The plane lands gently next to a pink warehouse with a US flag."),
     ]),
-    ("Crossing to Mexico + check", D[3] + D[4], [
-        ("camion", "Side tracking shot", "The pink truck full of boxes drives on a sunny desert road, boxes bouncing."),
-        ("camion", "Wide shot", "The truck passes a cute welcome arch with the Mexican flag."),
-        ("revisa", "Medium, push-in", "The alpaca inspects the products with a pink magnifying glass, then repacks the box with the Mexican flag."),
+    ("On the road to Mexico", D[3] + D[4], [
+        ("camion", "Side tracking shot", "The pink truck full of boxes drives on a sunny desert road with cactus, boxes bouncing."),
+        ("camion", "Wide shot", "The truck passes a cute welcome arch decorated with the Mexican flag."),
+        ("revisa", "Medium, push-in", "In a cozy room, the alpaca checks the products with a pink magnifying glass, then repacks the box with the Mexican flag."),
     ]),
-    ("Delivery", D[5], [
-        ("entrega", "Wide shot", "The alpaca walks up to a cute pink house carrying a gift box with a pink bow."),
-        ("entrega", "Medium shot", "The door opens, she offers the gift box toward the camera, hearts burst around."),
+    ("Knock knock!", D[5], [
+        ("entrega", "Wide shot", "The alpaca walks up to a cute pink house carrying a gift box with a pink bow and knocks on the door."),
+        ("entrega", "Medium shot", "The door opens and she offers the gift box toward the camera, hearts burst around."),
     ]),
 ]
 
@@ -79,7 +79,7 @@ for n, (tit, dur, tomas) in enumerate(SEG, 1):
     for j, c in enumerate([(254, 235, 241), (248, 196, 214), (238, 108, 146), (196, 70, 110), (250, 246, 238), (214, 170, 120), (240, 200, 90)]):
         d.rounded_rectangle((xr + j * 105, 565, xr + j * 105 + 90, 635), 14, fill=c, outline=(220, 200, 208))
     envuelve(d, (xr, 660), "Pastel pink world, soft warm lighting, gentle smooth camera moves, cheerful and cozy. "
-             "Smooth transitions between shots. No text on screen, no dialogue (a voice-over is added later).",
+             "Smooth transitions between shots. No text on screen, no dialogue, the alpaca does not talk (a narrator voice-over is added later).",
              F("Medium", 22), 760, INK)
     d.text((xr, 800), "ROUTE", font=F("Bold", 26), fill=DEEP)
     d.text((xr, 845), "Korea  >  USA  >  Mexico  >  your home", font=F("Bold", 30), fill=INK)
