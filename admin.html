@@ -8,7 +8,7 @@
 <link rel="icon" href="./assets/favicon-admin.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   body {
@@ -669,31 +669,41 @@
     .nav-btn .nav-badge { position: static !important; margin-left: auto; }
   }
 
-    /* ===== Tema pastel (sin rosa fuerte) ===== */
-  :root { --bg: #fbf8fb; --surface: #fff; --line: #f1e9f0; --text: #2f2a36; --muted: #7a7283;
-    --accent: #f7d3df; --accent-ink: #6e2a45; --accent-soft: #fdedf2; --nav-bg: #fff; --nav-ink: #5d5566;
-    --nav-active-bg: #fde8ef; --nav-active-ink: #8a3a5a; --chip-bg: #f6f1f6; --chip-ink: #4f4757; --radius: 18px; --radius-sm: 12px;
-    --shadow: 0 1px 2px rgba(80, 50, 90, .04), 0 4px 14px rgba(80, 50, 90, .04); }
-  .btn-primary:hover:not(:disabled) { filter: none; background: #f3c1d2 !important; }
-  .btn-danger { background: #f9d9d6 !important; color: #8f2f26 !important; }
-  .tab.active, #swm-filters button.on { background: #e9e0fb !important; color: #46367a !important; }
-  .nav-logo::before { background: linear-gradient(135deg, #d9cbf6, #f8cfdc) !important; }
-  .nav-logo::after { color: #8a3a5a !important; }
-  .nav-badge { background: #f4a9c0 !important; color: #5a1f36 !important; }
-  .adm-head h1 { color: #3a3242 !important; }
-  /* Tarjetas de "por hacer" en pastel, sin rayita */
+  /* ===== Igual que la tienda: blanco, Inter, pastillas grises que se ponen negras al elegirlas ===== */
+  @font-face { font-family: "Ready to Party"; src: url(fonts/ReadyToParty-latin.woff2) format("woff2"), url(fonts/ReadyToParty.ttf) format("truetype"); font-display: swap; }
+  :root { --font: "Inter", system-ui, sans-serif; --bg: #fff; --surface: #fff; --line: #ebebeb; --text: #111; --muted: #6b6b6b;
+    --accent: #111; --accent-ink: #fff; --accent-soft: #f7f7fb; --nav-bg: #fff; --nav-ink: #444;
+    --nav-active-bg: #f7f7fb; --nav-active-ink: #111; --chip-bg: #f7f7fb; --chip-ink: #333; --radius: 16px; --radius-sm: 999px; --shadow: none; }
+  body { font-size: 15px; }
+  h1, h2, h3, h4 { letter-spacing: -.02em; }
+  .adm-head h1 { color: #111 !important; font-weight: 700 !important; }
+  /* Botones como "Agregar" de la tienda: borde negro; se rellenan al pasar el mouse */
+  .btn-primary { background: #fff !important; color: #111 !important; border: 1.5px solid #111 !important; border-radius: 999px !important; }
+  .btn-primary:hover:not(:disabled) { filter: none; background: #111 !important; color: #fff !important; }
+  .sales-row div, .sales-row div:nth-child(n), .report-kpis div { border-radius: 12px !important; }
+  @media (min-width: 700px) { .nav-btn, .nav-btn .nav-txt::after { font-size: 14.5px !important; } }
+  .btn-secondary { border: 1px solid #e5e5e5; background: #fff; }
+  .btn-danger { background: #fff !important; color: #c22d2d !important; border: 1px solid #f0c4c4; }
+  .tab, #swm-filters button.btn-secondary { border: none !important; }
+  .tab.active, #swm-filters button.on { background: #111 !important; color: #fff !important; }
+  input[type="text"], input[type="search"], input[type="number"], input[type="password"], textarea, select { border-radius: 8px !important; border-color: #e5e5e5 !important; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid #ece9f5; border-color: #8b84ac !important; }
+  /* Logo como en la tienda */
+  .nav-logo::before { display: none !important; }
+  .nav-logo::after { font: 400 32px/1 "Ready to Party", var(--font) !important; color: #ee6c92 !important; letter-spacing: 0 !important; }
+  .nav-badge { background: #ee6c92 !important; color: #fff !important; }
+  .nav-btn { font-weight: 500 !important; }
+  .nav-btn.active { font-weight: 700 !important; }
+  /* Tarjetas de "por hacer": blancas; las que tienen pendientes, con un rosita muy leve como la tienda */
   .todo-card::before { display: none; }
-  .todo-card:not(.zero) { background: #efe9fc !important; border-color: #e4dbf8 !important; }
-  .todo-card.pink:not(.zero) { background: #fde8ef !important; border-color: #f8d6e2 !important; }
-  .todo-card.hot:not(.zero) { background: #ffeedd !important; border-color: #f8e0c4 !important; }
-  .todo-card.blue:not(.zero) { background: #e5eefc !important; border-color: #d5e3f8 !important; }
-  .todo-card .n { color: #3a3242 !important; }
-  .todo-card.zero .n { color: #c3bccb !important; }
-  .sales-row div:nth-child(1) { background: #f3eefd !important; } .sales-row div:nth-child(2) { background: #e8f6ee !important; } .sales-row div:nth-child(3) { background: #eaf1fd !important; }
-  .bars .bar i { background: #e6def8 !important; } .bars .bar.today i { background: #f5bccd !important; }
-  .cs-total, .order-card .total, .client-row .sp { color: #3a3242 !important; }
-  .swm-cli-n { background: #fde8ef; color: #8a3a5a; }
-  input:focus, textarea:focus, select:focus { outline: 3px solid #f6dbe5; border-color: #ecb6c8 !important; }
+  .todo-card:not(.zero) { background: #fff7fa !important; border-color: #f8dbe6 !important; }
+  .todo-card.hot:not(.zero) { background: #fff6e5 !important; border-color: #f6e2bd !important; }
+  .todo-card .n { color: #111 !important; font-weight: 700; }
+  .todo-card.zero .n { color: #c4c4c4 !important; }
+  .sales-row div, .sales-row div:nth-child(n), .report-kpis div { background: #f7f7fb !important; }
+  .bars .bar i { background: #f6cadb !important; } .bars .bar.today i { background: #ee6c92 !important; }
+  .swm-cli-n { background: #f7f7fb; color: #111; }
+  .cs-total, .order-card .total, .client-row .sp { color: #111 !important; }
 </style>
 </head>
 <body>
