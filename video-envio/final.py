@@ -13,7 +13,8 @@ WHITE, INK = b.WHITE, b.INK
 
 # clip, segundo de inicio y fin que se usan (se ajusta la velocidad para que dure lo mismo que la frase)
 CLIPS = [("1-seul", 0.0, 15.0), ("2-bodega", 0.0, 15.0), ("3-avion", 0.0, 15.0),
-         ("4-camion", 0.0, 8.0), ("5-revision", 1.5, 11.5), ("6-entrega", 5.5, 15.0)]
+         ("4-camion", 0.0, min(15.0, T[3]["dur"])), ("5-revision", 1.5, min(15.0, 1.5 + T[4]["dur"])),
+         ("6-entrega", max(0.0, 15.0 - T[5]["dur"]), 15.0)]
 # paso, título, días, color, extra (sale en la 2a marca)
 PASOS = [(1, "Orden", "1–2 días hábiles", (238, 108, 146), "📅 Sáb y dom no se trabaja"),
          (2, "Envío a USA", "2–3 días hábiles", (74, 144, 226), "Ahorras en gastos de aduana 💗"),
@@ -84,7 +85,7 @@ def escena_total(n, e, f0):
         _, al = b.entra(t, m[2], 0.3)
         b.pon(L, b.linea("Son tiempos estimados: pueden variar por", "SemiBold", 36, INK), W / 2, 1030, 1, al)
         b.pon(L, b.linea("días festivos, logística o paquetería.", "SemiBold", 36, INK), W / 2, 1082, 1, al)
-        b.pon(L, b.pastilla("Nos vemos en alpacca.mx 💗", "ExtraBold", 58, b.PINK, WHITE), W / 2, 1290, *b.entra(t, m[3]))
+        b.pon(L, b.pastilla("Te espero en alpacca.mx 💗", "ExtraBold", 58, b.PINK, WHITE), W / 2, 1290, *b.entra(t, m[3]))
         yield L
 
 _cache = {}
