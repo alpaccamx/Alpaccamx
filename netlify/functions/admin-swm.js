@@ -465,6 +465,55 @@ exports.handler = async (event) => {
         return json(200, { envio: rec });
       }
 
+      // Mae ya mandó paquetes (guía hecha por fuera, cobro por WhatsApp…):
+      // los marca como enviados con la guía a mano. Los que ya tenían envío
+      // usan ese envío; los sueltos van en un envío nuevo ya "enviado".
+      case "enviar_directo": {
+        const email = clip(b.email, 200).toLowerCase();
+        const ids = [...new Set((Array.isArray(b.paqueteIds) ? b.paqueteIds : []).map(String))].slice(0, 40);
+        const paqueteria = clip(b.paqueteria, 40) || "Estafeta";
+        const guia = clip(b.guia, 80);
+        if (!email || !ids.length) return json(400, { error: "Elige al menos un paquete." });
+        if (!guia) return json(400, { error: "Pon el número de guía." });
+        const paquetes = await Promise.all(ids.map((x) => getRecord("paquete", x)));
+        if (paquetes.some((p) => !p || p.email !== email || !["recibido", "en_envio"].includes(p.status))) {
+          return json(409, { error: "Solo se pueden marcar paquetes de la misma clienta que sigan en el almacén o en México." });
+        }
+        const envioIds = [...new Set(paquetes.filter((p) => p.status === "en_envio" && p.envioId).map((p) => p.envioId))];
+        const sueltos = paquetes.filter((p) => p.status === "recibido");
+        const marcar = (e) => {
+          e.paqueteria = paqueteria; e.guia = guia;
+          e.status = "enviado"; e.enviadoAt = now(); push(e, "enviado", { por: "mae", aMano: true }); return e;
+        };
+        const envios = [];
+        for (const eid of envioIds) {
+          const rec = await mutateRecord("envio", eid, (e) => (["cancelado", "entregado"].includes(e.status) ? null : marcar(e)));
+          if (rec) envios.push(rec);
+        }
+        if (sueltos.length) {
+          const p0 = sueltos[0];
+          const rec = marcar({
+            id: randomUUID(), folio: await nextFolio("envio"), email, name: p0.name || "", phone: p0.phone || "",
+            paqueteIds: sueltos.map((p) => p.id), consolidar: sueltos.length > 1, direccion: null, creadoPor: "mae",
+            status: "solicitado", sugerido: null, cotizacion: null, pago: null, notaClienta: "", notaPrivada: "Enviado a mano (cobrado por fuera).",
+            history: [{ at: now(), status: "solicitado", por: "mae" }], createdAt: now(), updatedAt: now(),
+          });
+          await saveRecord("envio", rec);
+          envios.push(rec);
+        }
+        const todos = envios.flatMap((e) => e.paqueteIds || []);
+        await Promise.all(todos.map((x) => mutateRecord("paquete", x, (p) => {
+          const e = envios.find((en) => (en.paqueteIds || []).includes(p.id));
+          p.status = "enviado"; if (e) p.envioId = e.id; push(p, "enviado"); return p;
+        })));
+        if (b.avisar !== false) {
+          for (const rec of envios) {
+            await avisar(rec, `tu envío ${rec.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${esc(rec.paqueteria)}</b><br>Guía: <b>${esc(rec.guia)}</b></p>`);
+          }
+        }
+        return json(200, { envios });
+      }
+
       // Corregir la paquetería o el número de guía de un envío que ya salió.
       case "corregir_guia": {
         if (!clip(b.guia, 80)) return json(400, { error: "Pon el número de guía." });
