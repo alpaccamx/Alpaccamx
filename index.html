@@ -141,6 +141,8 @@
 
 <!-- En stock: entrega inmediata -->
 <section id="stock-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 hidden">
+  <!-- Preventa (ej. Sephora Sale): la pinta preventa.js cuando hay una abierta -->
+  <div id="preventa-box" class="hidden mb-10 scroll-mt-24"></div>
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-display text-xl sm:text-2xl text-ink">✅ Stock en México 🇲🇽</h2>
     <button id="stock-clear" type="button" aria-label="Cerrar en stock" class="tap text-xs text-ink/75 hover:text-ink underline">Cerrar</button>
@@ -1524,6 +1526,7 @@
 
 <script src="./app.js"></script>
 <script src="./swm.js"></script>
+<script src="./preventa.js"></script>
 <script src="./kits.js"></script>
 </body>
 </html>

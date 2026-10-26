@@ -2102,6 +2102,8 @@ function getMenuItems() {
   // Siempre visible (aunque la hoja de Stock todavía no termine de cargar):
   // la sección muestra sus productos en cuanto llegan.
   items.push({ type: "link", label: "✅ Stock en México 🇲🇽", href: "#stock-section" });
+  const preventa = typeof preventaMenuItem === "function" && preventaMenuItem();
+  if (preventa) items.push(preventa);
 
   items.push({ type: "link", label: "🇺🇸 Dirección americana · Compras en EE.UU.", href: "#swm-section" });
   items.push({ type: "link", label: "🛍️ Personal shopper", href: "#ps-section" });
@@ -4274,6 +4276,7 @@ function openStockSection({ restore = false } = {}) {
   document.getElementById("search-input").value = "";
   renderStockGrid(restore);
   showHomeView("stock");
+  if (typeof renderPreventa === "function") renderPreventa();
   if (!restore) document.getElementById("stock-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
@@ -4728,6 +4731,7 @@ function setRouteMeta(r) {
   else if (r.categoria) { title = `${r.categoria} coreano — Alpacca`; canonical += `?categoria=${encodeURIComponent(r.categoria)}`; }
   else if (r.ver === "catalogo") { title = "Catálogo completo — Alpacca"; canonical += "?ver=catalogo"; }
   else if (r.ver === "stock") { title = "Stock en México, entrega inmediata — Alpacca"; canonical += "?ver=stock"; }
+  else if (r.ver === "preventa") { title = "Preventa: aparta tus favoritos — Alpacca"; canonical += "?ver=preventa"; }
   else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México · Alpacca"; canonical += "?ver=direccion-americana"; }
   else if (r.ver === "tipo-de-piel") { title = "Test de tipo de piel: arma tu rutina coreana — Alpacca"; canonical += "?ver=tipo-de-piel"; }
   else if (r.ver === "como-comprar") { title = "Cómo comprar en Alpacca (video de 1 minuto)"; canonical += "?ver=como-comprar"; }
@@ -4768,6 +4772,7 @@ function openRouteView(params, restore) {
     }
   }
   else if (ver === "stock") openStockSection({ restore });
+  else if (ver === "preventa" && typeof openPreventa === "function") openPreventa({ restore });
   else if (ver === "favoritos") openWishlistSection();
   else if (ver === "tipo-de-piel") openSkinQuiz({ restore });
   else if (ver === "como-comprar") { showHomeView("home", { ver }); openHowToVideo(); }
@@ -6513,11 +6518,13 @@ function setCustomerToken(token) {
   localStorage.setItem(CUSTOMER_TOKEN_KEY, token);
   misDirecciones = null;
   if (typeof swmOnAuthChange === "function") swmOnAuthChange();
+  if (typeof preventaOnAuthChange === "function") preventaOnAuthChange();
 }
 function clearCustomerToken() {
   localStorage.removeItem(CUSTOMER_TOKEN_KEY);
   misDirecciones = null;
   if (typeof swmOnAuthChange === "function") swmOnAuthChange();
+  if (typeof preventaOnAuthChange === "function") preventaOnAuthChange();
 }
 
 /* ---------- Mis direcciones ----------
@@ -7766,6 +7773,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (href === "stock-section") {
       openStockSection();
+      return;
+    }
+    if (href === "preventa-box" && typeof openPreventa === "function") {
+      e.preventDefault();
+      openPreventa();
       return;
     }
     if (href === "skintype-section") {
