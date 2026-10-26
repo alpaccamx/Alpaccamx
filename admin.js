@@ -4424,6 +4424,7 @@ ${itemLines}
   let swmSinRegistroOpen = false;
   let swmNuevaCompraOpen = false;
   let swmConsolidarEmail = ""; // clienta con el formulario "Juntar en una caja" abierto
+  let swmEnviarEmail = ""; // clienta con el formulario "Ya lo mandé: anotar guía" abierto
   const swmGuiaState = {}; // envioId -> { rates, selected }
   const swmCliOpen = new Set(); // clientas desplegadas (se conservan al recargar la lista)
 
@@ -4655,7 +4656,10 @@ ${itemLines}
     } else if (swmTab === "compras") {
       html = lista(swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status) && swmMatches(c)), swmCompraCard, "No hay compras activas.");
     } else if (swmTab === "envios") {
-      html = lista(swmData.envios.filter((e) => !["entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard, "No hay envíos activos.");
+      // Una sola pestaña: arriba lo que falta mandar, abajo lo que ya va en camino (con su guía).
+      html = sec("📦 Por mandar", swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard)
+        + sec("✈️ Enviados (en camino)", swmData.envios.filter((e) => e.status === "enviado" && swmMatches(e)), swmEnvioCard)
+        || `<p style="color:#5f5866;font-size:14px;">No hay envíos activos.</p>`;
     } else {
       html = sec("Envíos", swmData.envios.filter((e) => ["entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard)
         + sec("Compras", swmData.compras.filter((c) => ["comprado", "cancelado"].includes(c.status) && swmMatches(c)), swmCompraCard)
@@ -4971,14 +4975,27 @@ ${itemLines}
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-cons-save>📦 Crear envío en una sola caja</button><button type="button" class="btn-secondary" data-cons-toggle="">Cancelar</button></div>
         <div class="meta">Después lo cotizas en "Envíos" como siempre y a ella le llega para pagar.</div>
       </div>` : "";
+    // "Ya lo mandé": paquetes sueltos o que ya tienen envío; se anota la guía a mano y pasan a Enviados.
+    const mandables = ps.filter((p) => (p.status === "recibido" && !p.datosPendientes) || p.status === "en_envio");
+    const enviando = swmEnviarEmail === email;
+    const formGuia = enviando ? `<div class="swm-card" data-swm-enviar="${escapeHtml(email)}" style="background:#f3f8fd;">
+        <div class="meta" style="font-weight:700;">¿Qué paquetes mandaste con esta guía?</div>
+        ${mandables.map((p) => `<label class="swm-check"><input type="checkbox" data-env-pick="${escapeHtml(p.id)}" checked> ${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "")}${p.status === "en_envio" ? " · ya tenía envío" : ""}</label>`).join("")}
+        <div class="grid"><label>Paquetería<input data-env-paq type="text" value="Estafeta" list="swm-paqs"></label><label>Número de guía<input data-env-guia type="text" placeholder="Ej. 1234567890"></label></div>
+        <datalist id="swm-paqs"><option>Estafeta</option><option>DHL</option><option>FedEx</option><option>Paquetexpress</option><option>J&T</option><option>99minutos</option><option>Redpack</option><option>Entrega en persona</option></datalist>
+        <label class="swm-check"><input type="checkbox" data-env-avisar checked> Mandarle correo con su guía</label>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-env-save>🚚 Marcar como enviado</button><button type="button" class="btn-secondary" data-env-toggle="">Cancelar</button></div>
+        <div class="meta">Pasan a "Envíos → Enviados (en camino)" con su guía. Ahí los marcas entregados o corriges la guía.</div>
+      </div>` : "";
     const cas = swmData.casilleros && swmData.casilleros[email];
     const key = `mexico|${email}`;
-    const open = abierto || !!swmSearch.trim() || swmCliOpen.has(key);
+    const open = abierto || enviando || !!swmSearch.trim() || swmCliOpen.has(key);
     return `<details class="swm-cli" data-cli="${escapeHtml(key)}"${open ? " open" : ""}>
       <summary><span>👤 <b>${escapeHtml(p0.name || email)}</b>${cas ? ` · ${escapeHtml(cas)}` : ""}</span><span class="swm-cli-n">${ps.length}</span></summary>
       <div class="swm-cli-body">
         ${libres.length && !abierto ? `<button type="button" class="btn-primary" data-cons-toggle="${escapeHtml(email)}" style="padding:8px 14px;font-size:13px;margin-bottom:8px;">📦 ${libres.length > 1 ? "Juntar en una caja y crear envío" : "Crear envío"}</button>` : ""}
-        ${form}${ps.map(swmPaqueteCard).join("")}
+        ${mandables.length && !enviando ? `<button type="button" class="btn-secondary" data-env-toggle="${escapeHtml(email)}" style="padding:8px 14px;font-size:13px;margin-bottom:8px;">🚚 Ya lo mandé: anotar guía</button>` : ""}
+        ${form}${formGuia}${ps.map(swmPaqueteCard).join("")}
       </div></details>`;
   }
 
@@ -5136,6 +5153,19 @@ ${itemLines}
       const direccion = Object.fromEntries([...box.querySelectorAll("[data-dir]")].map((i) => [i.dataset.dir, i.value.trim()]));
       const ok = await swmAct({ accion: "crear_envio", email: box.dataset.swmConsolidar, paqueteIds, direccion }, t.closest("button"));
       if (ok) { swmConsolidarEmail = ""; swmTab = "envios"; renderSwmAdmin(); }
+      return;
+    }
+    const envToggle = t.closest("[data-env-toggle]");
+    if (envToggle) { swmEnviarEmail = envToggle.dataset.envToggle; renderSwmAdmin(); return; }
+    if (t.closest("[data-env-save]")) {
+      const box = t.closest("[data-swm-enviar]");
+      const paqueteIds = [...box.querySelectorAll("[data-env-pick]:checked")].map((c) => c.dataset.envPick);
+      const paqueteria = box.querySelector("[data-env-paq]").value.trim();
+      const guia = box.querySelector("[data-env-guia]").value.trim();
+      if (!paqueteIds.length) { alert("Elige al menos un paquete."); return; }
+      if (!guia) { alert("Pon el número de guía."); box.querySelector("[data-env-guia]").focus(); return; }
+      const ok = await swmAct({ accion: "enviar_directo", email: box.dataset.swmEnviar, paqueteIds, paqueteria, guia, avisar: box.querySelector("[data-env-avisar]").checked }, t.closest("button"));
+      if (ok) { swmEnviarEmail = ""; swmTab = "envios"; renderSwmAdmin(); }
       return;
     }
     if (t.closest("[data-guia-cotizar]") || t.closest("[data-guia-generar]") || t.closest("[data-guia-rate]")) {
