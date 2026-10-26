@@ -504,7 +504,7 @@
   .toast button { background: #c4466e; color: #fff; border-radius: 999px; padding: 8px 12px; font-size: 14px; white-space: nowrap; }
   @media (min-width: 700px) { .toast { bottom: 24px; } }
 
-  /* ===== Diseño 2026: barra lateral oscura y tarjetas en tonos pastel ===== */
+  /* ===== Diseño 2026: barra lateral clara y tarjetas en tonos pastel ===== */
   body { background: #f6f4f9; }
   .nav-logo { display: none; }
   .home-card { border-radius: 22px; border: 1px solid #efeaf5; box-shadow: 0 1px 2px rgba(40, 20, 60, .04), 0 8px 24px rgba(80, 50, 120, .06); }
@@ -538,24 +538,24 @@
     .todo-card:hover, .more-btn:hover, .sales-row div:hover { transform: none; }
   }
 
-  /* Celular: barra oscura abajo */
+  /* Celular: barra clara abajo */
   @media (max-width: 699px) {
-    .toolbar { background: #1f1a24; grid-template-columns: repeat(7, 1fr); box-shadow: 0 -4px 20px rgba(31, 26, 36, .25); }
-    .nav-btn { color: #cfc8d6; font-size: 10.5px; padding: 7px 0; }
+    .toolbar { background: #fff; border-top: 1px solid #efeaf5; grid-template-columns: repeat(7, 1fr); box-shadow: 0 -4px 20px rgba(80, 50, 120, .08); }
+    .nav-btn { color: #5f5866; font-size: 10.5px; padding: 7px 0; }
     .nav-btn .nav-ico { font-size: 19px; }
-    .nav-btn.active { background: #e9e1fb; color: #2b2142; }
+    .nav-btn.active { background: #fbe7ee; color: #c4466e; }
     .todo-card.wide { grid-column: 1 / -1; }
     .sales-row div { padding: 10px 8px; }
     .sales-row b { font-size: 16px; }
   }
 
-  /* Computadora y tablet: barra lateral oscura con íconos; el nombre sale al pasar el mouse */
+  /* Computadora y tablet: barra lateral clara con íconos; el nombre sale al pasar el mouse */
   @media (min-width: 700px) {
     body { padding-left: 116px; }
     .toolbar {
       position: fixed; top: 16px; bottom: 16px; left: 16px; width: 76px; margin: 0; z-index: 900;
       flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 8px;
-      padding: 16px 0; background: #1f1a24; border-radius: 28px; box-shadow: 0 10px 30px rgba(31, 26, 36, .25);
+      padding: 16px 0; background: #fff; border: 1px solid #efeaf5; border-radius: 28px; box-shadow: 0 1px 2px rgba(40, 20, 60, .04), 0 8px 24px rgba(80, 50, 120, .08);
     }
     .nav-logo {
       display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin-bottom: 10px;
@@ -563,17 +563,17 @@
     }
     .nav-btn {
       width: 48px; height: 48px; padding: 0; justify-content: center; flex: none;
-      background: transparent; color: #cfc8d6; border-radius: 999px; transition: background .15s ease;
+      background: transparent; color: #5f5866; border-radius: 999px; transition: background .15s ease;
     }
     .nav-btn .nav-txt { display: none; }
     .nav-btn .nav-ico { font-size: 21px; line-height: 1; }
-    .nav-btn:hover { background: rgba(255, 255, 255, .1); }
-    .nav-btn.active { background: #e9e1fb; }
+    .nav-btn:hover { background: #f3eef1; }
+    .nav-btn.active { background: #fbe7ee; }
     .nav-btn::after {
       content: attr(data-tip); position: absolute; left: calc(100% + 16px); top: 50%; transform: translate(-4px, -50%);
-      background: #1f1a24; color: #fff; padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
+      background: #fff; color: #2b2b2b; border: 1px solid #efeaf5; padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
       white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s ease, transform .15s ease;
-      box-shadow: 0 6px 16px rgba(31, 26, 36, .2);
+      box-shadow: 0 6px 16px rgba(80, 50, 120, .12);
     }
     .nav-btn:hover::after, .nav-btn:focus-visible::after { opacity: 1; transform: translate(0, -50%); }
     .nav-btn .nav-badge { position: absolute; top: -2px; right: -4px; }
