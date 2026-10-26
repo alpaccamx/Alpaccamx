@@ -4617,7 +4617,9 @@ ${itemLines}
       ["mexico", `🇲🇽 En México (${P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length})`],
       ["sindueña", `❓ Sin dueña (${P.filter((p) => p.status === "sin_dueña").length})`],
       ["compras", `🛍️ Compras (${swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status)).length})`],
-      ["envios", `🚚 Envíos (${swmData.envios.filter((e) => !["entregado", "cancelado"].includes(e.status)).length})`],
+      ["envios", `🚚 Envíos (${swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status)).length})`],
+      ["enviados", `✈️ Enviados (${swmData.envios.filter((e) => e.status === "enviado").length})`],
+      ["entregados", `✅ Entregados (${swmData.envios.filter((e) => e.status === "entregado").length})`],
       ["historial", "🗂️ Historial"],
     ];
     document.getElementById("swm-filters").innerHTML = `${tabs.map(([k, l]) => `<button type="button" class="btn-secondary ${swmTab === k ? "on" : ""}" data-swm-tab="${k}">${l}</button>`).join("")}
@@ -4656,12 +4658,13 @@ ${itemLines}
     } else if (swmTab === "compras") {
       html = lista(swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status) && swmMatches(c)), swmCompraCard, "No hay compras activas.");
     } else if (swmTab === "envios") {
-      // Una sola pestaña: arriba lo que falta mandar, abajo lo que ya va en camino (con su guía).
-      html = sec("📦 Por mandar", swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard)
-        + sec("✈️ Enviados (en camino)", swmData.envios.filter((e) => e.status === "enviado" && swmMatches(e)), swmEnvioCard)
-        || `<p style="color:#5f5866;font-size:14px;">No hay envíos activos.</p>`;
+      html = lista(swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard, "No hay envíos por mandar.");
+    } else if (swmTab === "enviados") {
+      html = lista(swmData.envios.filter((e) => e.status === "enviado" && swmMatches(e)), swmEnvioCard, "No hay envíos en camino. Cuando anotes una guía aparecen aquí hasta que los marques entregados.");
+    } else if (swmTab === "entregados") {
+      html = lista(swmData.envios.filter((e) => e.status === "entregado" && swmMatches(e)), swmEnvioCard, "Todavía no hay envíos entregados.");
     } else {
-      html = sec("Envíos", swmData.envios.filter((e) => ["entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard)
+      html = sec("Envíos cancelados", swmData.envios.filter((e) => e.status === "cancelado" && swmMatches(e)), swmEnvioCard)
         + sec("Compras", swmData.compras.filter((c) => ["comprado", "cancelado"].includes(c.status) && swmMatches(c)), swmCompraCard)
         + sec("Paquetes", P.filter((p) => ["en_envio", "en_mexico", "enviado", "entregado", "cancelado"].includes(p.status) && swmMatches(p)), swmPaqueteCard)
         || `<p style="color:#5f5866;font-size:14px;">Todavía no hay historial.</p>`;
@@ -4985,7 +4988,7 @@ ${itemLines}
         <datalist id="swm-paqs"><option>Estafeta</option><option>DHL</option><option>FedEx</option><option>Paquetexpress</option><option>J&T</option><option>99minutos</option><option>Redpack</option><option>Entrega en persona</option></datalist>
         <label class="swm-check"><input type="checkbox" data-env-avisar checked> Mandarle correo con su guía</label>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-env-save>🚚 Marcar como enviado</button><button type="button" class="btn-secondary" data-env-toggle="">Cancelar</button></div>
-        <div class="meta">Pasan a "Envíos → Enviados (en camino)" con su guía. Ahí los marcas entregados o corriges la guía.</div>
+        <div class="meta">Pasan a la pestaña "Enviados" con su guía. Ahí los marcas entregados o corriges la guía.</div>
       </div>` : "";
     const cas = swmData.casilleros && swmData.casilleros[email];
     const key = `mexico|${email}`;
@@ -5165,7 +5168,7 @@ ${itemLines}
       if (!paqueteIds.length) { alert("Elige al menos un paquete."); return; }
       if (!guia) { alert("Pon el número de guía."); box.querySelector("[data-env-guia]").focus(); return; }
       const ok = await swmAct({ accion: "enviar_directo", email: box.dataset.swmEnviar, paqueteIds, paqueteria, guia, avisar: box.querySelector("[data-env-avisar]").checked }, t.closest("button"));
-      if (ok) { swmEnviarEmail = ""; swmTab = "envios"; renderSwmAdmin(); }
+      if (ok) { swmEnviarEmail = ""; swmTab = "enviados"; renderSwmAdmin(); }
       return;
     }
     if (t.closest("[data-guia-cotizar]") || t.closest("[data-guia-generar]") || t.closest("[data-guia-rate]")) {
