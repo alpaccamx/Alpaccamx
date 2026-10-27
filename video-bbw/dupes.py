@@ -41,19 +41,30 @@ def video(vid, ini, n, vel, zoom=None):
     p.stdout.close(); p.wait()
 
 
+FOTOS = {"Donna Born in Roma": "born-in-roma", "Very Good Girl": "very-good-girl", "Black Opium": "black-opium",
+         "Vanilla 28": "vanilla-28", "Sweet Like Candy": "sweet-like-candy", "Miss Dior Blooming Bouquet": "miss-dior"}  # fotos que mandó Mae
+
+
 def tarjeta(perfume, marca):
-    """tarjeta blanca: 'Dupe de' + perfume + marca"""
+    """tarjeta blanca: foto del perfume (si la hay) a la izquierda y 'Dupe de' + perfume + marca"""
+    ruta = os.path.join(AQUI, "perfumes", FOTOS.get(perfume, "") + ".jpg")
+    foto = Image.open(ruta).convert("RGB") if perfume in FOTOS else None
+    if foto: foto.thumbnail((250, 250), Image.LANCZOS)
+    ancho_txt = 560 if foto else 620
     fp = b.F("ExtraBold", 50)
-    while fp.getlength(perfume) > 620: fp = b.F("ExtraBold", fp.size - 4)
-    w = int(max(fp.getlength(perfume), b.F("SemiBold", 34).getlength(marca))) + 90
-    card = Image.new("RGBA", (w + 60, 230 + 60))
-    sh = Image.new("L", card.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 40, w + 30, 270), 34, fill=120)
+    while fp.getlength(perfume) > ancho_txt: fp = b.F("ExtraBold", fp.size - 4)
+    tw = int(max(fp.getlength(perfume), b.F("SemiBold", 34).getlength(marca)))
+    fw = 250 + 30 if foto else 0
+    w, h = tw + 90 + fw, 290 if foto else 230
+    card = Image.new("RGBA", (w + 60, h + 60))
+    sh = Image.new("L", card.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 40, w + 30, h + 40), 34, fill=120)
     card.putalpha(sh.filter(ImageFilter.GaussianBlur(16)))
-    d = ImageDraw.Draw(card); d.rounded_rectangle((30, 30, w + 30, 260), 34, fill=WHITE)
-    cx = 30 + w / 2
-    d.text((cx, 78), "DUPE DE", font=b.F("Bold", 28), fill=PINK, anchor="mm")
-    d.text((cx, 145), perfume, font=fp, fill=INK, anchor="mm")
-    d.text((cx, 210), marca, font=b.F("SemiBold", 34), fill=GREY, anchor="mm")
+    d = ImageDraw.Draw(card); d.rounded_rectangle((30, 30, w + 30, h + 30), 34, fill=WHITE)
+    if foto: card.paste(foto, (30 + 45 + (250 - foto.width) // 2, 30 + (h - foto.height) // 2))
+    cx, cy = 30 + fw + (w - fw) / 2, 30 + h / 2
+    d.text((cx, cy - 67), "DUPE DE", font=b.F("Bold", 28), fill=PINK, anchor="mm")
+    d.text((cx, cy), perfume, font=fp, fill=INK, anchor="mm")
+    d.text((cx, cy + 65), marca, font=b.F("SemiBold", 34), fill=GREY, anchor="mm")
     return card
 
 
