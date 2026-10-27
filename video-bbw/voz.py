@@ -1,20 +1,22 @@
 """Voz de Mae para el video de restock de Bath & Body Works: genera las frases de narracion.json con
 ElevenLabs (con tiempos por letra), las junta con una pausa y escribe
 tiempos.json para que build.py ponga cada escena y cada captura cuando se dice."""
-import base64, hashlib, json, os, shutil, subprocess, sys, urllib.request
+import base64, hashlib, json, os, re, shutil, subprocess, sys, urllib.request
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 SUF = ("-" + sys.argv[1]) if len(sys.argv) > 1 else ""  # p. ej. "python3 voz.py corto" usa narracion-corto.json
 VOZ_DIR = os.path.join(AQUI, "voz" + SUF)
 VOZ = "BSKpxzmNBPkRKNFMmKrv"
-MODELO, ESTABILIDAD = "eleven_v4", 0.5  # v4 con pocas etiquetas de tono ([warm], [confident]); no se leen en voz alta
+# la voz profesional de Mae está entrenada en multilingual_v2: con ese modelo suena más a ella (v4 se oía robótica).
+# v2 no entiende las etiquetas de tono ([warm]...): se quitan antes de mandar el texto
+MODELO, ESTABILIDAD, SIMILITUD, ESTILO = "eleven_multilingual_v2", 0.45, 0.9, 0.25
 INICIO, PAUSA, COLA = 0.25, 0.28, 1.6
-VEL = 1.1  # la voz se acelera 10% (atempo no cambia el tono ni la entonación)
+VEL = 1.05  # un poquito más rápida (atempo no cambia el tono)
 SR = 44100
 
 
 def clave(texto):  # las frases ya generadas se guardan por su texto: solo se piden a ElevenLabs las nuevas
-    return hashlib.sha1(f"{MODELO}|{ESTABILIDAD}|{texto}".encode()).hexdigest()[:12]
+    return hashlib.sha1(f"{MODELO}|{ESTABILIDAD}|{SIMILITUD}|{ESTILO}|{texto}".encode()).hexdigest()[:12]
 
 
 def tts(texto, n):
@@ -23,7 +25,9 @@ def tts(texto, n):
     if not os.path.exists(k + ".json"):
         req = urllib.request.Request(
             f"https://api.elevenlabs.io/v1/text-to-speech/{VOZ}/with-timestamps?output_format=mp3_44100_128",
-            data=json.dumps({"text": texto, "model_id": MODELO, "voice_settings": {"stability": ESTABILIDAD}}).encode(),
+            data=json.dumps({"text": re.sub(r"\[[^\]]*\]\s*", "", texto), "model_id": MODELO,
+                             "voice_settings": {"stability": ESTABILIDAD, "similarity_boost": SIMILITUD, "style": ESTILO,
+                                                "use_speaker_boost": True}}).encode(),
             headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req) as r: d = json.load(r)
         open(k + ".mp3", "wb").write(base64.b64decode(d.pop("audio_base64")))

@@ -1,6 +1,29 @@
 [
- {"texto": "[playful] ¿Cuál es tu aroma favorito de Bath and Body Works?", "marcas": ["aroma"]},
- {"texto": "[curious] ¿Este? ¿Este? ¿O este?", "marcas": ["¿Este? ¿E", "Este? ¿O", "¿O este"]},
- {"texto": "[confident] Todos a ciento cincuenta pesos en mi página, mayoreo desde una pieza.", "marcas": ["ciento cincuenta", "mayoreo"]},
- {"texto": "[excited] Déjamelo en los comentarios.", "marcas": ["Déjamelo"]}
+ {
+  "texto": "[playful] ¿Cuál es tu aroma favorito de Bath and Body Works?",
+  "marcas": [
+   "aroma"
+  ]
+ },
+ {
+  "texto": "¿Gingham Gorgeous? ¿Strawberry Pound Cake? ¿O Into the Night?",
+  "marcas": [
+   "Gingham",
+   "Strawberry",
+   "Into"
+  ]
+ },
+ {
+  "texto": "[confident] Todos a ciento cincuenta pesos en mi página, mayoreo desde una pieza.",
+  "marcas": [
+   "ciento cincuenta",
+   "mayoreo"
+  ]
+ },
+ {
+  "texto": "[excited] Déjamelo en los comentarios.",
+  "marcas": [
+   "Déjamelo"
+  ]
+ }
 ]

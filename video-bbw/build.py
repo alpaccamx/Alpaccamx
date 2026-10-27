@@ -1,6 +1,6 @@
 """Videos cortos de los mists de Bath & Body Works: cortes rápidos de la tienda (videos del iPhone), una frase en
 pantalla y la voz de Mae. Las fotos de las bolsas llenas salen como tarjeta pop-up (nunca a pantalla completa) y
-en algunos sale Mae saludando en el espejo. El audio de la tienda trae música con derechos: no se usa.
+las tomas son de la tienda y de los mists en mano. El audio de la tienda trae música con derechos: no se usa.
 1080x1920, 30 fps.
 
 Uso: python3 build.py VARIANTE CARPETA_DE_VIDEOS CARPETA_DE_FOTOS
@@ -32,29 +32,28 @@ VARIANTES = {
                ("4705", 99, 1.5, 1.2), ("4705", 228, 4.0, 1.0)],
         textos=[(0, None, "grande", "¡RESTOCK! 🚨"), (0, 1, "texto", "Mists Bath & Body Works\nya en mi página ✨"),
                 (1, 0, "precio", "$150 c/u"), (1, 1, "precio2", "Mayoreo desde 1 pieza"),
-                (2, 0, "texto", "Un montón de aromas ✨"), (2, 1, "texto", "…pero vuelan 🔥"), (3, 0, "cta", "Pide en alpacca.mx 🛍️")],
+                (2, 0, "texto", "Un montón de aromas ✨"), (2, 1, "texto", "…pero se acaban rápido 🔥"), (3, 0, "cta", "Pide en alpacca.mx 🛍️")],
         popups=[(0, None, 2.6, "IMG_4708"), (3, 0, 4.4, "IMG_4707")]),
     "pov": dict(
-        tomas=[("4704", 0.5, 1.5, 3.0), ("4704", 11.0, 1.4, 2.2), ("4705", 122.8, 2.2, 1.0, ESPEJO), ("4705", 21, 1.3, 1.2),
+        tomas=[("4704", 0.5, 1.5, 3.0), ("4704", 11.0, 1.4, 2.2), ("4705", 57.5, 2.2, 1.0), ("4705", 21, 1.3, 1.2),
                ("4705", 57, 1.3, 1.2), ("4705", 93, 1.3, 1.2), ("4705", 162, 1.3, 1.2), ("4705", 210, 1.3, 1.2), ("4705", 75, 1.2, 1.5),
-               ("4705", 141.3, 2.3, 1.0, ESPEJO), ("4705", 99, 3.0, 1.0)],
+               ("4705", 190, 2.3, 1.0), ("4705", 99, 3.0, 1.0)],
         textos=[(0, None, "texto", "POV: fui a Bath & Body Works\npor tus mists 🛍️"), (1, 0, "texto", "Los elijo uno por uno 💗"),
                 (1, 1, "texto", "Originales, directo de la tienda ✅"), (2, 0, "precio", "$150 c/u"), (3, 0, "cta", "Nos vemos en alpacca.mx 👋")],
         popups=[(2, 0, 2.6, "IMG_4708")]),
     "reventa": dict(
         tomas=[("4705", 222, 1.4, 1.3), ("4705", 228, 1.4, 1.3), ("4705", 30, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 87, 1.3, 1.3),
                ("4705", 156, 1.3, 1.2), ("4705", 42, 1.4, 1.2), ("4705", 198, 1.3, 1.3), ("4705", 216, 1.4, 1.2),
-               ("4705", 123.0, 2.4, 1.0, ESPEJO), ("4705", 105, 3.0, 1.2)],
+               ("4705", 210, 2.4, 1.2), ("4705", 105, 3.0, 1.2)],
         textos=[(0, None, "texto", "¿Vendes perfumes? 👀"), (1, 0, "texto", "Mists Bath & Body Works\noriginales ✅"),
                 (1, 1, "precio", "$150 c/u"), (2, 0, "precio2", "Mayoreo desde 1 pieza"), (2, 1, "texto", "Tú le pones tu precio 💸"),
                 (3, 0, "cta", "Comenta “Me quiero unir” 👇")],
         popups=[(2, 1, 2.2, "IMG_4707")]),
     "aromas": dict(
-        tomas=[("4705", 27, 1.7, 1.2), ("4705", 87, 1.65, 1.3), ("4705", 22.5, 0.95, 1.0), ("4705", 30, 0.8, 1.0), ("4705", 93, 1.35, 1.0),
-               ("4705", 156, 1.4, 1.2), ("4705", 162, 1.4, 1.2), ("4705", 210, 1.4, 1.2), ("4705", 99, 1.4, 1.2),
-               ("4705", 141.3, 3.0, 1.0, ESPEJO)],
-        textos=[(0, None, "texto", "¿Cuál es tu aroma favorito? 💭"), (1, 0, "grande", "¿Este?"), (1, 1, "grande", "¿Este?"),
-                (1, 2, "grande", "¿O este?"), (2, 0, "precio", "$150 c/u"), (2, 1, "precio2", "Mayoreo desde 1 pieza"),
+        tomas=[("4705", 27, 1.6, 1.2), ("4705", 87, 1.65, 1.3), ("4705", 22.5, 0.95, 1.0), ("4705", 30, 1.45, 1.0), ("4705", 69, 1.3, 1.0),
+               ("4705", 156.5, 1.4, 1.2), ("4705", 162.5, 1.4, 1.2), ("4705", 210, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 228, 3.0, 1.0)],
+        textos=[(0, None, "texto", "¿Cuál es tu aroma favorito? 💭"), (1, 0, "grande", "Gingham Gorgeous"), (1, 1, "grande", "Strawberry Pound Cake"),
+                (1, 2, "grande", "Into the Night"), (2, 0, "precio", "$150 c/u"), (2, 1, "precio2", "Mayoreo desde 1 pieza"),
                 (3, 0, "cta", "Déjamelo en comentarios 👇")],
         popups=[(2, 1, 2.0, "IMG_4708")]),
 }
@@ -101,7 +100,9 @@ def texto(s, sz=62):
 
 def pon_texto(L, tipo, s, t, y):
     if tipo == "grande":
-        b.pon(L, b.pastilla(s, "ExtraBold", 110, (226, 40, 60), WHITE, padx=50, pady=24), W / 2, y, *b.entra(t, 0, 0.35))
+        sz = 110
+        while b.F("ExtraBold", sz).getlength(s) > 880: sz -= 6  # los nombres largos se achican para caber
+        b.pon(L, b.pastilla(s, "ExtraBold", sz, (226, 40, 60), WHITE, padx=50, pady=24), W / 2, y, *b.entra(t, 0, 0.35))
     elif tipo == "texto":
         b.pon(L, texto(s), W / 2, y, *b.entra(t, 0, 0.3))
     elif tipo == "precio":
