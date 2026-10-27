@@ -21,18 +21,18 @@
   ]
  },
  {
-  "texto": "El de cerezas de cristal, en rosa o en negro: normal, cuatro mil ochocientos cincuenta. [confident] Conmigo, tres mil seiscientos veintitrés.",
+  "texto": "El de cerezas de cristal, en rosa o en negro, que no se vende en México: precio de etiqueta, cuatro mil ochocientos cincuenta pesos. [confident] Conmigo, tres mil seiscientos veintitrés.",
   "marcas": [
    "en negro",
-   "normal",
+   "precio de etiqueta",
    "Conmigo"
   ]
  },
  {
-  "texto": "Y el camo groovy, en azul o en rojo: normal, cuatro mil doscientos ochenta y seis. [confident] Conmigo, dos mil doscientos ochenta y uno.",
+  "texto": "Y el camo groovy, en azul o en rojo, que tampoco llega a México: precio de etiqueta, cuatro mil doscientos ochenta y seis. [confident] Conmigo, dos mil doscientos ochenta y uno.",
   "marcas": [
    "en rojo",
-   "normal",
+   "precio de etiqueta",
    "Conmigo"
   ]
  },

@@ -25,10 +25,10 @@ T = json.load(open(os.path.join(AQUI, "tiempos.json")))
 # título, precio comparado, precio de Mae, etiqueta de arriba, etiqueta de Mae, pastilla de abajo, ¿no se vende en México?
 PRODUCTOS = {
     "leopardo":     ("Leopardo rosa con cerezas", 6026, 3019, "Tienda México · solo sudadera", "Conmigo · conjunto", "Sudadera + pants 💗", False),
-    "cereza-rosa":  ("Cerezas de cristal · rosa", 4850, 3623, "Precio normal", "Conmigo", None, True),
-    "cereza-negra": ("Cerezas de cristal · negro", 4850, 3623, "Precio normal", "Conmigo", None, True),
-    "camo-azul":    ("Camo Groovy · azul", 4286, 2281, "Precio normal", "Conmigo", None, True),
-    "camo-rojo":    ("Camo Groovy · rojo", 4286, 2281, "Precio normal", "Conmigo", None, True),
+    "cereza-rosa":  ("Cerezas de cristal · rosa", 4850, 3623, "Precio de etiqueta", "Conmigo", None, True),
+    "cereza-negra": ("Cerezas de cristal · negro", 4850, 3623, "Precio de etiqueta", "Conmigo", None, True),
+    "camo-azul":    ("Camo Groovy · azul", 4286, 2281, "Precio de etiqueta", "Conmigo", None, True),
+    "camo-rojo":    ("Camo Groovy · rojo", 4286, 2281, "Precio de etiqueta", "Conmigo", None, True),
 }
 # (video, segundo de inicio) de cada escena: dónde se ve ese conjunto en la caja
 TOMAS = [("4656", 300.0), ("4656", 7.0), ("4655", 62.0), ("4655", 88.0), ("4656", 168.0), ("4656", 345.0), ("4655", 204.0)]
