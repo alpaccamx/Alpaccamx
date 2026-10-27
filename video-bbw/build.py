@@ -21,31 +21,32 @@ PINK, WHITE, INK = b.PINK, b.WHITE, b.INK
 T = json.load(open(os.path.join(AQUI, f"tiempos{SUF}.json")))
 OUT = os.path.join(AQUI, f"BBW{SUF}.mp4")
 ESPEJO = (0.04, 0.04, 0.6)  # acercamiento al espejo donde Mae saluda (x, y, tamaño, en fracción del cuadro)
-# Mae eligió sus tomas del espejo: de 122.8 a 131 s y de 142.2 a 143.6 s (la de 141.3-142.1 no le gustó)
+# tomas del espejo que sí le gustan a Mae: 122.8-124.6 s (amor y paz, saludo), 126.9-129.1 s y 142.2-143.6 s.
+# NO usar 124.7-126.6 (se está peinando) ni 141.3-142.1. Estas tomas duran lo que dicen: no se estiran.
 
 # tomas en orden: (video, inicio, segundos, velocidad[, acercamiento])
 # textos: (escena, marca o None = inicio de la escena, tipo, texto); solo uno a la vez en pantalla
 # popups: (escena, marca o None, segundos, foto): las fotos de las bolsas en tarjeta chica
 VARIANTES = {
     "restock": dict(
-        tomas=[("4705", 123.0, 2.2, 1.0, ESPEJO), ("4704", 11.0, 1.4, 2.2), ("4705", 21, 1.4, 1.2), ("4705", 30, 1.4, 1.2), ("4705", 93, 1.5, 1.2),
+        tomas=[("4705", 122.9, 1.7, 1.0, ESPEJO), ("4704", 11.0, 1.4, 2.2), ("4705", 21, 1.4, 1.2), ("4705", 30, 1.4, 1.2), ("4705", 93, 1.5, 1.2),
                ("4705", 156, 1.4, 1.2), ("4705", 162, 1.4, 1.2), ("4705", 222, 1.3, 1.3), ("4705", 42, 1.4, 1.2), ("4705", 216, 1.4, 1.2),
-               ("4705", 99, 1.5, 1.2), ("4705", 126.2, 2.0, 1.0, ESPEJO), ("4705", 228, 2.6, 1.0)],
+               ("4705", 99, 1.5, 1.2), ("4705", 127.0, 2.0, 1.0, ESPEJO), ("4705", 228, 2.6, 1.0)],
         textos=[(0, None, "grande", "¡RESTOCK! 🚨"), (0, 1, "texto", "Mists Bath & Body Works\nya en mi página ✨"),
                 (1, 0, "precio", "$150 c/u"), (1, 1, "precio2", "Mayoreo desde 1 pieza"),
                 (2, 0, "texto", "Un montón de aromas ✨"), (2, 1, "texto", "…pero se acaban rápido 🔥"), (3, 0, "cta", "Pide en alpacca.mx 🛍️")],
         popups=[(0, 1, 2.4, "IMG_4708"), (3, 0, 4.4, "IMG_4707")]),
     "pov": dict(
-        tomas=[("4704", 0.5, 1.5, 3.0), ("4704", 11.0, 1.4, 2.2), ("4705", 122.8, 2.4, 1.0, ESPEJO), ("4705", 21, 1.3, 1.2),
+        tomas=[("4704", 0.5, 1.5, 3.0), ("4704", 11.0, 1.4, 2.2), ("4705", 122.8, 1.8, 1.0, ESPEJO), ("4705", 21, 1.3, 1.2),
                ("4705", 57, 1.3, 1.2), ("4705", 93, 1.3, 1.2), ("4705", 162, 1.3, 1.2), ("4705", 210, 1.3, 1.2), ("4705", 75, 1.2, 1.5),
-               ("4705", 190, 2.3, 1.0), ("4705", 125.4, 3.0, 1.0, ESPEJO)],
+               ("4705", 190, 2.3, 1.0), ("4705", 127.0, 2.1, 1.0, ESPEJO)],
         textos=[(0, None, "texto", "POV: fui a Bath & Body Works\npor tus mists 🛍️"), (1, 0, "texto", "Los elijo uno por uno 💗"),
                 (1, 1, "texto", "Originales, directo de la tienda ✅"), (2, 0, "precio", "$150 c/u"), (3, 0, "cta", "Nos vemos en alpacca.mx 👋")],
         popups=[(2, 0, 2.6, "IMG_4708")]),
     "reventa": dict(
         tomas=[("4705", 222, 1.4, 1.3), ("4705", 228, 1.4, 1.3), ("4705", 30, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 87, 1.3, 1.3),
                ("4705", 156, 1.3, 1.2), ("4705", 42, 1.4, 1.2), ("4705", 198, 1.3, 1.3), ("4705", 216, 1.4, 1.2),
-               ("4705", 210, 2.4, 1.2), ("4705", 123.4, 3.0, 1.0, ESPEJO)],
+               ("4705", 210, 2.4, 1.2), ("4705", 127.0, 2.1, 1.0, ESPEJO)],
         textos=[(0, None, "texto", "¿Vendes perfumes? 👀"), (1, 0, "texto", "Mists Bath & Body Works\noriginales ✅"),
                 (1, 1, "precio", "$150 c/u"), (2, 0, "precio2", "Mayoreo desde 1 pieza"), (2, 1, "texto", "Tú le pones tu precio 💸"),
                 (3, 0, "cta", "Comenta “Me quiero unir” 👇")],
@@ -53,7 +54,7 @@ VARIANTES = {
     "aromas": dict(
         tomas=[("4705", 27, 1.6, 1.2), ("4705", 87, ("hasta", 1, 0), 1.3), ("4705", 21.6, ("hasta", 1, 1), 1.0),
                ("4705", 29.8, ("hasta", 1, 2), 1.0), ("4705", 68.5, ("hasta", 2, 0), 1.0),
-               ("4705", 156.5, 1.4, 1.2), ("4705", 162.5, 1.4, 1.2), ("4705", 210, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 126.2, 3.0, 1.0, ESPEJO)],
+               ("4705", 156.5, 1.4, 1.2), ("4705", 162.5, 1.4, 1.2), ("4705", 210, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 127.0, 2.1, 1.0, ESPEJO)],
         textos=[(0, None, "texto", "¿Cuál es tu aroma favorito? 💭"), (1, 0, "grande", "Gingham Gorgeous"), (1, 1, "grande", "Strawberry Pound Cake"),
                 (1, 2, "grande", "Into the Night"), (2, 0, "precio", "$150 c/u"), (2, 1, "precio2", "Mayoreo desde 1 pieza"),
                 (3, 0, "cta", "Déjamelo en comentarios 👇")],
@@ -131,11 +132,12 @@ def cuadros():
     tomas, n_fijo, f = CFG["tomas"], {}, 0
     for i, tm in enumerate(tomas):
         if isinstance(tm[2], tuple): n_fijo[i] = cuando(*tm[2][1:]) - f; f = cuando(*tm[2][1:])
+        elif len(tm) > 4: n_fijo[i] = int(tm[2] * FPS); f += n_fijo[i]  # espejo: duración exacta
         else: f += int(tm[2] * FPS)
     libres = [i for i in range(len(tomas)) if i not in n_fijo]
     k_libre = (total - sum(n_fijo.values())) / max(1, sum(int(tomas[i][2] * FPS) for i in libres))
     ns = [n_fijo.get(i) or int(tomas[i][2] * FPS * k_libre) for i in range(len(tomas))]
-    ns[-1] += total - sum(ns)
+    ns[libres[-1]] += total - sum(ns)  # lo que sobre o falte va a la última toma que no es del espejo
     f = 0
     for tm, n in zip(tomas, ns):
         if n <= 0: continue

@@ -16,7 +16,7 @@ T = json.load(open(os.path.join(AQUI, "tiempos-dupes.json")))
 OUT = os.path.join(AQUI, "BBW-dupes.mp4")
 
 # por escena: las tomas (video, inicio, segundos o None = lo que falte, velocidad) y el dupe (mist, perfume, marca)
-ESPEJO = (0.04, 0.04, 0.6)  # Mae saludando en el espejo (tomas que eligió: 122.8-131 s)
+ESPEJO = (0.04, 0.04, 0.6)  # Mae en el espejo: solo 122.8-124.6 s y 126.9-129.1 s (de 124.7 a 126.6 se está peinando, eso no)
 ESCENAS = [
     ([("4704", 11.0, 1.6, 2.2), ("4705", 122.8, 1.8, 1.0, ESPEJO), ("4705", 87, 1.5, 1.3), ("4705", 222, None, 1.3)], None),
     ([("4705", 87, 1.8, 1.0), ("4705", 92.8, None, 1.0)], ("Pink Obsessed", "Donna Born in Roma", "Valentino")),
@@ -25,7 +25,7 @@ ESCENAS = [
     ([("4705", 68.5, None, 0.8)], ("Into the Night", "Black Opium", "Yves Saint Laurent")),
     ([("4705", 188.0, None, 1.0)], ("Platinum", "Vanilla 28", "Kayali")),
     ([("4705", 57.0, None, 1.0)], ("In the Stars", "Sweet Like Candy", "Ariana Grande")),
-    ([("4705", 228, 1.5, 1.0), ("4705", 198, 1.5, 1.3), ("4705", 99, 1.5, 1.2), ("4705", 162, 1.5, 1.2), ("4705", 127.2, None, 1.0, ESPEJO)], None),
+    ([("4705", 228, 1.5, 1.0), ("4705", 198, 1.5, 1.3), ("4705", 99, 1.5, 1.2), ("4705", 162, None, 1.2), ("4705", 127.0, 2.1, 1.0, ESPEJO)], None),
 ]
 
 
@@ -70,7 +70,8 @@ def cuadros():
         n_esc = q(ini[k + 1]) - q(ini[k]); m = T[k]["marcas"]; f = 0
         SFX.extend((ini[k] + max(0, x), "pop") for x in m)
         for j, (vid, s, dur, vel, *zoom) in enumerate(tomas):
-            n = n_esc - f if dur is None or j == len(tomas) - 1 else min(int(dur * FPS), n_esc - f)
+            despues = sum(int(t[2] * FPS) for t in tomas[j + 1:] if t[2])  # lo que necesitan las tomas fijas que siguen
+            n = n_esc - f - despues if dur is None else n_esc - f if j == len(tomas) - 1 and len(zoom) == 0 else min(int(dur * FPS), n_esc - f)
             for i, L in zip(range(n), video(vid, s, n, vel, *zoom)):
                 t = (f + i) / FPS
                 if k == 0:
