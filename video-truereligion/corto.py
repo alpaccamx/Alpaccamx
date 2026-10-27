@@ -32,11 +32,15 @@ TEXTOS = {
     "3": [(0, None, "¿Quieres revender ropa original? 👀"), (1, 0, "Mayoreo desde 1 pieza 🛍️"),
           (1, 1, "True Religion original ✅"), (2, 0, "Comenta “Me quiero unir” 👇")],
 }[N]
-FOTO_TIENDA = []  # (escena, marca, segundos) para meter la foto de la tienda; no se usa: se veía como diapositiva
-if N == "2":  # el video del leopardo: casi todas las tomas son del leopardo en la caja
-    TOMAS = {"caja": [("4656", 300), ("4656", 345), ("4655", 8), ("4656", 352), ("4656", 304)],
-             "manos": [("4656", 296), ("4655", 30), ("4656", 340)],
-             "fotos": ["IMG_4265", "IMG_4654", "IMG_4194"]}
+FOTO_TIENDA = []  # (escena, marca, segundos) foto de la tienda a pantalla completa; no se usa: se veía como diapositiva
+TARJETA = None   # (escena desde, escena hasta): foto de la tienda en tarjeta chica arriba, una sola vez
+INICIO = ("4656", 300)  # la primera toma
+ORDEN = ["caja", "manos", "fotos", "caja", "manos", "caja", "fotos", "manos"]
+if N == "2":  # el leopardo café (el mismo que vende True Religion México): todas las tomas son de él en la caja
+    TOMAS = {"caja": [("4656", 321), ("4656", 329), ("4656", 386), ("4656", 337), ("4656", 324), ("4656", 390)],
+             "manos": [("4656", 316), ("4656", 333), ("4656", 340)]}
+    ORDEN = ["caja", "manos", "caja", "caja", "manos", "caja"]
+    INICIO = ("4656", 321); TARJETA = (1, 2)
 
 
 def video(vid, ini, n, vel=1.25):
@@ -59,6 +63,22 @@ def foto(nombre, n):
         k = 1.25 - 0.18 * f / max(1, n - 1); w, h = int(W * k), int(H * k)
         x0, y0 = (im.width - w) // 2, (im.height - h) // 2
         yield im.crop((x0, y0, x0 + w, y0 + h)).resize((W, H), Image.BILINEAR).convert("RGBA")
+
+
+def tarjeta():
+    """foto de True Religion México en tarjeta blanca chica, con su etiqueta"""
+    from PIL import ImageDraw, ImageFilter
+    im = ImageOps.fit(Image.open(os.path.join(AQUI, "fotos", "leopardo-cafe.jpg")).convert("RGB"), (360, 470), centering=(0.5, 0.3))
+    card = Image.new("RGBA", (360 + 24 + 60, 470 + 24 + 60))
+    sh = Image.new("L", card.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 40, 414, 534), 30, fill=130)
+    card.putalpha(sh.filter(ImageFilter.GaussianBlur(16)))
+    ImageDraw.Draw(card).rounded_rectangle((30, 30, 414, 524), 30, fill=(255, 255, 255))
+    m = Image.new("L", im.size, 0); ImageDraw.Draw(m).rounded_rectangle((0, 0, 359, 469), 22, fill=255)
+    card.paste(im, (42, 42), m)
+    et = b.pastilla("True Religion México", "Bold", 30, (17, 17, 17), (255, 255, 255))
+    out = Image.new("RGBA", (card.width, card.height + 30)); out.alpha_composite(card, (0, 30))
+    out.alpha_composite(et, ((out.width - et.width) // 2, 0))
+    return out
 
 
 def tienda(n):
@@ -95,7 +115,9 @@ def cuadros():
     # cortes: alterna caja / manos / foto, de 1.4 a 2.2 s, en orden fijo (sale igual cada vez)
     rnd = random.Random(int(N)); pools = {k: list(v) for k, v in TOMAS.items()}
     for v in pools.values(): rnd.shuffle(v)
-    orden = ["caja", "manos", "fotos", "caja", "manos", "caja", "fotos", "manos"]
+    orden = ORDEN
+    card = tarjeta() if TARJETA else None
+    if TARJETA: c0, c1 = int(ini[TARJETA[0]] * FPS), int(ini[TARJETA[1] + 1] * FPS)
     f, j = 0, 0
     while f < total:
         tipo = orden[j % len(orden)]; n = int(rnd.uniform(1.4, 2.2) * FPS)
@@ -103,7 +125,7 @@ def cuadros():
         if t and t[0] == f: gen, n = tienda(t[1]), t[1]
         else:
             if t: n = t[0] - f  # se corta justo cuando entra la foto de la tienda
-            if j == 0: gen = video("4656", 300, n)  # arranca con el leopardo en la caja
+            if j == 0: gen = video(*INICIO, n)  # arranca con el leopardo en la caja
             elif tipo == "fotos": gen = foto(pools["fotos"][j % len(pools["fotos"])], n)
             else:
                 vid, s = pools[tipo][j % len(pools[tipo])]; gen = video(vid, s, n)
@@ -111,7 +133,12 @@ def cuadros():
         for k, L in zip(range(n), gen):
             g = f + k
             actual = [s for c, s in cambios if c <= g]
-            if actual: b.pon(L, texto(actual[-1]), W / 2, 700)
+            con_tarjeta = TARJETA and c0 <= g < c1
+            if con_tarjeta:  # entra con rebote, se queda mientras se dicen los precios y se va
+                s_, a_ = b.entra((g - c0) / FPS, 0, 0.4)
+                a_ = min(a_, (c1 - g) / 6)
+                b.pon(L, card, W / 2, 400, s_, a_)
+            if actual: b.pon(L, texto(actual[-1]), W / 2, 880 if con_tarjeta else 700)
             yield L
         f += n; j += 1
 
