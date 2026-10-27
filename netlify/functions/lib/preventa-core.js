@@ -70,6 +70,18 @@ async function productosConCupo({ conApartadas = false } = {}) {
    estimado de cada tono/tamaño. */
 const pesoDe = (p, v) => (Number(p.peso) > 0 ? Number(p.peso) : Number(v && v.peso) || 0);
 
+/* Estafeta cobra el mayor entre el peso real y el volumétrico
+   (largo × ancho × alto ÷ 5000). "vol" es el volumen estimado de la caja
+   de cada pieza en cm³; +20% por el empaque y el aire de la caja. */
+const DIVISOR_VOLUMETRICO = 5000;
+const EMPAQUE = 1.2;
+function pesosEnvio(items) {
+  const real = items.reduce((s, it) => s + (Number(it.peso) || 0) * it.qty, 0);
+  const volumetrico = items.reduce((s, it) => s + (Number(it.vol) || 0) * it.qty, 0) * EMPAQUE / DIVISOR_VOLUMETRICO;
+  const r2 = (n) => Math.round(n * 100) / 100;
+  return { pesoKg: r2(real), pesoVolKg: r2(volumetrico), pesoCobrableKg: r2(Math.max(real, volumetrico)) };
+}
+
 /* Envío nacional estimado (misma tabla de Estafeta que la tienda). Solo es
    una referencia: se cobra con el resto, y Mae lo puede cambiar. */
 let tarifas = null;
@@ -88,7 +100,7 @@ async function envioEstimado(cp, pesoKg) {
   }
 }
 
-const varPublica = (v, p = {}) => ({ id: v.id, nombre: v.nombre, desc: v.desc || "", tamano: v.tamano || "", precio: v.precio, precioAntes: v.precioAntes || 0, imagen: v.imagen || "", swatch: v.swatch || "", peso: pesoDe(p, v), agotado: !!v.agotado });
+const varPublica = (v, p = {}) => ({ id: v.id, nombre: v.nombre, desc: v.desc || "", tamano: v.tamano || "", precio: v.precio, precioAntes: v.precioAntes || 0, imagen: v.imagen || "", swatch: v.swatch || "", peso: pesoDe(p, v), vol: Number(v.vol) || 0, agotado: !!v.agotado });
 
 /* Lo que ve la clienta de un producto en la lista (sin los tonos, para que
    pese poco); "detalle" agrega todas sus variantes. */
@@ -100,7 +112,7 @@ function productoPublico(p, { detalle = false } = {}) {
     precio: precios.length ? Math.min(...precios) : p.precio,
     precioMax: precios.length ? Math.max(...precios) : p.precio,
     precioAntes: precios.length ? Math.min(...vs.map((v) => v.precioAntes || 0)) : p.precioAntes || 0,
-    disponibles: p.disponibles, variacion: p.variacion || "", numVariantes: vs.length, peso: pesoDe(p),
+    disponibles: p.disponibles, variacion: p.variacion || "", numVariantes: vs.length, peso: pesoDe(p), vol: Number(p.vol) || 0,
     agotado: (p.variantes || []).length > 0 && !vs.length,
   };
   if (detalle) out.variantes = (p.variantes || []).map((v) => varPublica(v, p));
@@ -216,6 +228,6 @@ async function aplicarPago(id, etapa, { metodo, paymentId, monto } = {}) {
 }
 
 module.exports = {
-  CONFIG_DEFAULT, HORAS_PARA_PAGAR, round2, configActual, abierta, vencido, cuenta, reservadas, productosConCupo, sinLimite, pesoDe, envioEstimado,
+  CONFIG_DEFAULT, HORAS_PARA_PAGAR, round2, configActual, abierta, vencido, cuenta, reservadas, productosConCupo, sinLimite, pesoDe, pesosEnvio, envioEstimado,
   productoPublico, apartadoPublico, etapaPorPagar, crearPreferenciaMP, aplicarPago, avisar, listaHTML, esc, formatPriceMXN,
 };

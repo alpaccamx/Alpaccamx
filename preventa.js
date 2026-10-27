@@ -323,7 +323,7 @@ function pvAgregarDesdePicker() {
   pv.bag[k] = {
     id: pk.id, sku: v ? v.id : "", qty: (prev ? prev.qty : 0) + pk.qty, nombre: base.nombre, marca: base.marca || "",
     variante: v ? v.nombre : "", tamano: v ? v.tamano : "", precio: v ? v.precio : base.precio, imagen: (v && v.imagen) || base.imagen || "",
-    peso: Number(v ? v.peso : base.peso) || 0,
+    peso: Number(v ? v.peso : base.peso) || 0, vol: Number(v ? v.vol : base.vol) || 0,
   };
   pvGuardarBolsa();
   pvCerrarPicker();
@@ -335,7 +335,11 @@ function pvTotales() {
   const items = Object.entries(pv.bag).map(([k, x]) => ({ k, ...x }));
   const piezas = items.reduce((s, x) => s + x.qty, 0);
   const total = Math.round(items.reduce((s, x) => s + x.precio * x.qty, 0) * 100) / 100;
-  const peso = Math.round(items.reduce((s, x) => s + (Number(x.peso) || 0) * x.qty, 0) * 100) / 100;
+  // Igual que el servidor: Estafeta cobra el mayor entre peso real y
+  // volumétrico (cm³ × 1.2 de empaque ÷ 5000).
+  const real = items.reduce((s, x) => s + (Number(x.peso) || 0) * x.qty, 0);
+  const vol = items.reduce((s, x) => s + (Number(x.vol) || 0) * x.qty, 0) * 1.2 / 5000;
+  const peso = Math.round(Math.max(real, vol) * 100) / 100;
   return { items, piezas, total, peso, anticipo: pvAnticipoDe(total) };
 }
 
@@ -345,7 +349,7 @@ function pvEnvioTexto(cp) {
   const { peso } = pvTotales();
   if (!/^\d{5}$/.test(cp || "")) return "Pon tu código postal para ver cuánto sale el envío aprox.";
   const costo = typeof nacionalShippingMXN === "function" && peso > 0 ? nacionalShippingMXN(cp, peso) : null;
-  return costo != null ? `🚚 Envío estimado a CP ${cp}: <b>${pvMXN(costo)}</b> (${peso.toFixed(2)} kg aprox.). No se paga hoy: se paga al liquidar.`
+  return costo != null ? `🚚 Envío estimado a CP ${cp}: <b>${pvMXN(costo)}</b> (${peso.toFixed(2)} kg de envío aprox., contando el tamaño de las cajas). No se paga hoy: se paga al liquidar.`
     : "🚚 El envío te lo confirmo cuando lleguen tus productos; se paga al liquidar.";
 }
 

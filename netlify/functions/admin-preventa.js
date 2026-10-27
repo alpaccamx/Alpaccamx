@@ -43,7 +43,7 @@ exports.handler = async (event) => {
     try {
       const [config, productos, apartados] = await Promise.all([configActual(), productosConCupo({ conApartadas: true }), listApartados()]);
       // Sin la lista de tonos (pesaría megas); solo cuántos tiene.
-      const ligeros = productos.map(({ variantes, ...p }) => ({ ...p, numVariantes: (variantes || []).length, pesoEst: Math.max(0, ...(variantes || []).map((v) => Number(v.peso) || 0)) }));
+      const ligeros = productos.map(({ variantes, ...p }) => ({ ...p, numVariantes: (variantes || []).length, pesoEst: Math.max(0, ...(variantes || []).map((v) => Number(v.peso) || 0)), volEst: Math.max(0, ...(variantes || []).map((v) => Number(v.vol) || 0)) }));
       return json(200, { config, productos: ligeros, apartados: apartados.map((a) => ({ ...a, cuenta: cuenta(a) })) });
     } catch (err) {
       console.error("admin-preventa GET:", err);
@@ -105,7 +105,7 @@ exports.handler = async (event) => {
           const prev = actuales.get(String(x.id));
           const variantes = (Array.isArray(x.variantes) ? x.variantes : []).slice(0, 200).map((v) => ({
             id: clip(v.id, 40), nombre: clip(v.nombre, 120), desc: clip(v.desc, 160), tamano: clip(v.tamano, 120),
-            precio: num(v.precio), precioAntes: num(v.precioAntes), imagen: clip(v.imagen, 400), swatch: clip(v.swatch, 400), peso: num(v.peso), agotado: !!v.agotado,
+            precio: num(v.precio), precioAntes: num(v.precioAntes), imagen: clip(v.imagen, 400), swatch: clip(v.swatch, 400), peso: num(v.peso), vol: num(v.vol), agotado: !!v.agotado,
           })).filter((v) => v.id && v.precio > 0);
           return {
             ...(prev || { createdAt: now(), orden: Date.now() + i }),
