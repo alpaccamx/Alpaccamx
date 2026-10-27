@@ -232,7 +232,17 @@ const swmCopio = () => { try { return localStorage.getItem("alpacca_swm_copio") 
 function renderSwmWelcome() {
   const el = document.getElementById("swm-welcome");
   const tieneDirMx = typeof direccionPrincipal === "function" && Boolean(direccionPrincipal());
-  const pasos = [
+  // Clienta de Personal shopper (Mae compra por ella, nunca ha mandado su
+  // propio paquete): sus pasos son otros; no tiene que copiar la dirección
+  // americana ni registrar guías.
+  const soloCompras = swm.compras.length > 0 && !swm.paquetes.some((p) => p.origen !== "compra");
+  const compraPagada = swm.compras.some((c) => ["pagado", "comprado"].includes(c.status) || (c.pago && c.pago.status === "pagado"));
+  const pasos = soloCompras ? [
+    [tieneDirMx, "Pon tu dirección de envío en México", "A donde te mando tus productos cuando crucen. Solo se pone una vez.", `<button type="button" data-swm-dirmx-toggle class="mt-1 block text-xs font-semibold text-rose-ink underline">Poner mi dirección</button>${swm.dirMxOpen ? swmDirMxFormHTML() : ""}`],
+    [compraPagada, "Paga tu cotización", "Abajo, en “Compras”, la ves y la pagas con tarjeta o transferencia. No tienes que registrar ningún paquete ni guía: yo hago la compra por ti.", '<button type="button" data-swm-tab="compras" class="mt-1 block text-xs font-semibold text-rose-ink underline">Ver mi cotización</button>'],
+    [swm.compras.some((c) => c.status === "comprado"), "Hago tu compra", "Compro tus productos y llegan solos a la bodega. Te aviso por correo.", ""],
+    [swm.envios.length > 0, "Paga tu envío a casa", "Cuando lleguen, armo tu envío solita y aquí te sale lo que pagas.", ""],
+  ] : [
     [tieneDirMx, "Pon tu dirección de envío en México", "A donde te mandamos tus paquetes cuando crucen. Solo se pone una vez.", `<button type="button" data-swm-dirmx-toggle class="mt-1 block text-xs font-semibold text-rose-ink underline">Poner mi dirección</button>${swm.dirMxOpen ? swmDirMxFormHTML() : ""}`],
     [swmCopio() || swm.paquetes.length > 0, "Copia tu dirección americana", "Úsala en tu tienda favorita, con tu código de casillero en el apellido.", '<button type="button" data-swm-abrir-dir class="mt-1 block text-xs font-semibold text-rose-ink underline">Ver mi dirección</button>'],
     [swm.paquetes.length > 0 || swm.compras.length > 0, "Registra tu primer paquete", "Cuando te den el número de rastreo. ¿Sin tarjeta americana? Usa Personal shopper \u2192 Compras en línea.", '<button type="button" data-swm-form="paquete" class="mt-1 block text-xs font-semibold text-rose-ink underline">Registrar paquete</button>'],
@@ -1269,7 +1279,12 @@ function initSwm() {
       return;
     }
     const tab = t.closest("[data-swm-tab]");
-    if (tab) { swm.tab = tab.dataset.swmTab; renderSwmCasillero(); return; }
+    if (tab) {
+      swm.tab = tab.dataset.swmTab;
+      renderSwmCasillero();
+      if (tab.closest("#swm-welcome")) document.querySelector('#swm-casillero [role="tablist"]').scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     const mp = t.closest("[data-swm-pay-mp]");
     if (mp) { swmPayMP(mp.dataset.swmPayMp, mp); return; }
     const tr = t.closest("[data-swm-pay-tr]");
