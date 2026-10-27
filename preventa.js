@@ -238,7 +238,13 @@ async function pvAbrirPicker(id) {
   pv.picker = { id, sku: "", qty: 1, cargando: !pv.detalles[id], error: "" };
   pvRenderPicker();
   if (!pv.detalles[id]) {
-    try { pv.detalles[id] = (await pvGet(`?producto=${encodeURIComponent(id)}`)).producto; } catch (err) { if (pv.picker) pv.picker.error = err.message; }
+    try {
+      let prod = (await pvGet(`?producto=${encodeURIComponent(id)}`)).producto;
+      // Si llega otro producto (caché vieja), se pide otra vez sin caché.
+      if (!prod || prod.id !== id) prod = (await pvGet(`?producto=${encodeURIComponent(id)}&t=${Date.now()}`)).producto;
+      if (!prod || prod.id !== id) throw new Error("No se pudieron cargar los tonos. Intenta otra vez.");
+      pv.detalles[id] = prod;
+    } catch (err) { if (pv.picker) pv.picker.error = err.message; }
     if (!pv.picker || pv.picker.id !== id) return;
     pv.picker.cargando = false;
   }
