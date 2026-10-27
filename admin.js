@@ -5494,14 +5494,14 @@ ${itemLines}
 
   function pvProductoFormHTML() {
     const p = (pvEditando && pvData.productos.find((x) => x.id === pvEditando)) || {};
-    return `<div class="swm-card" data-pv-prod-form>
-      <h4><span>${pvEditando ? "✏️ Editando producto" : "➕ Agregar producto"}</span></h4>
+    return `<details class="swm-card" data-pv-prod-form ${pvEditando ? "open" : ""}>
+      <summary style="cursor:pointer;font-weight:700;">${pvEditando ? "✏️ Editando producto" : "➕ Agregar un producto a mano"}</summary>
       <div class="grid">
         <label>Nombre *<input data-p="nombre" type="text" value="${escapeHtml(p.nombre || "")}" placeholder="Ej. Soft Pinch Liquid Blush"></label>
         <label>Marca<input data-p="marca" type="text" value="${escapeHtml(p.marca || "")}" placeholder="Ej. Rare Beauty"></label>
-        <label>Precio por pieza ($) *<input data-p="precio" type="number" min="0" step="1" value="${p.precio || ""}"></label>
+        <label>${p.numVariantes > 1 ? "Precio (cada tono tiene el suyo)" : "Precio por pieza ($) *"}<input data-p="precio" type="number" min="0" step="1" value="${p.precio || ""}"></label>
         <label>Precio antes ($, opcional)<input data-p="precioAntes" type="number" min="0" step="1" value="${p.precioAntes || ""}"></label>
-        <label>Piezas para apartar *<input data-p="piezas" type="number" min="0" step="1" value="${p.piezas != null ? p.piezas : ""}"></label>
+        <label>Piezas para apartar (vacío = sin límite)<input data-p="piezas" type="number" min="0" step="1" value="${p.piezas != null ? p.piezas : ""}"></label>
       </div>
       <label style="margin-top:8px;">Link de la foto (clic derecho en la foto de Sephora → "Copiar dirección de imagen")<input data-p="imagen" type="text" value="${escapeHtml(p.imagen || "")}" placeholder="https://..." style="width:100%;"></label>
       <label style="margin-top:8px;">Descripción o tono (opcional)<input data-p="descripcion" type="text" value="${escapeHtml(p.descripcion || "")}" placeholder="Ej. Tono Joy, 7.5 ml" style="width:100%;"></label>
@@ -5509,28 +5509,68 @@ ${itemLines}
         <button type="button" class="btn-primary" data-pv-guardar-prod>💾 ${pvEditando ? "Guardar cambios" : "Agregar a la preventa"}</button>
         ${pvEditando ? `<button type="button" class="btn-secondary" data-pv-cancelar-edicion>Cancelar</button>` : ""}
       </div>
-    </div>`;
+    </details>`;
   }
 
-  function pvProductosHTML() {
-    const pagadas = {};
+  let pvGrupo = "";
+  let pvBuscar = "";
+  let pvMostrar = 30;
+  let pvVerCompra = false;
+
+  /* Piezas con anticipo pagado, agrupadas por producto + tono + tamaño
+     (lo que Mae tiene que comprar). */
+  function pvListaCompra() {
+    const m = new Map();
     pvData.apartados.forEach((a) => {
       if (!a.cuenta || a.status === "nuevo") return;
-      (a.items || []).forEach((it) => { pagadas[it.id] = (pagadas[it.id] || 0) + it.qty; });
+      (a.items || []).forEach((it) => {
+        const k = `${it.id}|${it.sku || ""}`;
+        const r = m.get(k) || { marca: it.marca || "", nombre: it.nombre, variante: it.variante || "", tamano: it.tamano || "", sku: it.sku || "", qty: 0, folios: [] };
+        r.qty += it.qty;
+        r.folios.push(a.folio);
+        m.set(k, r);
+      });
     });
+    return [...m.values()].sort((x, y) => `${x.marca} ${x.nombre} ${x.variante}`.localeCompare(`${y.marca} ${y.nombre} ${y.variante}`));
+  }
+  const pvCompraTexto = (r) => `${r.qty} × ${r.marca ? `${r.marca} · ` : ""}${r.nombre}${r.variante ? ` · ${r.variante}` : ""}${r.tamano ? ` (${r.tamano})` : ""}${r.sku ? ` [SKU ${r.sku}]` : ""}`;
+
+  function pvProductosHTML() {
     if (!pvData.productos.length) return `<p class="abw-intro">Todavía no subes productos.</p>`;
-    const totalComprar = Object.values(pagadas).reduce((s, n) => s + n, 0);
-    return `<p class="abw-intro">🛒 Para comprar: <b>${totalComprar}</b> pieza${totalComprar === 1 ? "" : "s"} con anticipo pagado.</p>
-      ${pvData.productos.map((p) => `<div class="cat-row" style="cursor:default;">
+    const compra = pvListaCompra();
+    const totalComprar = compra.reduce((s, r) => s + r.qty, 0);
+    const conteo = {};
+    pvData.productos.forEach((p) => { const g = p.grupo || "Otros"; conteo[g] = (conteo[g] || 0) + 1; });
+    const grupos = Object.keys(conteo);
+    const q = pvBuscar.trim().toLowerCase();
+    const lista = pvData.productos.filter((p) => (!pvGrupo || (p.grupo || "Otros") === pvGrupo) && (!q || `${p.marca} ${p.nombre}`.toLowerCase().includes(q)));
+    const vis = lista.slice(0, pvMostrar);
+    const ocultosGrupo = lista.filter((p) => p.activo === false).length;
+    return `<div class="swm-card">
+        <h4><span>🛒 Lista de compra</span><span class="badge" style="background:#fde8f0;color:#b33660;">${totalComprar} pieza${totalComprar === 1 ? "" : "s"} pagada${totalComprar === 1 ? "" : "s"}</span></h4>
+        <p class="meta">Solo cuenta apartados con anticipo pagado, separado por tono y tamaño.</p>
+        ${compra.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          <button type="button" class="btn-secondary" data-pv-ver-compra>${pvVerCompra ? "Ocultar lista" : `Ver lista (${compra.length} renglones)`}</button>
+          <button type="button" class="btn-secondary" data-pv-copiar-compra>📋 Copiar lista</button></div>
+          ${pvVerCompra ? `<ul style="margin:10px 0 0;padding-left:20px;font-size:14px;">${compra.map((r) => `<li><b>${r.qty} ×</b> ${escapeHtml(r.marca ? `${r.marca} · ` : "")}${escapeHtml(r.nombre)}${r.variante ? ` · <b>${escapeHtml(r.variante)}</b>` : ""}${r.tamano ? ` <span style="color:#6b6b6b;">(${escapeHtml(r.tamano)})</span>` : ""} <span style="color:#6b6b6b;font-size:12px;">${escapeHtml(r.folios.join(", "))}</span></li>`).join("")}</ul>` : ""}` : ""}
+      </div>
+      ${grupos.length > 1 ? `<div class="tabs" style="flex-wrap:wrap;"><button type="button" class="tab ${!pvGrupo ? "active" : ""}" data-pv-grupo="">Todo (${pvData.productos.length})</button>${grupos.map((g) => `<button type="button" class="tab ${pvGrupo === g ? "active" : ""}" data-pv-grupo="${escapeHtml(g)}">${escapeHtml(g)} (${conteo[g]})</button>`).join("")}</div>` : ""}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input type="search" data-pv-buscar value="${escapeHtml(pvBuscar)}" placeholder="🔍 Buscar producto" style="flex:1;min-width:180px;">
+        ${pvGrupo ? `<button type="button" class="btn-secondary" data-pv-grupo-activo="${ocultosGrupo === lista.length ? "1" : "0"}">${ocultosGrupo === lista.length ? `👀 Mostrar todo ${escapeHtml(pvGrupo)}` : `🙈 Ocultar todo ${escapeHtml(pvGrupo)}`}</button>` : ""}
+      </div>
+      <p class="meta">${lista.length} producto${lista.length === 1 ? "" : "s"}${ocultosGrupo ? ` · ${ocultosGrupo} oculto${ocultosGrupo === 1 ? "" : "s"}` : ""}</p>
+      ${vis.map((p) => `<div class="cat-row" style="cursor:default;">
         ${p.imagen ? `<img src="${escapeHtml(p.imagen)}" alt="" loading="lazy">` : `<span style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-size:26px;">🛍️</span>`}
         <div class="info"><b>${escapeHtml(p.marca ? `${p.marca} · ` : "")}${escapeHtml(p.nombre)}</b>
-          <small>${formatPrice(p.precio)}${p.precioAntes ? ` (antes ${formatPrice(p.precioAntes)})` : ""} · 💗 ${p.apartadas} apartada${p.apartadas === 1 ? "" : "s"} · <strong>${pagadas[p.id] || 0} pagada${(pagadas[p.id] || 0) === 1 ? "" : "s"}</strong> · quedan ${p.disponibles} de ${p.piezas}${p.activo === false ? " · 🙈 oculto" : ""}</small></div>
+          <small>${p.numVariantes > 1 ? `desde ` : ""}${formatPrice(p.precio)}${p.precioAntes ? ` (antes ${formatPrice(p.precioAntes)})` : ""}${p.numVariantes > 1 ? ` · ${p.numVariantes} ${/size/i.test(p.variacion || "") ? "tamaños" : "tonos"}` : ""} · 💗 ${p.apartadas} apartada${p.apartadas === 1 ? "" : "s"} · ${p.piezas == null ? "sin límite" : `quedan ${p.disponibles} de ${p.piezas}`}${p.activo === false ? " · 🙈 oculto" : ""}</small></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
           <button type="button" class="btn-secondary" data-pv-editar="${escapeHtml(p.id)}" style="padding:6px 12px;font-size:13px;">✏️ Editar</button>
           <button type="button" class="btn-secondary" data-pv-ocultar="${escapeHtml(p.id)}" style="padding:6px 12px;font-size:13px;">${p.activo === false ? "👀 Mostrar" : "🙈 Ocultar"}</button>
           <button type="button" class="btn-danger" data-pv-borrar="${escapeHtml(p.id)}" style="padding:6px 12px;font-size:13px;">🗑️</button>
         </div>
-      </div>`).join("")}`;
+      </div>`).join("")}
+      ${lista.length > vis.length ? `<button type="button" class="btn-secondary" data-pv-mas>Ver más (${lista.length - vis.length})</button>` : ""}`;
   }
 
   function pvApartadoHTML(a) {
@@ -5571,7 +5611,7 @@ ${itemLines}
     return `<div class="swm-card">
       <h4><span>${escapeHtml(a.folio)} · ${escapeHtml(a.name || a.email)}</span><span class="badge" style="background:${bg};color:${fg};">${txt}</span></h4>
       <div class="meta">${escapeHtml(a.email)}${tel ? ` · <a href="https://wa.me/52${tel}" target="_blank" rel="noopener">📱 ${tel}</a>` : ""} · ${formatFecha(a.createdAt)}</div>
-      <ul style="margin:8px 0;padding-left:20px;font-size:14px;">${(a.items || []).map((it) => `<li>${it.qty} × ${escapeHtml(it.marca ? `${it.marca} · ` : "")}${escapeHtml(it.nombre)} <span style="color:#6b6b6b;">(${formatPrice(it.precio)} c/u)</span></li>`).join("")}</ul>
+      <ul style="margin:8px 0;padding-left:20px;font-size:14px;">${(a.items || []).map((it) => `<li>${it.qty} × ${escapeHtml(it.marca ? `${it.marca} · ` : "")}${escapeHtml(it.nombre)}${it.variante ? ` · <b>${escapeHtml(it.variante)}</b>` : ""}${it.tamano ? ` (${escapeHtml(it.tamano)})` : ""} <span style="color:#6b6b6b;">(${formatPrice(it.precio)} c/u)</span></li>`).join("")}</ul>
       <div class="meta">Total <b>${formatPrice(a.total)}</b> · Anticipo ${pago("anticipo")} · Resto ${pago("resto")}${a.envio ? ` · incluye envío ${formatPrice(a.envio)}` : ""}</div>
       <div class="meta">${a.entrega === "personal" ? "📍 Entrega personal en Ciudad Juárez" : `📦 Envío a: ${escapeHtml([d.nombre, d.calle, d.colonia, d.ciudad, d.estado, d.cp && `CP ${d.cp}`].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}`}</div>
       ${a.nota ? `<div class="meta">📝 ${escapeHtml(a.nota)}</div>` : ""}
@@ -5616,6 +5656,22 @@ ${itemLines}
     const btn = t.closest("button");
     const filtro = t.closest("[data-pv-filtro]");
     if (filtro) { pvFiltro = filtro.dataset.pvFiltro; renderPreventaAdmin(); return; }
+    const grupo = t.closest("[data-pv-grupo]");
+    if (grupo) { pvGrupo = grupo.dataset.pvGrupo; pvMostrar = 30; renderPreventaAdmin(); return; }
+    if (t.closest("[data-pv-mas]")) { pvMostrar += 30; renderPreventaAdmin(); return; }
+    if (t.closest("[data-pv-ver-compra]")) { pvVerCompra = !pvVerCompra; renderPreventaAdmin(); return; }
+    if (t.closest("[data-pv-copiar-compra]")) {
+      const txt = pvListaCompra().map(pvCompraTexto).join("\n");
+      try { await navigator.clipboard.writeText(txt); showToast("Lista copiada ✅"); } catch (err) { prompt("Copia la lista:", txt); }
+      return;
+    }
+    const grupoActivo = t.closest("[data-pv-grupo-activo]");
+    if (grupoActivo) {
+      const activo = grupoActivo.dataset.pvGrupoActivo === "1";
+      if (!confirm(`¿${activo ? "Mostrar" : "Ocultar"} todos los productos de ${pvGrupo} en la tienda?`)) return;
+      await pvAct({ accion: "activar_grupo", grupo: pvGrupo, activo }, btn);
+      return;
+    }
     if (t.closest("[data-pv-guardar-config]")) {
       const box = t.closest("[data-pv-config]");
       const v = (k) => box.querySelector(`[data-c="${k}"]`);
@@ -5714,6 +5770,20 @@ ${itemLines}
       const avisarle = confirm("¿Le aviso a la clienta por correo y WhatsApp?");
       await pvAct({ accion: "cancelar", id: cancelar.dataset.pvCancelar, motivo, avisar: avisarle }, btn);
     }
+  });
+
+  let pvBuscarTimer = null;
+  document.getElementById("pv-admin").addEventListener("input", (e) => {
+    const t = e.target;
+    if (!t.matches("[data-pv-buscar]")) return;
+    clearTimeout(pvBuscarTimer);
+    pvBuscarTimer = setTimeout(() => {
+      pvBuscar = t.value;
+      pvMostrar = 30;
+      renderPreventaAdmin();
+      const nuevo = document.querySelector("#pv-admin [data-pv-buscar]");
+      if (nuevo) { nuevo.focus(); nuevo.setSelectionRange(nuevo.value.length, nuevo.value.length); }
+    }, 250);
   });
 
   const VIEWS = {

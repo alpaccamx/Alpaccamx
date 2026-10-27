@@ -5,8 +5,11 @@
 // Registros en el store "preventa":
 //   config            la campaña: título, si está activa, fecha de cierre,
 //                     cuándo llega, % de anticipo.
-//   prod/<id>         un producto: nombre, marca, foto, precio por pieza,
-//                     piezas (cupo para apartar), activo.
+//   catalogo          todos los productos: nombre, marca, grupo, foto,
+//                     precio por pieza, piezas (cupo; null = sin límite),
+//                     activo y, si tiene tonos o tamaños, sus "variantes"
+//                     [{ id, nombre, desc, tamano, precio, precioAntes,
+//                     imagen, swatch, agotado }].
 //   ap/<id>           un apartado (folio PV-0001) de una clienta:
 //                     nuevo → apartado (anticipo pagado) → llego (Mae avisa
 //                     y cobra el resto) → liquidado → enviado → entregado
@@ -40,20 +43,54 @@ async function listar(prefix) {
   return (await Promise.all(blobs.map((b) => s.get(b.key, { type: "json" })))).filter(Boolean);
 }
 
+/* Los productos van todos juntos en un solo registro ("catalogo"): con
+   cientos de productos (ej. marcas completas de Sephora, con sus tonos)
+   leerlos de uno en uno haría lenta cada visita. Se escribe con etag para
+   no pisar cambios simultáneos. */
+async function leerCatalogo() {
+  const r = await store().getWithMetadata("catalogo", { type: "json" });
+  return { lista: (r && r.data) || [], etag: r && r.etag };
+}
+async function mutarCatalogo(mutate) {
+  const s = store();
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { lista, etag } = await leerCatalogo();
+    const nueva = mutate(lista.slice());
+    if (!nueva) return lista;
+    const res = etag ? await s.setJSON("catalogo", nueva, { onlyIfMatch: etag }) : await s.setJSON("catalogo", nueva, { onlyIfNew: true });
+    if (res.modified) return nueva;
+  }
+  throw new Error("No se pudo guardar el catálogo (conflicto de concurrencia).");
+}
+
 async function listProductos() {
-  const out = await listar("prod/");
+  const out = (await leerCatalogo()).lista;
   out.sort((a, b) => (a.orden || 0) - (b.orden || 0) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
   return out;
 }
 async function getProducto(id) {
-  return store().get(`prod/${id}`, { type: "json" });
+  return (await leerCatalogo()).lista.find((p) => p.id === id) || null;
 }
 async function saveProducto(p) {
-  await store().setJSON(`prod/${p.id}`, p);
+  await mutarCatalogo((lista) => {
+    const i = lista.findIndex((x) => x.id === p.id);
+    if (i >= 0) lista[i] = p; else lista.push(p);
+    return lista;
+  });
   return p;
 }
 async function deleteProducto(id) {
-  await store().delete(`prod/${id}`);
+  await mutarCatalogo((lista) => lista.filter((x) => x.id !== id));
+}
+/* Agrega o reemplaza varios productos de una vez (por id). */
+async function saveProductosLote(productos) {
+  const nuevos = new Map(productos.map((p) => [p.id, p]));
+  return mutarCatalogo((lista) => {
+    const out = lista.map((x) => (nuevos.has(x.id) ? nuevos.get(x.id) : x));
+    const ya = new Set(lista.map((x) => x.id));
+    productos.forEach((p) => { if (!ya.has(p.id)) out.push(p); });
+    return out;
+  });
 }
 
 async function listApartados({ email } = {}) {
@@ -104,6 +141,6 @@ async function getFile(key) {
 }
 
 module.exports = {
-  getConfig, saveConfig, listProductos, getProducto, saveProducto, deleteProducto,
+  getConfig, saveConfig, listProductos, getProducto, saveProducto, deleteProducto, saveProductosLote,
   listApartados, getApartado, saveApartado, mutateApartado, nextFolio, saveFile, getFile,
 };

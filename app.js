@@ -4166,6 +4166,7 @@ const DEFAULT_VIEW_ROUTES = {
   home: {},
   catalog: { ver: "catalogo" },
   stock: { ver: "stock" },
+  preventa: { ver: "preventa" },
   wishlist: { ver: "favoritos" },
   americano: { ver: "americano" },
   swm: { ver: "direccion-americana" },
@@ -4190,6 +4191,7 @@ function showHomeView(view, route) {
   document.getElementById("search-results-section").classList.toggle("hidden", view !== "search");
   document.getElementById("catalog-section").classList.toggle("hidden", view !== "catalog");
   document.getElementById("stock-section").classList.toggle("hidden", view !== "stock");
+  document.getElementById("preventa-section").classList.toggle("hidden", view !== "preventa");
   document.getElementById("wishlist-section").classList.toggle("hidden", view !== "wishlist");
   document.getElementById("brand-products-section").classList.toggle("hidden", view !== "brands");
   document.getElementById("category-products-section").classList.toggle("hidden", view !== "categories");
@@ -4277,7 +4279,7 @@ function openStockSection({ restore = false } = {}) {
   document.getElementById("search-input").value = "";
   renderStockGrid(restore);
   showHomeView("stock");
-  if (typeof renderPreventa === "function") renderPreventa();
+  if (typeof renderPreventaBanner === "function") renderPreventaBanner();
   if (!restore) document.getElementById("stock-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
 
@@ -7778,7 +7780,7 @@ document.addEventListener("DOMContentLoaded", () => {
       openStockSection();
       return;
     }
-    if (href === "preventa-box" && typeof openPreventa === "function") {
+    if ((href === "preventa-section" || href === "preventa-box") && typeof openPreventa === "function") {
       e.preventDefault();
       openPreventa();
       return;
