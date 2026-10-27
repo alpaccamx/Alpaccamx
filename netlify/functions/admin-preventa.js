@@ -4,7 +4,8 @@
 // GET ?archivo=comprobante/<id>/<anticipo|resto>  → el comprobante
 // POST { accion, ... }:
 //   guardar_config    { titulo, descripcion, cierre, llegada, anticipoPct, envioDefault, activa }
-//   guardar_producto  { id?, nombre, marca, imagen, descripcion, precio, precioAntes, piezas, activo }
+//   guardar_producto  { id?, nombre, marca, imagen, descripcion, precio, precioAntes, piezas, peso, activo }
+//                     (peso en kg por pieza; si es 0 se usa el estimado de cada tono)
 //   borrar_producto   { id }   (si ya tiene apartados, solo se oculta)
 //   importar          { productos: [{ id, nombre, marca, grupo, imagen, descripcion, variantes, ... }] }
 //                     (agrega o reemplaza por id; así se cargan marcas completas de Sephora)
@@ -42,7 +43,7 @@ exports.handler = async (event) => {
     try {
       const [config, productos, apartados] = await Promise.all([configActual(), productosConCupo({ conApartadas: true }), listApartados()]);
       // Sin la lista de tonos (pesaría megas); solo cuántos tiene.
-      const ligeros = productos.map(({ variantes, ...p }) => ({ ...p, numVariantes: (variantes || []).length }));
+      const ligeros = productos.map(({ variantes, ...p }) => ({ ...p, numVariantes: (variantes || []).length, pesoEst: Math.max(0, ...(variantes || []).map((v) => Number(v.peso) || 0)) }));
       return json(200, { config, productos: ligeros, apartados: apartados.map((a) => ({ ...a, cuenta: cuenta(a) })) });
     } catch (err) {
       console.error("admin-preventa GET:", err);
@@ -90,7 +91,7 @@ exports.handler = async (event) => {
         const p = {
           ...(prev || { id: randomUUID(), createdAt: now(), orden: Date.now() }),
           nombre, marca: clip(b.marca, 80), imagen, descripcion: clip(b.descripcion, 600),
-          precio, precioAntes: num(b.precioAntes), piezas, activo: b.activo !== false, updatedAt: now(),
+          precio, precioAntes: num(b.precioAntes), piezas, peso: b.peso === undefined ? (prev && prev.peso) || 0 : num(b.peso), activo: b.activo !== false, updatedAt: now(),
         };
         await saveProducto(p);
         return json(200, { producto: p });
@@ -104,7 +105,7 @@ exports.handler = async (event) => {
           const prev = actuales.get(String(x.id));
           const variantes = (Array.isArray(x.variantes) ? x.variantes : []).slice(0, 200).map((v) => ({
             id: clip(v.id, 40), nombre: clip(v.nombre, 120), desc: clip(v.desc, 160), tamano: clip(v.tamano, 120),
-            precio: num(v.precio), precioAntes: num(v.precioAntes), imagen: clip(v.imagen, 400), swatch: clip(v.swatch, 400), agotado: !!v.agotado,
+            precio: num(v.precio), precioAntes: num(v.precioAntes), imagen: clip(v.imagen, 400), swatch: clip(v.swatch, 400), peso: num(v.peso), agotado: !!v.agotado,
           })).filter((v) => v.id && v.precio > 0);
           return {
             ...(prev || { createdAt: now(), orden: Date.now() + i }),
@@ -112,7 +113,7 @@ exports.handler = async (event) => {
             descripcion: clip(x.descripcion, 600), precio: num(x.precio) || (variantes[0] && variantes[0].precio) || 0, precioAntes: num(x.precioAntes),
             piezas: x.piezas == null || x.piezas === "" ? null : Math.max(0, parseInt(x.piezas, 10) || 0),
             activo: prev ? prev.activo !== false : x.activo !== false, variacion: clip(x.variacion, 40), variantes,
-            origen: clip(x.origen, 400), updatedAt: now(),
+            peso: x.peso != null ? num(x.peso) : (prev && prev.peso) || 0, origen: clip(x.origen, 400), updatedAt: now(),
           };
         }).filter((p) => p.id && p.nombre && p.precio > 0);
         await saveProductosLote(limpios);
