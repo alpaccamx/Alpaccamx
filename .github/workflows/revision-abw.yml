@@ -1,0 +1,61 @@
+# Revisión de precios y disponibilidad contra Asian Beauty Wholesale.
+# Corre sola todos los días; en cada corrida revisa las marcas que llevan más
+# de 6 días sin revisarse (ver scripts/abw-revision/rev.py). Los cambios
+# salen en /admin.html → Más → Revisión ABW para que Mae los apruebe.
+#
+# Necesita el secreto ADMIN_KEY (Settings → Secrets and variables → Actions).
+# La sesión de ABW vive en el sitio (admin-abw-sesion), no en GitHub.
+name: Revisión ABW
+
+on:
+  schedule:
+    - cron: "17 8 * * *" # todos los días, 1:17 am en Ciudad Juárez
+  workflow_dispatch:
+    inputs:
+      marcas:
+        description: "Marcas a revisar (separadas por coma). Vacío = las que tocan."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: revision-abw
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar navegador
+        run: |
+          pip install playwright==1.47.0
+          python -m playwright install --with-deps chromium
+
+      # Las páginas de ABW bajadas en los últimos días se reutilizan.
+      - uses: actions/cache@v4
+        with:
+          path: scripts/abw-revision/pages
+          key: abw-pages-${{ github.run_id }}
+          restore-keys: abw-pages-
+
+      - name: Revisar
+        env:
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          MARCAS: ${{ github.event.inputs.marcas }}
+        run: |
+          if [ -z "$ADMIN_KEY" ]; then echo "Falta el secreto ADMIN_KEY"; exit 1; fi
+          if [ -n "$MARCAS" ]; then
+            IFS=',' read -ra L <<< "$MARCAS"
+            python scripts/abw-revision/rev.py --horas 5 "${L[@]}"
+          else
+            python scripts/abw-revision/rev.py --horas 5
+          fi
