@@ -802,7 +802,7 @@ function openPsSection(tab = "", { restore = false } = {}) {
 function openPsCalc({ restore = false } = {}) {
   document.getElementById("search-input").value = "";
   showHomeView("ps", { ver: "cotizador" });
-  setPsTab("");
+  setPsTab("linea");
   if (!restore) setTimeout(() => document.getElementById("ps-calc").scrollIntoView({ behavior: "auto", block: "start" }), 0);
 }
 
