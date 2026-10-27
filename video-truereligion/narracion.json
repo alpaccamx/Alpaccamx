@@ -1,0 +1,9 @@
+[
+ {"texto": "[excited] Este conjunto True Religion cuesta normalmente cuatro mil ochocientos cincuenta pesos. [confident] Conmigo, tres mil diecinueve.", "marcas": ["cuatro mil", "Conmigo"]},
+ {"texto": "[warm] Y ojo: la tienda de Estados Unidos no envía a México. Por eso te lo traigo yo.", "marcas": ["no envía", "Por eso"]},
+ {"texto": "Me mandas un WhatsApp con lo que te gustó, como si yo fuera tu personal shopper, y yo lo compro directo en la tienda. Todo original, con sus etiquetas.", "marcas": ["WhatsApp", "Todo original"]},
+ {"texto": "El de cerezas de cristal, en rosa o en negro: normal, cuatro mil ochocientos cincuenta. [confident] Conmigo, tres mil seiscientos veintitrés.", "marcas": ["en negro", "normal", "Conmigo"]},
+ {"texto": "Y el camo groovy, en azul o en rojo: normal, cuatro mil doscientos ochenta y seis. [confident] Conmigo, dos mil doscientos ochenta y uno.", "marcas": ["en rojo", "normal", "Conmigo"]},
+ {"texto": "[warm] Tienes precio de mayoreo desde una sola pieza, para ti o para revender. Pagas con transferencia o tarjeta, y en más o menos una semana lo tienes en tu casa, en cualquier parte de México.", "marcas": ["mayoreo", "Pagas", "semana"]},
+ {"texto": "[excited] Mándame un WhatsApp y armamos tu pedido.", "marcas": ["WhatsApp"]}
+]

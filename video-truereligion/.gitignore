@@ -1,0 +1,5 @@
+voz/*.wav
+voz/lista.txt
+voz/frase*.mp3
+__pycache__/
+TrueReligion.mp4
