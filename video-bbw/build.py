@@ -21,7 +21,7 @@ PINK, WHITE, INK = b.PINK, b.WHITE, b.INK
 T = json.load(open(os.path.join(AQUI, f"tiempos{SUF}.json")))
 OUT = os.path.join(AQUI, f"BBW{SUF}.mp4")
 ESPEJO = (0.04, 0.04, 0.6)  # acercamiento al espejo donde Mae saluda (x, y, tamaño, en fracción del cuadro)
-# tomas del espejo que sí le gustan a Mae: 122.8-124.6 s (amor y paz, saludo), 126.9-129.1 s y 142.2-143.6 s.
+# tomas del espejo que sí le gustan a Mae: 122.8-124.6 s (amor y paz, saludo), 127.0-128.7 s y 142.2-143.6 s.
 # NO usar 124.7-126.6 (se está peinando) ni 141.3-142.1. Estas tomas duran lo que dicen: no se estiran.
 
 # tomas en orden: (video, inicio, segundos, velocidad[, acercamiento])
@@ -31,7 +31,7 @@ VARIANTES = {
     "restock": dict(
         tomas=[("4705", 122.9, 1.7, 1.0, ESPEJO), ("4704", 11.0, 1.4, 2.2), ("4705", 21, 1.4, 1.2), ("4705", 30, 1.4, 1.2), ("4705", 93, 1.5, 1.2),
                ("4705", 156, 1.4, 1.2), ("4705", 162, 1.4, 1.2), ("4705", 222, 1.3, 1.3), ("4705", 42, 1.4, 1.2), ("4705", 216, 1.4, 1.2),
-               ("4705", 99, 1.5, 1.2), ("4705", 127.0, 2.0, 1.0, ESPEJO), ("4705", 228, 2.6, 1.0)],
+               ("4705", 99, 1.5, 1.2), ("4705", 127.0, 1.7, 1.0, ESPEJO), ("4705", 228, 2.6, 1.0)],
         textos=[(0, None, "grande", "¡RESTOCK! 🚨"), (0, 1, "texto", "Mists Bath & Body Works\nya en mi página ✨"),
                 (1, 0, "precio", "$150 c/u"), (1, 1, "precio2", "Mayoreo desde 1 pieza"),
                 (2, 0, "texto", "Un montón de aromas ✨"), (2, 1, "texto", "…pero se acaban rápido 🔥"), (3, 0, "cta", "Pide en alpacca.mx 🛍️")],
@@ -39,14 +39,14 @@ VARIANTES = {
     "pov": dict(
         tomas=[("4704", 0.5, 1.5, 3.0), ("4704", 11.0, 1.4, 2.2), ("4705", 122.8, 1.8, 1.0, ESPEJO), ("4705", 21, 1.3, 1.2),
                ("4705", 57, 1.3, 1.2), ("4705", 93, 1.3, 1.2), ("4705", 162, 1.3, 1.2), ("4705", 210, 1.3, 1.2), ("4705", 75, 1.2, 1.5),
-               ("4705", 190, 2.3, 1.0), ("4705", 127.0, 2.1, 1.0, ESPEJO)],
+               ("4705", 190, 2.3, 1.0), ("4705", 127.0, 1.7, 1.0, ESPEJO)],
         textos=[(0, None, "texto", "POV: fui a Bath & Body Works\npor tus mists 🛍️"), (1, 0, "texto", "Los elijo uno por uno 💗"),
                 (1, 1, "texto", "Originales, directo de la tienda ✅"), (2, 0, "precio", "$150 c/u"), (3, 0, "cta", "Nos vemos en alpacca.mx 👋")],
         popups=[(2, 0, 2.6, "IMG_4708")]),
     "reventa": dict(
         tomas=[("4705", 222, 1.4, 1.3), ("4705", 228, 1.4, 1.3), ("4705", 30, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 87, 1.3, 1.3),
                ("4705", 156, 1.3, 1.2), ("4705", 42, 1.4, 1.2), ("4705", 198, 1.3, 1.3), ("4705", 216, 1.4, 1.2),
-               ("4705", 210, 2.4, 1.2), ("4705", 127.0, 2.1, 1.0, ESPEJO)],
+               ("4705", 210, 2.4, 1.2), ("4705", 127.0, 1.7, 1.0, ESPEJO)],
         textos=[(0, None, "texto", "¿Vendes perfumes? 👀"), (1, 0, "texto", "Mists Bath & Body Works\noriginales ✅"),
                 (1, 1, "precio", "$150 c/u"), (2, 0, "precio2", "Mayoreo desde 1 pieza"), (2, 1, "texto", "Tú le pones tu precio 💸"),
                 (3, 0, "cta", "Comenta “Me quiero unir” 👇")],
@@ -54,7 +54,7 @@ VARIANTES = {
     "aromas": dict(
         tomas=[("4705", 27, 1.6, 1.2), ("4705", 87, ("hasta", 1, 0), 1.3), ("4705", 21.6, ("hasta", 1, 1), 1.0),
                ("4705", 29.8, ("hasta", 1, 2), 1.0), ("4705", 68.5, ("hasta", 2, 0), 1.0),
-               ("4705", 156.5, 1.4, 1.2), ("4705", 162.5, 1.4, 1.2), ("4705", 210, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 127.0, 2.1, 1.0, ESPEJO)],
+               ("4705", 156.5, 1.4, 1.2), ("4705", 162.5, 1.4, 1.2), ("4705", 210, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 127.0, 1.7, 1.0, ESPEJO)],
         textos=[(0, None, "texto", "¿Cuál es tu aroma favorito? 💭"), (1, 0, "grande", "Gingham Gorgeous"), (1, 1, "grande", "Strawberry Pound Cake"),
                 (1, 2, "grande", "Into the Night"), (2, 0, "precio", "$150 c/u"), (2, 1, "precio2", "Mayoreo desde 1 pieza"),
                 (3, 0, "cta", "Déjamelo en comentarios 👇")],
