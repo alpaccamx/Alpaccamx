@@ -18,12 +18,12 @@ OUT = os.path.join(AQUI, "BBW-dupes.mp4")
 # por escena: las tomas (video, inicio, segundos o None = lo que falte, velocidad) y el dupe (mist, perfume, marca)
 ESCENAS = [
     ([("4704", 11.0, 1.6, 2.2), ("4705", 87, 1.5, 1.3), ("4705", 222, 1.3, 1.3), ("4705", 105, None, 1.2)], None),
-    ([("4705", 92.6, None, 0.8)], ("Pink Obsessed", "Donna Born in Roma", "Valentino")),
-    ([("4705", 21.5, None, 0.95)], ("Gingham Gorgeous", "Miss Dior Blooming Bouquet", "Dior")),
-    ([("4705", 29.8, None, 1.0)], ("Strawberry Pound Cake", "Very Good Girl", "Carolina Herrera")),
-    ([("4705", 68.5, None, 1.0)], ("Into the Night", "Black Opium", "Yves Saint Laurent")),
+    ([("4705", 87, 1.8, 1.0), ("4705", 92.8, None, 1.0)], ("Pink Obsessed", "Donna Born in Roma", "Valentino")),
+    ([("4705", 21.5, None, 0.7)], ("Gingham Gorgeous", "Miss Dior Blooming Bouquet", "Dior")),
+    ([("4705", 27.5, 1.4, 1.0), ("4705", 29.8, None, 1.0)], ("Strawberry Pound Cake", "Very Good Girl", "Carolina Herrera")),
+    ([("4705", 68.5, None, 0.8)], ("Into the Night", "Black Opium", "Yves Saint Laurent")),
     ([("4705", 188.0, None, 1.0)], ("Platinum", "Vanilla 28", "Kayali")),
-    ([("4705", 58.8, None, 1.0)], ("In the Stars", "Sweet Like Candy", "Ariana Grande")),
+    ([("4705", 57.0, None, 1.0)], ("In the Stars", "Sweet Like Candy", "Ariana Grande")),
     ([("4705", 228, 1.5, 1.0), ("4705", 198, 1.5, 1.3), ("4705", 99, 1.5, 1.2), ("4705", 162, 1.5, 1.2), ("4705", 216, None, 1.2)], None),
 ]
 

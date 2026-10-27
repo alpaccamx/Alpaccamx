@@ -50,7 +50,8 @@ VARIANTES = {
                 (3, 0, "cta", "Comenta “Me quiero unir” 👇")],
         popups=[(2, 1, 2.2, "IMG_4707")]),
     "aromas": dict(
-        tomas=[("4705", 27, 1.6, 1.2), ("4705", 87, 1.65, 1.3), ("4705", 22.5, 0.95, 1.0), ("4705", 30, 1.45, 1.0), ("4705", 69, 1.3, 1.0),
+        tomas=[("4705", 27, 1.6, 1.2), ("4705", 87, ("hasta", 1, 0), 1.3), ("4705", 21.6, ("hasta", 1, 1), 1.0),
+               ("4705", 29.8, ("hasta", 1, 2), 1.0), ("4705", 68.5, ("hasta", 2, 0), 1.0),
                ("4705", 156.5, 1.4, 1.2), ("4705", 162.5, 1.4, 1.2), ("4705", 210, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 228, 3.0, 1.0)],
         textos=[(0, None, "texto", "¿Cuál es tu aroma favorito? 💭"), (1, 0, "grande", "Gingham Gorgeous"), (1, 1, "grande", "Strawberry Pound Cake"),
                 (1, 2, "grande", "Into the Night"), (2, 0, "precio", "$150 c/u"), (2, 1, "precio2", "Mayoreo desde 1 pieza"),
@@ -124,10 +125,19 @@ def cuadros():
     cambios = sorted((cuando(e, m), tipo, s) for e, m, tipo, s in CFG["textos"])
     pops = [(cuando(e, m), int(d * FPS), foto) for e, m, d, foto in CFG["popups"]]
     SFX.extend([(c / FPS, "pop") for c, _, _ in cambios[1:]] + [(0.05, "glitter")] + [(c / FPS, "pop") for c, _, _ in pops])
+    # cuadros de cada toma: las que dicen ("hasta", escena, marca) terminan justo en esa marca (para que el nombre caiga
+    # sobre el mist correcto); las demás se estiran o encogen parejo para llenar lo que dura la voz
+    tomas, n_fijo, f = CFG["tomas"], {}, 0
+    for i, tm in enumerate(tomas):
+        if isinstance(tm[2], tuple): n_fijo[i] = cuando(*tm[2][1:]) - f; f = cuando(*tm[2][1:])
+        else: f += int(tm[2] * FPS)
+    libres = [i for i in range(len(tomas)) if i not in n_fijo]
+    k_libre = (total - sum(n_fijo.values())) / max(1, sum(int(tomas[i][2] * FPS) for i in libres))
+    ns = [n_fijo.get(i) or int(tomas[i][2] * FPS * k_libre) for i in range(len(tomas))]
+    ns[-1] += total - sum(ns)
     f = 0
-    for tm in CFG["tomas"]:
-        if f >= total: break
-        n = min(int(tm[2] * FPS), total - f)
+    for tm, n in zip(tomas, ns):
+        if n <= 0: continue
         for k, L in zip(range(n), video(*tm[:2], n, *tm[3:])):
             g = f + k
             pop = next(((g - c, d, foto) for c, d, foto in pops if c <= g < c + d), None)
@@ -138,8 +148,6 @@ def cuadros():
             if act: pon_texto(L, act[-1][1], act[-1][2], (g - act[-1][0]) / FPS, 900 if pop else 700)
             yield L
         f += n
-    while f < total:  # por si faltan cuadros: se repite el último
-        yield L; f += 1
 
 
 if __name__ == "__main__":

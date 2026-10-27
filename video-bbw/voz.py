@@ -6,17 +6,16 @@ import base64, hashlib, json, os, re, shutil, subprocess, sys, urllib.request
 AQUI = os.path.dirname(os.path.abspath(__file__))
 SUF = ("-" + sys.argv[1]) if len(sys.argv) > 1 else ""  # p. ej. "python3 voz.py corto" usa narracion-corto.json
 VOZ_DIR = os.path.join(AQUI, "voz" + SUF)
-VOZ = "BSKpxzmNBPkRKNFMmKrv"
-# la voz profesional de Mae está entrenada en multilingual_v2: con ese modelo suena más a ella (v4 se oía robótica).
-# v2 no entiende las etiquetas de tono ([warm]...): se quitan antes de mandar el texto
-MODELO, ESTABILIDAD, SIMILITUD, ESTILO = "eleven_multilingual_v2", 0.45, 0.9, 0.25
+VOZ = "uf7lwaqO0yghLWPq8lJ7"  # "Mae v4": clon instantáneo con la grabación de Mae hablando como en sus videos (la que eligió)
+# v4 con la voz "Mae v4" en modo natural (la muestra E que eligió Mae); las etiquetas de tono ([warm]...) no se leen
+MODELO, ESTABILIDAD = "eleven_v4", 0.5
 INICIO, PAUSA, COLA = 0.25, 0.28, 1.6
-VEL = 1.05  # un poquito más rápida (atempo no cambia el tono)
+VEL = 1.0  # a su velocidad natural
 SR = 44100
 
 
 def clave(texto):  # las frases ya generadas se guardan por su texto: solo se piden a ElevenLabs las nuevas
-    return hashlib.sha1(f"{MODELO}|{ESTABILIDAD}|{SIMILITUD}|{ESTILO}|{texto}".encode()).hexdigest()[:12]
+    return hashlib.sha1(f"{VOZ}|{MODELO}|{ESTABILIDAD}|{texto}".encode()).hexdigest()[:12]
 
 
 def tts(texto, n):
@@ -25,9 +24,7 @@ def tts(texto, n):
     if not os.path.exists(k + ".json"):
         req = urllib.request.Request(
             f"https://api.elevenlabs.io/v1/text-to-speech/{VOZ}/with-timestamps?output_format=mp3_44100_128",
-            data=json.dumps({"text": re.sub(r"\[[^\]]*\]\s*", "", texto), "model_id": MODELO,
-                             "voice_settings": {"stability": ESTABILIDAD, "similarity_boost": SIMILITUD, "style": ESTILO,
-                                                "use_speaker_boost": True}}).encode(),
+            data=json.dumps({"text": texto, "model_id": MODELO, "voice_settings": {"stability": ESTABILIDAD}}).encode(),
             headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req) as r: d = json.load(r)
         open(k + ".mp3", "wb").write(base64.b64decode(d.pop("audio_base64")))
