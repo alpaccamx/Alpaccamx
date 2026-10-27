@@ -113,7 +113,7 @@ def escena(k, n, f0):
             pastilla_escena(L, t, m[1], "📦 Yo te lo traigo", 530, PINK, WHITE, 52)
         elif k == 2:
             pastilla_escena(L, t, m[0], "💬 Pídelo por WhatsApp", 420, WA, WHITE, 50)
-            pastilla_escena(L, t, m[0] + 1.2, "🛍️ Soy tu personal shopper", 530, WHITE, INK)
+            pastilla_escena(L, t, m[0] + 1.2, "🛍️ Yo lo compro por ti", 530, WHITE, INK)
             pastilla_escena(L, t, m[1], "✅ Original, con etiquetas", 640, WHITE, GREEN)
         elif k == 3:  # cerezas: rosa y luego negro
             nombre = "cereza-negra" if t >= m[0] else "cereza-rosa"

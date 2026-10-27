@@ -1,53 +1,9 @@
 [
- {
-  "texto": "[excited] En la tienda de México, solo la sudadera de este conjunto cuesta seis mil veintiséis pesos. [confident] Conmigo, el conjunto completo, tres mil diecinueve.",
-  "marcas": [
-   "seis mil",
-   "Conmigo"
-  ]
- },
- {
-  "texto": "[warm] Y ojo: la tienda de Estados Unidos no envía a México. Por eso te lo traigo yo.",
-  "marcas": [
-   "no envía",
-   "Por eso"
-  ]
- },
- {
-  "texto": "Me mandas un WhatsApp con lo que te gustó, como si yo fuera tu personal shopper, y yo lo compro directo en la tienda. Todo original, con sus etiquetas.",
-  "marcas": [
-   "WhatsApp",
-   "Todo original"
-  ]
- },
- {
-  "texto": "El de cerezas de cristal, en rosa o en negro, que no se vende en México: precio de etiqueta, cuatro mil ochocientos cincuenta pesos. [confident] Conmigo, tres mil seiscientos veintitrés.",
-  "marcas": [
-   "en negro",
-   "precio de etiqueta",
-   "Conmigo"
-  ]
- },
- {
-  "texto": "Y el camo groovy, en azul o en rojo, que tampoco llega a México: precio de etiqueta, cuatro mil doscientos ochenta y seis. [confident] Conmigo, dos mil doscientos ochenta y uno.",
-  "marcas": [
-   "en rojo",
-   "precio de etiqueta",
-   "Conmigo"
-  ]
- },
- {
-  "texto": "[warm] Tienes precio de mayoreo desde una sola pieza, para ti o para revender. Pagas con transferencia o tarjeta, y en más o menos una semana lo tienes en tu casa, en cualquier parte de México.",
-  "marcas": [
-   "mayoreo",
-   "Pagas",
-   "semana"
-  ]
- },
- {
-  "texto": "[excited] Mándame un WhatsApp y armamos tu pedido.",
-  "marcas": [
-   "WhatsApp"
-  ]
- }
+ {"texto": "[excited] En la tienda de México, solo esta sudadera cuesta más de seis mil pesos. [confident] Conmigo, el conjunto completo: tres mil diecinueve.", "marcas": ["más de seis mil", "Conmigo"]},
+ {"texto": "[warm] La tienda de Estados Unidos no envía a México. Yo te lo traigo.", "marcas": ["no envía", "Yo te"]},
+ {"texto": "Es muy fácil: me mandas por WhatsApp lo que te gustó, yo lo compro en la tienda y te lo mando. Todo original, con etiqueta.", "marcas": ["WhatsApp", "Todo original"]},
+ {"texto": "Este, en rosa o en negro, no se vende en México. [confident] Conmigo: tres mil seiscientos veintitrés.", "marcas": ["en negro", "no se vende", "Conmigo"]},
+ {"texto": "Y este, en azul o en rojo, tampoco. [confident] Conmigo: dos mil doscientos ochenta y uno.", "marcas": ["en rojo", "tampoco", "Conmigo"]},
+ {"texto": "[warm] Mayoreo desde una pieza. Pagas con transferencia o tarjeta. Y en más o menos una semana lo tienes en tu casa.", "marcas": ["Mayoreo", "Pagas", "semana"]},
+ {"texto": "[excited] Mándame un WhatsApp y armamos tu pedido.", "marcas": ["WhatsApp"]}
 ]
