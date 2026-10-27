@@ -798,6 +798,14 @@ function openPsSection(tab = "", { restore = false } = {}) {
   if (!restore) document.getElementById("ps-section").scrollIntoView({ behavior: "auto", block: "start" });
 }
 
+/* Link directo al cotizador: alpacca.mx/?ver=cotizador */
+function openPsCalc({ restore = false } = {}) {
+  document.getElementById("search-input").value = "";
+  showHomeView("ps", { ver: "cotizador" });
+  setPsTab("");
+  if (!restore) setTimeout(() => document.getElementById("ps-calc").scrollIntoView({ behavior: "auto", block: "start" }), 0);
+}
+
 function setPsTab(tab) {
   document.querySelectorAll("#ps-section [data-ps-tab]").forEach((b) => {
     const on = b.dataset.psTab === tab;

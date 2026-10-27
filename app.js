@@ -1475,6 +1475,7 @@ async function loadShippingSettings() {
     // otro camino, ver más abajo) ya había resuelto primero.
     Object.assign(shippingSettings, csvToShippingSettings(text));
     updateCurrencyToggleButton();
+    if (typeof psCalcTc === "function") psCalcTc();
     renderFaqMinOrder();
     renderCart();
     renderBrands();
@@ -4736,6 +4737,7 @@ function setRouteMeta(r) {
   else if (r.ver === "tipo-de-piel") { title = "Test de tipo de piel: arma tu rutina coreana — Alpacca"; canonical += "?ver=tipo-de-piel"; }
   else if (r.ver === "como-comprar") { title = "Cómo comprar en Alpacca (video de 1 minuto)"; canonical += "?ver=como-comprar"; }
   else if (r.ver === "personal-shopper") { title = r.tipo === "en-tienda" ? "Personal shopper: compras en vivo en tiendas de EE.UU. · Alpacca" : r.tipo === "en-linea" ? "Personal shopper: yo compro en línea por ti en EE.UU. · Alpacca" : "Personal shopper en EE.UU. · Alpacca"; canonical += "?ver=personal-shopper"; }
+  else if (r.ver === "cotizador") { title = "Cotizador: cuánto te sale en pesos tu compra en EE.UU. · Alpacca"; canonical += "?ver=cotizador"; }
   else if (r.ver === "kits") { title = r.tipo === "maquillaje" ? "Kits de maquillaje coreano para emprender · Alpacca" : "Kits de skincare coreano para emprender · Alpacca"; canonical += "?ver=kits"; }
   else if (r.ver === "personal-shopper-en-usa") { title = "Personal shopper en USA: compras en vivo con Mae (video) · Alpacca"; canonical += "?ver=personal-shopper-en-usa"; }
   // Safari y algunos navegadores comparten el link "canónico": sin el
@@ -4777,6 +4779,7 @@ function openRouteView(params, restore) {
   else if (ver === "tipo-de-piel") openSkinQuiz({ restore });
   else if (ver === "como-comprar") { showHomeView("home", { ver }); openHowToVideo(); }
   else if (ver === "personal-shopper-en-usa" && typeof openPsSection === "function") { openPsSection("tienda", { restore }); openHowToVideo("envivo"); }
+  else if (ver === "cotizador" && typeof openPsCalc === "function") openPsCalc({ restore });
   else if (ver === "personal-shopper" && typeof openPsSection === "function") openPsSection({ "en-linea": "linea", "en-tienda": "tienda" }[params.get("tipo")] || "", { restore });
   else if (ver === "kits" && typeof openKitsSection === "function") openKitsSection(params.get("tipo") === "maquillaje" ? "maquillaje" : "skincare", { restore });
   else if ((ver === "shopwithmae" || ver === "direccion-americana") && typeof openSwmSection === "function") openSwmSection({ restore });
