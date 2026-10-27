@@ -5501,6 +5501,7 @@ ${itemLines}
         <label>${p.numVariantes > 1 ? "Precio (cada tono tiene el suyo)" : "Precio por pieza ($) *"}<input data-p="precio" type="number" min="0" step="1" value="${p.precio || ""}"></label>
         <label>Precio antes ($, opcional)<input data-p="precioAntes" type="number" min="0" step="1" value="${p.precioAntes || ""}"></label>
         <label>Piezas para apartar (vacío = sin límite)<input data-p="piezas" type="number" min="0" step="1" value="${p.piezas != null ? p.piezas : ""}"></label>
+        <label>Peso por pieza (kg)${p.numVariantes ? " · vacío = el estimado de cada tono" : ""}<input data-p="peso" type="number" min="0" step="0.01" value="${p.peso || ""}" placeholder="Ej. 0.15"></label>
       </div>
       <label style="margin-top:8px;">Link de la foto (clic derecho en la foto de Sephora → "Copiar dirección de imagen")<input data-p="imagen" type="text" value="${escapeHtml(p.imagen || "")}" placeholder="https://..." style="width:100%;"></label>
       <label style="margin-top:8px;">Descripción o tono (opcional)<input data-p="descripcion" type="text" value="${escapeHtml(p.descripcion || "")}" placeholder="Ej. Tono Joy, 7.5 ml" style="width:100%;"></label>
@@ -5562,7 +5563,7 @@ ${itemLines}
       ${vis.map((p) => `<div class="cat-row" style="cursor:default;">
         ${p.imagen ? `<img src="${escapeHtml(p.imagen)}" alt="" loading="lazy">` : `<span style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-size:26px;">🛍️</span>`}
         <div class="info"><b>${escapeHtml(p.marca ? `${p.marca} · ` : "")}${escapeHtml(p.nombre)}</b>
-          <small>${p.numVariantes > 1 ? `desde ` : ""}${formatPrice(p.precio)}${p.precioAntes ? ` (antes ${formatPrice(p.precioAntes)})` : ""}${p.numVariantes > 1 ? ` · ${p.numVariantes} ${/size/i.test(p.variacion || "") ? "tamaños" : "tonos"}` : ""} · 💗 ${p.apartadas} apartada${p.apartadas === 1 ? "" : "s"} · ${p.piezas == null ? "sin límite" : `quedan ${p.disponibles} de ${p.piezas}`}${p.activo === false ? " · 🙈 oculto" : ""}</small></div>
+          <small>${p.numVariantes > 1 ? `desde ` : ""}${formatPrice(p.precio)}${p.precioAntes ? ` (antes ${formatPrice(p.precioAntes)})` : ""}${p.numVariantes > 1 ? ` · ${p.numVariantes} ${/size/i.test(p.variacion || "") ? "tamaños" : "tonos"}` : ""} · ⚖️ ${p.peso ? `${p.peso} kg` : p.pesoEst ? `~${p.pesoEst} kg` : "sin peso"} · 💗 ${p.apartadas} apartada${p.apartadas === 1 ? "" : "s"} · ${p.piezas == null ? "sin límite" : `quedan ${p.disponibles} de ${p.piezas}`}${p.activo === false ? " · 🙈 oculto" : ""}</small></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
           <button type="button" class="btn-secondary" data-pv-editar="${escapeHtml(p.id)}" style="padding:6px 12px;font-size:13px;">✏️ Editar</button>
           <button type="button" class="btn-secondary" data-pv-ocultar="${escapeHtml(p.id)}" style="padding:6px 12px;font-size:13px;">${p.activo === false ? "👀 Mostrar" : "🙈 Ocultar"}</button>
@@ -5599,7 +5600,7 @@ ${itemLines}
     if (a.cuenta && a.status === "apartado") {
       acciones.push(a.entrega === "personal"
         ? `<button type="button" class="btn-primary" data-pv-llego="${id}">📦 Ya llegó: cobrar el resto</button>`
-        : `<span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;"><input data-pv-envio="${id}" type="number" min="0" step="1" value="" placeholder="Envío $" style="width:110px;"><button type="button" class="btn-primary" data-pv-llego="${id}">📦 Ya llegó: cobrar resto + envío</button></span>`);
+        : `<span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;"><input data-pv-envio="${id}" type="number" min="0" step="1" value="${a.envioEstimado != null ? a.envioEstimado : ""}" placeholder="Envío $" style="width:110px;"><button type="button" class="btn-primary" data-pv-llego="${id}">📦 Ya llegó: cobrar resto + envío</button></span>`);
     }
     if (a.status === "liquidado") {
       if (a.entrega === "envio") acciones.push(`<span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;"><input data-pv-paq="${id}" type="text" value="Estafeta" list="pv-paqs" style="width:120px;"><input data-pv-guia="${id}" type="text" placeholder="Número de guía" style="width:160px;"><button type="button" class="btn-primary" data-pv-enviar="${id}">🚚 Marcar enviado</button></span>`);
@@ -5611,7 +5612,7 @@ ${itemLines}
       <h4><span>${escapeHtml(a.folio)} · ${escapeHtml(a.name || a.email)}</span><span class="badge" style="background:${bg};color:${fg};">${txt}</span></h4>
       <div class="meta">${escapeHtml(a.email)}${tel ? ` · <a href="https://wa.me/52${tel}" target="_blank" rel="noopener">📱 ${tel}</a>` : ""} · ${formatFecha(a.createdAt)}</div>
       <ul style="margin:8px 0;padding-left:20px;font-size:14px;">${(a.items || []).map((it) => `<li>${it.qty} × ${escapeHtml(it.marca ? `${it.marca} · ` : "")}${escapeHtml(it.nombre)}${it.variante ? ` · <b>${escapeHtml(it.variante)}</b>` : ""}${it.tamano ? ` (${escapeHtml(it.tamano)})` : ""} <span style="color:#6b6b6b;">(${formatPrice(it.precio)} c/u)</span></li>`).join("")}</ul>
-      <div class="meta">Total <b>${formatPrice(a.total)}</b> · Anticipo ${pago("anticipo")} · Resto ${pago("resto")}${a.envio ? ` · incluye envío ${formatPrice(a.envio)}` : ""}</div>
+      <div class="meta">${a.pesoKg ? `⚖️ ${a.pesoKg} kg aprox.${a.entrega === "envio" && a.envioEstimado != null && a.status === "apartado" ? ` · envío estimado ${formatPrice(a.envioEstimado)}` : ""} · ` : ""}Total <b>${formatPrice(a.total)}</b> · Anticipo ${pago("anticipo")} · Resto ${pago("resto")}${a.envio ? ` · incluye envío ${formatPrice(a.envio)}` : ""}</div>
       <div class="meta">${a.entrega === "personal" ? "📍 Entrega personal en Ciudad Juárez" : `📦 Envío a: ${escapeHtml([d.nombre, d.calle, d.colonia, d.ciudad, d.estado, d.cp && `CP ${d.cp}`].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}`}</div>
       ${a.nota ? `<div class="meta">📝 ${escapeHtml(a.nota)}</div>` : ""}
       ${a.guia ? `<div class="meta">🚚 ${escapeHtml(a.paqueteria || "")} · guía <b>${escapeHtml(a.guia)}</b></div>` : ""}
@@ -5628,7 +5629,7 @@ ${itemLines}
     const fn = (PV_FILTROS.find(([k]) => k === pvFiltro) || PV_FILTROS[0])[2];
     const lista = aps.filter(fn);
     const llegaTodo = pvFiltro === "apartado" && lista.length > 1
-      ? `<p class="meta" style="margin-bottom:6px;">Pon el envío de cada clienta en su cuadrito (según lo que pidió) y luego avísales a todas juntas:</p><button type="button" class="btn-primary" data-pv-llego-todo style="margin-bottom:8px;">📦 Llegó todo: avisar a las ${lista.length} y cobrar el resto + su envío</button>` : "";
+      ? `<p class="meta" style="margin-bottom:6px;">El envío de cada clienta ya viene calculado por peso y código postal; cámbialo en su cuadrito si hace falta y luego avísales a todas juntas:</p><button type="button" class="btn-primary" data-pv-llego-todo style="margin-bottom:8px;">📦 Llegó todo: avisar a las ${lista.length} y cobrar el resto + su envío</button>` : "";
     document.getElementById("pv-admin").innerHTML = `
       ${pvConfigHTML(pvData.config)}
       ${pvProductoFormHTML()}
@@ -5689,7 +5690,7 @@ ${itemLines}
       const box = t.closest("[data-pv-prod-form]");
       const v = (k) => box.querySelector(`[data-p="${k}"]`).value;
       const prev = pvEditando && pvData.productos.find((x) => x.id === pvEditando);
-      const ok = await pvAct({ accion: "guardar_producto", id: pvEditando, nombre: v("nombre"), marca: v("marca"), precio: v("precio"), precioAntes: v("precioAntes"), piezas: v("piezas"), imagen: v("imagen"), descripcion: v("descripcion"), activo: prev ? prev.activo !== false : true }, btn);
+      const ok = await pvAct({ accion: "guardar_producto", id: pvEditando, nombre: v("nombre"), marca: v("marca"), precio: v("precio"), precioAntes: v("precioAntes"), piezas: v("piezas"), peso: v("peso"), imagen: v("imagen"), descripcion: v("descripcion"), activo: prev ? prev.activo !== false : true }, btn);
       if (ok) { pvEditando = ""; renderPreventaAdmin(); }
       return;
     }

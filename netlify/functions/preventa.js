@@ -16,7 +16,7 @@ const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
 const { detectFileType } = require("./lib/file-signature.js");
 const { listApartados, getApartado, saveApartado, mutateApartado, nextFolio, saveFile } = require("./lib/preventa-store.js");
-const { configActual, abierta, productosConCupo, productoPublico, apartadoPublico, etapaPorPagar, crearPreferenciaMP, avisar, listaHTML, formatPriceMXN, HORAS_PARA_PAGAR } = require("./lib/preventa-core.js");
+const { configActual, abierta, productosConCupo, productoPublico, pesoDe, envioEstimado, apartadoPublico, etapaPorPagar, crearPreferenciaMP, avisar, listaHTML, formatPriceMXN, HORAS_PARA_PAGAR } = require("./lib/preventa-core.js");
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_PIEZAS = 60;
@@ -100,7 +100,7 @@ exports.handler = async (event) => {
           porProducto[id] = (porProducto[id] || 0) + qty;
           if (p.disponibles != null && porProducto[id] > p.disponibles) return json(409, { error: p.disponibles ? `De ${p.nombre} solo quedan ${p.disponibles} para apartar.` : `${p.nombre} ya se agotó.` });
           items.push({
-            id, nombre: p.nombre, marca: p.marca || "", imagen: (v && v.imagen) || p.imagen || "", precio: Number(v ? v.precio : p.precio), qty,
+            id, nombre: p.nombre, marca: p.marca || "", imagen: (v && v.imagen) || p.imagen || "", precio: Number(v ? v.precio : p.precio), qty, peso: pesoDe(p, v),
             ...(v ? { sku: v.id, variante: v.nombre, tamano: v.tamano || "" } : {}),
           });
         }
@@ -112,6 +112,8 @@ exports.handler = async (event) => {
         if (!direccion.nombre || String(direccion.telefono).replace(/\D/g, "").length < 10) return json(400, { error: "Pon tu nombre y un teléfono de 10 dígitos." });
         if (entrega === "envio" && (!direccion.calle || !direccion.ciudad || !/^\d{5}$/.test(direccion.cp))) return json(400, { error: "Completa tu dirección: calle y número, ciudad y código postal de 5 dígitos." });
         const total = Math.round(items.reduce((s, it) => s + it.precio * it.qty, 0) * 100) / 100;
+        const pesoKg = Math.round(items.reduce((s, it) => s + it.peso * it.qty, 0) * 100) / 100;
+        const envioEst = entrega === "envio" ? await envioEstimado(direccion.cp, pesoKg) : 0;
         const pct = Math.min(100, Math.max(1, Number(cfg.anticipoPct) || 50));
         const anticipo = Math.ceil(total * pct / 100);
         const rec = {
@@ -119,7 +121,7 @@ exports.handler = async (event) => {
           campana: cfg.titulo, items, total, anticipoPct: pct,
           anticipo: { monto: anticipo, status: "pendiente" },
           resto: { monto: Math.round((total - anticipo) * 100) / 100, status: "espera" },
-          envio: 0, entrega, direccion, nota: clip(b.nota, 500), status: "nuevo",
+          envio: 0, pesoKg, envioEstimado: envioEst, entrega, direccion, nota: clip(b.nota, 500), status: "nuevo",
           history: [{ at: now(), status: "nuevo" }], createdAt: now(), updatedAt: now(),
         };
         await saveApartado(rec);

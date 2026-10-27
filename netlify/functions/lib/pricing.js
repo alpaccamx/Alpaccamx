@@ -593,6 +593,7 @@ module.exports = {
   csvToNacionalRates,
   csvToKoreaShippingTiers,
   shippingEstimate,
+  nacionalShippingMXN,
   koreaParcelWeights,
   CSV_URLS,
   TOLERANCE_MXN,

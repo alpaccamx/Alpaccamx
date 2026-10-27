@@ -5,6 +5,7 @@
 const { getConfig, listProductos, listApartados, mutateApartado } = require("./preventa-store.js");
 const { sendEmail, baseEmailHTML, formatPriceMXN } = require("./email.js");
 const { notifyCustomerTemplate } = require("./whatsapp.js");
+const { CSV_URLS, csvToNacionalRates, nacionalShippingMXN } = require("./pricing.js");
 
 const MP_API = "https://api.mercadopago.com";
 const TOLERANCIA_MXN = 1;
@@ -65,7 +66,29 @@ async function productosConCupo({ conApartadas = false } = {}) {
   }));
 }
 
-const varPublica = (v) => ({ id: v.id, nombre: v.nombre, desc: v.desc || "", tamano: v.tamano || "", precio: v.precio, precioAntes: v.precioAntes || 0, imagen: v.imagen || "", swatch: v.swatch || "", agotado: !!v.agotado });
+/* Peso de envío de una pieza (kg): el que Mae le ponga al producto, o el
+   estimado de cada tono/tamaño. */
+const pesoDe = (p, v) => (Number(p.peso) > 0 ? Number(p.peso) : Number(v && v.peso) || 0);
+
+/* Envío nacional estimado (misma tabla de Estafeta que la tienda). Solo es
+   una referencia: se cobra con el resto, y Mae lo puede cambiar. */
+let tarifas = null;
+async function envioEstimado(cp, pesoKg) {
+  if (!/^\d{5}$/.test(String(cp || "")) || !(pesoKg > 0)) return null;
+  try {
+    if (!tarifas || Date.now() - tarifas.at > 3600 * 1000) {
+      const res = await fetch(CSV_URLS.shippingNacional, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      tarifas = { at: Date.now(), nacional: csvToNacionalRates(await res.text()) };
+    }
+    return nacionalShippingMXN({ nacional: tarifas.nacional, settings: {} }, cp, pesoKg);
+  } catch (err) {
+    console.error("preventa: tarifas de envío", err);
+    return null;
+  }
+}
+
+const varPublica = (v, p = {}) => ({ id: v.id, nombre: v.nombre, desc: v.desc || "", tamano: v.tamano || "", precio: v.precio, precioAntes: v.precioAntes || 0, imagen: v.imagen || "", swatch: v.swatch || "", peso: pesoDe(p, v), agotado: !!v.agotado });
 
 /* Lo que ve la clienta de un producto en la lista (sin los tonos, para que
    pese poco); "detalle" agrega todas sus variantes. */
@@ -77,10 +100,10 @@ function productoPublico(p, { detalle = false } = {}) {
     precio: precios.length ? Math.min(...precios) : p.precio,
     precioMax: precios.length ? Math.max(...precios) : p.precio,
     precioAntes: precios.length ? Math.min(...vs.map((v) => v.precioAntes || 0)) : p.precioAntes || 0,
-    disponibles: p.disponibles, variacion: p.variacion || "", numVariantes: vs.length,
+    disponibles: p.disponibles, variacion: p.variacion || "", numVariantes: vs.length, peso: pesoDe(p),
     agotado: (p.variantes || []).length > 0 && !vs.length,
   };
-  if (detalle) out.variantes = (p.variantes || []).map(varPublica);
+  if (detalle) out.variantes = (p.variantes || []).map((v) => varPublica(v, p));
   return out;
 }
 
@@ -193,6 +216,6 @@ async function aplicarPago(id, etapa, { metodo, paymentId, monto } = {}) {
 }
 
 module.exports = {
-  CONFIG_DEFAULT, HORAS_PARA_PAGAR, round2, configActual, abierta, vencido, cuenta, reservadas, productosConCupo, sinLimite,
+  CONFIG_DEFAULT, HORAS_PARA_PAGAR, round2, configActual, abierta, vencido, cuenta, reservadas, productosConCupo, sinLimite, pesoDe, envioEstimado,
   productoPublico, apartadoPublico, etapaPorPagar, crearPreferenciaMP, aplicarPago, avisar, listaHTML, esc, formatPriceMXN,
 };

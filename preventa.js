@@ -323,6 +323,7 @@ function pvAgregarDesdePicker() {
   pv.bag[k] = {
     id: pk.id, sku: v ? v.id : "", qty: (prev ? prev.qty : 0) + pk.qty, nombre: base.nombre, marca: base.marca || "",
     variante: v ? v.nombre : "", tamano: v ? v.tamano : "", precio: v ? v.precio : base.precio, imagen: (v && v.imagen) || base.imagen || "",
+    peso: Number(v ? v.peso : base.peso) || 0,
   };
   pvGuardarBolsa();
   pvCerrarPicker();
@@ -334,7 +335,18 @@ function pvTotales() {
   const items = Object.entries(pv.bag).map(([k, x]) => ({ k, ...x }));
   const piezas = items.reduce((s, x) => s + x.qty, 0);
   const total = Math.round(items.reduce((s, x) => s + x.precio * x.qty, 0) * 100) / 100;
-  return { items, piezas, total, anticipo: pvAnticipoDe(total) };
+  const peso = Math.round(items.reduce((s, x) => s + (Number(x.peso) || 0) * x.qty, 0) * 100) / 100;
+  return { items, piezas, total, peso, anticipo: pvAnticipoDe(total) };
+}
+
+/* Envío estimado con la tabla de Estafeta de la tienda (app.js); solo de
+   referencia: se paga al liquidar. */
+function pvEnvioTexto(cp) {
+  const { peso } = pvTotales();
+  if (!/^\d{5}$/.test(cp || "")) return "Pon tu código postal para ver cuánto sale el envío aprox.";
+  const costo = typeof nacionalShippingMXN === "function" && peso > 0 ? nacionalShippingMXN(cp, peso) : null;
+  return costo != null ? `🚚 Envío estimado a CP ${cp}: <b>${pvMXN(costo)}</b> (${peso.toFixed(2)} kg aprox.). No se paga hoy: se paga al liquidar.`
+    : "🚚 El envío te lo confirmo cuando lleguen tus productos; se paga al liquidar.";
 }
 
 function pvBolsaHTML() {
@@ -378,9 +390,10 @@ function pvCheckoutHTML() {
       <div class="flex justify-between"><span>Total de productos</span><b>${pvMXN(total)}</b></div>
       <div class="flex justify-between text-rose-ink"><span>Hoy pagas (${pct}%) para apartar</span><b>${pvMXN(anticipo)}</b></div>
       <div class="flex justify-between text-ink/70"><span>Cuando llegue pagas</span><span>${pvMXN(total - anticipo)}${pv.entrega === "envio" ? " + envío" : ""}</span></div>
+      <p data-pv-envio-est class="text-xs text-ink/70 pt-1 ${pv.entrega === "envio" ? "" : "hidden"}">${pvEnvioTexto(d.cp)}</p>
     </div>
     <fieldset class="space-y-2"><legend class="text-sm font-semibold mb-1">¿Cómo te lo entrego?</legend>
-      ${opt("envio", "📦 Envío a mi domicilio", "El envío lo pagas junto con el resto, cuando llegue.")}
+      ${opt("envio", "📦 Envío a mi domicilio", "El envío depende del peso y lo pagas al liquidar, junto con el resto.")}
       ${opt("personal", "📍 Entrega personal en Ciudad Juárez", "Sin costo de envío.")}
     </fieldset>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -613,6 +626,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let buscarTimer = null;
   box.addEventListener("input", (e) => {
     const t = e.target;
+    if (t.matches('[data-pv-dir="cp"]')) {
+      const est = box.querySelector("[data-pv-envio-est]");
+      if (est) est.innerHTML = pvEnvioTexto(t.value.trim());
+      return;
+    }
     if (!t.matches("[data-pv-buscar]")) return;
     clearTimeout(buscarTimer);
     buscarTimer = setTimeout(() => {
@@ -630,6 +648,7 @@ document.addEventListener("DOMContentLoaded", () => {
       pv.entrega = t.value;
       const form = t.closest("form");
       form.querySelector("[data-pv-dir-envio]").classList.toggle("hidden", pv.entrega !== "envio");
+      form.querySelector("[data-pv-envio-est]").classList.toggle("hidden", pv.entrega !== "envio");
       return;
     }
     if (t.matches("[data-pv-pm]")) {
