@@ -49,9 +49,12 @@ exports.handler = async (event) => {
       if (email && !qs.producto) out.apartados = (await listApartados({ email: String(email).toLowerCase() })).map(apartadoPublico);
       // Sin sesión se guarda 30 s en la CDN (la tienda la consulta en cada
       // visita); el cupo real se revisa otra vez al apartar.
+      // La llave de la caché incluye todo el query (?producto, ?resumen), si no la CDN puede
+      // regresar los tonos de otro producto.
+      const vary = "query,header=Authorization";
       return json(200, out, email
-        ? { "Cache-Control": "private, no-store", "Netlify-Vary": "header=Authorization" }
-        : { "Cache-Control": "public, max-age=0, must-revalidate", "Netlify-CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=60", "Netlify-Vary": "header=Authorization" });
+        ? { "Cache-Control": "private, no-store", "Netlify-Vary": vary }
+        : { "Cache-Control": "public, max-age=0, must-revalidate", "Netlify-CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=60", "Netlify-Vary": vary });
     } catch (err) {
       console.error("preventa GET:", err);
       return json(500, { error: "No se pudo cargar la preventa." });
