@@ -219,11 +219,54 @@ function renderPreventaBanner() {
   </button>`;
 }
 
+/* Coincide con la búsqueda: usa los sinónimos de la tienda (app.js,
+   ej. "labial" también busca "lip") si están; si no, palabra por palabra. */
+function pvCoincide(p, q) {
+  const hay = pvNorm(`${p.marca} ${p.nombre} ${p.grupo} ${p.descripcion || ""}`);
+  const nq = pvNorm(q).trim();
+  if (!nq) return true;
+  const conceptos = typeof searchConcepts === "function" ? searchConcepts(nq) : nq.split(/\s+/).map((w) => [w]);
+  return conceptos.length > 0 && conceptos.every((alts) => alts.some((a) => hay.includes(a)));
+}
+
 function pvFiltrados() {
-  const q = pvNorm(pv.q).trim();
-  const palabras = q ? q.split(/\s+/) : [];
-  return pv.productos.filter((p) => (!pv.grupo || p.grupo === pv.grupo)
-    && (!palabras.length || palabras.every((w) => pvNorm(`${p.marca} ${p.nombre} ${p.grupo}`).includes(w))));
+  return pv.productos.filter((p) => (!pv.grupo || p.grupo === pv.grupo) && pvCoincide(p, pv.q));
+}
+
+/* Buscador de la tienda (app.js): productos de la preventa que coinciden,
+   o null si la lista todavía no carga (se carga y se repinta la búsqueda). */
+function pvBuscarEnTienda(query) {
+  if (!pv.lista) {
+    if (!pv.cargando && !pv.buscoLista && pv.abierta !== false) {
+      pv.buscoLista = true;
+      loadPreventa().then(() => {
+        if (pv.lista && typeof currentHomeView !== "undefined" && currentHomeView === "search") {
+          renderSearchResults(document.getElementById("search-input").value || query, { restore: true });
+        }
+      });
+    }
+    return null;
+  }
+  if (!pv.abierta) return [];
+  return pv.productos.filter((p) => pvCoincide(p, query));
+}
+
+function renderSearchPreventa(lista, query) {
+  const box = document.getElementById("search-preventa");
+  if (!box) return;
+  box.classList.toggle("hidden", !lista.length);
+  if (!lista.length) { box.innerHTML = ""; box.dataset.q = ""; return; }
+  box.dataset.q = query;
+  const pct = (pv.config && pv.config.anticipoPct) || 50;
+  const vis = lista.slice(0, 10);
+  box.innerHTML = `<div class="rounded-3xl bg-gradient-to-br from-blush/50 via-[#fff4f8] to-white p-4 sm:p-6">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h3 class="font-display text-lg sm:text-xl text-ink">🛍️ En la preventa Sephora (${lista.length})</h3>
+      <span class="text-xs font-semibold text-rose-ink">Aparta con el ${pct}%</span>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8 mt-4">${vis.map(pvCardHTML).join("")}</div>
+    ${lista.length > vis.length ? `<div class="mt-6 text-center"><button type="button" data-pv-ver-busqueda class="rounded-full border border-ink px-6 py-2.5 text-sm font-semibold hover:bg-ink hover:text-cream transition">Ver los ${lista.length} en la preventa</button></div>` : ""}
+  </div>`;
 }
 
 function renderPreventa() {
@@ -668,6 +711,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (t.closest("[data-pv-picker-agregar]")) pvAgregarDesdePicker();
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pv.picker) pvCerrarPicker(); });
+
+  // Preventa dentro de los resultados del buscador de la tienda.
+  const sp = document.getElementById("search-preventa");
+  if (sp) sp.addEventListener("click", (e) => {
+    const elegir = e.target.closest("[data-pv-elegir]");
+    if (elegir) { pvAbrirPicker(elegir.dataset.pvElegir); return; }
+    if (e.target.closest("[data-pv-ver-busqueda]")) {
+      pv.q = sp.dataset.q || "";
+      pv.grupo = "";
+      pv.mostrar = PV_PAGINA;
+      openPreventa();
+    }
+  });
 
   // Preventa dentro del carrito.
   const cartPv = document.getElementById("cart-preventa");

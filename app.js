@@ -4232,7 +4232,10 @@ function renderSearchResults(query, { restore = false } = {}) {
   // aparte de los de Corea para no mezclar sus tonos en un mismo selector.
   let matches = searchMatches(q);
   let fuzzy = false;
-  if (!matches.length) {
+  // También busca en la preventa (null = todavía no carga; se repinta solo).
+  const enPreventa = typeof pvBuscarEnTienda === "function" ? pvBuscarEnTienda(query) : [];
+  if (typeof renderSearchPreventa === "function") renderSearchPreventa(enPreventa || [], query);
+  if (!matches.length && !(enPreventa && enPreventa.length)) {
     matches = fuzzyMatches(q);
     fuzzy = matches.length > 0;
   }
@@ -4241,6 +4244,12 @@ function renderSearchResults(query, { restore = false } = {}) {
     : `Resultados para "${query.trim()}"`;
   hideSuggestions();
   const count = mountListing("search", matches, { restore, id: q });
+  // Si solo hay resultados en la preventa, no se muestran los filtros ni
+  // el "no encontramos" del catálogo normal.
+  const soloPreventa = !count && !!(enPreventa && enPreventa.length);
+  [...document.getElementById("search-results-section").children].forEach((el) => {
+    if (!el.contains(document.getElementById("search-results-title")) && el.id !== "search-preventa") el.classList.toggle("!hidden", soloPreventa);
+  });
   showHomeView("search", { q: query.trim() });
 
   announce(
