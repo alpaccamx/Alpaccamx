@@ -3,3 +3,7 @@ voz/lista.txt
 voz/frase*.mp3
 __pycache__/
 TrueReligion.mp4
+voz-mayoreo/*.wav
+voz-mayoreo/lista.txt
+voz-mayoreo/frase*.mp3
+TrueReligion-mayoreo.mp4

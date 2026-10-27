@@ -1,16 +1,16 @@
 [
  {
+  "texto": "[excited] True Religion en Estados Unidos no envía a México. [confident] Pero yo te lo traigo, y más barato.",
+  "marcas": [
+   "no envía",
+   "Pero yo"
+  ]
+ },
+ {
   "texto": "[excited] En True Religion México, solo esta sudadera cuesta más de seis mil pesos. [confident] Conmigo, el conjunto completo: tres mil diecinueve.",
   "marcas": [
    "más de seis mil",
    "Conmigo"
-  ]
- },
- {
-  "texto": "[warm] True Religion en Estados Unidos no envía a México. Yo te lo traigo.",
-  "marcas": [
-   "no envía",
-   "Yo te"
   ]
  },
  {

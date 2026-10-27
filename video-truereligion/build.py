@@ -1,8 +1,8 @@
-"""Video "True Religion": Mae empacando un pedido (videos del iPhone) + su voz contando lo fácil que es
-pedirle por WhatsApp + fotos de la tienda con el precio normal contra el suyo. 1080x1920, 30 fps.
-
-Uso: python3 build.py CARPETA_DE_VIDEOS   (la carpeta tiene IMG_4655.MOV e IMG_4656.MOV)
--> TrueReligion-voz.mp4 (y TrueReligion.mp4 sin audio)"""
+"""Videos "True Religion": Mae empacando un pedido (videos del iPhone) + su voz + fotos de la tienda con precios.
+Dos versiones con las mismas piezas, 1080x1920, 30 fps:
+  - para clientas:  python3 build.py CARPETA_DE_VIDEOS           -> TrueReligion-voz.mp4 y portada.jpg
+  - para revender:  VERSION=mayoreo python3 build.py CARPETA  -> TrueReligion-mayoreo-voz.mp4 y portada-mayoreo.jpg
+(la carpeta tiene IMG_4655.MOV e IMG_4656.MOV; antes, python3 voz.py [mayoreo] para la voz)"""
 import hashlib, json, os, re, subprocess, sys
 from functools import lru_cache
 
@@ -14,10 +14,11 @@ import build as b  # textos con emojis de iPhone, pastillas, aparecer con rebote
 from PIL import Image, ImageDraw, ImageFilter
 
 W, H, FPS = 1080, 1920, 30
-OUT = os.path.join(AQUI, "TrueReligion.mp4")
+SUF = "-mayoreo" if os.environ.get("VERSION") == "mayoreo" else ""
+OUT = os.path.join(AQUI, f"TrueReligion{SUF}.mp4")
 WHITE, INK, PINK, DEEP = b.WHITE, b.INK, b.PINK, b.DEEP
 GREEN = (22, 150, 80); WA = (37, 211, 102); GREY = (120, 120, 128)
-T = json.load(open(os.path.join(AQUI, "tiempos.json")))
+T = json.load(open(os.path.join(AQUI, f"tiempos{SUF}.json")))
 
 # el de Mae: oferta USA x 1.0825 tax x 1.15 comisión x 18.80. Contra qué se compara:
 # - leopardo: el mismo modelo en truereligion.mx, que solo vende la sudadera (precio normal $6,026, oct 2026)
@@ -30,8 +31,15 @@ PRODUCTOS = {
     "camo-azul":    ("Camo Groovy · azul", 4286, 2281, "Precio de etiqueta", "Conmigo", None, True),
     "camo-rojo":    ("Camo Groovy · rojo", 4286, 2281, "Precio de etiqueta", "Conmigo", None, True),
 }
-# (video, segundo de inicio) de cada escena: dónde se ve ese conjunto en la caja
-TOMAS = [("4656", 300.0), ("4656", 7.0), ("4655", 62.0), ("4655", 88.0), ("4656", 168.0), ("4656", 345.0), ("4655", 204.0)]
+if SUF:  # para revender: el precio de referencia es a cuánto lo podría vender (no se tacha) y la ganancia
+    PRODUCTOS = {k: (v[0], v[1], v[2], v[3], "Te cuesta conmigo", f"Ganas hasta ${v[1] - v[2]:,}", v[6]) for k, v in PRODUCTOS.items()}
+# (qué pasa en la escena, video, segundo de inicio): dónde se ve cada conjunto en la caja
+ESCENAS = {
+    "": [("no_envia", "4656", 300.0), ("leopardo", "4656", 305.5), ("whatsapp", "4655", 62.0), ("cerezas", "4655", 88.0),
+         ("camo", "4656", 168.0), ("condiciones", "4656", 345.0), ("cta", "4655", 204.0)],
+    "-mayoreo": [("ganancia", "4656", 300.0), ("leopardo", "4655", 8.0), ("nadie", "4656", 7.0), ("cerezas", "4655", 88.0),
+                 ("camo", "4656", 168.0), ("mayoreo", "4656", 345.0), ("grupo", "4656", 372.0)],
+}[SUF]
 
 
 def frames(vid, ini, n):
@@ -63,7 +71,7 @@ def foto(nombre):
 
 
 @lru_cache(None)
-def precio_card(normal, mio, et_normal, et_mio, pie):
+def precio_card(normal, mio, et_normal, et_mio, pie, tachado=True):
     """columna de precios: el de referencia tachado, el de Mae, + envío y ahorras (o lo que incluye)"""
     im = Image.new("RGBA", (470, 560)); d = ImageDraw.Draw(im)
     d.rounded_rectangle((0, 0, 469, 559), 40, fill=(255, 255, 255, 235))
@@ -71,7 +79,8 @@ def precio_card(normal, mio, et_normal, et_mio, pie):
     while fe.getlength(et_normal) > 440: fe = b.F("Bold", fe.size - 2)
     d.text((235, 60), et_normal, font=fe, fill=GREY, anchor="mm")
     f = b.F("ExtraBold", 66); s = mxn(normal); w = f.getlength(s)
-    d.text((235, 125), s, font=f, fill=GREY, anchor="mm"); d.line((235 - w / 2 - 6, 132, 235 + w / 2 + 6, 112), fill=(220, 60, 60), width=8)
+    d.text((235, 125), s, font=f, fill=GREY if tachado else INK, anchor="mm")
+    if tachado: d.line((235 - w / 2 - 6, 132, 235 + w / 2 + 6, 112), fill=(220, 60, 60), width=8)
     d.text((235, 225), et_mio, font=b.F("Bold", 36), fill=DEEP, anchor="mm")
     d.text((235, 310), mxn(mio), font=b.F("ExtraBold", 104), fill=PINK, anchor="mm")
     d.text((235, 385), "+ envío", font=b.F("SemiBold", 28), fill=GREY, anchor="mm")
@@ -86,7 +95,7 @@ def tarjeta_producto(L, nombre, t, t_foto, t_normal, t_mio):
     b.pon(L, foto(nombre), 300, 640, *b.entra(t, t_foto, 0.45))
     if t >= t_normal:
         s, a = b.entra(t, t_normal, 0.35)
-        pc = precio_card(normal, mio, et_n, et_m, pie)
+        pc = precio_card(normal, mio, et_n, et_m, pie, not SUF)
         if no_mx: b.pon(L, b.pastilla("🇲🇽 No se vende en México", "Bold", 38, (196, 40, 60), WHITE), W / 2, 1050, s, a)
         if t < t_mio:  # primero solo el precio normal
             pc = pc.crop((0, 0, pc.width, 170)); y = 330 + 85
@@ -102,41 +111,62 @@ def pastilla_escena(L, t, t0, s, y, bg=WHITE, fg=INK, sz=46):
 SFX = []
 
 def escena(k, n, f0):
-    e = T[k]; m = e.get("marcas", []); vid, ini = TOMAS[k]
+    e = T[k]; m = e.get("marcas", []); tipo, vid, ini = ESCENAS[k]
     for f, L in enumerate(frames(vid, ini, n)):
         t = f / FPS
-        if k == 0:  # gancho: el leopardo, precio normal y el de Mae
+        if tipo == "no_envia":  # gancho para clientas
             b.pon(L, b.linea("True Religion original 🇺🇸", "ExtraBold", 64, INK, stroke=10, sfill=WHITE), W / 2, 110)
-            tarjeta_producto(L, "leopardo", t, -1.0, m[0], m[1])  # la foto ya está desde el primer cuadro
-        elif k == 1:
-            pastilla_escena(L, t, m[0], "🇺🇸 True Religion en EE. UU. no envía a México", 420, WHITE, INK, 38)
-            pastilla_escena(L, t, m[1], "📦 Yo te lo traigo", 530, PINK, WHITE, 52)
-        elif k == 2:
+            b.pon(L, b.pastilla("🇺🇸 True Religion en EE. UU.", "Bold", 52, WHITE, INK), W / 2, 420)
+            b.pon(L, b.pastilla("no envía a México 🚫", "ExtraBold", 60, (196, 40, 60), WHITE), W / 2, 535)
+            pastilla_escena(L, t, m[1], "📦 Yo te lo traigo… ¡y más barato!", 680, PINK, WHITE, 50)
+        elif tipo == "ganancia":  # gancho para emprendedoras
+            b.pon(L, b.linea("True Religion original 🇺🇸", "ExtraBold", 64, INK, stroke=10, sfill=WHITE), W / 2, 110)
+            b.pon(L, b.linea("Gana hasta", "ExtraBold", 96, WHITE, stroke=12, sfill=(45, 20, 35)), W / 2, 430)
+            b.pon(L, b.pastilla("💸 $3,000", "ExtraBold", 120, GREEN, WHITE), W / 2, 590)
+            b.pon(L, b.linea("por conjunto", "ExtraBold", 80, WHITE, stroke=12, sfill=(45, 20, 35)), W / 2, 760)
+            b.pon(L, b.linea("*según a cuánto lo vendas", "SemiBold", 34, WHITE, stroke=6, sfill=(45, 20, 35)), W / 2, 860)
+        elif tipo == "leopardo":
+            tarjeta_producto(L, "leopardo", t, 0.0, m[0], m[1])
+        elif tipo == "whatsapp":
             pastilla_escena(L, t, m[0], "💬 Pídelo por WhatsApp", 420, WA, WHITE, 50)
             pastilla_escena(L, t, m[0] + 1.2, "🛍️ Yo lo compro por ti", 530, WHITE, INK)
             pastilla_escena(L, t, m[1], "✅ Original, con etiquetas", 640, WHITE, GREEN)
-        elif k == 3:  # cerezas: rosa y luego negro
+        elif tipo == "nadie":
+            pastilla_escena(L, t, m[0], "✨ Casi nadie lo tiene en México", 420, PINK, WHITE, 48)
+            pastilla_escena(L, t, m[1], "🇺🇸 True Religion en EE. UU. no envía a México", 530, WHITE, INK, 38)
+        elif tipo == "cerezas":  # rosa y luego negro
             nombre = "cereza-negra" if t >= m[0] else "cereza-rosa"
             tarjeta_producto(L, nombre, t, 0.0 if nombre == "cereza-rosa" else m[0], m[1], m[2])
-        elif k == 4:  # camo: azul y luego rojo
+        elif tipo == "camo":  # azul y luego rojo
             nombre = "camo-rojo" if t >= m[0] else "camo-azul"
             tarjeta_producto(L, nombre, t, 0.0 if nombre == "camo-azul" else m[0], m[1], m[2])
-        elif k == 5:
+        elif tipo == "condiciones":
             pastilla_escena(L, t, m[0], "🛍️ Mayoreo desde 1 pieza", 420, PINK, WHITE, 52)
             pastilla_escena(L, t, m[1], "💳 Transferencia o tarjeta", 530, WHITE, INK)
             pastilla_escena(L, t, m[2], "📦 ~1 semana a todo México", 640, WHITE, INK)
-        elif k == 6:
+        elif tipo == "mayoreo":
+            pastilla_escena(L, t, m[0], "🛍️ Mayoreo desde 1 pieza", 420, PINK, WHITE, 52)
+            pastilla_escena(L, t, m[1], "✅ Original, con etiqueta", 530, WHITE, GREEN)
+            pastilla_escena(L, t, m[2], "📦 ~1 semana a todo México", 640, WHITE, INK)
+        elif tipo == "grupo":  # invitación al grupo de WhatsApp
+            pastilla_escena(L, t, m[0], "💬 Únete a mi grupo de WhatsApp", 360, WA, WHITE, 50)
+            pastilla_escena(L, t, m[1], "🆕 Novedades", 480, WHITE, INK, 44)
+            pastilla_escena(L, t, m[1] + 0.6, "💸 Descuentos", 580, WHITE, INK, 44)
+            pastilla_escena(L, t, m[2], "🤝 Emprendemos juntas", 680, WHITE, INK, 44)
+            pastilla_escena(L, t, m[3], "Comenta “Me quiero unir” 👇", 830, PINK, WHITE, 56)
+        elif tipo == "cta":
             pastilla_escena(L, t, m[0], "💬 Escríbeme por WhatsApp", 560, WA, WHITE, 60)
             pastilla_escena(L, t, m[0] + 0.5, "alpacca.mx", 680, WHITE, DEEP, 44)
         yield L
-    # sonidos: pop al salir cada cosa, click en los precios, brillo en "Conmigo"
+    # sonidos: pop al salir cada cosa y brillo en el precio de Mae
     for i, tm in enumerate(m):
-        SFX.append((f0 / FPS + tm, "glitter" if (k in (0, 3, 4) and i == len(m) - 1) else "pop"))
+        SFX.append((f0 / FPS + tm, "glitter" if (tipo in ("leopardo", "cerezas", "camo") and i == len(m) - 1) else "pop"))
+    if tipo == "ganancia": SFX.append((f0 / FPS + 0.1, "glitter"))
 
 
 # ---------- subtítulos (palabra por palabra, la que se dice en rosa) ----------
 def _palabras():
-    frases = json.load(open(os.path.join(AQUI, "narracion.json"))); out = []; t0 = 0.0
+    frases = json.load(open(os.path.join(AQUI, f"narracion{SUF}.json"))); out = []; t0 = 0.0
     for n, (fr, e) in enumerate(zip(frases, T)):
         k = hashlib.sha1(f"eleven_v4|0.5|{fr['texto']}".encode()).hexdigest()[:12]
         a = json.load(open(os.path.join(AQUI, "voz", "cache", k + ".json")))["alignment"]
@@ -206,9 +236,13 @@ def portada():
     som = Image.new("RGBA", (W, H), (40, 15, 30, 255)); som.putalpha(g.resize((W, H))); L.alpha_composite(som)
     b.pon(L, b.linea("True Religion original 🇺🇸", "ExtraBold", 72, INK, stroke=12, sfill=WHITE), W / 2, 95)
     tarjeta_producto(L, "leopardo", 9, -1, 0, 0)
-    b.pon(L, b.linea("Conjuntos desde $2,281", "ExtraBold", 66, WHITE, stroke=10, sfill=(45, 20, 35)), W / 2, 1180)
-    b.pon(L, b.pastilla("💬 Pídelo por WhatsApp", "Bold", 50, WA, WHITE), W / 2, 1310)
-    L.convert("RGB").save(os.path.join(AQUI, "portada.jpg"), quality=92); print("ok portada.jpg")
+    if SUF:
+        b.pon(L, b.linea("Gana hasta $3,000 por conjunto 💸", "ExtraBold", 60, WHITE, stroke=10, sfill=(45, 20, 35)), W / 2, 1180)
+        b.pon(L, b.pastilla("Mayoreo desde 1 pieza", "Bold", 50, PINK, WHITE), W / 2, 1310)
+    else:
+        b.pon(L, b.linea("Conjuntos desde $2,281", "ExtraBold", 66, WHITE, stroke=10, sfill=(45, 20, 35)), W / 2, 1180)
+        b.pon(L, b.pastilla("💬 Pídelo por WhatsApp", "Bold", 50, WA, WHITE), W / 2, 1310)
+    L.convert("RGB").save(os.path.join(AQUI, f"portada{SUF}.jpg"), quality=92); print(f"ok portada{SUF}.jpg")
 
 
 if __name__ == "__main__":
@@ -220,7 +254,7 @@ if __name__ == "__main__":
         subtitula(fr, cnt / FPS)
         p.stdin.write(fr.convert("RGB").tobytes()); cnt += 1
     p.stdin.close(); p.wait(); print("ok", OUT, f"{cnt / FPS:.1f}s")
-    voz = os.path.join(AQUI, "voz", "narracion.wav"); final = OUT.replace(".mp4", "-voz.mp4")
+    voz = os.path.join(AQUI, f"voz{SUF}", "narracion.wav"); final = OUT.replace(".mp4", "-voz.mp4")
     GAN = {"click": 0.3, "glitter": 0.35, "pop": 0.3}
     ins, fil = ["-i", OUT, "-i", voz], ["[1:a]aformat=channel_layouts=stereo[v]"]
     for j, (t, s) in enumerate(SFX):

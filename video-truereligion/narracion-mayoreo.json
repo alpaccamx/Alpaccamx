@@ -1,0 +1,9 @@
+[
+ {"texto": "[excited] ¿Sabías que con un conjunto True Religion podrías ganar hasta tres mil pesos?", "marcas": ["podrías", "tres mil"]},
+ {"texto": "[warm] Mira: en True Religion México, solo esta sudadera cuesta más de seis mil pesos. [confident] Conmigo, el conjunto completo te cuesta tres mil diecinueve.", "marcas": ["más de seis mil", "Conmigo"]},
+ {"texto": "Y casi nadie lo tiene, porque True Religion en Estados Unidos no envía a México.", "marcas": ["casi nadie", "no envía"]},
+ {"texto": "Este conjunto, en rosa o en negro: de etiqueta vale cuatro mil ochocientos cincuenta, [confident] y a ti te cuesta tres mil seiscientos veintitrés.", "marcas": ["en negro", "de etiqueta", "a ti"]},
+ {"texto": "Y este conjunto, en azul o en rojo: de etiqueta vale cuatro mil doscientos ochenta y seis, [confident] y a ti te cuesta dos mil doscientos ochenta y uno.", "marcas": ["en rojo", "de etiqueta", "a ti"]},
+ {"texto": "[warm] Precio de mayoreo desde una sola pieza, así puedes empezar sin invertir mucho. Todo original, con etiqueta, y te llega en más o menos una semana.", "marcas": ["mayoreo", "Todo original", "semana"]},
+ {"texto": "[warm] Y si quieres emprender, únete a mi grupo de WhatsApp: ahí comparto novedades y descuentos, y entre todas nos ayudamos a crecer. [excited] Comenta “me quiero unir” y te mando la invitación.", "marcas": ["únete", "novedades", "entre todas", "Comenta"]}
+]
