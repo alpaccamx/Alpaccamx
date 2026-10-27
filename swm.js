@@ -882,7 +882,7 @@ function psCalcular(e) {
   const fila = (t, v, cls = "") => `<div class="flex justify-between gap-3 ${cls}"><span>${t}</span><span>${v}</span></div>`;
   out.innerHTML = `
     ${fila(`Precio en la tienda${qty > 1 ? ` (${qty} × US$${usd.toFixed(2)})` : ""}`, `US$${(usd * qty).toFixed(2)}`)}
-    ${fila(`Con tax de Texas (+${PS_TAX_PCT}%)`, `US$${c.conTaxUSD.toFixed(2)}`)}
+    ${fila(`+ Tax de Texas (${PS_TAX_PCT}%)`, `US$${(c.conTaxUSD - usd * qty).toFixed(2)}`)}
     ${fila(`En pesos (× $${c.tc.toFixed(2)})`, swmMXN(c.pesos))}
     ${fila(`+ Comisión y cruce a México (${SWM_COMISION_PCT}%)`, swmMXN(c.comision))}
     <div class="flex justify-between gap-3 border-t border-ink/10 pt-2 mt-1 text-base font-bold text-rose-ink"><span>Te sale ya en México</span><span>${swmMXN(c.total)}</span></div>
