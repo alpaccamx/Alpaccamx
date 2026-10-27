@@ -1,6 +1,28 @@
 [
- {"texto": "[curious] ¿Vendes perfumes o quieres empezar a vender?", "marcas": ["Vendes"]},
- {"texto": "[confident] Mists de Bath and Body Works originales, a ciento cincuenta pesos cada uno.", "marcas": ["originales", "ciento cincuenta"]},
- {"texto": "[warm] Precio de mayoreo desde una sola pieza, y tú le pones tu precio.", "marcas": ["mayoreo", "tú le pones"]},
- {"texto": "[excited] Comenta “me quiero unir” y te paso a mi grupo.", "marcas": ["Comenta"]}
+ {
+  "texto": "Oye, ¿vendes perfumes, o te late empezar a vender?",
+  "marcas": [
+   "vendes"
+  ]
+ },
+ {
+  "texto": "Tengo mists de Bath and Body Works originales, a ciento cincuenta pesos cada uno.",
+  "marcas": [
+   "originales",
+   "ciento cincuenta"
+  ]
+ },
+ {
+  "texto": "Es precio de mayoreo desde una pieza, y tú le pones tu precio.",
+  "marcas": [
+   "mayoreo",
+   "tú le pones"
+  ]
+ },
+ {
+  "texto": "Si te interesa, comenta me quiero unir y te paso a mi grupo.",
+  "marcas": [
+   "comenta"
+  ]
+ }
 ]

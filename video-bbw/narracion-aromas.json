@@ -1,12 +1,12 @@
 [
  {
-  "texto": "[playful] ¿Cuál es tu aroma favorito de Bath and Body Works?",
+  "texto": "A ver, ¿cuál es tu aroma favorito de Bath and Body Works?",
   "marcas": [
    "aroma"
   ]
  },
  {
-  "texto": "[playful] ¿Gingham Gorgeous? ¿Strawberry Pound Cake? ¿O Into the Night?",
+  "texto": "¿Gingham Gorgeous, Strawberry Pound Cake, o Into the Night?",
   "marcas": [
    "Gingham",
    "Strawberry",
@@ -14,14 +14,14 @@
   ]
  },
  {
-  "texto": "[confident] Todos a ciento cincuenta pesos en mi página, mayoreo desde una pieza.",
+  "texto": "Todos están a ciento cincuenta pesos en mi página, y es mayoreo desde una pieza.",
   "marcas": [
    "ciento cincuenta",
    "mayoreo"
   ]
  },
  {
-  "texto": "[excited] Déjamelo en los comentarios.",
+  "texto": "Déjamelo en los comentarios.",
   "marcas": [
    "Déjamelo"
   ]

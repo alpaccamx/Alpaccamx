@@ -1,29 +1,29 @@
 [
  {
-  "texto": "[excited] ¡Hubo restock! Ayer subí a mi página los mists de Bath and Body Works.",
+  "texto": "Ya me llegaron otra vez los mists de Bath and Body Works, los subí ayer a mi página.",
   "marcas": [
-   "restock",
+   "Ya me",
    "mists"
   ]
  },
  {
-  "texto": "[confident] A ciento cincuenta pesos cada uno, precio de mayoreo desde una sola pieza.",
+  "texto": "Están a ciento cincuenta pesos cada uno, y es precio de mayoreo desde una pieza.",
   "marcas": [
    "ciento cincuenta",
    "mayoreo"
   ]
  },
  {
-  "texto": "[warm] Hay un montón de aromas, pero se acaban rápido.",
+  "texto": "Hay un buen de aromas, pero la neta se acaban rápido.",
   "marcas": [
-   "montón",
-   "se acaban"
+   "buen de aromas",
+   "la neta"
   ]
  },
  {
-  "texto": "[excited] Pide los tuyos en alpacca punto eme equis.",
+  "texto": "Así que si quieres alguno, pídelo en alpacca punto eme equis.",
   "marcas": [
-   "Pide"
+   "pídelo"
   ]
  }
 ]
