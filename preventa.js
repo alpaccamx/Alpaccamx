@@ -240,15 +240,27 @@ function pvBuscarEnTienda(query) {
     if (!pv.cargando && !pv.buscoLista && pv.abierta !== false) {
       pv.buscoLista = true;
       loadPreventa().then(() => {
-        if (pv.lista && typeof currentHomeView !== "undefined" && currentHomeView === "search") {
-          renderSearchResults(document.getElementById("search-input").value || query, { restore: true });
+        if (!pv.lista) return;
+        const input = document.getElementById("search-input");
+        if (typeof currentHomeView !== "undefined" && currentHomeView === "search") {
+          renderSearchResults(input.value || query, { restore: true });
         }
+        // Las sugerencias que se ven mientras escribe.
+        if (document.activeElement === input && input.value.trim().length >= 2 && typeof renderSuggestions === "function") renderSuggestions();
       });
     }
     return null;
   }
   if (!pv.abierta) return [];
   return pv.productos.filter((p) => pvCoincide(p, query));
+}
+
+/* Abre la preventa ya filtrada con una búsqueda. */
+function pvVerBusqueda(q) {
+  pv.q = q || "";
+  pv.grupo = "";
+  pv.mostrar = PV_PAGINA;
+  openPreventa();
 }
 
 function renderSearchPreventa(lista, query) {
@@ -717,12 +729,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (sp) sp.addEventListener("click", (e) => {
     const elegir = e.target.closest("[data-pv-elegir]");
     if (elegir) { pvAbrirPicker(elegir.dataset.pvElegir); return; }
-    if (e.target.closest("[data-pv-ver-busqueda]")) {
-      pv.q = sp.dataset.q || "";
-      pv.grupo = "";
-      pv.mostrar = PV_PAGINA;
-      openPreventa();
-    }
+    if (e.target.closest("[data-pv-ver-busqueda]")) pvVerBusqueda(sp.dataset.q || "");
   });
 
   // Preventa dentro del carrito.

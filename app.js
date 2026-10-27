@@ -3126,7 +3126,9 @@ function renderSuggestions() {
   const nq = normalizeForSearch(q);
   let matches = searchMatches(q);
   let fuzzy = false;
-  if (!matches.length) { matches = fuzzyMatches(q); fuzzy = matches.length > 0; }
+  // Preventa (null = todavía no carga; al cargar se repintan las sugerencias).
+  const enPreventa = (typeof pvBuscarEnTienda === "function" && pvBuscarEnTienda(q)) || [];
+  if (!matches.length && !enPreventa.length) { matches = fuzzyMatches(q); fuzzy = matches.length > 0; }
   matches = rankByRelevance(matches, q);
   const brandCounts = new Map();
   products.forEach((p) => { if (p.marca && normalizeForSearch(p.marca).includes(nq.split(/\s+/)[0])) brandCounts.set(p.marca, (brandCounts.get(p.marca) || 0) + 1); });
@@ -3138,19 +3140,21 @@ function renderSuggestions() {
     if (seen.has(k)) continue;
     seen.add(k);
     items.push(p);
-    if (items.length >= 6) break;
+    if (items.length >= (enPreventa.length ? 3 : 6)) break;
   }
   const rows = [];
   brands.forEach(([marca, n]) => rows.push({ type: "brand", marca, html: `<span class="w-10 h-10 shrink-0 rounded-full bg-blush/40 flex items-center justify-center text-xs font-bold text-rose-ink">${escapeHtml(marca.slice(0, 2).toUpperCase())}</span><span class="min-w-0"><span class="block text-sm font-semibold text-ink">${escapeHtml(marca)}</span><span class="block text-xs text-ink/70">Marca · ${n} productos</span></span>` }));
   items.forEach((p) => rows.push({ type: "product", id: p.id, html: `<img src="${escapeAttr(p.imagen || "")}" alt="" class="w-10 h-10 shrink-0 rounded-md object-contain bg-pill" loading="lazy" /><span class="min-w-0 flex-1"><span class="block text-xs font-bold text-ink truncate">${escapeHtml(p.marca)}</span><span class="block text-sm text-ink/85 truncate">${escapeHtml(splitBaseName(p).base)}</span></span><span class="text-sm font-semibold tabular-nums text-ink shrink-0">${formatPrice(p.precio)}</span>` }));
+  enPreventa.slice(0, matches.length ? 3 : 5).forEach((p) => rows.push({ type: "preventa", id: p.id, html: `<img src="${escapeAttr(p.imagen || "")}" alt="" class="w-10 h-10 shrink-0 rounded-md object-contain bg-pill" loading="lazy" /><span class="min-w-0 flex-1"><span class="block text-xs font-bold text-ink truncate">${escapeHtml(p.marca || "")} <span class="ml-1 rounded-full bg-blush/50 px-1.5 py-0.5 text-[10px] font-bold text-rose-ink">Preventa</span></span><span class="block text-sm text-ink/85 truncate">${escapeHtml(p.nombre)}</span></span><span class="text-sm font-semibold tabular-nums text-ink shrink-0">${formatPrice(p.precio)}</span>` }));
+  if (enPreventa.length) rows.push({ type: "preventa-all", id: "", html: `<span class="w-10 h-10 shrink-0 rounded-full bg-blush/40 flex items-center justify-center text-lg">🛍️</span><span class="min-w-0"><span class="block text-sm font-semibold text-rose-ink">Ver ${enPreventa.length} en la preventa Sephora</span><span class="block text-xs text-ink/70">Aparta con el 50%</span></span>` });
   if (!rows.length) {
     box.innerHTML = `<p class="px-4 py-3 text-sm text-ink/70">Sin resultados para "${escapeHtml(q)}".</p>`;
   } else {
     box.innerHTML = (fuzzy ? `<p class="px-4 pt-2 pb-1 text-xs text-ink/60">Quizá quisiste decir…</p>` : "") +
       rows.map((r, i) => `<button type="button" role="option" id="sg-${i}" aria-selected="false" data-sg="${i}" data-sg-type="${r.type}" data-sg-val="${escapeAttr(r.type === "brand" ? r.marca : r.id)}"
         class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-ink/5 aria-selected:bg-ink/5">${r.html}</button>`).join("") +
-      `<button type="button" role="option" id="sg-${rows.length}" aria-selected="false" data-sg="${rows.length}" data-sg-type="all"
-        class="w-full px-4 py-2.5 text-left text-sm font-semibold text-rose-ink hover:bg-ink/5 aria-selected:bg-ink/5 border-t border-ink/10">Ver todos los resultados (${matches.length.toLocaleString("es-MX")})</button>`;
+      (matches.length || !enPreventa.length ? `<button type="button" role="option" id="sg-${rows.length}" aria-selected="false" data-sg="${rows.length}" data-sg-type="all"
+        class="w-full px-4 py-2.5 text-left text-sm font-semibold text-rose-ink hover:bg-ink/5 aria-selected:bg-ink/5 border-t border-ink/10">Ver todos los resultados (${(matches.length + enPreventa.length).toLocaleString("es-MX")})</button>` : "");
   }
   suggestActive = -1;
   box.classList.remove("hidden");
@@ -3173,6 +3177,8 @@ function chooseSuggestion(btn) {
   hideSuggestions();
   if (type === "brand") { input.value = ""; showBrandProducts(btn.dataset.sgVal); }
   else if (type === "product") openProductSheet(btn.dataset.sgVal);
+  else if (type === "preventa" && typeof pvAbrirPicker === "function") pvAbrirPicker(btn.dataset.sgVal);
+  else if (type === "preventa-all" && typeof pvVerBusqueda === "function") pvVerBusqueda(input.value);
   else {
     renderSearchResults(input.value);
     document.getElementById("search-results-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
