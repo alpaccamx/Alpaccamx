@@ -1,9 +1,53 @@
 [
- {"texto": "[excited] En la tienda de México, solo esta sudadera cuesta más de seis mil pesos. [confident] Conmigo, el conjunto completo: tres mil diecinueve.", "marcas": ["más de seis mil", "Conmigo"]},
- {"texto": "[warm] La tienda de Estados Unidos no envía a México. Yo te lo traigo.", "marcas": ["no envía", "Yo te"]},
- {"texto": "Es muy fácil: me mandas por WhatsApp lo que te gustó, yo lo compro en la tienda y te lo mando. Todo original, con etiqueta.", "marcas": ["WhatsApp", "Todo original"]},
- {"texto": "Este, en rosa o en negro, no se vende en México. [confident] Conmigo: tres mil seiscientos veintitrés.", "marcas": ["en negro", "no se vende", "Conmigo"]},
- {"texto": "Y este, en azul o en rojo, tampoco. [confident] Conmigo: dos mil doscientos ochenta y uno.", "marcas": ["en rojo", "tampoco", "Conmigo"]},
- {"texto": "[warm] Mayoreo desde una pieza. Pagas con transferencia o tarjeta. Y en más o menos una semana lo tienes en tu casa.", "marcas": ["Mayoreo", "Pagas", "semana"]},
- {"texto": "[excited] Mándame un WhatsApp y armamos tu pedido.", "marcas": ["WhatsApp"]}
+ {
+  "texto": "[excited] En True Religion México, solo esta sudadera cuesta más de seis mil pesos. [confident] Conmigo, el conjunto completo: tres mil diecinueve.",
+  "marcas": [
+   "más de seis mil",
+   "Conmigo"
+  ]
+ },
+ {
+  "texto": "[warm] True Religion de Estados Unidos no envía a México. Yo te lo traigo.",
+  "marcas": [
+   "no envía",
+   "Yo te"
+  ]
+ },
+ {
+  "texto": "Es muy fácil: me mandas por WhatsApp lo que te gustó, yo lo compro y te lo mando. Todo original, con etiqueta.",
+  "marcas": [
+   "WhatsApp",
+   "Todo original"
+  ]
+ },
+ {
+  "texto": "Este, en rosa o en negro, no se vende en México. [confident] Conmigo: tres mil seiscientos veintitrés.",
+  "marcas": [
+   "en negro",
+   "no se vende",
+   "Conmigo"
+  ]
+ },
+ {
+  "texto": "Y este, en azul o en rojo, tampoco. [confident] Conmigo: dos mil doscientos ochenta y uno.",
+  "marcas": [
+   "en rojo",
+   "tampoco",
+   "Conmigo"
+  ]
+ },
+ {
+  "texto": "[warm] Mayoreo desde una pieza. Pagas con transferencia o tarjeta. Y en más o menos una semana lo tienes en tu casa.",
+  "marcas": [
+   "Mayoreo",
+   "Pagas",
+   "semana"
+  ]
+ },
+ {
+  "texto": "[excited] Mándame un WhatsApp y armamos tu pedido.",
+  "marcas": [
+   "WhatsApp"
+  ]
+ }
 ]

@@ -24,7 +24,7 @@ T = json.load(open(os.path.join(AQUI, "tiempos.json")))
 # - los demás no se venden en México: contra su precio normal de etiqueta (USD x 18.80)
 # título, precio comparado, precio de Mae, etiqueta de arriba, etiqueta de Mae, pastilla de abajo, ¿no se vende en México?
 PRODUCTOS = {
-    "leopardo":     ("Leopardo rosa con cerezas", 6026, 3019, "Tienda México · solo sudadera", "Conmigo · conjunto", "Sudadera + pants 💗", False),
+    "leopardo":     ("Leopardo rosa con cerezas", 6026, 3019, "True Religion México · solo sudadera", "Conmigo · conjunto", "Sudadera + pants 💗", False),
     "cereza-rosa":  ("Cerezas de cristal · rosa", 4850, 3623, "Precio de etiqueta", "Conmigo", None, True),
     "cereza-negra": ("Cerezas de cristal · negro", 4850, 3623, "Precio de etiqueta", "Conmigo", None, True),
     "camo-azul":    ("Camo Groovy · azul", 4286, 2281, "Precio de etiqueta", "Conmigo", None, True),
@@ -109,7 +109,7 @@ def escena(k, n, f0):
             b.pon(L, b.linea("True Religion original 🇺🇸", "ExtraBold", 64, INK, stroke=10, sfill=WHITE), W / 2, 110)
             tarjeta_producto(L, "leopardo", t, -1.0, m[0], m[1])  # la foto ya está desde el primer cuadro
         elif k == 1:
-            pastilla_escena(L, t, m[0], "🇺🇸 La tienda no envía a México", 420, WHITE, INK)
+            pastilla_escena(L, t, m[0], "🇺🇸 True Religion USA no envía a México", 420, WHITE, INK)
             pastilla_escena(L, t, m[1], "📦 Yo te lo traigo", 530, PINK, WHITE, 52)
         elif k == 2:
             pastilla_escena(L, t, m[0], "💬 Pídelo por WhatsApp", 420, WA, WHITE, 50)
