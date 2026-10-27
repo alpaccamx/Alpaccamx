@@ -15,3 +15,7 @@ voz-aromas/*.wav
 voz-aromas/lista.txt
 voz-aromas/frase*.mp3
 BBW-aromas.mp4
+voz-dupes/*.wav
+voz-dupes/lista.txt
+voz-dupes/frase*.mp3
+BBW-dupes.mp4
