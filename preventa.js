@@ -420,10 +420,8 @@ function pvAgregarDesdePicker() {
   pvGuardarBolsa();
   pvCerrarPicker();
   renderPreventa();
-  if (typeof openCart === "function") {
-    openCart();
-    if (typeof acknowledgeCartChange === "function") acknowledgeCartChange("cart-preventa", k);
-  }
+  if (typeof acknowledgeCartChange === "function") acknowledgeCartChange("cart-preventa", k);
+  if (typeof avisoAgregado === "function") avisoAgregado("Agregado a tu carrito");
   if (typeof announce === "function") announce(`Agregaste ${base.nombre}${v ? ` (${v.nombre})` : ""} a tu carrito.`);
 }
 
