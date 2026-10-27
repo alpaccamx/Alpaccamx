@@ -809,11 +809,13 @@ function setPsTab(tab) {
   document.getElementById("ps-linea").classList.toggle("hidden", tab !== "linea");
   document.getElementById("ps-tienda").classList.toggle("hidden", tab !== "tienda");
   document.getElementById("ps-wa-linea").href = swmCompraWaLink(document.getElementById("ps-tienda-nombre").value.trim());
+  psCalcTc();
 }
 
 function initPsSection() {
   const sec = document.getElementById("ps-section");
   if (!sec) return;
+  initPsCalc();
   document.getElementById("ps-close").addEventListener("click", () => showHomeView("home"));
   sec.addEventListener("click", (e) => {
     const b = e.target.closest("[data-ps-tab]");
@@ -831,6 +833,88 @@ function initPsSection() {
     if (!a) return;
     e.preventDefault();
     openPsSection(a.dataset.psOpen);
+  });
+}
+
+/* Cotizador de Personal shopper: precio de la tienda (USD, sin tax) →
+   pesos ya en México. Misma cuenta que la cotización de una compra en el
+   admin: (USD + 8.25% de tax) × tipo de cambio, + 15% de comisión y cruce
+   (redondeado hacia arriba, como crucePorComision). */
+const PS_TAX_PCT = 8.25;
+let psLista = [];
+let psUltimo = null;
+
+function psCotizar(usd, qty) {
+  const tc = (typeof shippingSettings !== "undefined" && shippingSettings.exchangeRate) || 0;
+  const conTaxUSD = Math.round(usd * qty * (1 + PS_TAX_PCT / 100) * 100) / 100;
+  const pesos = Math.round(usd * qty * (1 + PS_TAX_PCT / 100) * tc * 100) / 100;
+  const comision = Math.ceil(pesos * SWM_COMISION_PCT / 100);
+  return { tc, conTaxUSD, pesos, comision, total: Math.round((pesos + comision) * 100) / 100 };
+}
+
+function psCalcTc() {
+  const el = document.getElementById("ps-calc-tc");
+  const tc = (typeof shippingSettings !== "undefined" && shippingSettings.exchangeRate) || 0;
+  if (el) el.textContent = tc ? `$${tc.toFixed(2)} por dólar` : "—";
+}
+
+function psCalcular(e) {
+  e.preventDefault();
+  const err = document.getElementById("ps-calc-err");
+  const out = document.getElementById("ps-calc-out");
+  const usd = parseFloat(document.getElementById("ps-calc-usd").value);
+  const qty = Math.max(1, parseInt(document.getElementById("ps-calc-qty").value, 10) || 1);
+  const nombre = document.getElementById("ps-calc-nombre").value.trim();
+  err.classList.add("hidden");
+  psCalcTc();
+  if (!(usd > 0)) { err.textContent = "Pon el precio del producto en dólares."; err.classList.remove("hidden"); out.classList.add("hidden"); return; }
+  const c = psCotizar(usd, qty);
+  if (!c.tc) { err.textContent = "Todavía estoy cargando el tipo de cambio, intenta en unos segundos."; err.classList.remove("hidden"); return; }
+  psUltimo = { nombre, usd, qty, ...c };
+  const fila = (t, v, cls = "") => `<div class="flex justify-between gap-3 ${cls}"><span>${t}</span><span>${v}</span></div>`;
+  out.innerHTML = `
+    ${fila(`Precio en la tienda${qty > 1 ? ` (${qty} × US$${usd.toFixed(2)})` : ""}`, `US$${(usd * qty).toFixed(2)}`)}
+    ${fila(`Con tax de Texas (+${PS_TAX_PCT}%)`, `US$${c.conTaxUSD.toFixed(2)}`)}
+    ${fila(`En pesos (× $${c.tc.toFixed(2)})`, swmMXN(c.pesos))}
+    ${fila(`+ Comisión y cruce a México (${SWM_COMISION_PCT}%)`, swmMXN(c.comision))}
+    <div class="flex justify-between gap-3 border-t border-ink/10 pt-2 mt-1 text-base font-bold text-rose-ink"><span>Te sale ya en México</span><span>${swmMXN(c.total)}</span></div>
+    ${qty > 1 ? `<p class="text-xs text-ink/70 text-right">${swmMXN(c.total / qty)} por pieza</p>` : ""}
+    <button type="button" data-ps-calc-add class="mt-2 w-full rounded-full border border-ink px-4 py-2 text-sm font-semibold hover:bg-ink hover:text-cream transition">➕ Agregar a mi lista</button>`;
+  out.classList.remove("hidden");
+}
+
+function psCalcRenderLista() {
+  const box = document.getElementById("ps-calc-lista");
+  if (!psLista.length) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+  const total = psLista.reduce((s, x) => s + x.total, 0);
+  const txt = `Hola Mae 💕 Quiero cotizar estos productos:\n${psLista.map((x) => `• ${x.nombre || "Producto"} x${x.qty} (US$${x.usd.toFixed(2)} c/u) ≈ ${swmMXN(x.total)}`).join("\n")}\nTotal aprox: ${swmMXN(total)}`;
+  box.innerHTML = `<div class="rounded-2xl border border-ink/10 p-4 space-y-2">
+    <b class="block text-sm">Mi lista</b>
+    <ul class="divide-y divide-ink/10 text-sm">${psLista.map((x, i) => `<li class="flex items-center justify-between gap-3 py-2"><span class="min-w-0">${x.qty} × ${escapeHtml(x.nombre || "Producto")} <span class="text-ink/60">(US$${x.usd.toFixed(2)})</span></span><span class="shrink-0 flex items-center gap-2"><b>${swmMXN(x.total)}</b><button type="button" data-ps-calc-del="${i}" aria-label="Quitar" class="text-ink/50 hover:text-sale text-lg leading-none">×</button></span></li>`).join("")}</ul>
+    <div class="flex justify-between border-t border-ink/10 pt-2 text-base font-bold text-rose-ink"><span>Total aprox.</span><span>${swmMXN(total)}</span></div>
+    <a href="https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener" class="flex justify-center items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">💬 Mandarle mi lista a Mae</a>
+  </div>`;
+  box.classList.remove("hidden");
+}
+
+function initPsCalc() {
+  const form = document.getElementById("ps-calc-form");
+  if (!form) return;
+  psCalcTc();
+  form.addEventListener("submit", psCalcular);
+  document.getElementById("ps-calc").addEventListener("click", (e) => {
+    if (e.target.closest("[data-ps-calc-add]") && psUltimo) {
+      psLista.push(psUltimo);
+      psUltimo = null;
+      document.getElementById("ps-calc-out").classList.add("hidden");
+      ["ps-calc-nombre", "ps-calc-usd"].forEach((id) => { document.getElementById(id).value = ""; });
+      document.getElementById("ps-calc-qty").value = "1";
+      psCalcRenderLista();
+      document.getElementById("ps-calc-usd").focus();
+      return;
+    }
+    const del = e.target.closest("[data-ps-calc-del]");
+    if (del) { psLista.splice(Number(del.dataset.psCalcDel), 1); psCalcRenderLista(); }
   });
 }
 
