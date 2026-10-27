@@ -7,7 +7,7 @@
   ]
  },
  {
-  "texto": "[warm] True Religion de Estados Unidos no envía a México. Yo te lo traigo.",
+  "texto": "[warm] True Religion en Estados Unidos no envía a México. Yo te lo traigo.",
   "marcas": [
    "no envía",
    "Yo te"
@@ -21,7 +21,7 @@
   ]
  },
  {
-  "texto": "Este, en rosa o en negro, no se vende en México. [confident] Conmigo: tres mil seiscientos veintitrés.",
+  "texto": "Este conjunto, en rosa o en negro, no se vende en México. [confident] Conmigo: tres mil seiscientos veintitrés.",
   "marcas": [
    "en negro",
    "no se vende",
@@ -29,7 +29,7 @@
   ]
  },
  {
-  "texto": "Y este, en azul o en rojo, tampoco. [confident] Conmigo: dos mil doscientos ochenta y uno.",
+  "texto": "Y este conjunto, en azul o en rojo, tampoco. [confident] Conmigo: dos mil doscientos ochenta y uno.",
   "marcas": [
    "en rojo",
    "tampoco",
