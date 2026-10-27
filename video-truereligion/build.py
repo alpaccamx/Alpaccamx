@@ -19,13 +19,16 @@ WHITE, INK, PINK, DEEP = b.WHITE, b.INK, b.PINK, b.DEEP
 GREEN = (22, 150, 80); WA = (37, 211, 102); GREY = (120, 120, 128)
 T = json.load(open(os.path.join(AQUI, "tiempos.json")))
 
-# precio normal (etiqueta x 18.80) y el de Mae (oferta x 1.0825 tax x 1.15 comisión x 18.80), en pesos
+# el de Mae: oferta USA x 1.0825 tax x 1.15 comisión x 18.80. Contra qué se compara:
+# - leopardo: el mismo modelo en truereligion.mx, que solo vende la sudadera (precio normal $6,026, oct 2026)
+# - los demás no se venden en México: contra su precio normal de etiqueta (USD x 18.80)
+# título, precio comparado, precio de Mae, etiqueta de arriba, etiqueta de Mae, pastilla de abajo, ¿no se vende en México?
 PRODUCTOS = {
-    "leopardo":     ("Leopardo rosa con cerezas", 4850, 3019),
-    "cereza-rosa":  ("Cerezas de cristal · rosa", 4850, 3623),
-    "cereza-negra": ("Cerezas de cristal · negro", 4850, 3623),
-    "camo-azul":    ("Camo Groovy · azul", 4286, 2281),
-    "camo-rojo":    ("Camo Groovy · rojo", 4286, 2281),
+    "leopardo":     ("Leopardo rosa con cerezas", 6026, 3019, "Tienda México · solo sudadera", "Conmigo · conjunto", "Sudadera + pants 💗", False),
+    "cereza-rosa":  ("Cerezas de cristal · rosa", 4850, 3623, "Precio normal", "Conmigo", None, True),
+    "cereza-negra": ("Cerezas de cristal · negro", 4850, 3623, "Precio normal", "Conmigo", None, True),
+    "camo-azul":    ("Camo Groovy · azul", 4286, 2281, "Precio normal", "Conmigo", None, True),
+    "camo-rojo":    ("Camo Groovy · rojo", 4286, 2281, "Precio normal", "Conmigo", None, True),
 }
 # (video, segundo de inicio) de cada escena: dónde se ve ese conjunto en la caja
 TOMAS = [("4656", 300.0), ("4656", 7.0), ("4655", 62.0), ("4655", 88.0), ("4656", 168.0), ("4656", 345.0), ("4655", 204.0)]
@@ -60,28 +63,31 @@ def foto(nombre):
 
 
 @lru_cache(None)
-def precio_card(normal, mio):
-    """columna de precios: normal tachado, conmigo, + envío y ahorras"""
+def precio_card(normal, mio, et_normal, et_mio, pie):
+    """columna de precios: el de referencia tachado, el de Mae, + envío y ahorras (o lo que incluye)"""
     im = Image.new("RGBA", (470, 560)); d = ImageDraw.Draw(im)
     d.rounded_rectangle((0, 0, 469, 559), 40, fill=(255, 255, 255, 235))
-    d.text((235, 60), "Precio normal", font=b.F("Bold", 32), fill=GREY, anchor="mm")
+    fe = b.F("Bold", 32)
+    while fe.getlength(et_normal) > 440: fe = b.F("Bold", fe.size - 2)
+    d.text((235, 60), et_normal, font=fe, fill=GREY, anchor="mm")
     f = b.F("ExtraBold", 66); s = mxn(normal); w = f.getlength(s)
     d.text((235, 125), s, font=f, fill=GREY, anchor="mm"); d.line((235 - w / 2 - 6, 132, 235 + w / 2 + 6, 112), fill=(220, 60, 60), width=8)
-    d.text((235, 225), "Conmigo", font=b.F("Bold", 36), fill=DEEP, anchor="mm")
+    d.text((235, 225), et_mio, font=b.F("Bold", 36), fill=DEEP, anchor="mm")
     d.text((235, 310), mxn(mio), font=b.F("ExtraBold", 104), fill=PINK, anchor="mm")
     d.text((235, 385), "+ envío", font=b.F("SemiBold", 28), fill=GREY, anchor="mm")
-    p = b.pastilla(f"Ahorras {mxn(normal - mio)}", "ExtraBold", 40, GREEN, WHITE)
+    p = b.pastilla(pie or f"Ahorras {mxn(normal - mio)}", "ExtraBold", 40, GREEN, WHITE)
     im.alpha_composite(p, ((470 - p.width) // 2, 440))
     return im
 
 
 def tarjeta_producto(L, nombre, t, t_foto, t_normal, t_mio):
-    tit, normal, mio = PRODUCTOS[nombre]
+    tit, normal, mio, et_n, et_m, pie, no_mx = PRODUCTOS[nombre]
     b.pon(L, b.pastilla(tit, "Bold", 40, WHITE, DEEP), W / 2, 200, *b.entra(t, t_foto, 0.35))
     b.pon(L, foto(nombre), 300, 640, *b.entra(t, t_foto, 0.45))
     if t >= t_normal:
         s, a = b.entra(t, t_normal, 0.35)
-        pc = precio_card(normal, mio)
+        pc = precio_card(normal, mio, et_n, et_m, pie)
+        if no_mx: b.pon(L, b.pastilla("🇲🇽 No se vende en México", "Bold", 38, (196, 40, 60), WHITE), W / 2, 1050, s, a)
         if t < t_mio:  # primero solo el precio normal
             pc = pc.crop((0, 0, pc.width, 170)); y = 330 + 85
         else:
