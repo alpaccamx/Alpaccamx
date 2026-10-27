@@ -32,8 +32,11 @@ TEXTOS = {
     "3": [(0, None, "¿Quieres revender ropa original? 👀"), (1, 0, "Mayoreo desde 1 pieza 🛍️"),
           (1, 1, "True Religion original ✅"), (2, 0, "Comenta “Me quiero unir” 👇")],
 }[N]
-# en el video 2, la foto de la tienda del leopardo sale cuando se dicen los precios
-FOTO_TIENDA = {"2": [(1, 0, 2.4), (2, 0, 2.6)]}.get(N, [])
+FOTO_TIENDA = []  # (escena, marca, segundos) para meter la foto de la tienda; no se usa: se veía como diapositiva
+if N == "2":  # el video del leopardo: casi todas las tomas son del leopardo en la caja
+    TOMAS = {"caja": [("4656", 300), ("4656", 345), ("4655", 8), ("4656", 352), ("4656", 304)],
+             "manos": [("4656", 296), ("4655", 30), ("4656", 340)],
+             "fotos": ["IMG_4265", "IMG_4654", "IMG_4194"]}
 
 
 def video(vid, ini, n, vel=1.25):
