@@ -1,2 +1,5 @@
 node_modules/
 .netlify/
+
+# Páginas de ABW que guarda la revisión automática (caché de GitHub Actions)
+scripts/abw-revision/pages/
