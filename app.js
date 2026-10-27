@@ -4966,8 +4966,10 @@ function activeCartIsAmericano() {
 
 function updateHeaderCartBadge() {
   const useAmericano = activeCartIsAmericano();
-  const count = useAmericano ? americanoCartCount() : cartCount();
-  const totalText = formatPrice(useAmericano ? americanoCartTotal() : cartTotal());
+  // Lo de la preventa también cuenta en el carrito (se aparta aparte).
+  const pvB = typeof pvBolsaCarrito === "function" ? pvBolsaCarrito() : { piezas: 0, total: 0 };
+  const count = (useAmericano ? americanoCartCount() : cartCount()) + pvB.piezas;
+  const totalText = formatPrice((useAmericano ? americanoCartTotal() : cartTotal()) + pvB.total);
   document.getElementById("cart-count").textContent = count;
   document.getElementById("cart-total-header").textContent = totalText;
   document.getElementById("cart-toggle").setAttribute(
@@ -5641,9 +5643,14 @@ function renderCart() {
 
   const focusBefore = captureCartFocus(wrap);
 
+  // Productos de la preventa: van arriba; si solo hay de esos, no se
+  // muestra "carrito vacío" ni los totales del pedido normal.
+  const conPreventa = typeof renderCartPreventa === "function" && renderCartPreventa() > 0;
+  document.getElementById("cart-footer").classList.toggle("hidden", !items.length && conPreventa);
+
   if (!items.length) {
     wrap.innerHTML = "";
-    emptyMsg.classList.remove("hidden");
+    emptyMsg.classList.toggle("hidden", conPreventa);
     restoreCartFocus(wrap, focusBefore, document.getElementById("cart-drawer"));
     return;
   }
