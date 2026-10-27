@@ -1,9 +1,11 @@
 // Preventa para las clientas (alpacca.mx/?ver=preventa).
 //
-// GET  (sin sesión)  → { config, abierta, productos }
-// GET  (con sesión)  → lo mismo + { apartados } de la clienta
+// GET ?resumen=1       → { config, abierta, total } (liviano: lo pide la tienda en cada visita)
+// GET                  → { config, abierta, productos } (sin tonos)
+// GET ?producto=<id>   → { producto } con todas sus variantes (tonos/tamaños)
+// Con sesión, GET (sin ?producto) agrega { apartados } de la clienta.
 // POST (con sesión), { accion, ... }:
-//   apartar      { items: [{ id, qty }], entrega: "envio"|"personal", direccion, nota }
+//   apartar      { items: [{ id, sku?, qty }], entrega: "envio"|"personal", direccion, nota }
 //   pagar        { id, metodo: "mercadopago"|"transferencia" }  (la etapa que le toque)
 //   comprobante  { id, filename, contentType, dataBase64 }
 //   cancelar     { id }  (solo si todavía no paga el anticipo)
@@ -17,7 +19,7 @@ const { listApartados, getApartado, saveApartado, mutateApartado, nextFolio, sav
 const { configActual, abierta, productosConCupo, productoPublico, apartadoPublico, etapaPorPagar, crearPreferenciaMP, avisar, listaHTML, formatPriceMXN, HORAS_PARA_PAGAR } = require("./lib/preventa-core.js");
 
 const MAX_BYTES = 5 * 1024 * 1024;
-const MAX_PIEZAS = 30;
+const MAX_PIEZAS = 60;
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
 const now = () => new Date().toISOString();
 
@@ -30,10 +32,21 @@ exports.handler = async (event) => {
 
   if (event.httpMethod === "GET") {
     try {
+      const qs = event.queryStringParameters || {};
       const [cfg, productos] = await Promise.all([configActual(), productosConCupo()]);
       const open = abierta(cfg);
-      const out = { config: configPublica(cfg), abierta: open, productos: open ? productos.filter((p) => p.activo !== false).map(productoPublico) : [] };
-      if (email) out.apartados = (await listApartados({ email: String(email).toLowerCase() })).map(apartadoPublico);
+      const visibles = open ? productos.filter((p) => p.activo !== false) : [];
+      let out;
+      if (qs.producto) {
+        const p = visibles.find((x) => x.id === String(qs.producto));
+        if (!p) return json(404, { error: "Ese producto ya no está en la preventa." });
+        out = { producto: productoPublico(p, { detalle: true }) };
+      } else if (qs.resumen) {
+        out = { config: configPublica(cfg), abierta: open, total: visibles.length };
+      } else {
+        out = { config: configPublica(cfg), abierta: open, productos: visibles.map((p) => productoPublico(p)) };
+      }
+      if (email && !qs.producto) out.apartados = (await listApartados({ email: String(email).toLowerCase() })).map(apartadoPublico);
       // Sin sesión se guarda 30 s en la CDN (la tienda la consulta en cada
       // visita); el cupo real se revisa otra vez al apartar.
       return json(200, out, email
@@ -61,21 +74,35 @@ exports.handler = async (event) => {
         if (!limit.allowed) return json(429, { error: "Hiciste muchos apartados seguidos. Intenta en un rato." });
         const cfg = await configActual();
         if (!abierta(cfg)) return json(409, { error: "La preventa ya cerró." });
+        // Un renglón por producto + tono/tamaño (sku).
         const pedidos = new Map();
         for (const it of Array.isArray(b.items) ? b.items : []) {
           const qty = parseInt(it && it.qty, 10);
           const id = String((it && it.id) || "");
-          if (id && qty > 0) pedidos.set(id, (pedidos.get(id) || 0) + qty);
+          const sku = String((it && it.sku) || "");
+          const k = `${id}|${sku}`;
+          if (id && qty > 0) pedidos.set(k, { id, sku, qty: ((pedidos.get(k) || {}).qty || 0) + qty });
         }
         if (!pedidos.size) return json(400, { error: "Elige al menos un producto." });
-        if ([...pedidos.values()].reduce((s, q) => s + q, 0) > MAX_PIEZAS) return json(400, { error: `Puedes apartar hasta ${MAX_PIEZAS} piezas por apartado.` });
+        if ([...pedidos.values()].reduce((s, x) => s + x.qty, 0) > MAX_PIEZAS) return json(400, { error: `Puedes apartar hasta ${MAX_PIEZAS} piezas por apartado.` });
         const productos = new Map((await productosConCupo()).map((p) => [p.id, p]));
         const items = [];
-        for (const [id, qty] of pedidos) {
+        const porProducto = {};
+        for (const { id, sku, qty } of pedidos.values()) {
           const p = productos.get(id);
           if (!p || p.activo === false) return json(409, { error: "Uno de los productos ya no está en la preventa. Recarga la página." });
-          if (qty > p.disponibles) return json(409, { error: p.disponibles ? `De ${p.nombre} solo quedan ${p.disponibles} para apartar.` : `${p.nombre} ya se agotó.` });
-          items.push({ id, nombre: p.nombre, marca: p.marca || "", imagen: p.imagen || "", precio: Number(p.precio), qty });
+          let v = null;
+          if ((p.variantes || []).length) {
+            v = p.variantes.find((x) => x.id === sku);
+            if (!v) return json(400, { error: `Elige el tono o tamaño de ${p.nombre}.` });
+            if (v.agotado) return json(409, { error: `${p.nombre} (${v.nombre}) ya no está disponible.` });
+          }
+          porProducto[id] = (porProducto[id] || 0) + qty;
+          if (p.disponibles != null && porProducto[id] > p.disponibles) return json(409, { error: p.disponibles ? `De ${p.nombre} solo quedan ${p.disponibles} para apartar.` : `${p.nombre} ya se agotó.` });
+          items.push({
+            id, nombre: p.nombre, marca: p.marca || "", imagen: (v && v.imagen) || p.imagen || "", precio: Number(v ? v.precio : p.precio), qty,
+            ...(v ? { sku: v.id, variante: v.nombre, tamano: v.tamano || "" } : {}),
+          });
         }
         const entrega = b.entrega === "personal" ? "personal" : "envio";
         const d = b.direccion || {};

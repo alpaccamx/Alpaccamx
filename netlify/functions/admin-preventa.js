@@ -6,6 +6,9 @@
 //   guardar_config    { titulo, descripcion, cierre, llegada, anticipoPct, envioDefault, activa }
 //   guardar_producto  { id?, nombre, marca, imagen, descripcion, precio, precioAntes, piezas, activo }
 //   borrar_producto   { id }   (si ya tiene apartados, solo se oculta)
+//   importar          { productos: [{ id, nombre, marca, grupo, imagen, descripcion, variantes, ... }] }
+//                     (agrega o reemplaza por id; así se cargan marcas completas de Sephora)
+//   activar_grupo     { grupo, activo }  (mostrar u ocultar toda una marca/grupo)
 //   aprobar_pago      { id, etapa }
 //   rechazar_pago     { id, etapa, motivo }
 //   llego             { id, envio }   (cobra el resto + envío)
@@ -16,7 +19,7 @@
 
 const { randomUUID } = require("crypto");
 const { checkAdminKey } = require("./lib/admin-auth.js");
-const { saveConfig, getProducto, saveProducto, deleteProducto, listApartados, getApartado, mutateApartado, getFile } = require("./lib/preventa-store.js");
+const { saveConfig, listProductos, getProducto, saveProducto, deleteProducto, saveProductosLote, listApartados, getApartado, mutateApartado, getFile } = require("./lib/preventa-store.js");
 const { CONFIG_DEFAULT, configActual, productosConCupo, cuenta, aplicarPago, avisar, listaHTML, esc, formatPriceMXN, round2 } = require("./lib/preventa-core.js");
 
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
@@ -37,8 +40,10 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
     }
     try {
-      const [config, productos, apartados] = await Promise.all([configActual(), productosConCupo(), listApartados()]);
-      return json(200, { config, productos, apartados: apartados.map((a) => ({ ...a, cuenta: cuenta(a) })) });
+      const [config, productos, apartados] = await Promise.all([configActual(), productosConCupo({ conApartadas: true }), listApartados()]);
+      // Sin la lista de tonos (pesaría megas); solo cuántos tiene.
+      const ligeros = productos.map(({ variantes, ...p }) => ({ ...p, numVariantes: (variantes || []).length }));
+      return json(200, { config, productos: ligeros, apartados: apartados.map((a) => ({ ...a, cuenta: cuenta(a) })) });
     } catch (err) {
       console.error("admin-preventa GET:", err);
       return json(500, { error: "No se pudo cargar la preventa." });
@@ -74,7 +79,8 @@ exports.handler = async (event) => {
       case "guardar_producto": {
         const nombre = clip(b.nombre, 160);
         const precio = num(b.precio);
-        const piezas = Math.max(0, Math.min(9999, parseInt(b.piezas, 10) || 0));
+        // Vacío = sin límite de piezas.
+        const piezas = b.piezas === "" || b.piezas == null ? null : Math.max(0, Math.min(9999, parseInt(b.piezas, 10) || 0));
         if (!nombre) return json(400, { error: "Ponle nombre al producto." });
         if (!(precio > 0)) return json(400, { error: "Pon el precio por pieza." });
         const imagen = clip(b.imagen, 600);
@@ -88,6 +94,38 @@ exports.handler = async (event) => {
         };
         await saveProducto(p);
         return json(200, { producto: p });
+      }
+
+      case "importar": {
+        const lista = Array.isArray(b.productos) ? b.productos.slice(0, 600) : [];
+        if (!lista.length) return json(400, { error: "No vienen productos." });
+        const actuales = new Map((await listProductos()).map((p) => [p.id, p]));
+        const limpios = lista.map((x, i) => {
+          const prev = actuales.get(String(x.id));
+          const variantes = (Array.isArray(x.variantes) ? x.variantes : []).slice(0, 200).map((v) => ({
+            id: clip(v.id, 40), nombre: clip(v.nombre, 120), desc: clip(v.desc, 160), tamano: clip(v.tamano, 120),
+            precio: num(v.precio), precioAntes: num(v.precioAntes), imagen: clip(v.imagen, 400), swatch: clip(v.swatch, 400), agotado: !!v.agotado,
+          })).filter((v) => v.id && v.precio > 0);
+          return {
+            ...(prev || { createdAt: now(), orden: Date.now() + i }),
+            id: clip(x.id, 60), nombre: clip(x.nombre, 160), marca: clip(x.marca, 80), grupo: clip(x.grupo, 60), imagen: clip(x.imagen, 400),
+            descripcion: clip(x.descripcion, 600), precio: num(x.precio) || (variantes[0] && variantes[0].precio) || 0, precioAntes: num(x.precioAntes),
+            piezas: x.piezas == null || x.piezas === "" ? null : Math.max(0, parseInt(x.piezas, 10) || 0),
+            activo: prev ? prev.activo !== false : x.activo !== false, variacion: clip(x.variacion, 40), variantes,
+            origen: clip(x.origen, 400), updatedAt: now(),
+          };
+        }).filter((p) => p.id && p.nombre && p.precio > 0);
+        await saveProductosLote(limpios);
+        return json(200, { importados: limpios.length });
+      }
+
+      case "activar_grupo": {
+        const grupo = clip(b.grupo, 60);
+        const activo = b.activo !== false;
+        const cambiar = (await listProductos()).filter((p) => (p.grupo || "Otros") === grupo).map((p) => ({ ...p, activo, updatedAt: now() }));
+        if (!cambiar.length) return json(404, { error: "No hay productos en ese grupo." });
+        await saveProductosLote(cambiar);
+        return json(200, { cambiados: cambiar.length });
       }
 
       case "borrar_producto": {

@@ -50,15 +50,38 @@ function reservadas(apartados) {
   return out;
 }
 
-async function productosConCupo() {
-  const [productos, apartados] = await Promise.all([listProductos(), listApartados()]);
-  const res = reservadas(apartados);
-  return productos.map((p) => ({ ...p, apartadas: res[p.id] || 0, disponibles: Math.max(0, (Number(p.piezas) || 0) - (res[p.id] || 0)) }));
+const sinLimite = (p) => p.piezas == null || p.piezas === "";
+
+/* Productos con su cupo. Si ninguno tiene límite de piezas no hace falta
+   leer los apartados (así cada visita es una sola lectura). */
+async function productosConCupo({ conApartadas = false } = {}) {
+  const productos = await listProductos();
+  const hayLimite = productos.some((p) => !sinLimite(p));
+  const res = hayLimite || conApartadas ? reservadas(await listApartados()) : {};
+  return productos.map((p) => ({
+    ...p,
+    apartadas: res[p.id] || 0,
+    disponibles: sinLimite(p) ? null : Math.max(0, (Number(p.piezas) || 0) - (res[p.id] || 0)),
+  }));
 }
 
-/* Lo que ve la clienta de un producto. */
-function productoPublico(p) {
-  return { id: p.id, nombre: p.nombre, marca: p.marca, imagen: p.imagen, descripcion: p.descripcion, precio: p.precio, precioAntes: p.precioAntes || 0, disponibles: p.disponibles };
+const varPublica = (v) => ({ id: v.id, nombre: v.nombre, desc: v.desc || "", tamano: v.tamano || "", precio: v.precio, precioAntes: v.precioAntes || 0, imagen: v.imagen || "", swatch: v.swatch || "", agotado: !!v.agotado });
+
+/* Lo que ve la clienta de un producto en la lista (sin los tonos, para que
+   pese poco); "detalle" agrega todas sus variantes. */
+function productoPublico(p, { detalle = false } = {}) {
+  const vs = (p.variantes || []).filter((v) => !v.agotado);
+  const precios = vs.map((v) => v.precio).filter((n) => n > 0);
+  const out = {
+    id: p.id, nombre: p.nombre, marca: p.marca, grupo: p.grupo || "", imagen: p.imagen, descripcion: p.descripcion,
+    precio: precios.length ? Math.min(...precios) : p.precio,
+    precioMax: precios.length ? Math.max(...precios) : p.precio,
+    precioAntes: precios.length ? Math.min(...vs.map((v) => v.precioAntes || 0)) : p.precioAntes || 0,
+    disponibles: p.disponibles, variacion: p.variacion || "", numVariantes: vs.length,
+    agotado: (p.variantes || []).length > 0 && !vs.length,
+  };
+  if (detalle) out.variantes = (p.variantes || []).map(varPublica);
+  return out;
 }
 
 /* Lo que ve la clienta de su apartado. */
@@ -129,7 +152,7 @@ async function avisar(a, subject, html, texto) {
   }).catch((err) => console.error("preventa: correo", err));
 }
 
-const listaHTML = (a) => `<ul style="font-size:14px;padding-left:18px;">${(a.items || []).map((it) => `<li>${it.qty} × ${esc(it.marca ? `${it.marca} ` : "")}${esc(it.nombre)} (${formatPriceMXN(it.precio)} c/u)</li>`).join("")}</ul>`;
+const listaHTML = (a) => `<ul style="font-size:14px;padding-left:18px;">${(a.items || []).map((it) => `<li>${it.qty} × ${esc(it.marca ? `${it.marca} ` : "")}${esc(it.nombre)}${it.variante ? ` · ${esc(it.variante)}` : ""}${it.tamano ? ` (${esc(it.tamano)})` : ""} — ${formatPriceMXN(it.precio)} c/u</li>`).join("")}</ul>`;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 /* Marca pagada una etapa (webhook de Mercado Pago o Mae aprobando el
@@ -170,6 +193,6 @@ async function aplicarPago(id, etapa, { metodo, paymentId, monto } = {}) {
 }
 
 module.exports = {
-  CONFIG_DEFAULT, HORAS_PARA_PAGAR, round2, configActual, abierta, vencido, cuenta, reservadas, productosConCupo,
+  CONFIG_DEFAULT, HORAS_PARA_PAGAR, round2, configActual, abierta, vencido, cuenta, reservadas, productosConCupo, sinLimite,
   productoPublico, apartadoPublico, etapaPorPagar, crearPreferenciaMP, aplicarPago, avisar, listaHTML, esc, formatPriceMXN,
 };
