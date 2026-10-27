@@ -34,6 +34,38 @@ function pvGuardarBolsa() {
   if (typeof renderCart === "function" && document.getElementById("cart-items")) renderCart();
 }
 
+/* app.js la llama cuando se agrega algo a otro carrito; regresa si había algo. */
+function pvVaciarBolsa() {
+  if (!Object.keys(pv.bag).length) return false;
+  pv.bag = {};
+  pv.checkout = false;
+  try { localStorage.setItem(PV_BAG_KEY, "{}"); } catch (err) { /* nada */ }
+  if (document.getElementById("preventa-box")) renderPreventa();
+  return true;
+}
+
+/* Al agregar algo de la preventa se vacían los otros carritos (no se
+   mezclan: la preventa se aparta con anticipo). */
+function pvVaciarOtrosCarritos() {
+  const vaciados = [];
+  if (typeof cart !== "undefined" && Object.keys(cart).length) {
+    cart = {};
+    try { localStorage.setItem(CART_KEY, "{}"); } catch (err) { /* nada */ }
+    vaciados.push("Skincare Coreano");
+  }
+  if (typeof americanoCart !== "undefined" && Object.keys(americanoCart).length) {
+    americanoCart = {};
+    try { localStorage.setItem(AMERICANO_CART_KEY, "{}"); } catch (err) { /* nada */ }
+    if (typeof renderAmericanoCart === "function") renderAmericanoCart();
+    vaciados.push("Cosmético Americano");
+  }
+  const notice = document.getElementById("cart-switch-notice");
+  if (notice) {
+    notice.textContent = vaciados.length ? `Se vació tu carrito de ${vaciados.join(" y ")} al agregar un producto de la preventa (la preventa se aparta por separado).` : "";
+    notice.classList.toggle("hidden", !vaciados.length);
+  }
+}
+
 /* Para el contador del carrito (app.js). */
 function pvBolsaCarrito() {
   const items = Object.values(pv.bag);
@@ -378,6 +410,7 @@ function pvAgregarDesdePicker() {
   const v = d && (d.variantes || []).find((x) => x.id === pk.sku);
   if (d && (d.variantes || []).length && !v) return;
   const k = `${pk.id}|${v ? v.id : ""}`;
+  pvVaciarOtrosCarritos();
   const prev = pv.bag[k];
   pv.bag[k] = {
     id: pk.id, sku: v ? v.id : "", qty: (prev ? prev.qty : 0) + pk.qty, nombre: base.nombre, marca: base.marca || "",
