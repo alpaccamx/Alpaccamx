@@ -5480,7 +5480,6 @@ ${itemLines}
         <label>Cierra el (fecha y hora)<input data-c="cierre" type="datetime-local" value="${pvLocal(c.cierre)}"></label>
         <label>Llega aprox.<input data-c="llegada" type="text" value="${escapeHtml(c.llegada || "")}" placeholder="Ej. a mediados de diciembre"></label>
         <label>% de anticipo<input data-c="anticipoPct" type="number" min="1" max="100" value="${c.anticipoPct || 50}"></label>
-        <label>Envío que sueles cobrar ($)<input data-c="envioDefault" type="number" min="0" step="1" value="${c.envioDefault || ""}" placeholder="Ej. 150"></label>
       </div>
       <label style="margin-top:8px;">Descripción (sale en la tienda)<textarea data-c="descripcion" rows="2" style="width:100%;">${escapeHtml(c.descripcion || "")}</textarea></label>
       <label class="swm-check"><input data-c="activa" type="checkbox" ${c.activa ? "checked" : ""}> Preventa abierta (se ve en la tienda)</label>
@@ -5600,7 +5599,7 @@ ${itemLines}
     if (a.cuenta && a.status === "apartado") {
       acciones.push(a.entrega === "personal"
         ? `<button type="button" class="btn-primary" data-pv-llego="${id}">📦 Ya llegó: cobrar el resto</button>`
-        : `<span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;"><input data-pv-envio="${id}" type="number" min="0" step="1" value="${pvData.config.envioDefault || ""}" placeholder="Envío $" style="width:110px;"><button type="button" class="btn-primary" data-pv-llego="${id}">📦 Ya llegó: cobrar resto + envío</button></span>`);
+        : `<span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;"><input data-pv-envio="${id}" type="number" min="0" step="1" value="" placeholder="Envío $" style="width:110px;"><button type="button" class="btn-primary" data-pv-llego="${id}">📦 Ya llegó: cobrar resto + envío</button></span>`);
     }
     if (a.status === "liquidado") {
       if (a.entrega === "envio") acciones.push(`<span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;"><input data-pv-paq="${id}" type="text" value="Estafeta" list="pv-paqs" style="width:120px;"><input data-pv-guia="${id}" type="text" placeholder="Número de guía" style="width:160px;"><button type="button" class="btn-primary" data-pv-enviar="${id}">🚚 Marcar enviado</button></span>`);
@@ -5629,7 +5628,7 @@ ${itemLines}
     const fn = (PV_FILTROS.find(([k]) => k === pvFiltro) || PV_FILTROS[0])[2];
     const lista = aps.filter(fn);
     const llegaTodo = pvFiltro === "apartado" && lista.length > 1
-      ? `<button type="button" class="btn-primary" data-pv-llego-todo style="margin-bottom:8px;">📦 Llegó todo: avisar a las ${lista.length} y cobrar el resto${pvData.config.envioDefault ? ` (envío ${formatPrice(pvData.config.envioDefault)})` : ""}</button>` : "";
+      ? `<p class="meta" style="margin-bottom:6px;">Pon el envío de cada clienta en su cuadrito (según lo que pidió) y luego avísales a todas juntas:</p><button type="button" class="btn-primary" data-pv-llego-todo style="margin-bottom:8px;">📦 Llegó todo: avisar a las ${lista.length} y cobrar el resto + su envío</button>` : "";
     document.getElementById("pv-admin").innerHTML = `
       ${pvConfigHTML(pvData.config)}
       ${pvProductoFormHTML()}
@@ -5678,7 +5677,7 @@ ${itemLines}
       const cierre = v("cierre").value;
       await pvAct({
         accion: "guardar_config", titulo: v("titulo").value, descripcion: v("descripcion").value, llegada: v("llegada").value,
-        cierre: cierre ? new Date(cierre).toISOString() : "", anticipoPct: v("anticipoPct").value, envioDefault: v("envioDefault").value, activa: v("activa").checked,
+        cierre: cierre ? new Date(cierre).toISOString() : "", anticipoPct: v("anticipoPct").value, activa: v("activa").checked,
       }, btn);
       return;
     }
@@ -5737,14 +5736,16 @@ ${itemLines}
     }
     if (t.closest("[data-pv-llego-todo]")) {
       const lista = pvData.apartados.filter((a) => a.cuenta && a.status === "apartado");
-      const envio = pvData.config.envioDefault || 0;
-      if (!confirm(`¿Avisar a las ${lista.length} clientas que ya llegó y cobrarles el resto${envio ? ` + envío de ${formatPrice(envio)} (las de entrega personal no pagan envío)` : " (sin envío)"}?`)) return;
+      const envioDe = (a) => { const i = document.querySelector(`[data-pv-envio="${CSS.escape(a.id)}"]`); return i ? i.value.trim() : "0"; };
+      const sinEnvio = lista.filter((a) => a.entrega === "envio" && envioDe(a) === "");
+      if (sinEnvio.length) { alert(`Te falta poner el envío de: ${sinEnvio.map((a) => a.folio).join(", ")}`); return; }
+      if (!confirm(`¿Avisar a las ${lista.length} clientas que ya llegó y cobrarles el resto + el envío que pusiste a cada una? (Las de entrega personal no pagan envío.)`)) return;
       btn.disabled = true;
       let n = 0;
       for (const a of lista) {
         btn.textContent = `Avisando ${++n} de ${lista.length}...`;
         try {
-          const res = await fetch("/.netlify/functions/admin-preventa", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ accion: "llego", id: a.id, envio }) });
+          const res = await fetch("/.netlify/functions/admin-preventa", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ accion: "llego", id: a.id, envio: envioDe(a) }) });
           if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "error");
         } catch (err) { alert(`${a.folio}: ${err.message}`); }
       }
