@@ -480,6 +480,19 @@ function loadCart() {
 
 function saveCart() {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  if (Object.keys(cart).length) vaciarPreventaPorOtroCarrito("cart-switch-notice", "Skincare Coreano");
+}
+
+/* La preventa no se mezcla con los otros carritos: al agregar algo de
+   Stock/Corea o de Cosmético Americano se vacía lo de la preventa (y
+   preventa.js hace lo contrario). */
+function vaciarPreventaPorOtroCarrito(noticeId, nombre) {
+  if (typeof pvVaciarBolsa !== "function" || !pvVaciarBolsa()) return;
+  setTimeout(renderCart); // quita la sección de preventa del carrito
+  const notice = document.getElementById(noticeId);
+  if (!notice) return;
+  notice.textContent = `Se vaciaron tus productos de la preventa al agregar un producto de ${nombre} (la preventa se aparta por separado).`;
+  notice.classList.remove("hidden");
 }
 
 function loadAmericanoCart() {
@@ -492,6 +505,7 @@ function loadAmericanoCart() {
 
 function saveAmericanoCart() {
   localStorage.setItem(AMERICANO_CART_KEY, JSON.stringify(americanoCart));
+  if (Object.keys(americanoCart).length) vaciarPreventaPorOtroCarrito("americano-cart-switch-notice", "Cosmético Americano");
 }
 
 /* ======================================================================
