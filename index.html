@@ -901,6 +901,8 @@
   <p id="cart-switch-notice" class="hidden text-xs text-rose-ink text-center px-5 pt-3"></p>
 
   <div class="flex-1 overflow-y-auto">
+  <!-- Productos de la preventa (se apartan con anticipo; los pinta preventa.js) -->
+  <div id="cart-preventa" class="hidden px-5 pt-4"></div>
   <div id="cart-items" class="px-5 py-4 space-y-4">
     <!-- cart line items injected by JS -->
   </div>
@@ -911,7 +913,7 @@
     <button type="button" data-howto-video class="mt-4 inline-flex items-center gap-2 rounded-full bg-[#fdecf2] px-4 py-2.5 text-sm font-semibold text-rose-ink hover:bg-blush/40">▶️ Mira cómo comprar (1 min)</button>
   </div>
 
-  <div class="border-t border-ink/10 px-5 py-4 space-y-4">
+  <div id="cart-footer" class="border-t border-ink/10 px-5 py-4 space-y-4">
     <p class="text-xs text-ink/75 text-center leading-snug">El precio de tus productos es fijo. El envío se calcula según peso y destino; si hay algún ajuste, te contactaremos antes de procesar tu pedido.</p>
     <div class="space-y-1.5 tabular-nums">
       <div class="flex items-center justify-between font-semibold text-ink">

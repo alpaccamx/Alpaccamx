@@ -30,6 +30,57 @@ function pvLeerBolsa() {
 }
 function pvGuardarBolsa() {
   try { localStorage.setItem(PV_BAG_KEY, JSON.stringify(pv.bag)); } catch (err) { /* nada */ }
+  // El carrito de la tienda también muestra lo de la preventa.
+  if (typeof renderCart === "function" && document.getElementById("cart-items")) renderCart();
+}
+
+/* Para el contador del carrito (app.js). */
+function pvBolsaCarrito() {
+  const items = Object.values(pv.bag);
+  return { piezas: items.reduce((s, x) => s + x.qty, 0), total: items.reduce((s, x) => s + x.precio * x.qty, 0) };
+}
+
+/* Sección "Preventa" dentro del carrito; regresa cuántas piezas hay. */
+function renderCartPreventa() {
+  const box = document.getElementById("cart-preventa");
+  if (!box) return 0;
+  const { items, piezas, total, anticipo } = pvTotales();
+  box.classList.toggle("hidden", !piezas);
+  if (!piezas) { box.innerHTML = ""; return 0; }
+  const pct = (pv.config && pv.config.anticipoPct) || 50;
+  box.innerHTML = `<div class="rounded-2xl border-2 border-rose-deep/30 bg-blush/15 p-3">
+    <p class="text-sm font-bold text-rose-ink">🛍️ Preventa · se aparta con el ${pct}%</p>
+    <ul class="mt-2 divide-y divide-ink/10 text-sm">${items.map((x) => `<li class="flex gap-3 py-2 rounded-xl" data-line="${escapeHtml(x.k)}">
+      ${x.imagen ? `<img src="${escapeHtml(x.imagen)}" alt="" class="w-14 h-14 rounded-lg bg-white object-contain shrink-0">` : ""}
+      <div class="min-w-0 flex-1">
+        <span class="block leading-snug">${escapeHtml(x.marca ? `${x.marca} · ` : "")}${escapeHtml(x.nombre)}</span>${x.variante || x.tamano ? `<span class="block text-xs text-ink/60">${escapeHtml([x.variante, x.tamano].filter(Boolean).join(" · "))}</span>` : ""}
+        <div class="mt-1.5 flex items-center justify-between gap-3">
+          <span class="flex items-center rounded-full border border-ink/15 bg-white h-8"><button type="button" data-pv-cart-qty="${escapeHtml(x.k)}" data-d="-1" aria-label="Menos" class="w-8 h-8">−</button><span class="w-5 text-center text-xs font-bold">${x.qty}</span><button type="button" data-pv-cart-qty="${escapeHtml(x.k)}" data-d="1" aria-label="Más" class="w-8 h-8">+</button></span>
+          <b>${pvMXN(x.precio * x.qty)}</b>
+        </div>
+      </div></li>`).join("")}</ul>
+    <div class="mt-2 space-y-0.5 text-sm">
+      <div class="flex justify-between"><span>Total preventa (${piezas})</span><b>${pvMXN(total)}</b></div>
+      <div class="flex justify-between text-rose-ink"><span>Hoy pagas para apartar</span><b>${pvMXN(anticipo)}</b></div>
+      <p class="text-xs text-ink/70">El resto + envío lo pagas cuando llegue.</p>
+    </div>
+    <button type="button" data-pv-cart-apartar class="mt-3 w-full rounded-full bg-rose-deep px-4 py-3 text-sm font-semibold text-cream hover:bg-rose-ink transition">💗 Apartar y pagar ${pvMXN(anticipo)}</button>
+  </div>`;
+  return piezas;
+}
+
+/* Del carrito al formulario de apartado. */
+async function pvIrAApartar() {
+  if (typeof closeCart === "function") closeCart();
+  openPreventa();
+  if (!pv.lista) {
+    await new Promise((r) => { const t = setInterval(() => { if (pv.lista || pv.error) { clearInterval(t); r(); } }, 150); });
+  }
+  pv.checkout = true;
+  if (getCustomerToken() && typeof loadMisDirecciones === "function") await loadMisDirecciones();
+  renderPreventa();
+  const el = document.getElementById("pv-checkout");
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 const PV_STATUS = {
@@ -76,7 +127,9 @@ async function loadPreventaResumen() {
   try {
     const d = await pvGet("?resumen=1");
     Object.assign(pv, { config: d.config, abierta: !!d.abierta, total: d.total || 0, apartados: d.apartados || pv.apartados, resumen: true });
+    if (!pv.abierta && Object.keys(pv.bag).length) { pv.bag = {}; pvGuardarBolsa(); }
   } catch (err) { /* sin preventa no pasa nada */ }
+  if (typeof renderCart === "function") renderCart();
   renderPreventaBanner();
   if (typeof renderMobileMenu === "function" && document.getElementById("mobile-menu-items")) renderMobileMenu();
 }
@@ -334,6 +387,11 @@ function pvAgregarDesdePicker() {
   pvGuardarBolsa();
   pvCerrarPicker();
   renderPreventa();
+  if (typeof openCart === "function") {
+    openCart();
+    if (typeof acknowledgeCartChange === "function") acknowledgeCartChange("cart-preventa", k);
+  }
+  if (typeof announce === "function") announce(`Agregaste ${base.nombre}${v ? ` (${v.nombre})` : ""} a tu carrito.`);
 }
 
 /* ---------- Bolsa y apartar ---------- */
@@ -579,6 +637,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (t.closest("[data-pv-picker-agregar]")) pvAgregarDesdePicker();
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pv.picker) pvCerrarPicker(); });
+
+  // Preventa dentro del carrito.
+  const cartPv = document.getElementById("cart-preventa");
+  if (cartPv) cartPv.addEventListener("click", (e) => {
+    const q = e.target.closest("[data-pv-cart-qty]");
+    if (q) {
+      const k = q.dataset.pvCartQty;
+      if (pv.bag[k]) {
+        pv.bag[k].qty += Number(q.dataset.d);
+        if (pv.bag[k].qty <= 0) delete pv.bag[k];
+        if (!Object.keys(pv.bag).length) pv.checkout = false;
+        pvGuardarBolsa();
+        renderPreventa();
+      }
+      return;
+    }
+    if (e.target.closest("[data-pv-cart-apartar]")) pvIrAApartar();
+  });
 
   box.addEventListener("click", async (e) => {
     const t = e.target;
