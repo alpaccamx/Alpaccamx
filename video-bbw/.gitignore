@@ -3,3 +3,15 @@ voz/lista.txt
 voz/frase*.mp3
 __pycache__/
 BBW.mp4
+voz-pov/*.wav
+voz-pov/lista.txt
+voz-pov/frase*.mp3
+BBW-pov.mp4
+voz-reventa/*.wav
+voz-reventa/lista.txt
+voz-reventa/frase*.mp3
+BBW-reventa.mp4
+voz-aromas/*.wav
+voz-aromas/lista.txt
+voz-aromas/frase*.mp3
+BBW-aromas.mp4
