@@ -176,7 +176,7 @@ function addKitToCart(id) {
   }
   saveCart();
   renderCart();
-  openCart();
+  if (typeof avisoAgregado === "function") avisoAgregado(`Kit ${kit.nombre} agregado a tu carrito`); else openCart();
   announce(`Agregaste el Kit Emprende ${kit.nombre} (${piezas} piezas) a tu carrito.`);
 }
 

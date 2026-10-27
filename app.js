@@ -3936,7 +3936,7 @@ function addSkinRoutineToCart() {
   }
   saveCart();
   renderCart();
-  openCart();
+  avisoAgregado("Rutina agregada a tu carrito");
   const added = Object.keys(cart).length - before;
   announce(`Agregaste tu rutina al carrito (${ids.length} productos${added < ids.length ? ", algunos ya estaban" : ""}).`);
 }
@@ -4928,8 +4928,8 @@ function addToAmericanoCart(id) {
   else americanoCart[id] = { product, qty: Math.max(1, product.moq || 1) };
   saveAmericanoCart();
   renderAmericanoCart();
-  openAmericanoCart();
   acknowledgeCartChange("americano-cart-items", id);
+  avisoAgregado("Agregado a tu carrito", { americano: true });
   const qty = americanoCart[id].qty;
   const switched = switchNotice.classList.contains("hidden") ? "" : `${switchNotice.textContent} `;
   announce(`${switched}Agregaste ${product.nombre} a tu pedido. Llevas ${qty} ${qty === 1 ? "pieza" : "piezas"}.`);
@@ -5124,6 +5124,33 @@ function sendAmericanoQuote(e) {
 /* ======================================================================
    Carrito
    ====================================================================== */
+/* Aviso de "agregado" (el carrito ya no se abre solo). Si se vació otro
+   carrito, el aviso lo dice; "Ver carrito" abre el que corresponde. */
+let avisoCarritoTimer = null;
+function avisoAgregado(texto, { americano = false, noticeId = americano ? "americano-cart-switch-notice" : "cart-switch-notice" } = {}) {
+  let el = document.getElementById("aviso-carrito");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "aviso-carrito";
+    el.setAttribute("role", "status");
+    el.className = "fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] w-[calc(100%-2rem)] max-w-md rounded-2xl bg-ink text-cream shadow-xl px-4 py-3 flex items-center gap-3 text-sm transition-opacity duration-300 opacity-0 pointer-events-none";
+    document.body.appendChild(el);
+    el.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-aviso-ver]");
+      if (!b) return;
+      el.classList.add("opacity-0", "pointer-events-none");
+      if (b.dataset.avisoVer === "americano") openAmericanoCart(); else openCart();
+    });
+  }
+  const notice = document.getElementById(noticeId);
+  const extra = notice && !notice.classList.contains("hidden") ? notice.textContent : "";
+  el.innerHTML = `<span class="flex-1 min-w-0"><b class="block">✓ ${escapeHtml(texto)}</b>${extra ? `<span class="block text-xs text-cream/80 mt-0.5">${escapeHtml(extra)}</span>` : ""}</span>
+    <button type="button" data-aviso-ver="${americano ? "americano" : "normal"}" class="shrink-0 rounded-full bg-cream text-ink px-3 py-1.5 text-xs font-bold">Ver carrito</button>`;
+  el.classList.remove("opacity-0", "pointer-events-none");
+  clearTimeout(avisoCarritoTimer);
+  avisoCarritoTimer = setTimeout(() => el.classList.add("opacity-0", "pointer-events-none"), extra ? 6000 : 3500);
+}
+
 function addToCart(id) {
   const product = products.find((p) => p.id === id);
   if (!product || !product.disponible) return;
@@ -5148,8 +5175,8 @@ function addToCart(id) {
   else cart[id] = { product, qty: 1 };
   saveCart();
   renderCart();
-  openCart();
   acknowledgeCartChange("cart-items", id);
+  avisoAgregado("Agregado a tu carrito");
   const switched = switchNotice.classList.contains("hidden") ? "" : `${switchNotice.textContent} `;
   announce(`${switched}Agregaste ${product.nombre} a tu carrito. Llevas ${cart[id].qty} ${cart[id].qty === 1 ? "pieza" : "piezas"}.`);
 }
