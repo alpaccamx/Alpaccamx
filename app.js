@@ -2417,8 +2417,21 @@ function cardBadgeHTML(p) {
 const SHADE_VARIANT_RE = /^(.*)\s\((#[^)]*)\)$/;
 const TYPE_VARIANT_RE = /^(.*-\s*\d+\s+[A-Za-zÀ-ÿ]+)\s\(([^)]+)\)$/;
 
+/* Los body mists de Bath & Body Works en Stock no se juntan en un selector:
+   cada aroma va en su propia tarjeta (con su foto) para que llamen más la
+   atención. El nombre se acorta a "Body Mist · Champagne Toast" (la marca ya
+   sale arriba de la tarjeta). */
+const sinAgrupar = (p) => p.enStock && /bath\s*&\s*body/i.test(p.marca || "");
+function nombreSuelto(p) {
+  const m = SHADE_VARIANT_RE.exec(p.nombre || "");
+  if (!m) return p;
+  const base = m[1].replace(/\s*bath\s*&\s*body\s*works\s*/i, " ").trim();
+  return { ...p, nombre: `${base} · ${m[2].replace(/^#\s*/, "")}` };
+}
+
 function groupVariants(list) {
   const parsed = list.map((p) => {
+    if (sinAgrupar(p)) return { p: nombreSuelto(p), baseName: nombreSuelto(p).nombre, shadeLabel: null };
     const m = SHADE_VARIANT_RE.exec(p.nombre || "") || TYPE_VARIANT_RE.exec(p.nombre || "");
     const baseName = m ? m[1] : p.nombre || "";
     const shadeLabel = m ? m[2] : null;
