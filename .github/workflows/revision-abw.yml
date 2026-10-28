@@ -1,6 +1,7 @@
 # Revisión de precios y disponibilidad contra Asian Beauty Wholesale.
-# Corre sola todos los días; en cada corrida revisa las marcas que llevan más
-# de 6 días sin revisarse (ver scripts/abw-revision/rev.py). Los cambios
+# Corre sola cada 6 horas; en cada corrida revisa las marcas que llevan más
+# de 6 días sin revisarse (ver scripts/abw-revision/rev.py). Son muchas
+# páginas de ABW (una cada ~6 s), así que una vuelta completa toma 1-2 días. Los cambios
 # salen en /admin.html → Más → Revisión ABW para que Mae los apruebe.
 #
 # Necesita el secreto ADMIN_KEY (Settings → Secrets and variables → Actions).
@@ -9,7 +10,7 @@ name: Revisión ABW
 
 on:
   schedule:
-    - cron: "17 8 * * *" # todos los días, 1:17 am en Ciudad Juárez
+    - cron: "17 */6 * * *" # cada 6 horas
   workflow_dispatch:
     inputs:
       marcas:
@@ -27,7 +28,7 @@ concurrency:
 jobs:
   revisar:
     runs-on: ubuntu-latest
-    timeout-minutes: 340
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +56,7 @@ jobs:
           if [ -z "$ADMIN_KEY" ]; then echo "Falta el secreto ADMIN_KEY"; exit 1; fi
           if [ -n "$MARCAS" ]; then
             IFS=',' read -ra L <<< "$MARCAS"
-            python scripts/abw-revision/rev.py --horas 5 "${L[@]}"
+            python scripts/abw-revision/rev.py --horas 4 "${L[@]}"
           else
-            python scripts/abw-revision/rev.py --horas 5
+            python scripts/abw-revision/rev.py --horas 4
           fi
