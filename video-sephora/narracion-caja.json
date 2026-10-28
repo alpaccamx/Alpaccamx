@@ -1,0 +1,22 @@
+[
+ {
+  "texto": "Así se llena una caja de pedidos de Sephora.",
+  "marcas": [
+   "caja"
+  ]
+ },
+ {
+  "texto": "Todo original, y bien acomodado para que llegue perfecto.",
+  "marcas": [
+   "original",
+   "acomodado"
+  ]
+ },
+ {
+  "texto": "Este año ya abrí la preventa. Aparta lo tuyo en alpacca punto eme equis.",
+  "marcas": [
+   "preventa",
+   "Aparta"
+  ]
+ }
+]
