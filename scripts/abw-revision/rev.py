@@ -254,6 +254,10 @@ def main():
             r = api("admin-abw-revision", {"marca": m, "fecha": datetime.datetime.utcnow().isoformat() + "Z", "revisados": rev, "cambios": cambios})
             log("subido", "ok" if r.get("ok") else str(r)[:120])
             hechas += 1
+            # Guarda la sesión renovada después de cada marca, por si la
+            # corrida se corta por tiempo.
+            try: api("admin-abw-sesion", {"state": F.state()})
+            except Exception as e: log("no se pudo guardar la sesión:", str(e)[:80])
     except SesionCaducada:
         log("La sesión de ABW ya no está iniciada (sin precios). Hay que volver a entrar a ABW con el código que llega por correo.")
         F.close()
