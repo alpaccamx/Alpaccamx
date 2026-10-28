@@ -23,16 +23,33 @@ SDR = ("zscale=tin=arib-std-b67:min=bt2020nc:pin=bt2020:rin=tv:t=linear:npl=203,
        "tonemap=reinhard:param=0.6:desat=0,zscale=t=bt709:m=bt709:r=tv,format=rgb24")
 
 # precios de la preventa (Precio = con descuento; Antes = "Precio Sephora" que sale tachado en la página)
-PRODUCTOS = {
-    "rare": ("Rare Beauty", "Soft Pinch Liquid Blush", 316, 395),
-    "patrick": ("Patrick Ta", "Major Headlines Blush Duo", 493, 617),
-    "huda": ("Huda Beauty", "Easy Bake Setting Powder", 474, 592),
-    "calendario": ("Sephora Favorites", "Calendario de adviento 2026", 2071, 2589),
+PRODUCTOS = {  # clave: (marca, nombre, precio, Precio Sephora, foto en fotos/ o None)
+    "rare": ("Rare Beauty", "Soft Pinch Liquid Blush", 316, 395, "rare-blush"),
+    "patrick": ("Patrick Ta", "Major Headlines Blush Duo", 493, 617, "patrick-duo"),
+    "huda": ("Huda Beauty", "Easy Bake Setting Powder", 474, 592, None),
+    "calendario": ("Sephora Favorites", "Calendario de adviento 2026", 2071, 2589, None),
+    "rhode-tint": ("Rhode", "Peptide Lip Tint", 395, 493, "rhode-tint"),
+    "rhode-pocket": ("Rhode", "Pocket Blush", 493, 617, "rhode-pocket"),
+    "sf-balm": ("Summer Fridays", "Lip Butter Balm", 474, 592, "sf-balm"),
+    "sf-minis": ("Summer Fridays", "Lip Butter Balm Minis", 493, 617, "sf-minis"),
+    "laneige-lsm": ("Laneige", "Lip Sleeping Mask", 474, 592, "laneige-lsm"),
+    "laneige-minis": ("Laneige", "Midnight Minis (5 piezas)", 454, 567, "laneige-minis"),
+    "glow-dew": ("Glow Recipe", "Watermelon Dew Drops", 395, 493, "glow-dew"),
+    "sol-c62": ("Sol de Janeiro", "Cheirosa 62 Perfume Mist", 513, 641, "sol-c62"),
+    "touch-peanuts": ("Touchland", "Peanuts Hand Sanitizer", 237, 296, "touch-peanuts"),
+    "tower-lipsoftie": ("Tower 28", "LipSoftie", 316, 395, "tower-lipsoftie"),
+    "rare-comfort": ("Rare Beauty", "Find Comfort Lip Butter", 355, 444, "rare-comfort"),
+    "rare-mini": ("Rare Beauty", "Mini Soft Pinch Liquid Blush", 316, 395, "rare-mini"),
+    "saie-dew": ("Saie", "Dew Blush", 355, 444, "saie-dew"),
+    "kosas-blush": ("Kosas", "Blush is Life", 277, 346, "kosas-blush"),
+    "glow-cal": ("Glow Recipe", "12 Days of Glow 2026", 2170, 2712, "glow-cal"),
+    "laneige-cal": ("Laneige", "12 Days of Wonder 2026", 2939, 3673, "laneige-cal"),
 }
 # todas las tomas son de los pedidos del Sephora Sale del año pasado: se aclara con esta etiqueta para no confundir
 ETIQUETA = "📦 Pedidos del Sephora Sale 2025"
 
-# tomas en orden: (video, inicio, segundos, velocidad); se estiran parejo para llenar la voz
+# tomas en orden: (video, inicio, segundos, velocidad) o ("foto", nombre en fotos/, segundos, None); se estiran parejo
+# para llenar la voz
 # o escenas: una lista de tomas por escena (segundos None = lo que falte de la escena)
 # textos: (escena, marca o None, tipo, texto); uno a la vez. tipo "nada" quita el texto
 # tarjetas: (escena, marca o None, segundos, producto)
@@ -95,28 +112,58 @@ def video(vid, ini, n, vel):
 
 
 _cards = {}
-def tarjeta(k):
-    """tarjeta blanca: marca, producto, precio de la preventa y el Precio Sephora tachado"""
-    if k in _cards: return _cards[k]
-    marca, nombre, precio, antes = PRODUCTOS[k]
+def tarjeta(k, con_foto=False, ahorro=False):
+    """tarjeta blanca: (foto chica), marca, producto, precio de la preventa y el Precio Sephora tachado;
+    con ahorro=True dice cuánto te ahorras"""
+    if (k, con_foto, ahorro) in _cards: return _cards[(k, con_foto, ahorro)]
+    marca, nombre, precio, antes, foto = PRODUCTOS[k]
+    foto = foto if con_foto else None
+    fw = 230 if foto else 0
     fn = b.F("ExtraBold", 54)
-    while fn.getlength(nombre) > 760: fn = b.F("ExtraBold", fn.size - 4)
+    while fn.getlength(nombre) > 760 - fw: fn = b.F("ExtraBold", fn.size - 4)
     pr = b.pastilla(f"${precio:,}", "ExtraBold", 76, PINK, WHITE, padx=34, pady=14)
     fa = b.F("SemiBold", 36); ta = f"Precio Sephora ${antes:,}"
-    w = int(max(fn.getlength(nombre), 520)) + 110; h = 330
+    ah = b.pastilla(f"Te ahorras ${antes - precio:,}", "ExtraBold", 44, (22, 150, 80), WHITE, padx=26, pady=10) if ahorro else None
+    w = int(max(fn.getlength(nombre), 520)) + 110 + fw; h = 330 + (ah.height + 14 if ah else 0)
     card = Image.new("RGBA", (w + 60, h + 60))
     sh = Image.new("L", card.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 40, w + 30, h + 40), 34, fill=120)
     card.putalpha(sh.filter(ImageFilter.GaussianBlur(16)))
     d = ImageDraw.Draw(card); d.rounded_rectangle((30, 30, w + 30, h + 30), 34, fill=WHITE)
-    cx = 30 + w / 2
+    if foto:
+        im = Image.open(os.path.join(AQUI, "fotos", foto + ".jpg")).convert("RGB"); im.thumbnail((fw, h - 40), Image.LANCZOS)
+        m = Image.new("L", im.size, 0); ImageDraw.Draw(m).rounded_rectangle((0, 0, im.width - 1, im.height - 1), 20, fill=255)
+        card.paste(im, (30 + 30 + (fw - im.width) // 2, 30 + (h - im.height) // 2), m)
+    cx = 30 + fw + (w - fw) / 2
     d.text((cx, 82), marca.upper() + " · PREVENTA 2026", font=b.F("Bold", 30), fill=PINK, anchor="mm")
     d.text((cx, 142), nombre, font=fn, fill=INK, anchor="mm")
     card.alpha_composite(pr, (int(cx - pr.width / 2), 180))
     y = 180 + pr.height + 26
     d.text((cx, y), ta, font=fa, fill=GREY, anchor="mm")
     tw = fa.getlength(ta); d.line((cx - tw / 2 + fa.getlength("Precio Sephora "), y, cx + tw / 2, y), fill=(200, 40, 60), width=4)
-    _cards[k] = card
+    if ah: card.alpha_composite(ah, (int(cx - ah.width / 2), int(y + 30)))
+    _cards[(k, con_foto, ahorro)] = card
     return card
+
+
+_fondo = []
+def foto_escena(nombre, n):
+    """escena sin video: fondo rosita con la foto del producto grande en tarjeta blanca, acercándose despacio"""
+    if not _fondo:
+        g = Image.new("RGB", (1, H))
+        for y in range(H):
+            t = y / H; g.putpixel((0, y), (int(253 - 8 * t), int(236 - 30 * t), int(242 - 22 * t)))
+        _fondo.append(g.resize((W, H)).convert("RGBA"))
+    im = Image.open(os.path.join(AQUI, "fotos", nombre + ".jpg")).convert("RGB"); im.thumbnail((720, 760), Image.LANCZOS)
+    card = Image.new("RGBA", (im.width + 100, im.height + 100))
+    sh = Image.new("L", card.size, 0); ImageDraw.Draw(sh).rounded_rectangle((40, 55, im.width + 60, im.height + 70), 40, fill=110)
+    card.putalpha(sh.filter(ImageFilter.GaussianBlur(20)))
+    m = Image.new("L", im.size, 0); ImageDraw.Draw(m).rounded_rectangle((0, 0, im.width - 1, im.height - 1), 36, fill=255)
+    card.paste(im, (50, 45), m)
+    for f in range(n):
+        L = _fondo[0].copy()
+        s_, a_ = b.entra(f / FPS, 0, 0.35)
+        b.pon(L, card, W / 2, CFG.get("foto_y", 900), s_ * (1 + 0.04 * f / max(1, n)), a_)
+        yield L
 
 
 _etq = []
@@ -168,7 +215,7 @@ def cuadros():
         for k, lista in enumerate(CFG["escenas"]):
             n_esc = cuando(k + 1, None) if k + 1 < len(T) else total
             n_esc -= cuando(k, None)
-            fijos = sum(int(d * FPS) for _, _, d, _ in lista if d)
+            fijos = sum(int(tm[2] * FPS) for tm in lista if tm[2])
             for j, tm in enumerate(lista):
                 tomas.append(tm)
                 ns.append(max(0, n_esc - fijos) if tm[2] is None else int(tm[2] * FPS))
@@ -181,15 +228,17 @@ def cuadros():
     f = 0
     for tm, n in zip(tomas, ns):
         if n <= 0: continue
-        for k, L in zip(range(n), video(tm[0], tm[1], n, tm[3])):
+        es_foto = tm[0] == "foto"
+        for k, L in zip(range(n), foto_escena(tm[1], n) if es_foto else video(tm[0], tm[1], n, tm[3])):
             g = f + k
             card = next(((g - c, d, kk) for c, d, kk in cards if c <= g < c + d), None)
             if card:  # tarjeta arriba con rebote; se desvanece al final
                 s_, a_ = b.entra(card[0] / FPS, 0, 0.4)
-                b.pon(L, tarjeta(card[2]), W / 2, 460, s_, min(a_, (card[1] - card[0]) / 6))
-            b.pon(L, etiqueta(), W / 2, 270)
+                b.pon(L, tarjeta(card[2], CFG.get("foto_en_tarjeta", False), CFG.get("ahorro", False)), W / 2,
+                      CFG.get("tarjeta_y", 460), s_, min(a_, (card[1] - card[0]) / 6))
+            if not es_foto: b.pon(L, etiqueta(), W / 2, 270)
             act = [x for x in cambios if x[0] <= g]
-            if act and act[-1][1] != "nada": pon_texto(L, act[-1][1], act[-1][2], (g - act[-1][0]) / FPS, 700)
+            if act and act[-1][1] != "nada": pon_texto(L, act[-1][1], act[-1][2], (g - act[-1][0]) / FPS, CFG.get("texto_y", 700))
             yield L
         f += n
 
