@@ -1,0 +1,29 @@
+[
+ {
+  "texto": "Así empaco sus pedidos de Sephora.",
+  "marcas": [
+   "empaco"
+  ]
+ },
+ {
+  "texto": "Todo es original, comprado directo en Sephora, y va bien protegido para que llegue perfecto.",
+  "marcas": [
+   "original",
+   "protegido"
+  ]
+ },
+ {
+  "texto": "Y ahorita, en el Sephora Sale, tienen veinte por ciento de descuento.",
+  "marcas": [
+   "Sephora Sale",
+   "veinte por ciento"
+  ]
+ },
+ {
+  "texto": "Aparta los tuyos en alpacca punto eme equis, antes del ocho de noviembre.",
+  "marcas": [
+   "Aparta",
+   "ocho de noviembre"
+  ]
+ }
+]

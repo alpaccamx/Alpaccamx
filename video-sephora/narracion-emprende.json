@@ -1,0 +1,29 @@
+[
+ {
+  "texto": "Oye, ¿vendes maquillaje, o te gustaría empezar?",
+  "marcas": [
+   "vendes"
+  ]
+ },
+ {
+  "texto": "En el Sephora Sale te puedes surtir con veinte por ciento de descuento, todo original.",
+  "marcas": [
+   "Sephora Sale",
+   "veinte por ciento",
+   "original"
+  ]
+ },
+ {
+  "texto": "Apartas con la mitad, y cuando te llegan, los vendes al precio que tú quieras.",
+  "marcas": [
+   "Apartas",
+   "cuando te llegan"
+  ]
+ },
+ {
+  "texto": "Si te interesa, comenta me quiero unir y te paso a mi grupo.",
+  "marcas": [
+   "comenta"
+  ]
+ }
+]
