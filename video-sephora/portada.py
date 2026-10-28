@@ -11,11 +11,13 @@ import build as b
 from PIL import Image
 
 W, H = 1080, 1920
+SDR = ("zscale=tin=arib-std-b67:min=bt2020nc:pin=bt2020:rin=tv:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,"
+       "tonemap=reinhard:param=0.6:desat=0,zscale=t=bt709:m=bt709:r=tv,format=rgb24")  # HDR del iPhone a color normal
 
 
 def cuadro(vid, seg):
     x = subprocess.check_output(["ffmpeg", "-nostdin", "-v", "error", "-ss", str(seg), "-i", os.path.join(CRUDO, f"IMG_{vid}.mp4"), "-frames:v", "1",
-                                 "-vf", f"scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"])
+                                 "-vf", f"{SDR},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"])
     return Image.frombytes("RGB", (W, H), x).convert("RGBA")
 
 

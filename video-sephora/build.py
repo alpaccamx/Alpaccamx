@@ -18,6 +18,9 @@ W, H, FPS = 1080, 1920, 30
 PINK, WHITE, INK, GREY = b.PINK, b.WHITE, b.INK, (120, 120, 128)
 T = json.load(open(os.path.join(AQUI, f"tiempos-{VAR}.json")))
 OUT = os.path.join(AQUI, f"Sephora-{VAR}.mp4")
+# los videos del iPhone vienen en HDR (HLG, BT.2020): sin esto se ven pálidos y deslavados. Se pasan a color normal (SDR)
+SDR = ("zscale=tin=arib-std-b67:min=bt2020nc:pin=bt2020:rin=tv:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,"
+       "tonemap=reinhard:param=0.6:desat=0,zscale=t=bt709:m=bt709:r=tv,format=rgb24")
 
 # precios de la preventa (Precio = con descuento; Antes = "Precio Sephora" que sale tachado en la página)
 PRODUCTOS = {
@@ -77,7 +80,7 @@ CFG = VARIANTES[VAR]
 
 
 def video(vid, ini, n, vel):
-    vf = f"setpts=PTS/{vel},fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}"
+    vf = f"{SDR},setpts=PTS/{vel},fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}"
     p = subprocess.Popen(["ffmpeg", "-nostdin", "-v", "error", "-ss", str(ini), "-i", os.path.join(CRUDO, f"IMG_{vid}.mp4"),
                           "-t", f"{n * vel / FPS + 0.3:.2f}", "-an", "-vf", vf, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
     last = None
