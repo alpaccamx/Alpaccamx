@@ -52,6 +52,7 @@ PRODUCTOS = {  # clave: (marca, nombre, precio, Precio Sephora, foto en fotos/ o
     "cal-fav": ("Sephora Favorites", "Calendario 25 días 2026", 2071, 2589, "fav-cal"),
     "cal-ct": ("Charlotte Tilbury", "Calendario de adviento 2026", 4339, 5423, "ct-cal"),
     "cal-oy": ("Olive Young x Sephora", "Calendario de adviento 2026", 1361, 1701, "oy-cal"),
+    "cal-sc": ("Sephora Collection", "Premium Advent Calendar 24 días", 1953, 2441, "sc-cal"),
     "patrick-duo": ("Patrick Ta", "Major Headlines Blush Duo", 493, 617, "patrick-duo"),
     "rare-blush": ("Rare Beauty", "Soft Pinch Liquid Blush", 316, 395, "rare-blush"),
 }
@@ -65,6 +66,12 @@ ETIQUETA = "📦 Pedidos del Sephora Sale 2025"
 # o escenas: una lista de tomas por escena (segundos None = lo que falte de la escena)
 # textos: (escena, marca o None, tipo, texto); uno a la vez. tipo "nada" quita el texto
 # tarjetas: (escena, marca o None, segundos, producto)
+# calendarios: cada foto dura de que se dice su nombre a que se dice el siguiente (la última, hasta que acaba la frase)
+CAL = [1.0] * 5 + [None]  # (relleno para las otras variantes)
+if VAR == "calendarios":
+    _m = T[1]["marcas"]
+    CAL = [_m[0]] + [b_ - a_ for a_, b_ in zip(_m, _m[1:])] + [None]
+
 VARIANTES = {
     "anuncio": dict(
         escenas=[[("2452", 10, 1.4, 1.5), ("1828", 120, 1.2, 3.0), ("1881", 140, None, 3.0)],
@@ -164,14 +171,14 @@ VARIANTES = {
     "calendarios": dict(  # fotos reales de los calendarios 2026; cada foto sale cuando se dice su nombre
         alpaca=("regalo", 860, 1330, 430, (0, 3)), texto_y=300, etiqueta_y=1580, foto_y=880, tarjeta_y=1450,
         escenas=[[("2452", 12, 1.2, 1.5), ("2452", 10, None, 1.5)],
-                 [("2452", 15, 1.5, 1.0), ("foto", "fav-cal", 1.76, None), ("foto", "glow-cal", 1.6, None), ("foto", "laneige-cal", 1.04, None),
-                  ("foto", "ct-cal", None, None)],
+                 [("2452", 15, CAL[0], 1.0)] + [("foto", f, d, None) for f, d in zip(("fav-cal", "sc-cal", "glow-cal", "laneige-cal", "ct-cal"), CAL[1:])],
                  [("foto", "oy-cal", None, None)],
                  [("2452", 30, 2.0, 3.0), ("1701", 60, None, 1.0)]],
         textos=[(0, None, "texto", "Calendarios de\nadviento 2026 🎁"), (1, None, "texto", "En mi preventa 🛍️"), (1, 0, "nada", ""),
                 (2, 0, "texto", "Todos con descuento 💸"), (2, 1, "precio", "Desde $1,361"),
                 (3, 0, "texto", "Se agotan rápido ⏳"), (3, 1, "cta", "Aparta con el 50% · hasta el 8 nov ⏰")],
-        tarjetas=[(1, 0, 1.76, "cal-fav"), (1, 1, 1.6, "glow-cal"), (1, 2, 1.04, "laneige-cal"), (1, 3, None, "cal-ct"), (2, 1, None, "cal-oy")]),
+        tarjetas=[(1, i, d, k) for i, (k, d) in enumerate(zip(("cal-fav", "cal-sc", "glow-cal", "laneige-cal", "cal-ct"), CAL[1:]))]
+                 + [(2, 1, None, "cal-oy")]),
     "caja": dict(
         alpaca=("caja", 840, 1400, 440, (2,)), tomas=[("1699", 0, 4.4, 45.0), ("1696", 0, 4.2, 42.0), ("2452", 0, 3.0, 25.0), ("1828", 95, 3.5, 30.0)],  # de vacía a llena
         textos=[(0, None, "texto", "Así se llena una caja\nde pedidos de Sephora 📦"), (1, 0, "texto", "100% original ✅"),
