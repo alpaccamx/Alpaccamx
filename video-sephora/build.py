@@ -33,12 +33,16 @@ PRODUCTOS = {
 # tarjetas: (escena, marca o None, segundos, producto)
 VARIANTES = {
     "anuncio": dict(
-        tomas=[("2452", 10, 1.4, 1.5), ("1830", 0.5, 1.4, 1.3), ("1830", 9, 1.5, 1.0), ("1828", 74, 1.5, 1.0), ("1861", 31, 1.4, 1.0),
-               ("1695", 7.0, 1.4, 1.0), ("1695", 25, 1.4, 1.0), ("2452", 145, 1.4, 1.0), ("2453", 89, 1.4, 1.0), ("1829", 75, 1.5, 1.0),
-               ("2452", 340, 1.5, 1.2), ("1881", 72, 1.3, 1.0), ("1828", 120, 1.6, 3.0), ("1881", 140, 1.8, 3.0), ("2452", 20, 2.0, 1.0)],
+        escenas=[[("2452", 10, 1.4, 1.5), ("1830", 0.5, 1.4, 1.3), ("1830", 9, None, 1.0)],
+                 [("1828", 74, 1.5, 1.0), ("1861", 31, None, 1.0)],
+                 # las marcas salen como lista sobre tomas generales (no hay tomas de Dior, Fenty ni Charlotte Tilbury)
+                 [("1881", 100, 0.8, 3.0), ("1830", 22, 1.1, 1.0), ("1828", 120, None, 3.0)],
+                 [("1829", 75, 2.0, 1.0), ("2452", 340, None, 1.2)],
+                 [("1695", 7.0, 1.4, 1.0), ("2453", 89, 1.4, 1.0), ("1881", 140, 1.8, 3.0), ("2452", 20, None, 1.0)]],
         textos=[(0, None, "grande", "SEPHORA SALE"), (0, 1, "texto", "Preventa abierta\nen alpacca.mx 🛍️"),
                 (1, 0, "texto", "+2,000 productos"), (1, 1, "precio", "20% OFF"),
-                (2, 0, "marca", "Dior"), (2, 1, "marca", "Rare Beauty"), (2, 2, "marca", "Fenty Beauty"), (2, 3, "marca", "Charlotte Tilbury"),
+                (2, 0, "lista", "Dior"), (2, 1, "lista", "Dior\nRare Beauty"), (2, 2, "lista", "Dior\nRare Beauty\nFenty Beauty"),
+                (2, 3, "lista", "Dior\nRare Beauty\nFenty Beauty\nCharlotte Tilbury\n…y muchas más 💗"),
                 (3, 0, "texto", "Aparta con el 50% 💳"), (3, 1, "texto", "…y el resto cuando\nte llegue 📦"),
                 (4, 0, "cta", "Hasta el 8 de noviembre ⏰"), (4, 1, "cta", "Aparta en alpacca.mx 🛍️")],
         tarjetas=[]),
@@ -126,8 +130,11 @@ def pon_texto(L, tipo, s, t, y):
         b.pon(L, texto(s), W / 2, y, *b.entra(t, 0, 0.3))
     elif tipo == "precio":
         b.pon(L, b.pastilla(s, "ExtraBold", 120, PINK, WHITE, padx=56, pady=26), W / 2, y, *b.entra(t, 0, 0.4))
-    elif tipo == "marca":
-        b.pon(L, b.pastilla(s, "ExtraBold", 84, WHITE, INK, padx=46, pady=22), W / 2, y, *b.entra(t, 0, 0.3))
+    elif tipo == "lista":  # marcas una debajo de otra; solo la nueva entra con rebote
+        lineas = s.split("\n")
+        for i, l in enumerate(lineas):
+            anim = b.entra(t, 0, 0.3) if i == len(lineas) - 1 else ()
+            b.pon(L, b.pastilla(l, "ExtraBold", 66, WHITE, INK, padx=40, pady=18), W / 2, y - 140 + i * 125, *anim)
     elif tipo == "cta":
         b.pon(L, b.pastilla(s, "ExtraBold", 58, PINK, WHITE), W / 2, y, *b.entra(t, 0, 0.4))
 
