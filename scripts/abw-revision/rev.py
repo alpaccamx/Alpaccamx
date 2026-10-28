@@ -162,6 +162,8 @@ def revisar(marca, rows, lst, known, F):
     for r in rows:
         sku = r["SKU"].strip()
         if not sku or sku.startswith("STOCK"): continue
+        # OCULTO lo pone Mae a mano (ej. quitar una marca un tiempo): no se toca.
+        if (r.get("Disponible") or "").strip().upper() == "OCULTO": continue
         o = None; checked = False
         if "-C" in sku:
             base, q = sku.rsplit("-C", 1)
