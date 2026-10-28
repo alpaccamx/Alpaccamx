@@ -172,7 +172,7 @@ VARIANTES = {
                 (3, 0, "texto", "Se agotan rápido ⏳"), (3, 1, "cta", "Aparta con el 50% · hasta el 8 nov ⏰")],
         tarjetas=[]),
     "caja": dict(
-        tomas=[("1699", 0, 4.0, 12.0), ("1696", 0, 4.0, 12.0), ("2452", 0, 3.0, 8.0), ("1828", 95, 3.5, 10.0)],
+        tomas=[("1699", 0, 4.4, 45.0), ("1696", 0, 4.2, 42.0), ("2452", 0, 3.0, 25.0), ("1828", 95, 3.5, 30.0)],  # de vacía a llena
         textos=[(0, None, "texto", "Así se llena una caja\nde pedidos de Sephora 📦"), (1, 0, "texto", "100% original ✅"),
                 (1, 1, "texto", "Bien acomodado 🫧"), (2, 0, "grande", "SEPHORA SALE 2026"), (2, 1, "cta", "Aparta en alpacca.mx 🛍️")],
         tarjetas=[]),
