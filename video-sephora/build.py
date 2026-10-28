@@ -45,10 +45,13 @@ PRODUCTOS = {  # clave: (marca, nombre, precio, Precio Sephora, foto en fotos/ o
     "kosas-blush": ("Kosas", "Blush is Life", 277, 346, "kosas-blush"),
     "glow-cal": ("Glow Recipe", "12 Days of Glow 2026", 2170, 2712, "glow-cal"),
     "laneige-cal": ("Laneige", "12 Days of Wonder 2026", 2939, 3673, "laneige-cal"),
-    "fav-experts": ("Sephora Favorites", "Makeup Experts · 13 productos", 1677, 2096, None),
-    "fav-lip": ("Sephora Favorites", "Lip Kit · 9 productos", 967, 1208, None),
-    "fav-holiday": ("Sephora Favorites", "Holiday Must-Haves · 5 productos", 493, 617, None),
-    "fav-perfume": ("Sephora Favorites", "Perfume Sampler · 20 muestras", 1933, 2416, None),
+    "fav-experts": ("Sephora Favorites", "Makeup Experts · 13 productos", 1677, 2096, "fav-experts"),
+    "fav-lip": ("Sephora Favorites", "Holiday Lip Kit", 967, 1208, "fav-lip"),
+    "fav-holiday": ("Sephora Favorites", "Holiday Must-Haves · 9 productos", 1164, 1455, "fav-holiday"),
+    "fav-perfume": ("Sephora Favorites", "Perfume Sampler · 20 muestras", 1933, 2416, "fav-perfume"),
+    "cal-fav": ("Sephora Favorites", "Calendario 25 días 2026", 2071, 2589, "fav-cal"),
+    "cal-ct": ("Charlotte Tilbury", "Calendario de adviento 2026", 4339, 5423, "ct-cal"),
+    "cal-oy": ("Olive Young x Sephora", "Calendario de adviento 2026", 1361, 1701, "oy-cal"),
     "patrick-duo": ("Patrick Ta", "Major Headlines Blush Duo", 493, 617, "patrick-duo"),
     "rare-blush": ("Rare Beauty", "Soft Pinch Liquid Blush", 316, 395, "rare-blush"),
 }
@@ -158,19 +161,17 @@ VARIANTES = {
                 (6, 0, "precio", "20% OFF"), (6, 1, "cta", "Aparta antes del 8 de noviembre ⏰")],
         tarjetas=[(1, None, None, "rare"), (2, None, None, "patrick"), (3, None, None, "saie-dew"), (4, None, None, "kosas-blush"),
                   (5, None, None, "rhode-pocket")]),
-    "calendarios": dict(
-        alpaca=("regalo", 860, 1330, 430, (0, 3)), texto_y=420, etiqueta_y=1580, foto_y=1000,
+    "calendarios": dict(  # fotos reales de los calendarios 2026; cada foto sale cuando se dice su nombre
+        alpaca=("regalo", 860, 1330, 430, (0, 3)), texto_y=300, etiqueta_y=1580, foto_y=880, tarjeta_y=1450,
         escenas=[[("2452", 12, 1.2, 1.5), ("2452", 10, None, 1.5)],
-                 [("2452", 15, 2.2, 1.0), ("1695", 2.5, 2.0, 1.0), ("2451", 10, 2.0, 1.0), ("1701", 30, None, 1.0)],
-                 [("foto", "glow-cal", 2.3, None), ("foto", "laneige-cal", None, None)],
+                 [("2452", 15, 1.5, 1.0), ("foto", "fav-cal", 1.76, None), ("foto", "glow-cal", 1.6, None), ("foto", "laneige-cal", 1.04, None),
+                  ("foto", "ct-cal", None, None)],
+                 [("foto", "oy-cal", None, None)],
                  [("2452", 30, 2.0, 3.0), ("1701", 60, None, 1.0)]],
-        textos=[(0, None, "texto", "Calendarios de\nadviento 2026 🎁"),
-                (1, 0, "lista", "Sephora Favorites · $2,071"), (1, 1, "lista", "Sephora Favorites · $2,071\nGlow Recipe · $2,170"),
-                (1, 2, "lista", "Sephora Favorites · $2,071\nGlow Recipe · $2,170\nLaneige · $2,939"),
-                (1, 3, "lista", "Sephora Favorites · $2,071\nGlow Recipe · $2,170\nLaneige · $2,939\nCharlotte Tilbury · $4,339\n…y varios más 💗"),
+        textos=[(0, None, "texto", "Calendarios de\nadviento 2026 🎁"), (1, None, "texto", "En mi preventa 🛍️"), (1, 0, "nada", ""),
                 (2, 0, "texto", "Todos con descuento 💸"), (2, 1, "precio", "Desde $1,361"),
                 (3, 0, "texto", "Se agotan rápido ⏳"), (3, 1, "cta", "Aparta con el 50% · hasta el 8 nov ⏰")],
-        tarjetas=[]),
+        tarjetas=[(1, 0, 1.76, "cal-fav"), (1, 1, 1.6, "glow-cal"), (1, 2, 1.04, "laneige-cal"), (1, 3, None, "cal-ct"), (2, 1, None, "cal-oy")]),
     "caja": dict(
         alpaca=("caja", 840, 1400, 440, (2,)), tomas=[("1699", 0, 4.4, 45.0), ("1696", 0, 4.2, 42.0), ("2452", 0, 3.0, 25.0), ("1828", 95, 3.5, 30.0)],  # de vacía a llena
         textos=[(0, None, "texto", "Así se llena una caja\nde pedidos de Sephora 📦"), (1, 0, "texto", "100% original ✅"),
@@ -192,17 +193,17 @@ VARIANTES = {
                 (3, None, "grande", "GLOSS ✨"), (4, None, "texto", "Déjame en comentarios\ncuáles elegiste 👇"),
                 (4, 1, "cta", "Preventa hasta el 8 de noviembre ⏰")],
         tarjetas=[]),
-    "favorites": dict(
-        alpaca=("caja", 800, 1450, 470, (1, 2, 3, 4, 5, 6)), tarjeta_escala=1.45, fondo="blanco", tarjeta_y=1000, texto_y=520,
+    "favorites": dict(  # fotos reales de los sets 2026 que mandó Mae
+        alpaca=("caja", 800, 1450, 470, (1, 6)), fondo="blanco", foto_y=880, tarjeta_y=1450, texto_y=300,
         escenas=[[("2452", 10, 1.8, 1.5), ("2452", 12, None, 1.5)],
-                 [("liso", None, None, None)], [("liso", None, None, None)], [("liso", None, None, None)],
-                 [("liso", None, None, None)], [("liso", None, None, None)], [("2452", 20, 2.5, 1.0), ("1881", 140, None, 3.0)]],
+                 [("liso", None, None, None)], [("foto", "fav-experts", None, None)], [("foto", "fav-lip", None, None)],
+                 [("foto", "fav-holiday", None, None)], [("foto", "fav-perfume", None, None)], [("2452", 20, 2.5, 1.0), ("1881", 140, None, 3.0)]],
         textos=[(0, None, "grande", "SEPHORA FAVORITES"), (0, 1, "texto", "Lo que más conviene\nen el sale 💡"),
                 (1, None, "texto", "Sets que arma Sephora\ncon varias marcas 🎁"), (1, 1, "texto", "Te salen más baratos que\npor separado 💸"),
                 (2, None, "grande", "#1"), (3, None, "grande", "#2"), (4, None, "grande", "#3"),
                 (5, None, "texto", "También hay sets\nde perfumes 🌸"),
                 (6, 0, "precio", "Con descuento"), (6, 1, "cta", "Aparta antes del 8 de noviembre ⏰")],
-        tarjetas=[(2, None, None, "fav-experts"), (3, None, None, "fav-lip"), (4, None, None, "fav-holiday"), (5, 0, None, "fav-perfume")]),
+        tarjetas=[(2, None, None, "fav-experts"), (3, None, None, "fav-lip"), (4, None, None, "fav-holiday"), (5, None, None, "fav-perfume")]),
 }
 CFG = VARIANTES[VAR]
 
