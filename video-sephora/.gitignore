@@ -4,7 +4,5 @@ voz-*/frase*.mp3
 voz/*.wav
 voz/lista.txt
 __pycache__/
-Sephora-anuncio.mp4
-Sephora-emprende.mp4
-Sephora-empaque.mp4
-Sephora-top.mp4
+Sephora-*.mp4
+!Sephora-*-voz.mp4
