@@ -106,7 +106,7 @@ VARIANTES = {
         tarjetas=[(1, None, 2.6, "rare"), (2, None, 2.8, "patrick"), (3, None, 2.7, "huda"), (4, None, 3.2, "calendario")]),
     # ---- solo con fotos de las marcas (sin tomas de Mae) ----
     "bestsellers": dict(
-        fondo="rosa", alpaca=("lupa", 860, 1330, 430, (0, 7)), foto_y=880, tarjeta_y=1450, texto_y=300,
+        fondo="rosa", alpaca=("bolsa", 840, 1330, 440, (0, 7)), foto_y=880, tarjeta_y=1450, texto_y=300,
         escenas=[[("foto", "rare-blush", 1.3, None), ("foto", "sf-balm", 1.3, None), ("foto", "glow-dew", None, None)],
                  [("foto", "rare-blush", None, None)], [("foto", "rhode-tint", None, None)], [("foto", "sf-balm", None, None)],
                  [("foto", "laneige-lsm", None, None)], [("foto", "glow-dew", None, None)], [("foto", "sol-c62", None, None)],
@@ -118,7 +118,7 @@ VARIANTES = {
         tarjetas=[(1, None, None, "rare"), (2, None, None, "rhode-tint"), (3, None, None, "sf-balm"), (4, None, None, "laneige-lsm"),
                   (5, None, None, "glow-dew"), (6, None, None, "sol-c62")]),
     "tips": dict(
-        alpaca=("espejo", 860, 1330, 430, (0, 5)), fondo="negro", foto_y=900, tarjeta_y=1450, texto_y=300,
+        alpaca=("celular", 850, 1330, 440, (0, 5)), fondo="negro", foto_y=900, tarjeta_y=1450, texto_y=300,
         escenas=[[("foto", "rare-blush", 1.7, None), ("foto", "laneige-minis", 1.7, None), ("foto", "sf-balm", None, None)],
                  [("foto", "rhode-tint", None, None)], [("foto", "laneige-minis", None, None)], [("foto", "rare-mini", None, None)],
                  [("foto", "sf-balm", None, None)], [("foto", "glow-dew", 3.0, None), ("foto", "sol-c62", None, None)]],
@@ -130,7 +130,7 @@ VARIANTES = {
                 (5, None, "texto", "Tip 5: aparta antes del\n8 de noviembre ⏰"), (5, 1, "texto", "Con el 50% lo apartas 💳")],
         tarjetas=[(1, None, None, "rhode-tint"), (2, None, None, "laneige-minis"), (3, None, None, "rare-mini"), (4, None, None, "sf-balm")]),
     "regalos": dict(
-        alpaca=("regalo", 860, 1330, 430, (0, 6)), fondo="rojo", foto_y=880, tarjeta_y=1450, texto_y=300,
+        alpaca=("navidad", 840, 1330, 460, (0, 6)), fondo="rojo", foto_y=880, tarjeta_y=1450, texto_y=300,
         escenas=[[("foto", "touch-peanuts", 1.8, None), ("foto", "sf-minis", 1.8, None), ("foto", "laneige-minis", None, None)],
                  [("foto", "touch-peanuts", None, None)], [("foto", "tower-lipsoftie", None, None)], [("foto", "rare-comfort", None, None)],
                  [("foto", "laneige-minis", None, None)], [("foto", "sf-minis", None, None)],
@@ -141,7 +141,7 @@ VARIANTES = {
                   (4, None, None, "laneige-minis"), (5, None, None, "sf-minis")]),
     # ---- con tomas de los pedidos del año pasado ----
     "ahorro": dict(
-        alpaca=("lupa", 860, 1330, 430, (0, 5)), foto_en_tarjeta=True, ahorro=True, tarjeta_y=480,
+        alpaca=("alcancia", 840, 1330, 440, (0, 5)), foto_en_tarjeta=True, ahorro=True, tarjeta_y=480,
         escenas=[[("2452", 20, 1.4, 2.0), ("1881", 140, None, 3.0)],
                  [("1830", 8.5, None, 1.0)], [("1694", 60, None, 1.0)], [("1861", 30.5, None, 1.0)], [("2452", 15, None, 1.0)],
                  [("1828", 130, 1.8, 3.0), ("1699", 80, None, 6.0)]],
@@ -149,7 +149,7 @@ VARIANTES = {
                 (5, 0, "texto", "Entre más pides,\nmás ahorras 💗"), (5, 1, "cta", "Aparta antes del 8 de noviembre ⏰")],
         tarjetas=[(1, None, None, "rare"), (2, None, None, "patrick"), (3, None, None, "huda"), (4, None, None, "calendario")]),
     "rubores": dict(
-        foto_en_tarjeta=True, tarjeta_y=480, foto_y=1000,
+        alpaca=("espejo", 860, 1330, 430, (0, 6)), foto_en_tarjeta=True, tarjeta_y=480, foto_y=1000,
         escenas=[[("1694", 132, 1.8, 1.0), ("1829", 62, None, 1.0)],
                  [("1830", 8.5, None, 1.0)], [("1694", 60, None, 1.0)], [("1694", 168, None, 1.0)], [("1701", 91, None, 1.0)],
                  [("foto", "rhode-pocket", None, None)],
@@ -159,7 +159,7 @@ VARIANTES = {
         tarjetas=[(1, None, None, "rare"), (2, None, None, "patrick"), (3, None, None, "saie-dew"), (4, None, None, "kosas-blush"),
                   (5, None, None, "rhode-pocket")]),
     "calendarios": dict(
-        texto_y=420, etiqueta_y=1580, foto_y=1000,
+        alpaca=("regalo", 860, 1330, 430, (0, 3)), texto_y=420, etiqueta_y=1580, foto_y=1000,
         escenas=[[("2452", 12, 1.2, 1.5), ("2452", 10, None, 1.5)],
                  [("2452", 15, 2.2, 1.0), ("1695", 2.5, 2.0, 1.0), ("2451", 10, 2.0, 1.0), ("1701", 30, None, 1.0)],
                  [("foto", "glow-cal", 2.3, None), ("foto", "laneige-cal", None, None)],
@@ -172,12 +172,12 @@ VARIANTES = {
                 (3, 0, "texto", "Se agotan rápido ⏳"), (3, 1, "cta", "Aparta con el 50% · hasta el 8 nov ⏰")],
         tarjetas=[]),
     "caja": dict(
-        tomas=[("1699", 0, 4.4, 45.0), ("1696", 0, 4.2, 42.0), ("2452", 0, 3.0, 25.0), ("1828", 95, 3.5, 30.0)],  # de vacía a llena
+        alpaca=("caja", 840, 1400, 440, (2,)), tomas=[("1699", 0, 4.4, 45.0), ("1696", 0, 4.2, 42.0), ("2452", 0, 3.0, 25.0), ("1828", 95, 3.5, 30.0)],  # de vacía a llena
         textos=[(0, None, "texto", "Así se llena una caja\nde pedidos de Sephora 📦"), (1, 0, "texto", "100% original ✅"),
                 (1, 1, "texto", "Bien acomodado 🫧"), (2, 0, "grande", "SEPHORA SALE 2026"), (2, 1, "cta", "Aparta en alpacca.mx 🛍️")],
         tarjetas=[]),
     "ultimos": dict(
-        tomas=[("2452", 20, 1.4, 2.0), ("1830", 22, 1.3, 1.0), ("1694", 60, 1.4, 1.0), ("1881", 140, 1.5, 3.0), ("1701", 91, 1.4, 1.0),
+        alpaca=("reloj", 840, 1330, 460, (0, 3)), tomas=[("2452", 20, 1.4, 2.0), ("1830", 22, 1.3, 1.0), ("1694", 60, 1.4, 1.0), ("1881", 140, 1.5, 3.0), ("1701", 91, 1.4, 1.0),
                ("1699", 150, 1.5, 1.0), ("1828", 130, 1.5, 3.0), ("2453", 89, 1.4, 1.0), ("1694", 425, 1.6, 1.0), ("1696", 130, 1.6, 1.0)],
         textos=[(0, None, "grande", "⏰ ÚLTIMO AVISO"), (0, 1, "texto", "Mi preventa cierra el\n8 de noviembre"),
                 (1, 0, "texto", "¿Todavía no apartas? 👀"), (2, 0, "texto", "Aparta con el 50% 💳"),
