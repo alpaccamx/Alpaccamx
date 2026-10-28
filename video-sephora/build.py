@@ -160,7 +160,7 @@ VARIANTES = {
                   (5, None, None, "rhode-pocket")]),
     "calendarios": dict(
         texto_y=420, etiqueta_y=1580, foto_y=1000,
-        escenas=[[("2451", 6.0, 1.2, 1.0), ("2452", 10, None, 1.5)],
+        escenas=[[("2452", 12, 1.2, 1.5), ("2452", 10, None, 1.5)],
                  [("2452", 15, 2.2, 1.0), ("1695", 2.5, 2.0, 1.0), ("2451", 10, 2.0, 1.0), ("1701", 30, None, 1.0)],
                  [("foto", "glow-cal", 2.3, None), ("foto", "laneige-cal", None, None)],
                  [("2452", 30, 2.0, 3.0), ("1701", 60, None, 1.0)]],
@@ -193,8 +193,8 @@ VARIANTES = {
                 (4, 1, "cta", "Preventa hasta el 8 de noviembre ⏰")],
         tarjetas=[]),
     "favorites": dict(
-        alpaca=("caja", 840, 1430, 460, (1, 5, 6)), fondo="blanco", tarjeta_y=1000, texto_y=520,
-        escenas=[[("2452", 10, 1.8, 1.5), ("2451", 6.0, None, 1.0)],
+        alpaca=("caja", 800, 1450, 470, (1, 2, 3, 4, 5, 6)), tarjeta_escala=1.45, fondo="blanco", tarjeta_y=1000, texto_y=520,
+        escenas=[[("2452", 10, 1.8, 1.5), ("2452", 12, None, 1.5)],
                  [("liso", None, None, None)], [("liso", None, None, None)], [("liso", None, None, None)],
                  [("liso", None, None, None)], [("liso", None, None, None)], [("2452", 20, 2.5, 1.0), ("1881", 140, None, 3.0)]],
         textos=[(0, None, "grande", "SEPHORA FAVORITES"), (0, 1, "texto", "Lo que más conviene\nen el sale 💡"),
@@ -398,7 +398,7 @@ def cuadros():
             if card:  # tarjeta arriba con rebote; se desvanece al final
                 s_, a_ = b.entra(card[0] / FPS, 0, 0.4)
                 b.pon(L, tarjeta(card[2], CFG.get("foto_en_tarjeta", False), CFG.get("ahorro", False)), W / 2,
-                      CFG.get("tarjeta_y", 460), s_, min(a_, (card[1] - card[0]) / 6))
+                      CFG.get("tarjeta_y", 460), s_ * CFG.get("tarjeta_escala", 1), min(a_, (card[1] - card[0]) / 6))
             if not es_foto: b.pon(L, etiqueta(), W / 2, CFG.get("etiqueta_y", 270))
             if "alpaca" in CFG:  # en las escenas que dice CFG["alpaca"][4]
                 for e in CFG["alpaca"][4]:
