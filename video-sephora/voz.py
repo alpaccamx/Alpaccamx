@@ -8,7 +8,7 @@ SUF = ("-" + sys.argv[1]) if len(sys.argv) > 1 else ""  # p. ej. "python3 voz.py
 VOZ_DIR = os.path.join(AQUI, "voz" + SUF)
 VOZ = "uf7lwaqO0yghLWPq8lJ7"  # "Mae v4": clon instantáneo con la grabación de Mae hablando como en sus videos (la que eligió)
 # v4 con la voz "Mae v4" en modo natural (la muestra E que eligió Mae); las etiquetas de tono ([warm]...) no se leen
-MODELO, ESTABILIDAD = "eleven_v4", 0.5
+MODELO, ESTABILIDAD = "eleven_v4", 0.3  # Mae eligió la B (más viva que 0.5, que sonaba plana)
 INICIO, PAUSA, COLA = 0.25, 0.28, 1.6
 VEL = 1.0  # a su velocidad natural
 SR = 44100

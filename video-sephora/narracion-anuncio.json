@@ -1,21 +1,22 @@
 [
  {
-  "texto": "Ya empezó el Sephora Sale, y ya abrí la preventa en mi página.",
+  "texto": "Esto es lo que pidieron mis clientas en el Sephora Sale del año pasado.",
   "marcas": [
-   "Sephora Sale",
-   "preventa"
+   "Esto",
+   "año pasado"
   ]
  },
  {
-  "texto": "Hay más de dos mil productos con veinte por ciento de descuento.",
+  "texto": "Y este año ya abrí la preventa, con veinte por ciento de descuento.",
   "marcas": [
-   "dos mil",
+   "este año",
    "veinte por ciento"
   ]
  },
  {
-  "texto": "Dior, Rare Beauty, Fenty, Charlotte Tilbury, y muchas marcas más.",
+  "texto": "Hay más de dos mil productos: Dior, Rare Beauty, Fenty, Charlotte Tilbury, y muchas más.",
   "marcas": [
+   "dos mil",
    "Dior",
    "Rare",
    "Fenty",
@@ -30,10 +31,10 @@
   ]
  },
  {
-  "texto": "Tienes hasta el ocho de noviembre. Aparta los tuyos en alpacca punto eme equis.",
+  "texto": "Tienes hasta el ocho de noviembre. Entra a alpacca punto eme equis.",
   "marcas": [
    "ocho de noviembre",
-   "Aparta"
+   "Entra"
   ]
  }
 ]

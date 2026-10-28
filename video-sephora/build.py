@@ -27,8 +27,10 @@ PRODUCTOS = {
     "rare": ("Rare Beauty", "Soft Pinch Liquid Blush", 316, 395),
     "patrick": ("Patrick Ta", "Major Headlines Blush Duo", 493, 617),
     "huda": ("Huda Beauty", "Easy Bake Setting Powder", 474, 592),
-    "calendario": ("Sephora Favorites", "Calendario de adviento 25 días", 2071, 2589),
+    "calendario": ("Sephora Favorites", "Calendario de adviento 2026", 2071, 2589),
 }
+# todas las tomas son de los pedidos del Sephora Sale del año pasado: se aclara con esta etiqueta para no confundir
+ETIQUETA = "📦 Pedidos del Sephora Sale 2025"
 
 # tomas en orden: (video, inicio, segundos, velocidad); se estiran parejo para llenar la voz
 # o escenas: una lista de tomas por escena (segundos None = lo que falte de la escena)
@@ -36,16 +38,16 @@ PRODUCTOS = {
 # tarjetas: (escena, marca o None, segundos, producto)
 VARIANTES = {
     "anuncio": dict(
-        escenas=[[("2452", 10, 1.4, 1.5), ("1830", 0.5, 1.4, 1.3), ("1830", 9, None, 1.0)],
-                 [("1828", 74, 1.5, 1.0), ("1861", 31, None, 1.0)],
+        escenas=[[("2452", 10, 1.4, 1.5), ("1828", 120, 1.2, 3.0), ("1881", 140, None, 3.0)],
+                 [("1830", 0.5, 1.4, 1.3), ("1861", 31, None, 1.0)],
                  # las marcas salen como lista sobre tomas generales (no hay tomas de Dior, Fenty ni Charlotte Tilbury)
-                 [("1881", 100, 0.8, 3.0), ("1830", 22, 1.1, 1.0), ("1828", 120, None, 3.0)],
+                 [("1881", 100, 0.8, 3.0), ("1830", 22, 1.1, 1.0), ("1828", 130, None, 3.0)],
                  [("1829", 75, 2.0, 1.0), ("2452", 340, None, 1.2)],
-                 [("1695", 7.0, 1.4, 1.0), ("2453", 89, 1.4, 1.0), ("1881", 140, 1.8, 3.0), ("2452", 20, None, 1.0)]],
-        textos=[(0, None, "grande", "SEPHORA SALE"), (0, 1, "texto", "Preventa abierta\nen alpacca.mx 🛍️"),
-                (1, 0, "texto", "+2,000 productos"), (1, 1, "precio", "20% OFF"),
-                (2, 0, "lista", "Dior"), (2, 1, "lista", "Dior\nRare Beauty"), (2, 2, "lista", "Dior\nRare Beauty\nFenty Beauty"),
-                (2, 3, "lista", "Dior\nRare Beauty\nFenty Beauty\nCharlotte Tilbury\n…y muchas más 💗"),
+                 [("1695", 7.0, 1.4, 1.0), ("2453", 89, 1.4, 1.0), ("2452", 20, None, 1.0)]],
+        textos=[(0, None, "texto", "Lo que pidieron mis clientas\nen el Sephora Sale 2025 👀"),
+                (1, 0, "grande", "SEPHORA SALE 2026"), (1, 1, "precio", "20% OFF"),
+                (2, 0, "texto", "+2,000 productos"), (2, 1, "lista", "Dior"), (2, 2, "lista", "Dior\nRare Beauty"),
+                (2, 3, "lista", "Dior\nRare Beauty\nFenty Beauty"), (2, 4, "lista", "Dior\nRare Beauty\nFenty Beauty\nCharlotte Tilbury\n…y muchas más 💗"),
                 (3, 0, "texto", "Aparta con el 50% 💳"), (3, 1, "texto", "…y el resto cuando\nte llegue 📦"),
                 (4, 0, "cta", "Hasta el 8 de noviembre ⏰"), (4, 1, "cta", "Aparta en alpacca.mx 🛍️")],
         tarjetas=[]),
@@ -53,16 +55,17 @@ VARIANTES = {
         tomas=[("1881", 100, 1.5, 3.0), ("1830", 22, 1.3, 1.0), ("1830", 35, 1.5, 1.2), ("2452", 30, 1.5, 3.0), ("1861", 31, 1.4, 1.0),
                ("1828", 130, 1.5, 3.0), ("1695", 56, 1.4, 1.0), ("2453", 75, 1.5, 1.0), ("2452", 330, 1.6, 1.2), ("1829", 187, 1.5, 1.0),
                ("1881", 230, 1.8, 2.0)],
-        textos=[(0, None, "texto", "¿Vendes maquillaje? 👀"), (1, 0, "grande", "SEPHORA SALE"), (1, 1, "precio", "20% OFF"),
-                (1, 2, "texto", "100% original ✅"), (2, 0, "texto", "Apartas con el 50% 💳"), (2, 1, "texto", "Tú le pones tu precio 💸"),
+        textos=[(0, None, "texto", "¿Vendes maquillaje? 👀"), (0, 1, "grande", "SEPHORA SALE 2026"),
+                (1, 0, "texto", "100% original ✅"), (1, 1, "precio", "20% OFF"),
+                (2, 0, "texto", "Apartas con el 50% 💳"), (2, 1, "texto", "Tú le pones tu precio 💸"),
                 (3, 0, "cta", "Comenta “Me quiero unir” 👇")],
         tarjetas=[]),
     "empaque": dict(
         tomas=[("2452", 0, 1.6, 2.0), ("2452", 19, 1.4, 1.0), ("1828", 100, 1.6, 3.0), ("1828", 145, 1.4, 1.0), ("1881", 120, 1.5, 3.0),
                ("2453", 43, 1.5, 1.5), ("1695", 20, 1.5, 2.0), ("1695", 60, 1.4, 1.0), ("1828", 186, 1.6, 2.0), ("1881", 228, 1.6, 2.5),
                ("1695", 84, 1.5, 1.0), ("2452", 372, 1.6, 1.0)],
-        textos=[(0, None, "texto", "POV: empacando sus\npedidos de Sephora 📦"), (1, 0, "texto", "100% original ✅"),
-                (1, 1, "texto", "Bien protegido 🫧"), (2, 0, "grande", "SEPHORA SALE"), (2, 1, "precio", "20% OFF"),
+        textos=[(0, None, "texto", "POV: los pedidos de mis clientas\nen el Sephora Sale 2025 📦"), (1, 0, "texto", "100% original ✅"),
+                (1, 1, "texto", "Bien protegido 🫧"), (2, 0, "grande", "SEPHORA SALE 2026"), (2, 1, "precio", "20% OFF"),
                 (3, 0, "cta", "Aparta en alpacca.mx 🛍️"), (3, 1, "cta", "Hasta el 8 de noviembre ⏰")],
         tarjetas=[]),
     "top": dict(
@@ -72,8 +75,8 @@ VARIANTES = {
                  [("1861", 30.5, None, 1.0)],
                  [("2452", 15, None, 1.0)],
                  [("1828", 130, 1.6, 3.0), ("2453", 89, 1.5, 1.0), ("1881", 225, None, 2.0)]],
-        textos=[(0, None, "texto", "Lo más pedido de\nSephora 🛍️"), (1, None, "nada", ""),
-                (5, 0, "precio", "Con descuento"), (5, 1, "cta", "Preventa hasta el 8 de noviembre ⏰")],
+        textos=[(0, None, "texto", "Lo más pedido en el\nSephora Sale 2025 💗"), (1, None, "nada", ""),
+                (5, 0, "texto", "Este año, con descuento 💸"), (5, 1, "cta", "Preventa hasta el 8 de noviembre ⏰")],
         tarjetas=[(1, None, 2.6, "rare"), (2, None, 2.8, "patrick"), (3, None, 2.7, "huda"), (4, None, 3.2, "calendario")]),
 }
 CFG = VARIANTES[VAR]
@@ -106,7 +109,7 @@ def tarjeta(k):
     card.putalpha(sh.filter(ImageFilter.GaussianBlur(16)))
     d = ImageDraw.Draw(card); d.rounded_rectangle((30, 30, w + 30, h + 30), 34, fill=WHITE)
     cx = 30 + w / 2
-    d.text((cx, 82), marca.upper(), font=b.F("Bold", 32), fill=PINK, anchor="mm")
+    d.text((cx, 82), marca.upper() + " · PREVENTA 2026", font=b.F("Bold", 30), fill=PINK, anchor="mm")
     d.text((cx, 142), nombre, font=fn, fill=INK, anchor="mm")
     card.alpha_composite(pr, (int(cx - pr.width / 2), 180))
     y = 180 + pr.height + 26
@@ -114,6 +117,12 @@ def tarjeta(k):
     tw = fa.getlength(ta); d.line((cx - tw / 2 + fa.getlength("Precio Sephora "), y, cx + tw / 2, y), fill=(200, 40, 60), width=4)
     _cards[k] = card
     return card
+
+
+_etq = []
+def etiqueta():
+    if not _etq: _etq.append(b.pastilla(ETIQUETA, "Bold", 36, (30, 30, 34), WHITE, padx=26, pady=10))
+    return _etq[0]
 
 
 def texto(s, sz=62):
@@ -128,7 +137,9 @@ def texto(s, sz=62):
 
 def pon_texto(L, tipo, s, t, y):
     if tipo == "grande":  # SEPHORA SALE: pastilla negra con letra blanca, como el logo
-        b.pon(L, b.pastilla(s, "ExtraBold", 104, INK, WHITE, padx=50, pady=24), W / 2, y, *b.entra(t, 0, 0.35))
+        sz = 104
+        while b.F("ExtraBold", sz).getlength(s) > 880: sz -= 6
+        b.pon(L, b.pastilla(s, "ExtraBold", sz, INK, WHITE, padx=50, pady=24), W / 2, y, *b.entra(t, 0, 0.35))
     elif tipo == "texto":
         b.pon(L, texto(s), W / 2, y, *b.entra(t, 0, 0.3))
     elif tipo == "precio":
@@ -176,6 +187,7 @@ def cuadros():
             if card:  # tarjeta arriba con rebote; se desvanece al final
                 s_, a_ = b.entra(card[0] / FPS, 0, 0.4)
                 b.pon(L, tarjeta(card[2]), W / 2, 460, s_, min(a_, (card[1] - card[0]) / 6))
+            b.pon(L, etiqueta(), W / 2, 270)
             act = [x for x in cambios if x[0] <= g]
             if act and act[-1][1] != "nada": pon_texto(L, act[-1][1], act[-1][2], (g - act[-1][0]) / FPS, 700)
             yield L

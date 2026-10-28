@@ -1,23 +1,23 @@
 [
  {
-  "texto": "Oye, ¿vendes maquillaje, o te gustaría empezar?",
+  "texto": "Si vendes maquillaje, el Sephora Sale es el mejor momento para surtirte.",
   "marcas": [
-   "vendes"
+   "vendes",
+   "Sephora Sale"
   ]
  },
  {
-  "texto": "En el Sephora Sale te puedes surtir con veinte por ciento de descuento, todo original.",
+  "texto": "Todo es original, y este año tiene veinte por ciento de descuento.",
   "marcas": [
-   "Sephora Sale",
-   "veinte por ciento",
-   "original"
+   "original",
+   "veinte por ciento"
   ]
  },
  {
-  "texto": "Apartas con la mitad, y cuando te llegan, los vendes al precio que tú quieras.",
+  "texto": "Apartas con la mitad, y cuando te llega, lo vendes al precio que tú quieras.",
   "marcas": [
    "Apartas",
-   "cuando te llegan"
+   "cuando te llega"
   ]
  },
  {

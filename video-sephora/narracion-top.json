@@ -1,8 +1,8 @@
 [
  {
-  "texto": "Estos son los productos de Sephora que más me están pidiendo.",
+  "texto": "Estos fueron los productos que más me pidieron en el Sephora Sale del año pasado.",
   "marcas": [
-   "más me están"
+   "más me pidieron"
   ]
  },
  {
@@ -14,7 +14,7 @@
  {
   "texto": "El rubor doble de Patrick Ta.",
   "marcas": [
-   "Patrick Ta"
+   "Patrick"
   ]
  },
  {
@@ -30,7 +30,7 @@
   ]
  },
  {
-  "texto": "Todos están con descuento en mi preventa, hasta el ocho de noviembre.",
+  "texto": "Este año los tienes con descuento en mi preventa, hasta el ocho de noviembre.",
   "marcas": [
    "descuento",
    "ocho de noviembre"

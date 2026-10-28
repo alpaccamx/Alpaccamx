@@ -1,21 +1,22 @@
 [
  {
-  "texto": "Así empaco sus pedidos de Sephora.",
+  "texto": "Así se veían los pedidos de mis clientas en el Sephora Sale del año pasado.",
   "marcas": [
-   "empaco"
+   "Así",
+   "año pasado"
   ]
  },
  {
-  "texto": "Todo es original, comprado directo en Sephora, y va bien protegido para que llegue perfecto.",
+  "texto": "Todo original, comprado directo en Sephora, y bien protegido para que llegue perfecto.",
   "marcas": [
    "original",
    "protegido"
   ]
  },
  {
-  "texto": "Y ahorita, en el Sephora Sale, tienen veinte por ciento de descuento.",
+  "texto": "Este año ya abrí la preventa, con veinte por ciento de descuento.",
   "marcas": [
-   "Sephora Sale",
+   "preventa",
    "veinte por ciento"
   ]
  },
