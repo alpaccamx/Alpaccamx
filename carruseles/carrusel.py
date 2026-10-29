@@ -77,7 +77,7 @@ def producto(L, caja, p, foto_izq=True):
     # texto centrado en su columna; k achica todo cuando la tarjeta es más bajita (láminas de 3)
     k = min(1.0, (y1 - y0) / 525)
     tw = tx1 - tx0; tc = (tx0 + tx1) / 2
-    sz = int(112 * k)
+    sz = int((100 if p.get("dato") else 112) * k)
     tope = sz * 0.78  # primero intenta que quepa en 2 renglones achicando un poco; si no, 3
     while True:
         fn = F(BEBAS, sz); rs = renglones(p["que"], fn, tw)
@@ -87,7 +87,13 @@ def producto(L, caja, p, foto_izq=True):
     m, pr, an, de = int(46 * k), int(104 * k), int(44 * k), int(36 * k)
     fm, fp, fa = F(BEBAS, m), F(BEBAS, pr), F(BEBAS, an)
     alto = len(rs) * sz * 0.92 + 18 * k + m + 30 * k + pr + ((14 * k + an) if p.get("antes") else 0) + (de - 2 if p.get("desde") else 0)
+    if p.get("dato"):  # sello con el dato real (ventas, premio Allure) arriba del nombre
+        alto += 60 * k + 16
     y = cy - alto / 2
+    if p.get("dato"):
+        fd = F(BEBAS, int(42 * k)); dw = fd.getlength(p["dato"])
+        d.rounded_rectangle((tc - dw / 2 - 20, y, tc + dw / 2 + 20, y + 60 * k), int(30 * k), fill=TINTA)
+        d.text((tc, y + 31 * k), p["dato"], font=fd, fill=BLANCO, anchor="mm"); y += 60 * k + 16
     for r in rs:
         texto(d, (tc, y + sz * 0.46), r, fn, TINTA); y += sz * 0.92
     y += 18 * k
