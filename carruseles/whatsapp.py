@@ -2,7 +2,7 @@
 El QR se genera limpio desde el enlace (el de la captura traía parámetros de rastreo que no hacen falta)."""
 import os
 import qrcode
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
@@ -11,15 +11,15 @@ VERDE = (37, 211, 102)
 
 
 def codigo(tam):
-    """QR negro sobre blanco con la alpaca en medio (corrección alta para que se siga leyendo)"""
+    """QR negro sobre blanco con el logo de WhatsApp en medio, como el QR original del grupo
+    (corrección alta para que se siga leyendo con el logo encima)"""
     q = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=20, border=2)
     q.add_data(ENLACE); q.make(fit=True)
     im = q.make_image(fill_color="black", back_color="white").convert("RGBA").resize((tam, tam), Image.NEAREST)
-    lo = Image.open(os.path.join(RAIZ, "assets", "logo-full.png")).convert("RGBA")
-    lo.thumbnail((int(tam * 0.22), int(tam * 0.22)), Image.LANCZOS)
-    fondo = Image.new("RGBA", (lo.width + 16, lo.height + 16), (255, 255, 255, 255))
-    fondo.alpha_composite(lo, (8, 8))
-    im.alpha_composite(fondo, ((tam - fondo.width) // 2, (tam - fondo.height) // 2))
+    r = int(tam * 0.11)  # círculo blanco detrás del logo
+    ImageDraw.Draw(im).ellipse((tam / 2 - r, tam / 2 - r, tam / 2 + r, tam / 2 + r), fill=(255, 255, 255, 255))
+    f = ImageFont.truetype(os.path.join(AQUI, "fuentes", "fa-brands-400.ttf"), int(r * 1.6))
+    ImageDraw.Draw(im).text((tam / 2, tam / 2), "\uf232", font=f, fill=VERDE + (255,), anchor="mm")  # ícono de WhatsApp
     return im
 
 
