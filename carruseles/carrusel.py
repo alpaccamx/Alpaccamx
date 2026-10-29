@@ -78,9 +78,11 @@ def producto(L, caja, p, foto_izq=True):
     k = min(1.0, (y1 - y0) / 525)
     tw = tx1 - tx0; tc = (tx0 + tx1) / 2
     sz = int(112 * k)
+    tope = sz * 0.78  # primero intenta que quepa en 2 renglones achicando un poco; si no, 3
     while True:
         fn = F(BEBAS, sz); rs = renglones(p["que"], fn, tw)
-        if (len(rs) <= 3 and all(fn.getlength(r) <= tw for r in rs)) or sz < 50: break
+        cabe = all(fn.getlength(r) <= tw for r in rs)
+        if cabe and (len(rs) <= 2 or (sz <= tope and len(rs) <= 3)) or sz < 50: break
         sz -= 4
     m, pr, an, de = int(46 * k), int(104 * k), int(44 * k), int(36 * k)
     fm, fp, fa = F(BEBAS, m), F(BEBAS, pr), F(BEBAS, an)
