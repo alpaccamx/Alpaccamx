@@ -566,6 +566,7 @@ function pvCheckoutHTML() {
     <p data-pv-err class="hidden text-sm text-sale"></p>
     <button type="submit" class="w-full rounded-full bg-rose-deep px-5 py-3 text-sm font-semibold text-cream hover:bg-rose-ink transition">💗 Apartar y pagar anticipo de ${pvMXN(anticipo)}</button>
     <p class="text-xs text-ink/70 text-center">Tienes ${(pv.config && pv.config.horasParaPagar) || 24} horas para pagar el anticipo; si no, se libera el lugar.</p>
+    <p class="text-xs text-ink/70 text-center">Una vez pagado, el anticipo no es reembolsable y la fecha de llegada es aproximada (puede cambiar por logística y aduanas). <a href="./reembolsos.html#preventas" target="_blank" rel="noopener" class="underline">Ver política</a></p>
   </form>`;
 }
 
