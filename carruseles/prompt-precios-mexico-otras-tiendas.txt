@@ -1,0 +1,55 @@
+Busca el precio actual EN MÉXICO (en pesos mexicanos) de cada producto de la lista de abajo. Estos productos NO están en sephora.com.mx, así que búscalos en estas tiendas, en este orden:
+
+1. La página oficial de la marca para México (por ejemplo rhodeskin.com con envío a México, summerfridays.com/es-mx, gisou.com, la tienda oficial de la marca en Amazon México o Mercado Libre "Tienda oficial").
+2. Tiendas departamentales: liverpool.com.mx, elpalaciodehierro.com, sanborns.com.mx, sears.com.mx.
+3. Si no está en ninguna de esas, Amazon México vendido por la marca o por Amazon (NO de revendedores).
+
+Reglas:
+- NO uses precios de revendedores, Mercado Libre de particulares, ni tiendas que no sean oficiales: suelen ser carísimos o pirata.
+- Toma el mismo tamaño que dice la lista. Si no dice, el tamaño normal (no el mini ni el set).
+- Anota el precio normal, sin descuentos de temporada. Si está en oferta, anota el precio de antes.
+- Si el precio está en dólares, NO lo conviertas: anótalo como "USD 24" en la columna de precio.
+- Si no lo encuentras en ninguna tienda oficial que venda a México, escribe NO HAY. No inventes precios.
+
+Al final dame SOLO esta tabla, un producto por renglón (copia la clave tal cual):
+clave,precio,tienda,tamaño,link
+Ejemplo:
+sf-balm,520,Liverpool,15 g,https://www.liverpool.com.mx/...
+
+Lista (clave | producto):
+ct-cal | Charlotte Tilbury Advent Calendar
+fable-holiroots | Fable & Mane HoliRoots Hair Oil (el más chico)
+gisou-lipoil | Gisou Honey Infused Lip Oil
+gisou-oil | Gisou Honey Infused Hair Oil (el más chico)
+gisou-mask | Gisou Honey Gloss Hair Mask
+gisou-perfume | Gisou Honey Infused Hair Perfume
+glow-cal | Glow Recipe 12 Days of Glow Advent Calendar
+kosas-cloudset | Kosas Cloud Set Loose Powder
+kosas-revealer | Kosas Revealer Concealer
+kosas-wetoil | Kosas Wet Lip Oil
+merit-bronze | Merit Bronze Balm
+milk-primer | Milk Makeup Hydro Grip Primer
+milk-spray | Milk Makeup Hydro Grip Setting Spray
+oy-cal | Olive Young x Sephora Advent Calendar
+rhode-tint | Rhode Peptide Lip Tint
+rhode-pocket | Rhode Pocket Blush
+rhode-milk | Rhode Glazing Milk
+saie-cityset | Saie CitySet Setting Spray
+saie-dew | Saie Dew Blush
+sf-blush | Summer Fridays Blush Butter Balm
+sf-balm | Summer Fridays Lip Butter Balm
+touch-mist | Touchland Power Mist Hydrating Hand Sanitizer
+touch-vanilla | Touchland Vanilla Velvet Body & Hair Fragrance Mist
+tower-beach | Tower 28 BeachPlease Lip + Cheek Cream Blush
+tower-lipsoftie | Tower 28 LipSoftie
+tower-sos | Tower 28 SOS Daily Rescue Facial Spray (el más chico)
+sep-tower-swipe | Tower 28 Swipe Serum Concealer
+sep-rhode-pair | Rhode Pocket Pair Lip + Cheek Set
+sep-rhode-sugarmint | Rhode Sugarmint Trio
+sep-onesize-duo | ONE/SIZE On 'Til Dawn Big & Bitty Duo
+ouai-mask | OUAI Bond Repair Balm (el tamaño más chico, ~30 ml)
+amika-kure | Amika The Kure Intense Bond Repair Mask (el más chico, ~50 ml)
+laneige-waterbank | Laneige Water Bank Blue Hyaluronic Cream (tamaño mini/viaje, ~20 ml)
+miss-dior | Miss Dior Blooming Bouquet Roller-Pearl 20 ml
+rare-edp | Rare Beauty Rare Eau de Parfum tamaño de viaje (10 ml)
+mario-surreal | Makeup by Mario SurrealSkin Setting Spray mini (~30 ml)
