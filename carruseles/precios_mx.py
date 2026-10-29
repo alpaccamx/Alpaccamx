@@ -1,5 +1,6 @@
 """Precio de comparación de cada producto. Si Mae puso el precio de Sephora México en precios-sephora-mx.csv,
-se compara contra ese ("Sephora México"); si no, no se pone precio tachado."""
+se compara contra ese ("Sephora México"); si no, no se pone precio tachado.
+Dior Forever y Olaplex 3 y 7 vienen de liverpool.com.mx: Mae confirmó que en Sephora México cuestan lo mismo."""
 import csv, os
 
 _mx = {}
