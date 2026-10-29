@@ -1,9 +1,11 @@
 """Carrusel "Lo más pedido del Sephora Sale": 16 productos que se venden mucho, con el precio de la preventa
 (alpacca.mx/?ver=preventa). desde=True cuando el producto tiene tamaños/tonos con distinto precio."""
 PORTADA = {
-    "titulo": [("LO MÁS PEDIDO", 190), ("DEL SEPHORA SALE", 128)],
-    "pastilla": "20% OFF EN MI PREVENTA",
-    "collage": [("sol-c62", 430), ("rare-blush", 390), ("laneige-lsm", 260), ("glow-dew", 360), ("gisou-oil", 340)],
+    "arriba": "Productos del",
+    "grande": ["SEPHORA", "SALE"],
+    "abajo": ["que puedes encontrar en", "mi preventa con 20% OFF"],
+    "esquinas": [("huda-easybake", 430, -12, 110, 140), ("rare-blush", 520, -62, 960, 230),
+                 ("rhode-pocket", 400, 38, 70, 1210), ("laneige-lsm", 330, 14, 990, 1220)],
 }
 PARES = [
     ({"que": "Mascarilla de labios", "marca": "Laneige", "foto": "laneige-lsm", "precio": 474, "antes": 592, "desde": True, "alto": 0.70},

@@ -110,24 +110,33 @@ def lamina_productos(a, b):
     return L
 
 
+def estrella(d, cx, cy, r, color=(246, 236, 222)):
+    import math
+    pts = [(cx + (r if i % 2 == 0 else r * 0.42) * math.cos(math.pi / 2 + i * math.pi / 5 + 0.3),
+            cy - (r if i % 2 == 0 else r * 0.42) * math.sin(math.pi / 2 + i * math.pi / 5 + 0.3)) for i in range(10)]
+    d.polygon(pts, fill=color)
+
+
 def portada(c):
+    """como la del ejemplo: fondo rosa con estrellitas, productos chuecos saliéndose por las esquinas
+    y en medio "Productos del / SEPHORA SALE / que puedes encontrar en mi preventa" """
     L = Image.new("RGBA", (W, H), ROSA + (255,))
     d = ImageDraw.Draw(L)
-    y = 150
-    for r, sz in c["titulo"]:
-        texto(d, (W / 2, y), r, F(BEBAS, sz), BLANCO if r == c["titulo"][0][0] else TINTA, sombra=r != c["titulo"][0][0]); y += sz * 0.9
-    tarjeta(L, (70, y + 10, W - 70, 1170), 70)
-    # collage: productos de pie, de distintas alturas, encimados un poquito
-    fila = c["collage"]; n = len(fila); ancho = (W - 220) / n
-    base = 1130
-    for i, (nom, alto) in enumerate(fila):
-        im = foto(nom, alto, ancho * 1.25)
-        pega(L, im, 110 + ancho * (i + 0.5), base - im.height / 2)
-    if c.get("pastilla"):
-        s = c["pastilla"]; fn = F(BEBAS, 70); tw = fn.getlength(s)
-        px = (W - tw) / 2 - 40
-        d.rounded_rectangle((px, y + 40, px + tw + 80, y + 140), 50, fill=TINTA)
-        d.text((W / 2, y + 92), s, font=fn, fill=BLANCO, anchor="mm")
+    for x, y, r in [(310, 90, 46), (520, 330, 30), (990, 470, 52), (70, 620, 34), (960, 900, 46),
+                    (390, 1100, 58), (1000, 1080, 26), (130, 960, 24), (760, 1290, 34), (640, 120, 22)]:
+        estrella(d, x, y, r)
+    for nom, alto, ang, cx, cy in c["esquinas"]:  # (foto, alto, grados, centro x, centro y)
+        im = foto(nom, alto, 900).rotate(ang, expand=True, resample=Image.BICUBIC)
+        pega(L, im, cx, cy)
+    d = ImageDraw.Draw(L)
+    d.text((W / 2, 470), c["arriba"], font=F(CORM, 66), fill=BLANCO, anchor="mm")
+    y = 610
+    for r in c["grande"]:
+        f = F("BagelFatOne-Regular.ttf", 230)
+        while f.getlength(r) > 960: f = F("BagelFatOne-Regular.ttf", f.size - 6)
+        d.text((W / 2, y), r, font=f, fill=BLANCO, anchor="mm"); y += f.size * 0.86
+    for r in c["abajo"]:
+        d.text((W / 2, y - 20), r, font=F(CORM, 60), fill=BLANCO, anchor="mm"); y += 64
     firma(L)
     return L
 
