@@ -2,6 +2,7 @@
 Portada: foto real de Mae con título grande. Láminas: foto del calendario en fondo blanco y abajo, en letra
 blanca con contorno negro, nombre, precio de la preventa y cuánto te ahorras. Cierre con pregunta.
 Uso: python3 calendarios.py NOMBRE -> NOMBRE/01.jpg, ... (guion en guion_NOMBRE.py)"""
+from precios_mx import comparacion
 import importlib, os, sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -52,7 +53,8 @@ def lamina(p):
     L.alpha_composite(im, (int(W / 2 - im.width / 2), int(980 - im.height)))
     y = contorno(L, p["nombre"], 72, 1060)
     y = contorno(L, f"${p['precio']:,}", 100, y + 6)
-    contorno(L, f"Te ahorras ${p['antes'] - p['precio']:,}", 64, y + 10)
+    c = comparacion(p)  # solo se dice cuánto te ahorras si hay precio de Sephora México
+    contorno(L, f"Te ahorras ${c[1] - p['precio']:,}" if c else "Aparta con el 50%", 64, y + 10)
     return L
 
 

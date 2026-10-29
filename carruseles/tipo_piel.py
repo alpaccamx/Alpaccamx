@@ -39,6 +39,7 @@ def precio(L, p, y):
     s = f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa 💗"
     pi = b.pastilla(s, "Bold", 44, ROSA, b.WHITE, padx=40, pady=14)
     L.alpha_composite(pi, (int(W / 2 - pi.width / 2), int(y)))
+    if not comparacion(p): return
     et, pa = comparacion(p); a = f"Precio {et} ${pa:,}"
     f = b.F("Medium", 34); d = ImageDraw.Draw(L); yy = y + pi.height + 34
     d.text((W / 2, yy), a, font=f, fill=GRIS, anchor="mm")

@@ -87,7 +87,7 @@ def producto(L, caja, p, foto_izq=True):
         sz -= 4
     m, pr, an, de = int(46 * k), int(104 * k), int(44 * k), int(36 * k)
     fm, fp, fa = F(BEBAS, m), F(BEBAS, pr), F(BEBAS, an)
-    alto = len(rs) * sz * 0.92 + 18 * k + m + 30 * k + pr + ((14 * k + an) if p.get("antes") else 0) + (de - 2 if p.get("desde") else 0)
+    alto = len(rs) * sz * 0.92 + 18 * k + m + 30 * k + pr + ((14 * k + an) if comparacion(p) else 0) + (de - 2 if p.get("desde") else 0)
     if p.get("dato"):  # sello con el dato real (ventas, premio Allure) arriba del nombre
         alto += 60 * k + 16
     y = cy - alto / 2
@@ -102,7 +102,7 @@ def producto(L, caja, p, foto_izq=True):
     if p.get("desde"):
         texto(d, (tc, y + de * 0.42), "DESDE", F(BEBAS, de), SUAVE, sombra=False); y += de - 2
     texto(d, (tc, y + pr / 2), f"${p['precio']:,}", fp, TINTA); y += pr
-    if p.get("antes"):
+    if comparacion(p):
         y += 14 * k; et, pa = comparacion(p); s = f"{et.upper()} ${pa:,}"
         d.text((tc, y + an / 2), s, font=fa, fill=SUAVE, anchor="mm")
         lw = fa.getlength(s); d.line((tc - lw / 2 - 4, y + an / 2 + 2, tc + lw / 2 + 4, y + an / 2 + 2), fill=SUAVE, width=max(3, int(4 * k)))

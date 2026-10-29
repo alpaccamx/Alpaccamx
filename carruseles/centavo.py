@@ -84,9 +84,10 @@ def lamina(p, i):
     d = ImageDraw.Draw(L)
     s = f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa"
     d.text((cx, y + 50), s, font=b.F("SemiBold", 38), fill=ROSA, anchor="mm")
-    et, pa = comparacion(p); a = f"Precio {et} ${pa:,}"; f = b.F("Medium", 28); ya = y + 96
-    d.text((cx, ya), a, font=f, fill=GRIS, anchor="mm")
-    lw = f.getlength(a); d.line((cx - lw / 2, ya + 1, cx + lw / 2, ya + 1), fill=GRIS, width=3)
+    if comparacion(p):
+        et, pa = comparacion(p); a = f"Precio {et} ${pa:,}"; f = b.F("Medium", 28); ya = y + 96
+        d.text((cx, ya), a, font=f, fill=GRIS, anchor="mm")
+        lw = f.getlength(a); d.line((cx - lw / 2, ya + 1, cx + lw / 2, ya + 1), fill=GRIS, width=3)
     return L
 
 
