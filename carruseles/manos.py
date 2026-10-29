@@ -50,6 +50,7 @@ def lamina(p):
 if __name__ == "__main__":
     nombre = sys.argv[1]
     g = importlib.import_module(f"guion_{nombre.replace('-', '_')}")
+    import precios_mx; precios_mx.ajusta_guion(g)
     out = os.path.join(AQUI, nombre); os.makedirs(out, exist_ok=True)
     wa = whatsapp.lamina(W, H, FONDO, ["Únete a mi grupo", "de WhatsApp"], ["Ahí aviso de las preventas, ofertas", "y todo lo nuevo que llega"],
                          NEGRO, (70, 70, 74), lambda: b.F("Bold", 76), lambda: b.F("SemiBold", 38))

@@ -7,7 +7,22 @@ _mx = {}
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "precios-sephora-mx.csv")) as fh:
     for r in csv.DictReader(fh):
         v = r["precio_sephora_mexico"].replace("$", "").replace(",", "").strip()
-        if v: _mx[r["clave"]] = int(float(v))
+        if v and v != "NO HAY": _mx[r["clave"]] = int(float(v))
+
+# Sephora México solo vende el tamaño completo: para que la comparación sea del MISMO tamaño, en estos se
+# muestra el precio de la preventa del tamaño completo (precioMax del catálogo) en vez del "desde" del mini.
+TAMANO_COMPLETO = {"huda-easybake": 829, "sep-huda": 829, "rare-blush": 493, "patrick-duo": 789, "onesize-matte": 710,
+                   "onesize-spray": 770, "fenty-diamond": 848, "rare-mist": 553, "mario-softpop": 671, "charlotte": 986}
+
+
+def ajusta_guion(g):
+    """cambia en el guion el precio de los productos de TAMANO_COMPLETO (y les quita el "desde")"""
+    items = []
+    for grp in getattr(g, "PARES", []): items += list(grp)
+    items += getattr(g, "PRODUCTOS", []) + getattr(g, "CALENDARIOS", [])
+    for p in items:
+        k = p.get("producto") or p.get("foto")
+        if k in TAMANO_COMPLETO and k in _mx: p["precio"], p["desde"] = TAMANO_COMPLETO[k], False
 
 
 def comparacion(p):

@@ -1,93 +1,93 @@
 clave,producto,precio_preventa,precio_sephora_usa_en_pesos,precio_sephora_mexico,carruseles
-amika-perkup,Amika · Perk Up · Shampoo en seco,316,395,,cabello
+amika-perkup,Amika · Perk Up · Shampoo en seco,316,395,410,cabello
 amika-kure,Amika · The Kure · Mascarilla reparadora,474,592,,cabello
-chanel-coco,Chanel: Coco Mademoiselle,2268,2835,,lujo
-charlotte,Charlotte Tilbury,375,469,,cada_marca
-ct-cal,Charlotte Tilbury Hollywood Beauty Wonderland,4339,5423,,calendarios_2026
+chanel-coco,Chanel: Coco Mademoiselle,2268,2835,2450,lujo
+charlotte,Charlotte Tilbury,375,469,1300,cada_marca
+ct-cal,Charlotte Tilbury Hollywood Beauty Wonderland,4339,5423,NO HAY,calendarios_2026
 dior-forever,Dior: Forever Skin Glow,1184,1479,1550,lujo
-dior-lipoil,Dior: Lip Glow Oil,829,1036,,lujo
+dior-lipoil,Dior: Lip Glow Oil,829,1036,970,lujo
 miss-dior,Dior: Miss Dior Blooming Bouquet,967,1208,,lujo
-fable-holiroots,Fable & Mane · HoliRoots · Aceite pre-lavado,355,444,,cabello
-fenty-eaze,Fenty Beauty Eaze Drop,809,1011,,cada_centavo
-fenty-gloss,Fenty Beauty Gloss Bomb,454,567,,labios_piel lujo sephora_top
+fable-holiroots,Fable & Mane · HoliRoots · Aceite pre-lavado,355,444,NO HAY,cabello
+fenty-eaze,Fenty Beauty Eaze Drop,809,1011,895,cada_centavo
+fenty-gloss,Fenty Beauty Gloss Bomb,454,567,525,labios_piel lujo sephora_top
 kit-fenty-posse,Fenty Beauty · Set 4 Gloss Bomb,967,1208,,kits
-fenty-diamond,Fenty Beauty: Diamond Bomb,415,518,,lujo
-gisou-lipoil,Gisou Honey Infused Lip Oil,553,691,,labios_piel
-gisou-oil,Gisou · Aceite para pelo,493,617,,cabello cada_centavo lo_que_todas_compran mas_vendidos sephora_top
-gisou-mask,Gisou · Mascarilla para pelo,493,617,,cabello
-gisou-perfume,Gisou · Perfume para pelo,493,617,,perfumes regalos
-glow-cal,Glow Recipe 12 Days of Glow,2170,2712,,calendarios_2026
-glow-dew,Glow Recipe · Dew Drops · Sérum iluminador,395,493,,coreano sephora_top
-glow-pinkjuice,Glow Recipe · Pink Juice · Hidratante sin grasa,415,518,,coreano
-glow-plum,Glow Recipe · Plum Plump · Crema hidratante,415,518,,coreano
-huda-easybake,Huda Beauty Easy Bake,474,592,,cada_centavo cada_marca fijadores_piel lujo sephora_top
-huda-edp,Huda Beauty · Perfume Easy Bake,592,740,,perfumes
-huda-mini,Huda Beauty · Polvo mini,474,592,,regalos
+fenty-diamond,Fenty Beauty: Diamond Bomb,415,518,930,lujo
+gisou-lipoil,Gisou Honey Infused Lip Oil,553,691,NO HAY,labios_piel
+gisou-oil,Gisou · Aceite para pelo,493,617,NO HAY,cabello cada_centavo lo_que_todas_compran mas_vendidos sephora_top
+gisou-mask,Gisou · Mascarilla para pelo,493,617,NO HAY,cabello
+gisou-perfume,Gisou · Perfume para pelo,493,617,NO HAY,perfumes regalos
+glow-cal,Glow Recipe 12 Days of Glow,2170,2712,NO HAY,calendarios_2026
+glow-dew,Glow Recipe · Dew Drops · Sérum iluminador,395,493,519,coreano sephora_top
+glow-pinkjuice,Glow Recipe · Pink Juice · Hidratante sin grasa,415,518,530,coreano
+glow-plum,Glow Recipe · Plum Plump · Crema hidratante,415,518,530,coreano
+huda-easybake,Huda Beauty Easy Bake,474,592,950,cada_centavo cada_marca fijadores_piel lujo sephora_top
+huda-edp,Huda Beauty · Perfume Easy Bake,592,740,750,perfumes
+huda-mini,Huda Beauty · Polvo mini,474,592,585,regalos
 kit-huda-mocktail,Huda Beauty · Trío mini blush,572,715,,kits
-kayali-pistachio,Kayali · Yum Pistachio Gelato 33 · Perfume de pistache,572,715,,perfumes
-kayali-marsh,Kayali: Yum Boujee Marshmallow 81,572,715,,lujo
-kayali-vanilla,Kayali: el Vanilla 28,572,715,,cada_marca lo_que_todas_compran mas_vendidos perfumes
-kosas-cloudset,Kosas Cloud Set Loose Powder,493,617,,fijadores_piel
-kosas-revealer,Kosas Revealer,336,420,,cada_centavo lo_que_todas_compran
-kosas-wetoil,Kosas Wet Lip Oil,493,617,,labios_piel regalos
-laneige-cal,Laneige 12 Days of Wonder,2939,3673,,calendarios_2026
+kayali-pistachio,Kayali · Yum Pistachio Gelato 33 · Perfume de pistache,572,715,800,perfumes
+kayali-marsh,Kayali: Yum Boujee Marshmallow 81,572,715,800,lujo
+kayali-vanilla,Kayali: el Vanilla 28,572,715,800,cada_marca lo_que_todas_compran mas_vendidos perfumes
+kosas-cloudset,Kosas Cloud Set Loose Powder,493,617,NO HAY,fijadores_piel
+kosas-revealer,Kosas Revealer,336,420,NO HAY,cada_centavo lo_que_todas_compran
+kosas-wetoil,Kosas Wet Lip Oil,493,617,NO HAY,labios_piel regalos
+laneige-cal,Laneige 12 Days of Wonder,2939,3673,3550,calendarios_2026
 kit-laneige-midnight,Laneige · Kit 5 minis Lip Mask,454,567,,coreano kits
-laneige-lsm,Laneige · Mascarilla de labios,474,592,,coreano labios_piel mas_vendidos sephora_top
+laneige-lsm,Laneige · Mascarilla de labios,474,592,610,coreano labios_piel mas_vendidos sephora_top
 laneige-waterbank,Laneige · Water Bank · Crema hidratante,434,543,,coreano
-laneige-glowy,Laneige: el Lip Glowy Balm,375,469,,cada_marca coreano lo_que_todas_compran mas_vendidos regalos
-mario-softpop,Makeup by Mario Soft Pop,316,395,,cada_centavo
+laneige-glowy,Laneige: el Lip Glowy Balm,375,469,480,cada_marca coreano lo_que_todas_compran mas_vendidos regalos
+mario-softpop,Makeup by Mario Soft Pop,316,395,845,cada_centavo
 mario-surreal,Makeup by Mario SurrealSkin Setting Spray,395,493,,fijadores_piel
-merit-bronze,Merit Bronze Balm,632,789,,lo_que_todas_compran mas_vendidos
-milk-primer,Milk Makeup Hydro Grip Primer,395,493,,cada_centavo
-milk-spray,Milk Makeup Hydro Grip Setting Spray,474,592,,fijadores_piel sephora_top
-onesize-matte,ONE/SIZE On 'Til Dawn,355,444,,cada_centavo
-onesize-spray,ONE/SIZE On 'Til Dawn SPF 28,415,518,,fijadores_piel sephora_top
+merit-bronze,Merit Bronze Balm,632,789,NO HAY,lo_que_todas_compran mas_vendidos
+milk-primer,Milk Makeup Hydro Grip Primer,395,493,NO HAY,cada_centavo
+milk-spray,Milk Makeup Hydro Grip Setting Spray,474,592,NO HAY,fijadores_piel sephora_top
+onesize-matte,ONE/SIZE On 'Til Dawn,355,444,800,cada_centavo
+onesize-spray,ONE/SIZE On 'Til Dawn SPF 28,415,518,910,fijadores_piel sephora_top
 ouai-mask,OUAI · Bond Repair · Bálsamo reparador,553,691,,cabello
 olaplex-3,Olaplex · No. 3 · Tratamiento reparador,671,839,850,cabello
 olaplex-7,Olaplex · No. 7 · Aceite reparador,632,789,800,cabello
-oy-cal,Olive Young x Sephora,1361,1701,,calendarios_2026
-patrick-brush,Patrick Ta Transition Blush Brush,789,986,,cada_centavo
+oy-cal,Olive Young x Sephora,1361,1701,NO HAY,calendarios_2026
+patrick-brush,Patrick Ta Transition Blush Brush,789,986,1320,cada_centavo
 kit-patrick-set,Patrick Ta · Kit Blush + Lip Balm,1026,1282,,kits
-patrick-duo,Patrick Ta: el Major Headlines,493,617,,cada_marca lo_que_todas_compran mas_vendidos rubores_piel sephora_top
-rare-brow,Rare Beauty Brow Harmony,415,518,,cada_centavo
-rare-blush,Rare Beauty Soft Pinch,316,395,,cada_centavo rubores_piel sephora_top
-rare-miniblush,Rare Beauty · Blush mini,316,395,,regalos
-rare-mist,Rare Beauty · Find Comfort · Body mist,316,395,,perfumes
+patrick-duo,Patrick Ta: el Major Headlines,493,617,1045,cada_marca lo_que_todas_compran mas_vendidos rubores_piel sephora_top
+rare-brow,Rare Beauty Brow Harmony,415,518,560,cada_centavo
+rare-blush,Rare Beauty Soft Pinch,316,395,665,cada_centavo rubores_piel sephora_top
+rare-miniblush,Rare Beauty · Blush mini,316,395,425,regalos
+rare-mist,Rare Beauty · Find Comfort · Body mist,316,395,770,perfumes
 kit-rare-hope,Rare Beauty · Kit con bolsita,1065,1332,,kits
 rare-edp,Rare Beauty · Perfume caramelo,592,740,,perfumes
-rare-balm,Rare Beauty · Perfume en bálsamo,395,493,,regalos
+rare-balm,Rare Beauty · Perfume en bálsamo,395,493,535,regalos
 kit-rare-violet,Rare Beauty · Trío mini blush + lip,671,839,,kits
-rhode-tint,Rhode Peptide Lip Tint,395,493,,labios_piel sephora_top
-rhode-pocket,Rhode Pocket Blush,493,617,,cada_centavo rubores_piel sephora_top
-rhode-milk,Rhode: el Glazing Milk,395,493,,cada_marca lo_que_todas_compran mas_vendidos
-saie-cityset,Saie CitySet Setting Spray,355,444,,fijadores_piel
-saie-dew,Saie Dew Blush,355,444,,rubores_piel
-sc-cal,Sephora Collection Premium 24 días,1953,2441,,calendarios_2026
-sol-c62,Sol de Janeiro · 62 · Body mist,513,641,,sephora_top
-sol-68,Sol de Janeiro · Cheirosa 68 · Body mist,513,641,,perfumes
-sol-cream,Sol de Janeiro · Crema corporal,474,592,,sephora_top
+rhode-tint,Rhode Peptide Lip Tint,395,493,NO HAY,labios_piel sephora_top
+rhode-pocket,Rhode Pocket Blush,493,617,NO HAY,cada_centavo rubores_piel sephora_top
+rhode-milk,Rhode: el Glazing Milk,395,493,NO HAY,cada_marca lo_que_todas_compran mas_vendidos
+saie-cityset,Saie CitySet Setting Spray,355,444,NO HAY,fijadores_piel
+saie-dew,Saie Dew Blush,355,444,NO HAY,rubores_piel
+sc-cal,Sephora Collection Premium 24 días,1953,2441,2900,calendarios_2026
+sol-c62,Sol de Janeiro · 62 · Body mist,513,641,620,sephora_top
+sol-68,Sol de Janeiro · Cheirosa 68 · Body mist,513,641,620,perfumes
+sol-cream,Sol de Janeiro · Crema corporal,474,592,570,sephora_top
 kit-sol-jetset,Sol de Janeiro · Jet Set Bum Bum,671,839,,kits
-sf-blush,Summer Fridays Blush Butter Balm,513,641,,rubores_piel
+sf-blush,Summer Fridays Blush Butter Balm,513,641,NO HAY,rubores_piel
 kit-sf-pink,Summer Fridays · 4 minis Lip Balm,493,617,,kits
-sf-balm,Summer Fridays: el Lip Butter Balm,474,592,,cada_marca lo_que_todas_compran mas_vendidos regalos sephora_top
-touch-mist,Touchland Power Mist,198,247,,lo_que_todas_compran mas_vendidos sephora_top
-touch-vanilla,Touchland · Vanilla Velvet · Body mist de vainilla,395,493,,perfumes regalos
-tower-beach,Tower 28 BeachPlease Cream Blush,395,493,,rubores_piel
-tower-lipsoftie,Tower 28 LipSoftie,316,395,,labios_piel sephora_top
+sf-balm,Summer Fridays: el Lip Butter Balm,474,592,NO HAY,cada_marca lo_que_todas_compran mas_vendidos regalos sephora_top
+touch-mist,Touchland Power Mist,198,247,NO HAY,lo_que_todas_compran mas_vendidos sephora_top
+touch-vanilla,Touchland · Vanilla Velvet · Body mist de vainilla,395,493,NO HAY,perfumes regalos
+tower-beach,Tower 28 BeachPlease Cream Blush,395,493,NO HAY,rubores_piel
+tower-lipsoftie,Tower 28 LipSoftie,316,395,NO HAY,labios_piel sephora_top
 kit-tower-jello,Tower 28 · Set Jell-O Lip,395,493,,kits
-tower-sos,Tower 28: el SOS Spray,237,296,,cada_marca lo_que_todas_compran mas_vendidos
+tower-sos,Tower 28: el SOS Spray,237,296,NO HAY,cada_marca lo_que_todas_compran mas_vendidos
 mano-rare,con UNA gotita es suficiente,316,395,,cada_centavo_2
 mano-patrick-duo,el blush que TODAS me piden cada año,493,617,,cada_centavo_2
 mano-huda,el polvo que hace que tu piel se vea como FILTRO,474,592,,cada_centavo_2
 mano-patrick-paleta,la paleta de sombras más BONITA,908,1134,,cada_centavo_2
 mano-urban,si quieres que tu makeup NO SE MUEVA,355,444,,cada_centavo_2
-sep-huda,Huda Beauty Easy Bake Loose Powder (tamaño normal),,,,
-sep-tower-swipe,Tower 28 Swipe Serum Concealer,,,,
-sep-ysl-blush,YSL Make Me Blush 24H Powder Blush,,,,
-sep-rhode-milk,Rhode Glazing Milk,,,,
-sep-dior-palette,Dior Backstage Glow Face Palette,,,,
-sep-patrick-mini,Patrick Ta Mini Major Headlines Blush Duo,,,,
-sep-patrick-set,Patrick Ta Major Headlines Blush Duo & Lip Balm Gift Set,,,,
-sep-rhode-pair,Rhode Pocket Pair Lip + Cheek Set,,,,
-sep-rhode-sugarmint,Rhode Sugarmint Trio,,,,
-sep-onesize-duo,ONE/SIZE On 'Til Dawn Big & Bitty Duo,,,,
+sep-huda,Huda Beauty Easy Bake Loose Powder (tamaño normal),,,950,
+sep-tower-swipe,Tower 28 Swipe Serum Concealer,,,NO HAY,
+sep-ysl-blush,YSL Make Me Blush 24H Powder Blush,,,1260,
+sep-rhode-milk,Rhode Glazing Milk,,,NO HAY,
+sep-dior-palette,Dior Backstage Glow Face Palette,,,1330,
+sep-patrick-mini,Patrick Ta Mini Major Headlines Blush Duo,,,645,
+sep-patrick-set,Patrick Ta Major Headlines Blush Duo & Lip Balm Gift Set,,,1425,
+sep-rhode-pair,Rhode Pocket Pair Lip + Cheek Set,,,NO HAY,
+sep-rhode-sugarmint,Rhode Sugarmint Trio,,,NO HAY,
+sep-onesize-duo,ONE/SIZE On 'Til Dawn Big & Bitty Duo,,,NO HAY,

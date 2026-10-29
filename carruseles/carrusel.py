@@ -203,6 +203,7 @@ if __name__ == "__main__":
     import importlib
     nombre = sys.argv[1]
     cfg = importlib.import_module(f"guion_{nombre.replace('-', '_')}")
+    import precios_mx; precios_mx.ajusta_guion(cfg)
     out = os.path.join(AQUI, nombre); os.makedirs(out, exist_ok=True)
     fin = gracias(cfg.GRACIAS) if hasattr(cfg, "GRACIAS") else cierre(cfg.CIERRE)
     import whatsapp
