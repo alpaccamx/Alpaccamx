@@ -83,6 +83,11 @@ const CONFIG = {
   // se quitaron siguen en assets/hero por si quieres regresarlos.
   HERO_SLIDES: [
     {
+      imageCard: "assets/hero/hero-grupo-whatsapp-card.webp",
+      imageAlt: "Únete al grupo de WhatsApp de Alpacca: preventas, ofertas y novedades primero.",
+      ctaHref: "https://chat.whatsapp.com/Jx4rYqxZvES93A4y4zvfXu",
+    },
+    {
       imageCard: "assets/hero/hero-kit-emprende-card.webp",
       imageAlt: "Kit Emprende: arma tu negocio de belleza -- skincare y maquillaje coreano para surtir tu negocio, 3 presupuestos desde $6,000.",
       ctaHref: "?ver=kits",
@@ -1901,7 +1906,9 @@ function heroSlides() {
 function heroSlideHTML(slide, i, clone) {
   const href = slide.ctaHref || "";
   const tag = href ? "a" : "div";
-  return `<${tag} ${href ? `href="${escapeAttr(href)}"` : ""} data-hero-card ${clone ? 'aria-hidden="true" inert' : ""}
+  // Links de fuera (ej. el grupo de WhatsApp) abren aparte, sin sacarla de la tienda.
+  const fuera = /^https?:\/\//.test(href) ? ' target="_blank" rel="noopener"' : "";
+  return `<${tag} ${href ? `href="${escapeAttr(href)}"${fuera}` : ""} data-hero-card ${clone ? 'aria-hidden="true" inert' : ""}
     class="hero-card snap-center shrink-0 aspect-[4/5] rounded-2xl overflow-hidden bg-pill block">
     <img src="${escapeAttr(slide.imageCard)}" alt="${clone ? "" : escapeAttr(slide.imageAlt || "")}" ${i === 0 && !clone ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"'}
       class="w-full h-full object-cover" />
