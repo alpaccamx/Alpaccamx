@@ -105,7 +105,7 @@ VARIANTES = {
                 (3, 0, "cta", "Aparta en alpacca.mx 🛍️"), (3, 1, "cta", "Hasta el 8 de noviembre ⏰")],
         tarjetas=[]),
     "top": dict(
-        escenas=[[("2452", 20, 1.4, 2.0), ("1830", 22, 1.2, 1.0), ("1881", 140, None, 3.0)],
+        etiqueta_y=1600, escenas=[[("2452", 20, 1.4, 2.0), ("1830", 22, 1.2, 1.0), ("1881", 140, None, 3.0)],
                  [("1830", 8.5, None, 1.0)],
                  [("1829", 73, None, 1.0)],
                  [("1861", 30.5, None, 1.0)],
@@ -150,7 +150,7 @@ VARIANTES = {
                   (4, None, None, "laneige-minis"), (5, None, None, "sf-minis")]),
     # ---- con tomas de los pedidos del año pasado ----
     "ahorro": dict(
-        alpaca=("alcancia", 840, 1330, 440, (0, 5)), foto_en_tarjeta=True, ahorro=True, tarjeta_y=480,
+        etiqueta_y=1600, alpaca=("alcancia", 840, 1330, 440, (0, 5)), foto_en_tarjeta=True, ahorro=True, tarjeta_y=480,
         escenas=[[("2452", 20, 1.4, 2.0), ("1881", 140, None, 3.0)],
                  [("1830", 8.5, None, 1.0)], [("1694", 60, None, 1.0)], [("1861", 30.5, None, 1.0)], [("2452", 15, None, 1.0)],
                  [("1828", 130, 1.8, 3.0), ("1699", 80, None, 6.0)]],
@@ -158,7 +158,7 @@ VARIANTES = {
                 (5, 0, "texto", "Entre más pides,\nmás ahorras 💗"), (5, 1, "cta", "Aparta antes del 8 de noviembre ⏰")],
         tarjetas=[(1, None, None, "rare"), (2, None, None, "patrick"), (3, None, None, "huda"), (4, None, None, "cal-ct")]),
     "rubores": dict(
-        alpaca=("espejo", 860, 1330, 430, (0, 6)), foto_en_tarjeta=True, tarjeta_y=480, foto_y=1000,
+        etiqueta_y=1600, alpaca=("espejo", 860, 1330, 430, (0, 6)), foto_en_tarjeta=True, tarjeta_y=480, foto_y=1000,
         escenas=[[("1694", 132, 1.8, 1.0), ("1829", 62, None, 1.0)],
                  [("1830", 8.5, None, 1.0)], [("1694", 60, None, 1.0)], [("1694", 168, None, 1.0)], [("1701", 91, None, 1.0)],
                  [("foto", "rhode-pocket", None, None)],
