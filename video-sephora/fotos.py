@@ -25,6 +25,8 @@ FOTOS = {
     "tower-lipsoftie": ("www.tower28beauty.com", "lipsoftie", "LipSoftie"),
     "saie-dew": ("saiehello.com", "dew blush", "Dew Blush"),
     "kosas-blush": ("www.kosas.com", "blush is life", "Blush is Life"),
+    "huda-easybake": ("hudabeauty.com/en-us", "easy bake loose powder", "Easy Bake"),
+    "gisou-oil": ("www.gisou.com", "honey infused hair oil", "Hair Oil"),
 }
 
 for nombre, (tienda, q, debe) in FOTOS.items():
