@@ -3026,6 +3026,8 @@ const SEARCH_SYNONYMS = [
   [["cafe", "marron", "chocolate"], ["brown", "choco", "mocha", "coffee"]],
   [["negro", "negra"], ["black"]],
   [["kit", "kits", "set", "sets", "regalo", "estuche", "combo", "paquete"], ["set", "kit", "gift", "trial", "bundle", "collection"]],
+  // Nombres populares que no vienen en el nombre del producto.
+  [["fresh that lasts", "fresh that last", "fresh that"], ["pistachio deodorant"]],
 ];
 // Palabras que no ayudan a encontrar ("crema PARA ojos").
 const SEARCH_STOPWORDS = new Set(["para", "de", "del", "la", "el", "los", "las", "con", "y", "en", "un", "una", "mi", "piel"]);
