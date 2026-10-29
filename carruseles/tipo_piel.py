@@ -2,6 +2,7 @@
 Portada: foto real de Mae con el gancho encima. Láminas: nombre del producto (serif), "Si..." (gancho de
 identificación), foto recortada, por qué y precio de la preventa. Cierre: todos juntos + pregunta.
 Uso: python3 tipo_piel.py NOMBRE -> NOMBRE/01.jpg, ... (el guion va en guion_NOMBRE.py)"""
+from precios_mx import comparacion
 import importlib, os, sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -38,7 +39,7 @@ def precio(L, p, y):
     s = f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa 💗"
     pi = b.pastilla(s, "Bold", 44, ROSA, b.WHITE, padx=40, pady=14)
     L.alpha_composite(pi, (int(W / 2 - pi.width / 2), int(y)))
-    a = f"Precio Sephora ${p['antes']:,}"
+    et, pa = comparacion(p); a = f"Precio {et} ${pa:,}"
     f = b.F("Medium", 34); d = ImageDraw.Draw(L); yy = y + pi.height + 34
     d.text((W / 2, yy), a, font=f, fill=GRIS, anchor="mm")
     lw = f.getlength(a); d.line((W / 2 - lw / 2, yy + 2, W / 2 + lw / 2, yy + 2), fill=GRIS, width=3)

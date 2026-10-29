@@ -2,6 +2,7 @@
 Portada: foto real de Mae con título blanco de contorno negro. Láminas: fondo blanco, frase arriba, foto del producto
 en medio y frase abajo, como si Mae lo platicara, más el precio de la preventa. Cierre: "¿cuáles me faltaron?" y el QR.
 Uso: python3 centavo.py NOMBRE -> NOMBRE/01.jpg, ... (guion en guion_NOMBRE.py)"""
+from precios_mx import comparacion
 import importlib, os, sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -83,7 +84,7 @@ def lamina(p, i):
     d = ImageDraw.Draw(L)
     s = f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa"
     d.text((cx, y + 50), s, font=b.F("SemiBold", 38), fill=ROSA, anchor="mm")
-    a = f"Precio Sephora ${p['antes']:,}"; f = b.F("Medium", 28); ya = y + 96
+    et, pa = comparacion(p); a = f"Precio {et} ${pa:,}"; f = b.F("Medium", 28); ya = y + 96
     d.text((cx, ya), a, font=f, fill=GRIS, anchor="mm")
     lw = f.getlength(a); d.line((cx - lw / 2, ya + 1, cx + lw / 2, ya + 1), fill=GRIS, width=3)
     return L

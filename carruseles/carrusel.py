@@ -1,6 +1,7 @@
 """Carruseles de fotos (1080x1350, 4:5) para TikTok (modo foto) e Instagram, estilo tarjetas crema sobre fondo rosa.
 Cada lámina de producto lleva 2 productos: foto recortada (recortes/), qué es, marca y precio de la preventa.
 Uso: python3 carrusel.py NOMBRE -> NOMBRE/01.jpg, 02.jpg, ..."""
+from precios_mx import comparacion
 import os, sys
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
@@ -102,7 +103,7 @@ def producto(L, caja, p, foto_izq=True):
         texto(d, (tc, y + de * 0.42), "DESDE", F(BEBAS, de), SUAVE, sombra=False); y += de - 2
     texto(d, (tc, y + pr / 2), f"${p['precio']:,}", fp, TINTA); y += pr
     if p.get("antes"):
-        y += 14 * k; s = f"SEPHORA ${p['antes']:,}"
+        y += 14 * k; et, pa = comparacion(p); s = f"{et.upper()} ${pa:,}"
         d.text((tc, y + an / 2), s, font=fa, fill=SUAVE, anchor="mm")
         lw = fa.getlength(s); d.line((tc - lw / 2 - 4, y + an / 2 + 2, tc + lw / 2 + 4, y + an / 2 + 2), fill=SUAVE, width=max(3, int(4 * k)))
 
