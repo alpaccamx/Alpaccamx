@@ -16,8 +16,21 @@ def foto(ruta, y=0.3):
     return im.crop(((im.width - W) // 2, y0, (im.width - W) // 2 + W, y0 + H)).convert("RGBA")
 
 
+def tarjeta_producto(L, nombre, alto=620):
+    """el producto recortado en una tarjeta blanca redondeada encima de la foto de la tienda"""
+    from carrusel import foto as recorte
+    im = recorte(nombre, alto * 0.82, 520)
+    w, h = max(im.width + 120, 460), alto
+    t = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(t).rounded_rectangle((0, 0, w - 1, h - 1), 48, fill=(255, 255, 255, 235))
+    t.alpha_composite(im, ((w - im.width) // 2, (h - im.height) // 2))
+    L.alpha_composite(t, (int(W / 2 - w / 2), int(H / 2 - h / 2 + 10)))
+
+
 def lamina(p):
-    L = foto(os.path.join(AQUI, "fotos-mae", p["foto"] + ".jpg"), p.get("y", 0.3))
+    carpeta = "fotos-sephora" if p.get("tienda") else "fotos-mae"
+    L = foto(os.path.join(AQUI, carpeta, p["foto"] + ".jpg"), p.get("y", 0.3))
+    if p.get("producto"): tarjeta_producto(L, p["producto"])
     # degradado oscuro arriba y abajo para que se lea el texto
     g = Image.new("L", (1, H))
     for yy in range(H):
