@@ -1,0 +1,50 @@
+"""Carrusel "Cosas que valen cada centavo — edición Sephora Sale". Precios de la preventa (alpacca.mx/?ver=preventa)."""
+import os
+F = lambda n: os.path.join(os.path.dirname(__file__), "fotos-mae", n)
+PORTADA = {
+    "foto": F("caja-rare-patrick.jpg"),
+    "titulo": "COSAS QUE VALEN\nCADA CENTAVO 💸",
+    "sub": "edición Sephora Sale",
+    "pastilla": "y ahora con 20% OFF en mi preventa",
+    "nota": "📦 Pedido de mis clientas del Sephora Sale 2025",
+}
+PRODUCTOS = [
+    dict(foto="rhode-pocket", alto=0.75, precio=493, antes=617,
+         arriba="Rhode Pocket Blush\nel blush en barra que TODAS me piden",
+         abajo="súper cremosito, se difumina precioso y cabe en cualquier bolsita"),
+    dict(foto="rare-blush", swatch="rare-swatch", precio=316, antes=395, desde=True,
+         arriba="Rare Beauty Soft Pinch\ncon UNA gotita es suficiente… por algo se agota cada año",
+         abajo="un bote te dura meses, literal vale cada centavo"),
+    dict(foto="kosas-revealer", precio=336, antes=420, desde=True,
+         arriba="Kosas Revealer\nel corrector que se ve como piel de verdad",
+         abajo="ilumina las ojeras y no se cuartea en todo el día"),
+    dict(foto="fenty-eaze", alto=0.85, precio=809, antes=1011,
+         arriba="Fenty Beauty Eaze Drop\npara los días que quieres verte arreglada sin traer “base”",
+         abajo="ligerita, difumina los poros y deja la piel demasiado bonita"),
+    dict(foto="huda-easybake", alto=0.8, precio=474, antes=592, desde=True,
+         arriba="Huda Beauty Easy Bake\nel polvo que hace que tu makeup se vea 10 veces mejor",
+         abajo="sella el corrector y deja la piel lisita sin verse pesada"),
+    dict(foto="onesize-matte", precio=355, antes=444, desde=True,
+         arriba="ONE/SIZE On 'Til Dawn\nsi necesitas que tu makeup NO SE MUEVA, es este",
+         abajo="a prueba de agua y de sudor: aguanta toda la fiesta"),
+    dict(foto="mario-softpop", alto=0.9, precio=316, antes=395, desde=True,
+         arriba="Makeup by Mario Soft Pop\nel blush en barra que parece tu color natural",
+         abajo="se difumina con los dedos en segundos"),
+    dict(foto="rare-brow", precio=415, antes=518, desde=True,
+         arriba="Rare Beauty Brow Harmony\nsi quieres que tus cejas NO SE MUEVAN: este",
+         abajo="las deja peinaditas todo el día sin estar retocando"),
+    dict(foto="patrick-brush", precio=789, antes=986,
+         arriba="Patrick Ta Transition Blush Brush\nuna brocha cara que SÍ vale la pena",
+         abajo="un lado para crema y otro para polvo, y los dos difuminan precioso"),
+    dict(foto="milk-primer", precio=395, antes=493, desde=True,
+         arriba="Milk Makeup Hydro Grip Primer\nel primer que hace que tu maquillaje dure el doble",
+         abajo="hidrata y deja la piel lista para que nada se mueva"),
+    dict(foto="gisou-oil", alto=0.85, precio=493, antes=617, desde=True,
+         arriba="Gisou Honey Infused Hair Oil\nsí está caro, pero te dura una ETERNIDAD",
+         abajo="con muy poquito deja el pelo con un brillo precioso"),
+]
+FALTARON = {
+    "foto": F("caja-rare.jpg"),
+    "texto": "¿Cuáles me faltaron?\nDíganme sus favs para hacer parte 2 👀",
+    "pastilla": "Pídelos en alpacca.mx 💗",
+}
