@@ -74,27 +74,29 @@ def producto(L, caja, p, foto_izq=True):
     im = foto(p["foto"], (y1 - y0) * p.get("alto", 0.80), ancho_foto * p.get("ancho", 0.9))
     pega(L, im, fx - (40 if p.get("swatch") else 0), cy + 10)
 
-    # texto centrado en su columna
+    # texto centrado en su columna; k achica todo cuando la tarjeta es más bajita (láminas de 3)
+    k = min(1.0, (y1 - y0) / 525)
     tw = tx1 - tx0; tc = (tx0 + tx1) / 2
-    sz = 112
+    sz = int(112 * k)
     while True:
         fn = F(BEBAS, sz); rs = renglones(p["que"], fn, tw)
-        if (len(rs) <= 3 and all(fn.getlength(r) <= tw for r in rs)) or sz < 60: break
+        if (len(rs) <= 3 and all(fn.getlength(r) <= tw for r in rs)) or sz < 50: break
         sz -= 4
-    fm, fp, fa = F(BEBAS, 46), F(BEBAS, 104), F(BEBAS, 44)
-    alto = len(rs) * sz * 0.92 + 18 + 46 + 30 + 104 + (14 + 44 if p.get("antes") else 0) + (34 if p.get("desde") else 0)
+    m, pr, an, de = int(46 * k), int(104 * k), int(44 * k), int(36 * k)
+    fm, fp, fa = F(BEBAS, m), F(BEBAS, pr), F(BEBAS, an)
+    alto = len(rs) * sz * 0.92 + 18 * k + m + 30 * k + pr + ((14 * k + an) if p.get("antes") else 0) + (de - 2 if p.get("desde") else 0)
     y = cy - alto / 2
     for r in rs:
         texto(d, (tc, y + sz * 0.46), r, fn, TINTA); y += sz * 0.92
-    y += 18
-    texto(d, (tc, y + 23), p["marca"].upper(), fm, SUAVE, sombra=False); y += 46 + 30
+    y += 18 * k
+    texto(d, (tc, y + m / 2), p["marca"].upper(), fm, SUAVE, sombra=False); y += m + 30 * k
     if p.get("desde"):
-        texto(d, (tc, y + 15), "DESDE", F(BEBAS, 36), SUAVE, sombra=False); y += 34
-    texto(d, (tc, y + 52), f"${p['precio']:,}", fp, TINTA); y += 104
+        texto(d, (tc, y + de * 0.42), "DESDE", F(BEBAS, de), SUAVE, sombra=False); y += de - 2
+    texto(d, (tc, y + pr / 2), f"${p['precio']:,}", fp, TINTA); y += pr
     if p.get("antes"):
-        y += 14; s = f"SEPHORA ${p['antes']:,}"
-        d.text((tc, y + 22), s, font=fa, fill=SUAVE, anchor="mm")
-        lw = fa.getlength(s); d.line((tc - lw / 2 - 4, y + 24, tc + lw / 2 + 4, y + 24), fill=SUAVE, width=4)
+        y += 14 * k; s = f"SEPHORA ${p['antes']:,}"
+        d.text((tc, y + an / 2), s, font=fa, fill=SUAVE, anchor="mm")
+        lw = fa.getlength(s); d.line((tc - lw / 2 - 4, y + an / 2 + 2, tc + lw / 2 + 4, y + an / 2 + 2), fill=SUAVE, width=max(3, int(4 * k)))
 
 
 def firma(L):
@@ -102,10 +104,15 @@ def firma(L):
     d.text((W / 2, 1268), HANDLE, font=F(CORM, 64), fill=(255, 250, 249), anchor="mm")
 
 
-def lamina_productos(a, b):
+def lamina_productos(*ps):
+    """2 tarjetas (una pegada a la izquierda y otra a la derecha) o 3, como en el ejemplo"""
     L = Image.new("RGBA", (W, H), ROSA + (255,))
-    producto(L, (-80, 80, 965, 605), a, foto_izq=True)
-    producto(L, (115, 675, W + 80, 1200), b, foto_izq=False)
+    if len(ps) == 2:
+        cajas = [(-80, 80, 965, 605), (115, 675, W + 80, 1200)]
+    else:
+        cajas = [(-80, 40, 905, 400), (330, 440, W + 80, 800), (-80, 840, 905, 1200)]
+    for i, (p, c) in enumerate(zip(ps, cajas)):
+        producto(L, c, p, foto_izq=i % 2 == 0)
     firma(L)
     return L
 
@@ -160,11 +167,35 @@ def cierre(c):
     return L
 
 
+def gracias(c):
+    """cierre como el del ejemplo: ¡GRACIAS! grande, mensajito y el logo con la alpaca navideña"""
+    L = Image.new("RGBA", (W, H), ROSA + (255,))
+    d = ImageDraw.Draw(L)
+    f = F("BagelFatOne-Regular.ttf", 170)
+    d.text((W / 2 + 6, 430 + 7), "¡GRACIAS!", font=f, fill=(232, 150, 165), anchor="mm")
+    d.text((W / 2, 430), "¡GRACIAS!", font=f, fill=BLANCO, anchor="mm")
+    y = 580
+    for r in c["texto"]:
+        d.text((W / 2, y), r, font=F(CORM, 54), fill=BLANCO, anchor="mm"); y += 62
+    raiz = os.path.dirname(AQUI)
+    al = Image.open(os.path.join(raiz, "video-sephora", "alpacas", "navidad.png")).convert("RGBA")
+    al.thumbnail((430, 430), Image.LANCZOS)
+    L.alpha_composite(al, (int(W / 2 - al.width / 2), 780))
+    lo = Image.open(os.path.join(raiz, "assets", "logo-wordmark.png")).convert("RGBA")
+    lo.thumbnail((440, 160), Image.LANCZOS)
+    borde = lo.getchannel("A").filter(ImageFilter.MaxFilter(13))  # contorno blanco para que se lea sobre rosa
+    b = Image.new("RGBA", lo.size, BLANCO + (255,)); b.putalpha(borde)
+    x, y = int(W / 2 - lo.width / 2), 1205
+    L.alpha_composite(b, (x, y)); L.alpha_composite(lo, (x, y))
+    return L
+
+
 if __name__ == "__main__":
     import importlib
     nombre = sys.argv[1]
     cfg = importlib.import_module(f"guion_{nombre.replace('-', '_')}")
     out = os.path.join(AQUI, nombre); os.makedirs(out, exist_ok=True)
-    laminas = [portada(cfg.PORTADA)] + [lamina_productos(a, b) for a, b in cfg.PARES] + [cierre(cfg.CIERRE)]
+    fin = gracias(cfg.GRACIAS) if hasattr(cfg, "GRACIAS") else cierre(cfg.CIERRE)
+    laminas = [portada(cfg.PORTADA)] + [lamina_productos(*ps) for ps in cfg.PARES] + [fin]
     for i, L in enumerate(laminas, 1):
         L.convert("RGB").save(os.path.join(out, f"{i:02d}.jpg"), quality=95); print("ok", f"{nombre}/{i:02d}.jpg")
