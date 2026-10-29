@@ -66,9 +66,11 @@ def cierre(c):
 
 
 if __name__ == "__main__":
+    import whatsapp
     nombre = sys.argv[1]
     g = importlib.import_module(f"guion_{nombre.replace('-', '_')}")
     out = os.path.join(AQUI, nombre); os.makedirs(out, exist_ok=True)
-    laminas = [portada(g.PORTADA)] + [lamina(p) for p in g.CALENDARIOS] + [cierre(g.CIERRE)]
+    laminas = [portada(g.PORTADA)] + [lamina(p) for p in g.CALENDARIOS] + [cierre(g.CIERRE)] + [whatsapp.lamina(W, H, (255, 255, 255), ["Únete a mi grupo", "de WhatsApp"], ["Ahí aviso de las preventas, ofertas", "y todo lo nuevo que llega"],
+                                 (22, 22, 24), (70, 70, 74), lambda: b.F("Bold", 84), lambda: b.F("SemiBold", 44))]
     for i, L in enumerate(laminas, 1):
         L.convert("RGB").save(os.path.join(out, f"{i:02d}.jpg"), quality=95); print("ok", f"{nombre}/{i:02d}.jpg")

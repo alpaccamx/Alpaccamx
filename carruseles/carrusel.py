@@ -196,6 +196,9 @@ if __name__ == "__main__":
     cfg = importlib.import_module(f"guion_{nombre.replace('-', '_')}")
     out = os.path.join(AQUI, nombre); os.makedirs(out, exist_ok=True)
     fin = gracias(cfg.GRACIAS) if hasattr(cfg, "GRACIAS") else cierre(cfg.CIERRE)
-    laminas = [portada(cfg.PORTADA)] + [lamina_productos(*ps) for ps in cfg.PARES] + [fin]
+    import whatsapp
+    wa = whatsapp.lamina(W, H, ROSA, ["ÚNETE A MI GRUPO", "DE WHATSAPP"], ["Ahí aviso de las preventas, ofertas", "y todo lo nuevo que llega"],
+                         TINTA, BLANCO, lambda: F(BEBAS, 120), lambda: F(CORM, 50))
+    laminas = [portada(cfg.PORTADA)] + [lamina_productos(*ps) for ps in cfg.PARES] + [fin, wa]
     for i, L in enumerate(laminas, 1):
         L.convert("RGB").save(os.path.join(out, f"{i:02d}.jpg"), quality=95); print("ok", f"{nombre}/{i:02d}.jpg")
