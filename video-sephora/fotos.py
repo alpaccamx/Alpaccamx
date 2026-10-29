@@ -39,7 +39,9 @@ for nombre, (tienda, q, debe) in FOTOS.items():
         x = urllib.request.urlopen(img + "?width=1000", timeout=30).read()
         tmp = ruta + ".src"; open(tmp, "wb").write(x)
         from PIL import Image
-        Image.open(tmp).convert("RGB").save(ruta, quality=92); os.remove(tmp)
+        im = Image.open(tmp).convert("RGBA")  # muchas vienen con fondo transparente: se pone blanco (si no, queda negro y dentado)
+        fondo = Image.new("RGBA", im.size, (255, 255, 255, 255)); fondo.alpha_composite(im)
+        fondo.convert("RGB").save(ruta, quality=94); os.remove(tmp)
         print("ok", nombre, "|", p["title"])
     except Exception as e:
         print("FALLO", nombre, e)

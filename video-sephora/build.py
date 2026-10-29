@@ -239,7 +239,8 @@ def tarjeta(k, con_foto=False, ahorro=False):
     pr = b.pastilla(f"${precio:,}", "ExtraBold", 76, PINK, WHITE, padx=34, pady=14)
     fa = b.F("SemiBold", 36); ta = f"Precio Sephora ${antes:,}"
     ah = b.pastilla(f"Te ahorras ${antes - precio:,}", "ExtraBold", 44, (22, 150, 80), WHITE, padx=26, pady=10) if ahorro else None
-    w = int(max(fn.getlength(nombre), 520)) + 110 + fw; h = 330 + (ah.height + 14 if ah else 0)
+    # alto según lo que lleva adentro (antes quedaba fijo y el "Precio Sephora" se salía por abajo)
+    w = int(max(fn.getlength(nombre), 520)) + 110 + fw; h = 180 + pr.height + 26 + 22 + 24 - 30 + (ah.height + 14 if ah else 0)
     card = Image.new("RGBA", (w + 60, h + 60))
     sh = Image.new("L", card.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 40, w + 30, h + 40), 34, fill=120)
     card.putalpha(sh.filter(ImageFilter.GaussianBlur(16)))
