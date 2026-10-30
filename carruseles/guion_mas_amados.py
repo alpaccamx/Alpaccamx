@@ -7,7 +7,8 @@ PORTADA = {
     "esquinas": [("sep-ysl-blush", 300, -14, 100, 150), ("sep-dior-palette", 300, 14, 980, 160),
                  ("sep-tower-swipe", 300, 18, 60, 1290), ("sep-rhode-milk", 300, -16, 1020, 1290)],
 }
-P = lambda que, marca, foto, precio, dato, **kw: dict(que=que, marca=marca, foto=foto, precio=precio, antes=0, dato=dato, **kw)
+ANTES = {'sep-huda': 0, 'sep-tower-swipe': 592, 'sep-ysl-blush': 1135, 'sep-rhode-milk': 790, 'sep-dior-palette': 1356, 'sep-patrick-mini': 617}  # Sephora USA en pesos (catálogo de la preventa)
+P = lambda que, marca, foto, precio, dato, **kw: dict(que=que, marca=marca, foto=foto, precio=precio, antes=ANTES.get(foto, 0), dato=dato, **kw)
 PARES = [
     (P("Polvo para sellar", "Huda Beauty · Easy Bake", "sep-huda", 474, "1.8 millones de favoritos", desde=True, alto=0.74),
      P("Corrector hidratante", "Tower 28 · Swipe", "sep-tower-swipe", 474, "937 mil favoritos", alto=0.86)),

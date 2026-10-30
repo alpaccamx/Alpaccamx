@@ -31,4 +31,5 @@ def comparacion(p):
     """(etiqueta, precio) para tachar junto al precio de la preventa"""
     clave = p.get("producto") or p.get("foto")
     if clave in _mx: return _mx[clave][1], _mx[clave][0]
-    return None  # sin precio de Sephora México no se compara (Mae no quiere comparar con Sephora USA)
+    if p.get("antes"): return "Sephora USA", p["antes"]  # sin precio en México: se compara con Sephora USA (en pesos)
+    return None

@@ -41,7 +41,7 @@ PRODUCTOS = [
          abajo="hidrata y deja la piel lista para que nada se mueva"),
     dict(foto="gisou-oil", alto=0.85, precio=493, antes=617, desde=True,
          arriba="Gisou Honey Infused Hair Oil\nsí está caro, pero te dura una ETERNIDAD",
-         abajo="con muy poquito deja el pelo con un brillo precioso"),
+         abajo="con muy poquito deja el cabello con un brillo precioso"),
 ]
 FALTARON = {
     "foto": F("caja-rare.jpg"),

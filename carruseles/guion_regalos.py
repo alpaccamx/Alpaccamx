@@ -14,6 +14,6 @@ PARES = [
      P("Polvo mini", "Huda Beauty", "huda-mini", 474, 592, alto=0.72),
      P("Bálsamo de labios", "Summer Fridays", "sf-balm", 474, 592, alto=0.86)),
     (P("Gloss con aceite", "Kosas · Wet Lip Oil", "kosas-wetoil", 493, 617, alto=0.7),
-     P("Perfume para pelo", "Gisou", "gisou-perfume", 493, 617, desde=True, alto=0.72)),
+     P("Perfume para cabello", "Gisou", "gisou-perfume", 493, 617, desde=True, alto=0.72)),
 ]
 GRACIAS = {"texto": ["¿Buscas otro regalito?", "Mándame mensajito y te lo cotizo"]}

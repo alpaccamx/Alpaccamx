@@ -12,7 +12,7 @@ PARES = [
     (P("Perfume caramelo", "Rare Beauty", "rare-edp", 592, 740, desde=True, alto=0.6),
      P("Perfume Easy Bake", "Huda Beauty", "huda-edp", 592, 740, desde=True, alto=0.62)),
     (P("Body mist", "Sol de Janeiro · Cheirosa 68", "sol-68", 513, 641),
-     P("Perfume para pelo", "Gisou", "gisou-perfume", 493, 617, desde=True, alto=0.72)),
+     P("Perfume para cabello", "Gisou", "gisou-perfume", 493, 617, desde=True, alto=0.72)),
     (P("Body mist de vainilla", "Touchland · Vanilla Velvet", "touch-vanilla", 395, 493, alto=0.72),
      P("Body mist", "Rare Beauty · Find Comfort", "rare-mist", 316, 395, desde=True)),
 ]

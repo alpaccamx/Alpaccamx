@@ -20,7 +20,7 @@ PARES = [
      P("Mascarilla de labios", "Laneige · Lip Sleeping Mask", "laneige-lsm", 474, 592, "70 mil vendidos al mes", desde=True, alto=0.6)),
     (P("Dúo de blush", "Patrick Ta · Major Headlines", "patrick-duo", 493, 617, "El más vendido de la marca", desde=True, alto=0.66),
      P("Esencia hidratante", "Rhode · Glazing Milk", "rhode-milk", 395, 493, "Se agota cada vez", desde=True, alto=0.78)),
-    (P("Aceite para pelo", "Gisou", "gisou-oil", 493, 617, "Top 10 Sephora Sale 2026", desde=True, alto=0.7),
+    (P("Aceite para cabello", "Gisou", "gisou-oil", 493, 617, "Top 10 Sephora Sale 2026", desde=True, alto=0.7),
      P("Bronzer en barra", "Merit · Bronze Balm", "merit-bronze", 632, 789, "Premio Allure 2025", alto=0.66)),
 ]
 GRACIAS = {"texto": ["¿Buscas otro producto?", "Mándame mensajito y te lo cotizo"]}

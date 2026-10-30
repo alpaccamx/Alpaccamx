@@ -6,7 +6,8 @@ PORTADA = {
     "esquinas": [("sep-patrick-set", 330, -12, 110, 160), ("sep-rhode-pair", 340, 16, 980, 170),
                  ("sep-rhode-sugarmint", 220, 12, 110, 1290), ("sep-onesize-duo", 280, -14, 1010, 1280)],
 }
-P = lambda que, marca, foto, precio, **kw: dict(que=que, marca=marca, foto=foto, precio=precio, antes=0, dato="Edición limitada", **kw)
+ANTES = {'sep-patrick-set': 1282, 'sep-rhode-pair': 937, 'sep-rhode-sugarmint': 1430, 'sep-onesize-duo': 888}  # Sephora USA en pesos (catálogo de la preventa)
+P = lambda que, marca, foto, precio, **kw: dict(que=que, marca=marca, foto=foto, precio=precio, antes=ANTES.get(foto, 0), dato="Edición limitada", **kw)
 PARES = [
     (P("Blush + bálsamo de labios", "Patrick Ta · Major Headlines", "sep-patrick-set", 1026, alto=0.74),
      P("Blush + gloss", "Rhode · Pocket Pair", "sep-rhode-pair", 750, alto=0.82)),

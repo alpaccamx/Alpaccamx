@@ -157,7 +157,7 @@ Perfumes y mists del Sephora Sale 🌸 Desliza 👉
 🌸 Rare Beauty Eau de Parfum · desde $592
 🌸 Huda Beauty Easy Bake · desde $592
 🌸 Sol de Janeiro Cheirosa 68 · $513
-🌸 Gisou perfume para pelo · desde $493
+🌸 Gisou perfume para cabello · desde $493
 🌸 Touchland Vanilla Velvet · $395
 🌸 Rare Beauty Find Comfort · $553
 
@@ -212,16 +212,16 @@ Guarda este post para armar tu rutina 📌 ¿Cuál ya usas? 👇
 TIKTOK (modo foto)
 Título: Lo mejor para tu cabello del Sephora Sale ✨
 Descripción:
-Pelo suavecito y con brillo 💆‍♀️ Gisou, Olaplex, OUAI, Amika y Fable & Mane con 20% OFF en mi preventa ✨ Desde $316
+Cabello suavecito y con brillo 💆‍♀️ Gisou, Olaplex, OUAI, Amika y Fable & Mane con 20% OFF en mi preventa ✨ Desde $316
 Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
-¿Cuál necesita tu pelo? 👇
+¿Cuál necesita tu cabello? 👇
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
 #cabello #olaplex #gisou #haircare #sephorasale
 
 INSTAGRAM (carrusel)
 Lo mejor para tu cabello del Sephora Sale ✨ Desliza 👉
 
-🍯 Gisou aceite para pelo · desde $493
+🍯 Gisou aceite para cabello · desde $493
 🍯 Gisou mascarilla · desde $493
 💛 Olaplex No. 3 · desde $671
 💛 Olaplex No. 7 · desde $632
@@ -235,7 +235,7 @@ Todos con 20% OFF en mi preventa ✨
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
-¿Tu pelo es seco, maltratado o con frizz? Cuéntame y te digo cuál 👇
+¿Tu cabello es seco, maltratado o con frizz? Cuéntame y te digo cuál 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
 #cabello #haircare #olaplex #gisou #ouai #amika #sephorasale #sephoramexico
@@ -263,7 +263,7 @@ Regalitos de menos de $500 para el intercambio 🎁 Desliza 👉
 🎀 Huda Beauty Easy Bake mini · $474
 🎀 Summer Fridays Lip Butter Balm · $474
 🎀 Kosas Wet Lip Oil · $493
-🎀 Gisou perfume para pelo · desde $493
+🎀 Gisou perfume para cabello · desde $493
 
 Todos con 20% OFF en mi preventa ✨
 💳 Apartas con el 50% y liquidas cuando llega tu pedido

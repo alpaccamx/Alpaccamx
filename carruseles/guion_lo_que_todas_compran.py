@@ -33,7 +33,7 @@ PRODUCTOS = [
          abajo="crema y polvo en uno: dura todo el día"),
     dict(foto="gisou-oil", alto=0.85, precio=493, antes=617, desde=True,
          arriba="Gisou Honey Infused Hair Oil\nde lo más vendido del Sephora Sale de este año",
-         abajo="con muy poquito deja el pelo suavecito y con brillo"),
+         abajo="con muy poquito deja el cabello suavecito y con brillo"),
     dict(foto="kosas-revealer", alto=0.9, precio=336, antes=420, desde=True,
          arriba="Kosas Revealer\nel corrector favorito de los maquillistas",
          abajo="ilumina las ojeras y se ve como piel de verdad"),

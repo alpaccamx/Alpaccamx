@@ -21,7 +21,7 @@ PARES = [
     ({"que": "Fijador de maquillaje", "marca": "Milk Makeup", "foto": "milk-spray", "precio": 474, "antes": 592, "desde": True},
      {"que": "Fijador con SPF 28", "marca": "ONE/SIZE", "foto": "onesize-spray", "precio": 415, "antes": 518, "desde": True}),
     ({"que": "Body mist", "marca": "Sol de Janeiro · 62", "foto": "sol-c62", "precio": 513, "antes": 641, "desde": True},
-     {"que": "Aceite para pelo", "marca": "Gisou", "foto": "gisou-oil", "precio": 493, "antes": 617, "desde": True, "alto": 0.72}),
+     {"que": "Aceite para cabello", "marca": "Gisou", "foto": "gisou-oil", "precio": 493, "antes": 617, "desde": True, "alto": 0.72}),
     ({"que": "Crema corporal", "marca": "Sol de Janeiro", "foto": "sol-cream", "precio": 474, "antes": 592, "desde": True, "alto": 0.62, "ancho": 0.80},
      {"que": "Gel antibacterial", "marca": "Touchland", "foto": "touch-mist", "precio": 198, "antes": 247, "desde": True, "alto": 0.80}),
 ]

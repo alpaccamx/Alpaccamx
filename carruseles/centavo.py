@@ -85,9 +85,10 @@ def lamina(p, i):
     s = f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa"
     d.text((cx, y + 50), s, font=b.F("SemiBold", 38), fill=ROSA, anchor="mm")
     if comparacion(p):
-        et, pa = comparacion(p); a = f"Precio {et} ${pa:,}"; f = b.F("Medium", 28); ya = y + 96
-        d.text((cx, ya), a, font=f, fill=GRIS, anchor="mm")
-        lw = f.getlength(a); d.line((cx - lw / 2, ya + 1, cx + lw / 2, ya + 1), fill=GRIS, width=3)
+        et, pa = comparacion(p)  # sin tachar: tachado no se leía bien
+        a = f"En {et}: ${pa:,}" + (f"  ·  ahorras ${pa - p['precio']:,}" if not p.get("desde") and pa > p["precio"] else "")
+        f = b.F("SemiBold", 32); ya = y + 98
+        d.text((cx, ya), a, font=f, fill=(60, 60, 64), anchor="mm")
     return L
 
 

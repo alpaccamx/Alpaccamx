@@ -40,7 +40,7 @@ def lamina(p):
     L.alpha_composite(Image.merge("RGBA", [Image.new("L", (W, H), 0)] * 3 + [g.resize((W, H))]))
     bloque(L, p["arriba"], W * p.get("x_arriba", 0.4), 120, 62, 760, "Bold", b.WHITE, 6, NEGRO, 1.12)
     y = bloque(L, p["abajo"], W * p.get("x_abajo", 0.58), H - 400, 48, 760, "SemiBold", b.WHITE, 5, NEGRO, 1.15)
-    s = f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa" + (f" · {comparacion(p)[0]} ${comparacion(p)[1]:,}" if comparacion(p) else "")
+    s = f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa" + (f" · en {comparacion(p)[0]} ${comparacion(p)[1]:,}" if comparacion(p) else "")
     sz = 36
     pi = b.pastilla(s, "Bold", sz, (232, 112, 145), b.WHITE, padx=30, pady=10)
     while pi.width > W - 60 and sz > 26:  # que no se salga de la foto

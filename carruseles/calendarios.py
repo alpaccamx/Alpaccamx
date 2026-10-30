@@ -53,7 +53,7 @@ def lamina(p):
     L.alpha_composite(im, (int(W / 2 - im.width / 2), int(980 - im.height)))
     y = contorno(L, p["nombre"], 72, 1060)
     y = contorno(L, f"${p['precio']:,}", 100, y + 6)
-    c = comparacion(p)  # solo se dice cuánto te ahorras si hay precio de Sephora México
+    c = comparacion(p)  # cuánto te ahorras contra Sephora México (o Sephora USA si no lo venden en México)
     contorno(L, f"Te ahorras ${c[1] - p['precio']:,}" if c else "Aparta con el 50%", 64, y + 10)
     return L
 

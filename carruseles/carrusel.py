@@ -103,9 +103,10 @@ def producto(L, caja, p, foto_izq=True):
         texto(d, (tc, y + de * 0.42), "DESDE", F(BEBAS, de), SUAVE, sombra=False); y += de - 2
     texto(d, (tc, y + pr / 2), f"${p['precio']:,}", fp, TINTA); y += pr
     if comparacion(p):
-        y += 14 * k; et, pa = comparacion(p); s = f"{et.upper()} ${pa:,}"
-        d.text((tc, y + an / 2), s, font=fa, fill=SUAVE, anchor="mm")
-        lw = fa.getlength(s); d.line((tc - lw / 2 - 4, y + an / 2 + 2, tc + lw / 2 + 4, y + an / 2 + 2), fill=SUAVE, width=max(3, int(4 * k)))
+        # sin tachar (tachado no se leía): "EN SEPHORA MÉXICO $950" en un tono más oscuro
+        y += 14 * k; et, pa = comparacion(p); s = f"EN {et.upper()} ${pa:,}"
+        while fa.getlength(s) > tw and fa.size > 24: fa = F(BEBAS, fa.size - 2)
+        d.text((tc, y + an / 2), s, font=fa, fill=(120, 72, 84), anchor="mm")
 
 
 def firma(L):
