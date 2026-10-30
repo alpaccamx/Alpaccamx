@@ -251,11 +251,18 @@ exports.handler = async (event) => {
         const ids = [...new Set((Array.isArray(b.paqueteIds) ? b.paqueteIds : []).map(String))].slice(0, 40);
         if (!ids.length) return json(400, { error: "Elige al menos un paquete para enviar." });
         const d = b.direccion || {};
-        const direccion = {
-          nombre: clip(d.nombre, 100), telefono: clip(d.telefono, 30), calle: clip(d.calle, 150), colonia: clip(d.colonia, 100),
-          ciudad: clip(d.ciudad, 80), estado: clip(d.estado, 60), cp: clip(d.cp, 10), referencias: clip(d.referencias, 200),
-        };
-        if (!direccion.nombre || !direccion.calle || !direccion.ciudad || !/^\d{5}$/.test(direccion.cp) || !direccion.telefono) {
+        // Entrega personal en Ciudad Juárez: solo hace falta quién recibe.
+        const entrega = b.entrega === "personal" ? "personal" : "envio";
+        const direccion = entrega === "personal"
+          ? { nombre: clip(d.nombre, 100), telefono: clip(d.telefono, 30), calle: "", colonia: "", ciudad: "Ciudad Juárez", estado: "Chihuahua", cp: "", referencias: "" }
+          : {
+            nombre: clip(d.nombre, 100), telefono: clip(d.telefono, 30), calle: clip(d.calle, 150), colonia: clip(d.colonia, 100),
+            ciudad: clip(d.ciudad, 80), estado: clip(d.estado, 60), cp: clip(d.cp, 10), referencias: clip(d.referencias, 200),
+          };
+        if (entrega === "personal" && (!direccion.nombre || !direccion.telefono)) {
+          return json(400, { error: "Pon el nombre y el teléfono de quien recibe, para acordar la entrega." });
+        }
+        if (entrega === "envio" && (!direccion.nombre || !direccion.calle || !direccion.ciudad || !/^\d{5}$/.test(direccion.cp) || !direccion.telefono)) {
           return json(400, { error: "Completa tu dirección: nombre, teléfono, calle y número, ciudad y código postal de 5 dígitos." });
         }
         const paquetes = await Promise.all(ids.map((id) => getRecord("paquete", id)));
@@ -274,7 +281,7 @@ exports.handler = async (event) => {
         const consolidar = !!b.consolidar && paquetes.length > 1;
         const sug = await cotizacionSugerida(paquetes, consolidar);
         const rec = {
-          id: randomUUID(), folio: await nextFolio("envio"), ...base, paqueteIds: ids, consolidar, direccion,
+          id: randomUUID(), folio: await nextFolio("envio"), ...base, paqueteIds: ids, consolidar, direccion, entrega,
           status: "solicitado", sugerido: { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro, extras: sug.extras, kg: sug.kg },
           cotizacion: null, pago: null, paqueteria: "", guia: "", notaClienta: "", notaPrivada: "",
           history: [{ at: now(), status: "solicitado" }], createdAt: now(), updatedAt: now(),
