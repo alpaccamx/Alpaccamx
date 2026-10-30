@@ -496,7 +496,7 @@ function vaciarPreventaPorOtroCarrito(noticeId, nombre) {
   setTimeout(renderCart); // quita la sección de preventa del carrito
   const notice = document.getElementById(noticeId);
   if (!notice) return;
-  notice.textContent = `Se vaciaron tus productos de la preventa al agregar un producto de ${nombre} (la preventa se aparta por separado).`;
+  notice.textContent = `Se vaciaron tus productos de Sephora Sale al agregar un producto de ${nombre} (se aparta por separado).`;
   notice.classList.remove("hidden");
 }
 
@@ -3167,8 +3167,8 @@ function renderSuggestions() {
   const rows = [];
   brands.forEach(([marca, n]) => rows.push({ type: "brand", marca, html: `<span class="w-10 h-10 shrink-0 rounded-full bg-blush/40 flex items-center justify-center text-xs font-bold text-rose-ink">${escapeHtml(marca.slice(0, 2).toUpperCase())}</span><span class="min-w-0"><span class="block text-sm font-semibold text-ink">${escapeHtml(marca)}</span><span class="block text-xs text-ink/70">Marca · ${n} productos</span></span>` }));
   items.forEach((p) => rows.push({ type: "product", id: p.id, html: `<img src="${escapeAttr(p.imagen || "")}" alt="" class="w-10 h-10 shrink-0 rounded-md object-contain bg-pill" loading="lazy" /><span class="min-w-0 flex-1"><span class="block text-xs font-bold text-ink truncate">${escapeHtml(p.marca)}</span><span class="block text-sm text-ink/85 truncate">${escapeHtml(splitBaseName(p).base)}</span></span><span class="text-sm font-semibold tabular-nums text-ink shrink-0">${formatPrice(p.precio)}</span>` }));
-  enPreventa.slice(0, matches.length ? 3 : 5).forEach((p) => rows.push({ type: "preventa", id: p.id, html: `<img src="${escapeAttr(p.imagen || "")}" alt="" class="w-10 h-10 shrink-0 rounded-md object-contain bg-pill" loading="lazy" /><span class="min-w-0 flex-1"><span class="block text-xs font-bold text-ink truncate">${escapeHtml(p.marca || "")} <span class="ml-1 rounded-full bg-blush/50 px-1.5 py-0.5 text-[10px] font-bold text-rose-ink">Preventa</span></span><span class="block text-sm text-ink/85 truncate">${escapeHtml(p.nombre)}</span></span><span class="text-sm font-semibold tabular-nums text-ink shrink-0">${formatPrice(p.precio)}</span>` }));
-  if (enPreventa.length) rows.push({ type: "preventa-all", id: "", html: `<span class="w-10 h-10 shrink-0 rounded-full bg-blush/40 flex items-center justify-center text-lg">🛍️</span><span class="min-w-0"><span class="block text-sm font-semibold text-rose-ink">Ver ${enPreventa.length} en la preventa Sephora</span><span class="block text-xs text-ink/70">Aparta con el 50%</span></span>` });
+  enPreventa.slice(0, matches.length ? 3 : 5).forEach((p) => rows.push({ type: "preventa", id: p.id, html: `<img src="${escapeAttr(p.imagen || "")}" alt="" class="w-10 h-10 shrink-0 rounded-md object-contain bg-pill" loading="lazy" /><span class="min-w-0 flex-1"><span class="block text-xs font-bold text-ink truncate">${escapeHtml(p.marca || "")} <span class="ml-1 rounded-full bg-blush/50 px-1.5 py-0.5 text-[10px] font-bold text-rose-ink">Sephora Sale</span></span><span class="block text-sm text-ink/85 truncate">${escapeHtml(p.nombre)}</span></span><span class="text-sm font-semibold tabular-nums text-ink shrink-0">${formatPrice(p.precio)}</span>` }));
+  if (enPreventa.length) rows.push({ type: "preventa-all", id: "", html: `<span class="w-10 h-10 shrink-0 rounded-full bg-blush/40 flex items-center justify-center text-lg">🛍️</span><span class="min-w-0"><span class="block text-sm font-semibold text-rose-ink">Ver ${enPreventa.length} en Sephora Sale</span><span class="block text-xs text-ink/70">Aparta con el 50%</span></span>` });
   if (!rows.length) {
     box.innerHTML = `<p class="px-4 py-3 text-sm text-ink/70">Sin resultados para "${escapeHtml(q)}".</p>`;
   } else {
@@ -4785,7 +4785,7 @@ function setRouteMeta(r) {
   else if (r.categoria) { title = `${r.categoria} coreano — Alpacca`; canonical += `?categoria=${encodeURIComponent(r.categoria)}`; }
   else if (r.ver === "catalogo") { title = "Catálogo completo — Alpacca"; canonical += "?ver=catalogo"; }
   else if (r.ver === "stock") { title = "Stock en México, entrega inmediata — Alpacca"; canonical += "?ver=stock"; }
-  else if (r.ver === "preventa") { title = "Preventa: aparta tus favoritos — Alpacca"; canonical += "?ver=preventa"; }
+  else if (r.ver === "preventa") { title = "Sephora Sale: aparta tus favoritos — Alpacca"; canonical += "?ver=preventa"; }
   else if (r.ver === "shopwithmae" || r.ver === "direccion-americana") { title = "Dirección americana para comprar en EE.UU. y recibir en México · Alpacca"; canonical += "?ver=direccion-americana"; }
   else if (r.ver === "tipo-de-piel") { title = "Test de tipo de piel: arma tu rutina coreana — Alpacca"; canonical += "?ver=tipo-de-piel"; }
   else if (r.ver === "como-comprar") { title = "Cómo comprar en Alpacca (video de 1 minuto)"; canonical += "?ver=como-comprar"; }
