@@ -69,10 +69,11 @@ def lamina(p):
         filas = [(marca.upper(), b.F("SemiBold", 30), GRIS_T, 0), (nombre[:1].upper() + nombre[1:], b.F("Bold", 50), TINTA_T, 6)]
     else:
         filas = [(arriba, b.F("Bold", 46), TINTA_T, 0)]
-    caja(L, filas, 60, 880)
-    ImageDraw.Draw(L).text((W - 50, 290), "@alpaccamx", font=b.F("Medium", 28), fill=(255, 255, 255), anchor="rm")
+    _, yt = caja(L, filas, 60, 880)
+    ImageDraw.Draw(L).text((W - 50, yt + 34), "@alpaccamx", font=b.F("Medium", 28), fill=(255, 255, 255), anchor="rm")
     c = comparacion(p)
-    filas = [(p["abajo"], b.F("SemiBold", 36), TINTA_T, 0),
+    frase = p["abajo"][:1].upper() + p["abajo"][1:]
+    filas = [(frase, b.F("SemiBold", 36), TINTA_T, 0),
              (f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa", b.F("ExtraBold", 50), ROSA, 18)]
     if c: filas.append((f"En {c[0]}: ${c[1]:,}", b.F("SemiBold", 32), GRIS_T, 4))
     ah = b.pastilla(f"Ahorras ${c[1] - p['precio']:,}", "ExtraBold", 40, ROSA, b.WHITE, padx=40, pady=8) if c and c[1] > p["precio"] else None

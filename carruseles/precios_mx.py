@@ -23,13 +23,13 @@ def ajusta_guion(g):
     for grp in getattr(g, "PARES", []): items += list(grp)
     items += getattr(g, "PRODUCTOS", []) + getattr(g, "CALENDARIOS", [])
     for p in items:
-        k = p.get("producto") or p.get("foto")
+        k = p.get("clave") or p.get("producto") or p.get("foto")
         if k in TAMANO_COMPLETO and k in _mx: p["precio"], p["desde"] = TAMANO_COMPLETO[k], False
 
 
 def comparacion(p):
     """(etiqueta, precio) para tachar junto al precio de la preventa"""
-    clave = p.get("producto") or p.get("foto")
+    clave = p.get("clave") or p.get("producto") or p.get("foto")
     if clave in _mx: return _mx[clave][1], _mx[clave][0]
     if p.get("antes"): return "Sephora USA", p["antes"]  # sin precio en México: se compara con Sephora USA (en pesos)
     return None
