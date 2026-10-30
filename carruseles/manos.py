@@ -1,5 +1,6 @@
 """Carrusel "cosas que valen cada centavo" con fotos reales de Mae sosteniendo cada producto (estilo @yourdailyglow_ pt.5),
-1080x1440. Cada lámina: foto a pantalla completa, frase arriba y frase abajo en letra blanca con contorno, y el precio.
+1080x1440. Cada lámina: foto a pantalla completa, caja arriba con marca y producto,
+caja abajo con la frase, el precio, la comparación y lo que se ahorra.
 Uso: python3 manos.py NOMBRE -> NOMBRE/01.jpg, ... (guion en guion_NOMBRE.py)"""
 from precios_mx import comparacion
 import importlib, os, sys
@@ -17,7 +18,7 @@ def foto(ruta, y=0.3):
     return im.crop(((im.width - W) // 2, y0, (im.width - W) // 2 + W, y0 + H)).convert("RGBA")
 
 
-def tarjeta_producto(L, nombre, alto=620):
+def tarjeta_producto(L, nombre, alto=500, cy=650):
     """el producto recortado en una tarjeta blanca redondeada encima de la foto de la tienda"""
     from carrusel import foto as recorte
     im = recorte(nombre, alto * 0.82, 520)
@@ -25,33 +26,58 @@ def tarjeta_producto(L, nombre, alto=620):
     t = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     ImageDraw.Draw(t).rounded_rectangle((0, 0, w - 1, h - 1), 48, fill=(255, 255, 255, 235))
     t.alpha_composite(im, ((w - im.width) // 2, (h - im.height) // 2))
-    L.alpha_composite(t, (int(W / 2 - w / 2), int(H / 2 - h / 2 + 10)))
+    L.alpha_composite(t, (int(W / 2 - w / 2), int(cy - h / 2)))
+
+
+ROSA, GRIS_T, TINTA_T = (232, 112, 145), (120, 120, 126), (30, 30, 34)
+
+
+def renglones(s, fuente, ancho):
+    out, cur = [], ""
+    for pal in s.split():
+        t = (cur + " " + pal).strip()
+        if fuente.getlength(t) <= ancho or not cur: cur = t
+        else: out.append(cur); cur = pal
+    return out + [cur]
+
+
+def caja(L, filas, y, ancho=900, abajo=False, extra=0):
+    """caja blanca redondeada con renglones centrados: filas = [(texto, fuente, color, espacio_antes)].
+    abajo=True: y es dónde termina la caja (se acomoda de abajo hacia arriba)"""
+    lineas, alto = [], 44
+    for txt, fnt, col, sep in filas:
+        for i, r in enumerate(renglones(txt, fnt, ancho - 80)):
+            hh = fnt.size * 1.22; lineas.append((r, fnt, col, alto + (sep if i == 0 else 0))); alto += hh + (sep if i == 0 else 0)
+    alto += 30 + extra  # extra: espacio al fondo de la caja (para la pastilla de "Ahorras")
+    y0 = y - alto if abajo else y
+    d = ImageDraw.Draw(L)
+    d.rounded_rectangle((W / 2 - ancho / 2, y0, W / 2 + ancho / 2, y0 + alto), 40, fill=(255, 255, 255, 240))
+    for r, fnt, col, yy in lineas:
+        d.text((W / 2, y0 + yy + fnt.size * 0.55), r, font=fnt, fill=col, anchor="mm")
+    return y0, y0 + alto
 
 
 def lamina(p):
+    """arriba: caja con la marca y el producto (o la frase); en medio el producto o la foto de Mae;
+    abajo: una caja con la frase, el precio de la preventa, la comparación y lo que se ahorra"""
     carpeta = "fotos-sephora" if p.get("tienda") else "fotos-mae"
     L = foto(os.path.join(AQUI, carpeta, p["foto"] + ".jpg"), p.get("y", 0.3))
     if p.get("producto"): tarjeta_producto(L, p["producto"])
-    # degradado oscuro arriba y abajo para que se lea el texto
-    g = Image.new("L", (1, H))
-    for yy in range(H):
-        t = min(1, max(0, (360 - yy) / 360)) if yy < 360 else min(1, max(0, (yy - (H - 520)) / 520))
-        g.putpixel((0, yy), int(130 * t))
-    L.alpha_composite(Image.merge("RGBA", [Image.new("L", (W, H), 0)] * 3 + [g.resize((W, H))]))
-    bloque(L, p["arriba"], W * p.get("x_arriba", 0.4), 120, 62, 760, "Bold", b.WHITE, 6, NEGRO, 1.12)
-    y = bloque(L, p["abajo"], W * p.get("x_abajo", 0.58), H - 400, 48, 760, "SemiBold", b.WHITE, 5, NEGRO, 1.15)
-    s = f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa" + (f" · en {comparacion(p)[0]} ${comparacion(p)[1]:,}" if comparacion(p) else "")
-    sz = 36
-    pi = b.pastilla(s, "Bold", sz, (232, 112, 145), b.WHITE, padx=30, pady=10)
-    while pi.width > W - 60 and sz > 26:  # que no se salga de la foto
-        sz -= 2; pi = b.pastilla(s, "Bold", sz, (232, 112, 145), b.WHITE, padx=30, pady=10)
-    x = min(max(30, W * p.get("x_abajo", 0.58) - pi.width / 2), W - 30 - pi.width)
-    L.alpha_composite(pi, (int(x), int(y + 18)))
+    arriba = p["arriba"].replace("\n", " ")
+    if ": " in arriba:
+        marca, nombre = arriba.split(": ", 1)
+        filas = [(marca.upper(), b.F("SemiBold", 30), GRIS_T, 0), (nombre[:1].upper() + nombre[1:], b.F("Bold", 50), TINTA_T, 6)]
+    else:
+        filas = [(arriba, b.F("Bold", 46), TINTA_T, 0)]
+    caja(L, filas, 60, 880)
+    ImageDraw.Draw(L).text((W - 50, 290), "@alpaccamx", font=b.F("Medium", 28), fill=(255, 255, 255), anchor="rm")
     c = comparacion(p)
-    if c and c[1] > p["precio"]:  # lo que se ahorra, en una pastilla blanca debajo
-        ah = b.pastilla(f"Ahorras ${c[1] - p['precio']:,}", "ExtraBold", 40, b.WHITE, (232, 112, 145), padx=30, pady=8)
-        L.alpha_composite(ah, (int(x + pi.width / 2 - ah.width / 2), int(y + 18 + pi.height + 12)))
-    ImageDraw.Draw(L).text((W - 40, 360), "@alpaccamx", font=b.F("Medium", 30), fill=(255, 255, 255), anchor="rm")
+    filas = [(p["abajo"], b.F("SemiBold", 36), TINTA_T, 0),
+             (f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa", b.F("ExtraBold", 50), ROSA, 18)]
+    if c: filas.append((f"En {c[0]}: ${c[1]:,}", b.F("SemiBold", 32), GRIS_T, 4))
+    ah = b.pastilla(f"Ahorras ${c[1] - p['precio']:,}", "ExtraBold", 40, ROSA, b.WHITE, padx=40, pady=8) if c and c[1] > p["precio"] else None
+    y0, y1 = caja(L, filas, H - 50, 920, abajo=True, extra=(ah.height + 16) if ah else 0)
+    if ah: L.alpha_composite(ah, (int(W / 2 - ah.width / 2), int(y1 - 34 - ah.height)))
     return L
 
 
