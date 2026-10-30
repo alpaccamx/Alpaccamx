@@ -7,6 +7,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 SUF = ("-" + sys.argv[1]) if len(sys.argv) > 1 else ""  # p. ej. "python3 voz.py corto" usa narracion-corto.json
 VOZ_DIR = os.path.join(AQUI, "voz" + SUF)
 VOZ = "BSKpxzmNBPkRKNFMmKrv"
+if SUF == "-mayoreo": VOZ = "uf7lwaqO0yghLWPq8lJ7"  # "Mae v4", la que eligió Mae (la de los videos de BBW)
 MODELO, ESTABILIDAD = "eleven_v4", 0.5  # v4 con pocas etiquetas de tono ([warm], [confident]); no se leen en voz alta
 INICIO, PAUSA, COLA = 0.25, 0.28, 1.6
 VEL = 1.1  # la voz se acelera 10% (atempo no cambia el tono ni la entonación)
@@ -14,7 +15,8 @@ SR = 44100
 
 
 def clave(texto):  # las frases ya generadas se guardan por su texto: solo se piden a ElevenLabs las nuevas
-    return hashlib.sha1(f"{MODELO}|{ESTABILIDAD}|{texto}".encode()).hexdigest()[:12]
+    pre = "" if VOZ == "BSKpxzmNBPkRKNFMmKrv" else f"{VOZ}|"  # la voz de antes conserva sus claves
+    return hashlib.sha1(f"{pre}{MODELO}|{ESTABILIDAD}|{texto}".encode()).hexdigest()[:12]
 
 
 def tts(texto, n):

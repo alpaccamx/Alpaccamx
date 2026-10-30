@@ -33,32 +33,34 @@ Cortos: TR-corto1-voz.mp4 (Un día más en la oficina), TR-corto2-voz.mp4 (Lo qu
 ## Video 2: para emprendedoras
 
 **TikTok**
-> ¿Quieres emprender con ropa original? 💸
-> Podrías ganar hasta $3,000 por conjunto True Religion* 🇺🇸
-> Mayoreo desde 1 pieza ✨
-> 💬 Comenta "Me quiero unir" y te mando la invitación a mi grupo de WhatsApp
+> ¿Cuánto ganas revendiendo True Religion? 🧾💸
+> Camo (azul o rojo): de etiqueta $4,286, a ti te cuesta $2,281 → ganas hasta $2,005*
+> Mayoreo desde 1 pieza ✨ Original, con etiqueta 🇺🇸
+> 📲 Escanea el QR del final para entrar a mi grupo de WhatsApp (o comenta "GRUPO" y te mando el link)
 > *Según a cuánto lo vendas. Envío aparte.
-> #emprendedorasmexicanas #truereligion #reventa #emprendimiento #negociodesdecasa
+> #emprendedorasmexicanas #truereligion #reventa #emprendimiento #negociodesdecasa #mayoreo
 
 **Instagram**
-> ¿Y si con un conjunto True Religion ganaras hasta $3,000? 💸
+> ¿Cuánto ganas revendiendo True Religion? Haz las cuentas conmigo 🧾💸
 >
-> Casi nadie lo tiene en México, porque True Religion en Estados Unidos no envía para acá… yo te lo traigo 🇺🇸📦
+> 💙❤️ Camo (azul o rojo)
+> De etiqueta: $4,286 · Te cuesta: $2,281 · Ganas hasta $2,005*
 >
-> 🐆 Leopardo con cerezas: te cuesta $3,019 (en True Religion México solo la sudadera cuesta $6,026)
-> 🍒 Cerezas de cristal: te cuesta $3,623 · de etiqueta vale $4,850
-> 💙❤️ Camo Groovy: te cuesta $2,281 · de etiqueta vale $4,286
+> 🍒 Cerezas de cristal (rosa o negro)
+> De etiqueta: $4,850 · Te cuesta: $3,623 · Ganas hasta $1,227*
+>
+> Casi nadie los tiene en México: True Religion en Estados Unidos no envía para acá… yo te los traigo 🇺🇸📦
 >
 > 🛍️ Precio de mayoreo desde 1 pieza, para empezar sin invertir mucho
 > ✅ Todo original, con etiqueta
 > 📦 ~1 semana a todo México (envío aparte)
 >
 > 🤝 Únete a mi grupo de WhatsApp: ahí comparto novedades y descuentos, y entre todas nos ayudamos a crecer.
-> 💬 Comenta "Me quiero unir" y te mando la invitación.
+> 📲 Escanea el QR al final del video o comenta "GRUPO" y te mando el link.
 >
 > *La ganancia depende de a cuánto lo vendas.
 >
-> #emprendedorasmexicanas #truereligion #reventa #emprendimiento #negociodesdecasa #ropaoriginal #mayoreo
+> #emprendedorasmexicanas #truereligion #reventa #emprendimiento #negociodesdecasa #ropaoriginal #mayoreo #truereligionmexico
 
 ---
 
