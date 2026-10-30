@@ -10,14 +10,14 @@ PORTADA = {
     "nota": "📦 Pedidos de mis clientas del Sephora Sale 2025",
 }
 PRODUCTOS = [  # clave = producto del catálogo, para compararlo con Sephora México
-    dict(foto="mano-patrick-duo", clave="patrick-duo", y=0.2, precio=493, antes=617, desde=True,
+    dict(foto="mano-patrick-duo", clave="patrick-duo", producto="patrick-duo", pop=dict(alto=430, cx=790, cy=640),  y=0.2, precio=493, antes=617, desde=True,
          arriba="Patrick Ta: Major Headlines Blush Duo",
          abajo="El blush que TODAS me piden cada año: crema y polvo en uno, dura todo el día"),
     dict(foto="mano-rare", clave="rare-blush", producto="rare-blush", pop=dict(alto=430, cx=790, cy=640),  y=0.35, precio=316, antes=395, desde=True,
          arriba="Rare Beauty: Soft Pinch Liquid Blush",
          abajo="Con UNA gotita es suficiente: un bote te dura meses"),
-    dict(foto="mano-patrick-paleta", y=0.3, precio=908, antes=1134, desde=True,
-         arriba="Patrick Ta: Major Dimension Eyeshadow Palette",
+    dict(foto="mano-patrick-paleta", producto="patrick-dreamdate", pop=dict(alto=430, cx=790, cy=640), y=0.3, precio=967, antes=1208,
+         arriba="Patrick Ta: Major Dimension Dream Date Eyeshadow Palette",
          abajo="La paleta más BONITA: tonos rosados que combinan con todo, de día y de noche"),
     dict(foto="mano-urban", producto="urban-allnighter", pop=dict(alto=430, cx=790, cy=640),  y=0.15, precio=355, antes=444, desde=True,
          arriba="Urban Decay: All Nighter Setting Spray",
