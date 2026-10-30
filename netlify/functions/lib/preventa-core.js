@@ -15,7 +15,7 @@ const HORAS_PARA_PAGAR = 24;
 
 const CONFIG_DEFAULT = {
   activa: false,
-  titulo: "Preventa Sephora Sale",
+  titulo: "Sephora Sale",
   descripcion: "Aparta tus favoritos de Sephora con el 50% y paga el resto cuando lleguen.",
   cierre: "",
   llegada: "",
@@ -146,7 +146,7 @@ async function crearPreferenciaMP(a, etapa, event) {
   const token = process.env.MP_ACCESS_TOKEN;
   if (!token) throw new Error("Mercado Pago no está configurado todavía en el sitio.");
   const site = siteUrlFrom(event);
-  const titulo = etapa === "anticipo" ? `Preventa ${a.folio}: anticipo para apartar` : `Preventa ${a.folio}: resto${a.envio ? " y envío" : ""}`;
+  const titulo = etapa === "anticipo" ? `Sephora Sale ${a.folio}: anticipo para apartar` : `Sephora Sale ${a.folio}: resto${a.envio ? " y envío" : ""}`;
   const body = {
     items: [{ title: titulo, quantity: 1, unit_price: round2(a[etapa].monto), currency_id: "MXN" }],
     external_reference: `pv|${a.id}|${etapa}`,
@@ -181,7 +181,7 @@ async function avisar(a, subject, html, texto) {
   }
   await sendEmail({
     to: a.email,
-    subject: `Preventa · ${subject}`,
+    subject: `Sephora Sale · ${subject}`,
     html: baseEmailHTML(`${html}
       <p style="margin-top:18px;"><a href="https://alpacca.mx/?ver=preventa" style="background:#c4466e;color:#fff;padding:10px 16px;border-radius:999px;text-decoration:none;font-weight:600;">Ver mis apartados</a></p>`),
   }).catch((err) => console.error("preventa: correo", err));

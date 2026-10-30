@@ -39,7 +39,7 @@ exports.handler = async (event) => {
       let out;
       if (qs.producto) {
         const p = visibles.find((x) => x.id === String(qs.producto));
-        if (!p) return json(404, { error: "Ese producto ya no está en la preventa." });
+        if (!p) return json(404, { error: "Ese producto ya no está en la venta." });
         out = { producto: productoPublico(p, { detalle: true }) };
       } else if (qs.resumen) {
         out = { config: configPublica(cfg), abierta: open, total: visibles.length };
@@ -57,7 +57,7 @@ exports.handler = async (event) => {
         : { "Cache-Control": "public, max-age=0, must-revalidate", "Netlify-CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=60", "Netlify-Vary": vary });
     } catch (err) {
       console.error("preventa GET:", err);
-      return json(500, { error: "No se pudo cargar la preventa." });
+      return json(500, { error: "No se pudo cargar la venta." });
     }
   }
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
@@ -76,7 +76,7 @@ exports.handler = async (event) => {
         const limit = await checkRateLimit(`preventa:${me}`, { max: 10, windowMs: 60 * 60 * 1000 });
         if (!limit.allowed) return json(429, { error: "Hiciste muchos apartados seguidos. Intenta en un rato." });
         const cfg = await configActual();
-        if (!abierta(cfg)) return json(409, { error: "La preventa ya cerró." });
+        if (!abierta(cfg)) return json(409, { error: "La venta ya cerró." });
         // Un renglón por producto + tono/tamaño (sku).
         const pedidos = new Map();
         for (const it of Array.isArray(b.items) ? b.items : []) {
@@ -93,7 +93,7 @@ exports.handler = async (event) => {
         const porProducto = {};
         for (const { id, sku, qty } of pedidos.values()) {
           const p = productos.get(id);
-          if (!p || p.activo === false) return json(409, { error: "Uno de los productos ya no está en la preventa. Recarga la página." });
+          if (!p || p.activo === false) return json(409, { error: "Uno de los productos ya no está en la venta. Recarga la página." });
           let v = null;
           if ((p.variantes || []).length) {
             v = p.variantes.find((x) => x.id === sku);

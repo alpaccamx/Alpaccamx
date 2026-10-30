@@ -61,7 +61,7 @@ function pvVaciarOtrosCarritos() {
   }
   const notice = document.getElementById("cart-switch-notice");
   if (notice) {
-    notice.textContent = vaciados.length ? `Se vació tu carrito de ${vaciados.join(" y ")} al agregar un producto de la preventa (la preventa se aparta por separado).` : "";
+    notice.textContent = vaciados.length ? `Se vació tu carrito de ${vaciados.join(" y ")} al agregar un producto de Sephora Sale (se aparta por separado).` : "";
     notice.classList.toggle("hidden", !vaciados.length);
   }
 }
@@ -81,7 +81,7 @@ function renderCartPreventa() {
   if (!piezas) { box.innerHTML = ""; return 0; }
   const pct = (pv.config && pv.config.anticipoPct) || 50;
   box.innerHTML = `<div class="rounded-2xl border-2 border-rose-deep/30 bg-blush/15 p-3">
-    <p class="text-sm font-bold text-rose-ink">🛍️ Preventa · se aparta con el ${pct}%</p>
+    <p class="text-sm font-bold text-rose-ink">🛍️ Sephora Sale · se aparta con el ${pct}%</p>
     <ul class="mt-2 divide-y divide-ink/10 text-sm">${items.map((x) => `<li class="flex gap-3 py-2 rounded-xl" data-line="${escapeHtml(x.k)}">
       ${x.imagen ? `<img src="${escapeHtml(x.imagen)}" alt="" class="w-14 h-14 rounded-lg bg-white object-contain shrink-0">` : ""}
       <div class="min-w-0 flex-1">
@@ -92,7 +92,7 @@ function renderCartPreventa() {
         </div>
       </div></li>`).join("")}</ul>
     <div class="mt-2 space-y-0.5 text-sm">
-      <div class="flex justify-between"><span>Total preventa (${piezas})</span><b>${pvMXN(total)}</b></div>
+      <div class="flex justify-between"><span>Total Sephora Sale (${piezas})</span><b>${pvMXN(total)}</b></div>
       <div class="flex justify-between text-rose-ink"><span>Hoy pagas para apartar</span><b>${pvMXN(anticipo)}</b></div>
       <p class="text-xs text-ink/70">El resto + envío lo pagas cuando llegue.</p>
     </div>
@@ -150,7 +150,7 @@ async function pvGet(qs = "") {
   const token = getCustomerToken();
   const res = await fetch(`/.netlify/functions/preventa${qs}`, { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: "no-store" });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "No se pudo cargar la preventa.");
+  if (!res.ok) throw new Error(data.error || "No se pudo cargar la venta.");
   return data;
 }
 
@@ -273,7 +273,7 @@ function renderSearchPreventa(lista, query) {
   const vis = lista.slice(0, 10);
   box.innerHTML = `<div class="rounded-3xl bg-gradient-to-br from-blush/50 via-[#fff4f8] to-white p-4 sm:p-6">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
-      <h3 class="font-display text-lg sm:text-xl text-ink">🛍️ En la preventa Sephora (${lista.length})</h3>
+      <h3 class="font-display text-lg sm:text-xl text-ink">🛍️ En Sephora Sale (${lista.length})</h3>
       <span class="text-xs font-semibold text-rose-ink">Aparta con el ${pct}%</span>
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-8 mt-4">${vis.map(pvCardHTML).join("")}</div>
@@ -295,7 +295,7 @@ function renderPreventa() {
     `💗 Aparta con el ${pct}%`,
     pv.abierta && c.cierre ? `⏰ ${pvCierreTexto(c.cierre)}` : "",
     c.llegada ? `📦 Llega aprox. ${c.llegada}` : "",
-    !pv.abierta ? "🔒 La preventa ya cerró" : "",
+    !pv.abierta ? "🔒 La venta ya cerró" : "",
   ].filter(Boolean).map((t) => `<span class="inline-block rounded-full bg-white/80 px-3 py-1.5 text-xs font-semibold text-rose-ink">${escapeHtml(t)}</span>`).join("");
   const pasos = [
     ["1", "Elige tono y aparta", `Pagas el ${pct}% con tarjeta o transferencia.`],
@@ -304,8 +304,8 @@ function renderPreventa() {
   ].map(([n, t, d]) => `<li class="flex gap-3 rounded-2xl bg-white/70 p-3"><span class="shrink-0 w-7 h-7 rounded-full bg-rose-deep text-cream text-sm font-bold flex items-center justify-center">${n}</span><span><b class="block text-sm">${t}</b><span class="block text-xs text-ink/75">${d}</span></span></li>`).join("");
   box.innerHTML = `
     <div class="rounded-3xl bg-gradient-to-br from-blush/60 via-[#fff4f8] to-white p-5 sm:p-7">
-      <p class="text-xs font-bold uppercase tracking-wide text-rose-ink">Preventa</p>
-      <h2 id="preventa-title" class="font-display text-2xl sm:text-3xl text-ink mt-1">🛍️ ${escapeHtml(c.titulo || "Preventa")}</h2>
+      <p class="text-xs font-bold uppercase tracking-wide text-rose-ink">¡Ya empezó la venta!</p>
+      <h2 id="preventa-title" class="font-display text-2xl sm:text-3xl text-ink mt-1">🛍️ ${escapeHtml(c.titulo || "Sephora Sale")}</h2>
       ${c.descripcion ? `<p class="text-sm text-ink/80 mt-2 max-w-2xl">${escapeHtml(c.descripcion)}</p>` : ""}
       <div class="flex flex-wrap gap-2 mt-3">${chips}</div>
       ${pv.abierta ? `<ol class="grid sm:grid-cols-3 gap-2 mt-4">${pasos}</ol>` : ""}
