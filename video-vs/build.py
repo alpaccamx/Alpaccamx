@@ -59,8 +59,8 @@ VARIANTES = {
         popups=[(4, 0, 99, "QR")]),
 }
 CFG = VARIANTES[VAR]
-SDR = ("zscale=tin=arib-std-b67:min=bt2020nc:pin=bt2020:rin=tv:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,"
-       "tonemap=reinhard:param=0.6:desat=0,zscale=t=bt709:m=bt709:r=tv,format=rgb24")
+SDR = ("scale=1080:-2,zscale=tin=arib-std-b67:min=bt2020nc:pin=bt2020:rin=tv:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,"
+       "tonemap=reinhard:param=0.6:desat=0,zscale=t=bt709:m=bt709:r=tv,format=rgb24,eq=saturation=0.75")  # 0.75: sin bajarle, se veía muy saturado
 
 
 def video(vid, ini, n, vel, zoom=None):
