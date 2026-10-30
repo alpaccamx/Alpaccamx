@@ -17,12 +17,14 @@ Hay un buen de aromas, pero se acaban rápido. Si quieres alguno, pídelo en alp
 
 ¿Cuál te llevas? 👇
 
+💬 Únete a mi grupo de WhatsApp: escanea el QR al final del video 📲
+
 #bathandbodyworks #bathandbodyworksmexico #mistsbathandbodyworks #bodymist #perfumesmexico #emprendedorasmexicanas #mayoreo #alpacca
 ```
 
 **TikTok**
 ```
-¡Restock de mists Bath & Body Works! 🚨 $150 c/u, mayoreo desde 1 pieza 💗 Pídelos en alpacca.mx #bathandbodyworks #bodymist #perfumes #mayoreo #emprendedoras
+¡Restock de mists Bath & Body Works! 🚨 $150 c/u, mayoreo desde 1 pieza 💗 Pídelos en alpacca.mx · Únete a mi grupo de WhatsApp (QR al final) 💬 #bathandbodyworks #bodymist #perfumes #mayoreo #emprendedoras
 ```
 
 ### 2 · POV
@@ -57,14 +59,14 @@ Tengo mists de Bath & Body Works originales a $150 cada uno.
 🛍️ Precio de mayoreo desde 1 pieza
 💰 Tú le pones tu precio
 
-Comenta "ME QUIERO UNIR" y te paso a mi grupo de WhatsApp 👇
+💬 Únete a mi grupo de WhatsApp: escanea el QR al final del video 📲
 
 #emprendedorasmexicanas #reventa #negociopropio #mayoreo #bathandbodyworks #perfumesoriginales #emprender #alpacca
 ```
 
 **TikTok**
 ```
-¿Vendes perfumes? 👀 Mists Bath & Body Works originales a $150, mayoreo desde 1 pieza. Comenta "me quiero unir" 👇 #emprendedoras #reventa #mayoreo #bathandbodyworks #negocio
+¿Vendes perfumes? 👀 Mists Bath & Body Works originales a $150, mayoreo desde 1 pieza. Únete a mi grupo de WhatsApp (QR al final) 💬 #emprendedoras #reventa #mayoreo #bathandbodyworks #negocio
 ```
 
 ### 4 · Aroma favorito
@@ -78,12 +80,14 @@ Déjamelo en comentarios 💬
 
 Todos a $150 c/u, mayoreo desde 1 pieza, en alpacca.mx 🔗
 
+💬 Únete a mi grupo de WhatsApp: escanea el QR al final del video 📲
+
 #bathandbodyworks #ginghamgorgeous #strawberrypoundcake #intothenight #bodymist #perfumes #alpacca
 ```
 
 **TikTok**
 ```
-¿Cuál es tu aroma favorito de Bath & Body Works? 💗 Déjamelo en comentarios 👇 #bathandbodyworks #ginghamgorgeous #strawberrypoundcake #bodymist #perfumetok
+¿Cuál es tu aroma favorito de Bath & Body Works? 💗 Déjamelo en comentarios 👇 Y únete a mi grupo de WhatsApp (QR al final) 💬 #bathandbodyworks #ginghamgorgeous #strawberrypoundcake #bodymist #perfumetok
 ```
 
 ### 5 · Dupes de perfumes de lujo
@@ -104,12 +108,14 @@ Pídelos en alpacca.mx 🔗
 
 Guárdalo para tu próxima compra 📌
 
+💬 Únete a mi grupo de WhatsApp: escanea el QR al final del video 📲
+
 #dupes #perfumedupes #bathandbodyworks #dupesdeperfumes #valentino #ysl #kayali #perfumesmexico #alpacca
 ```
 
 **TikTok**
 ```
-Dupes de perfumes de lujo en Bath & Body Works 💎 Todos a $150 c/u en alpacca.mx 🛍️ ¿Cuál probarías? 👇 #dupes #perfumedupes #bathandbodyworks #perfumetok #valentino #ysl
+Dupes de perfumes de lujo en Bath & Body Works 💎 Todos a $150 c/u en alpacca.mx 🛍️ ¿Cuál probarías? 👇 Únete a mi grupo de WhatsApp (QR al final) 💬 #dupes #perfumedupes #bathandbodyworks #perfumetok #valentino #ysl
 ```
 
 ---
