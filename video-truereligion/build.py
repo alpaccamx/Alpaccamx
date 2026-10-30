@@ -253,12 +253,13 @@ def portada_mayoreo():
     sz = 210
     while FB(sz).getlength("¿CUÁNTO GANAS?") > 980: sz -= 6
     t1 = Image.new("RGBA", (1040, 240)); ImageDraw.Draw(t1).text((520, 120), "¿CUÁNTO GANAS?", font=FB(sz), fill=WHITE, anchor="mm")
-    b.pon(L, t1, W / 2, 160)
-    b.pon(L, b.pastilla("revendiendo True Religion original 🇺🇸", "Bold", 40, LIMA, NOCHE), W / 2, 305)
-    b.pon(L, polaroid("camo-azul", 7), W / 2 - 200, 770, 0.92)
-    b.pon(L, polaroid("camo-rojo", -5), W / 2 + 190, 750, 0.92)
-    b.pon(L, ticket(PRODUCTOS["camo-azul"][1], PRODUCTOS["camo-azul"][2], 1, 1, 1), W / 2, 1370)
-    b.pon(L, b.pastilla("🛍️ Mayoreo desde 1 pieza", "ExtraBold", 50, WHITE, NOCHE), W / 2, 1720)
+    # todo dentro del centro 3:4 (y de 240 a 1680): así se ve la portada en el perfil de TikTok e Instagram
+    b.pon(L, t1, W / 2, 335)
+    b.pon(L, b.pastilla("revendiendo True Religion original 🇺🇸", "Bold", 40, LIMA, NOCHE), W / 2, 478)
+    b.pon(L, polaroid("camo-azul", 7), W / 2 - 175, 815, 0.72)
+    b.pon(L, polaroid("camo-rojo", -5), W / 2 + 170, 800, 0.72)
+    b.pon(L, ticket(PRODUCTOS["camo-azul"][1], PRODUCTOS["camo-azul"][2], 1, 1, 1), W / 2, 1295, 0.9)
+    b.pon(L, b.pastilla("🛍️ Mayoreo desde 1 pieza", "ExtraBold", 48, WHITE, NOCHE), W / 2, 1592)
     L.convert("RGB").save(os.path.join(AQUI, "portada-mayoreo.jpg"), quality=92); print("ok portada-mayoreo.jpg")
 
 
