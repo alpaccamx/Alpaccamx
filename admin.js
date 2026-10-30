@@ -5059,7 +5059,8 @@ ${itemLines}
     const q = e.cotizacion; const sug = e.sugerido || {};
     let action = "";
     if (e.status === "solicitado" || (e.status === "cotizado" && (!e.pago || e.pago.status === "pendiente"))) {
-      const juarez = /ju[aá]rez/i.test(`${d.ciudad || ""}`);
+      const personal = e.entrega === "personal";
+      const juarez = personal || /ju[aá]rez/i.test(`${d.ciudad || ""}`);
       // Lo de antes (montos a mano, sin guía): plegado, para casos especiales.
       const manual = `<details style="margin-top:10px;"${e.guia ? "" : ""}><summary style="cursor:pointer;font-size:13px;color:#6b6370;">✏️ Anotar la guía a mano o ajustar montos</summary>
         <div class="meta" style="margin-top:6px;">Si hiciste la guía por fuera, anótala aquí: le llega sola en cuanto pague. Si no, déjala vacía.</div>
@@ -5079,10 +5080,13 @@ ${itemLines}
       action = e.guia
         ? `<div class="meta" style="margin-top:10px;font-size:14px;">📦 Guía lista: <b>${escapeHtml(e.paqueteria || "")} ${escapeHtml(e.guia)}</b><br>⏳ Esperando que pague ${q ? formatPrice(q.total) : ""}. En cuanto pague, le llega su guía sola.</div>
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">${swmCancelBtn("envio", e)}</div>`
-        : `${juarez ? `<div style="margin-top:10px;"><button type="button" class="btn-secondary" data-swm-envio-personal>📍 Se lo entrego en Juárez: ${(sug.cruce || 0) + (sug.consolidacion || 0) + (sug.sinRegistro || 0) + (sug.extras || 0) ? `cobrarle solo el cruce (${formatPrice((sug.cruce || 0) + (sug.consolidacion || 0) + (sug.sinRegistro || 0) + (sug.extras || 0))})` : "no hay nada que cobrar"}</button></div>` : ""}
-          ${swmGuiaForm(e, true)}
+        : `${juarez ? `<div style="margin-top:10px;"><button type="button" class="${personal ? "btn-primary" : "btn-secondary"}" data-swm-envio-personal>📍 Se lo entrego en Juárez: ${(sug.cruce || 0) + (sug.consolidacion || 0) + (sug.sinRegistro || 0) + (sug.extras || 0) ? `cobrarle solo el cruce (${formatPrice((sug.cruce || 0) + (sug.consolidacion || 0) + (sug.sinRegistro || 0) + (sug.extras || 0))})` : "no hay nada que cobrar"}</button></div>` : ""}
+          ${personal ? "" : swmGuiaForm(e, true)}
           ${manual}
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">${swmCancelBtn("envio", e)}</div>`;
+    } else if (e.entrega === "personal" && (e.status === "pagado" || e.status === "en_mexico")) {
+      action = `<div class="meta" style="margin-top:10px;">📍 Entrega personal: acuerda con ella lugar y hora por WhatsApp.</div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">${e.status === "pagado" ? `<button type="button" class="btn-secondary" data-swm-en-mexico>🇲🇽 Ya está en México</button>` : ""}<button type="button" class="btn-primary" data-swm-entregado>🎁 Ya se lo entregué</button></div>`;
     } else if (e.status === "pagado" || e.status === "en_mexico") {
       action = `<div class="grid"><label>Paquetería<input data-f="paqueteria" type="text" value="${escapeHtml(e.paqueteria || "Estafeta")}"></label><label>Número de guía<input data-f="guia" type="text" value="${escapeHtml(e.guia || "")}"></label></div>
         <div style="display:flex;gap:8px;margin-top:10px;">${e.status === "pagado" ? `<button type="button" class="btn-secondary" data-swm-en-mexico>🇲🇽 Ya está en México</button>` : ""}<button type="button" class="btn-primary" data-swm-enviado>🚚 Marcar enviado (mandarle la guía)</button></div>
@@ -5100,7 +5104,7 @@ ${itemLines}
       <h4><span>${escapeHtml(e.folio)} · Envío a México</span>${swmPillA(st, ["solicitado", "pagado", "en_mexico"].includes(e.status) ? "new" : "")}</h4>
       <div class="meta">${swmWho(e)} · ${swmFecha(e.createdAt)}${e.consolidar ? " · <b>consolidar</b>" : ""}</div>
       <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${pk.map((p) => `<li>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "")} · ${p.cobrable || "?"} kg · cruce ${p.crucePagado ? "ya pagado" : p.cobro === "auto" ? "lo más barato" : p.cobro === "comision" ? "15%" : "por peso"}</li>`).join("")}</ul>
-      <div class="meta">📍 ${escapeHtml([d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}</div>
+      <div class="meta">${e.entrega === "personal" ? `<b>📍 Entrega personal en Ciudad Juárez</b> · ${escapeHtml([d.nombre, d.telefono].filter(Boolean).join(", "))}` : `📍 ${escapeHtml([d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}`}</div>
       <div class="meta">Sugerido: cruce ${formatPrice(sug.cruce || 0)}${sug.consolidacion ? ` + consolidación ${formatPrice(sug.consolidacion)}` : ""}${sug.sinRegistro ? ` + sin registrar ${formatPrice(sug.sinRegistro)}` : ""}${sug.extras ? ` + extras ${formatPrice(sug.extras)}` : ""} · ${sug.kg || 0} kg en total</div>
       ${q ? `<div class="meta">Cotización: cruce ${formatPrice(q.cruce)}${q.consolidacion ? ` + consolidación ${formatPrice(q.consolidacion)}` : ""}${q.sinRegistro ? ` + sin registrar ${formatPrice(q.sinRegistro)}` : ""}${q.extras ? ` + extras ${formatPrice(q.extras)}` : ""} + envío ${formatPrice(q.envio)} = <b>${formatPrice(q.total)}</b></div>` : ""}
       ${e.guia ? `<div class="meta">🚚 ${escapeHtml(e.paqueteria)} · ${escapeHtml(e.guia)}</div>` : ""}
