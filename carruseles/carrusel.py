@@ -144,6 +144,9 @@ def estrella(d, cx, cy, r, color=(246, 236, 222)):
 def portada(c):
     """como la del ejemplo: fondo rosa con estrellitas, productos chuecos saliéndose por las esquinas
     y en medio "Productos del / SEPHORA SALE / que puedes encontrar en mi preventa" """
+    if c.get("estilo"):  # otros diseños (portadas.py), para que no todas las portadas sean iguales
+        import portadas
+        return portadas.ESTILOS[c["estilo"]](c)
     L = Image.new("RGBA", (W, H), ROSA + (255,))
     d = ImageDraw.Draw(L)
     for x, y, r in [(310, 90, 46), (520, 330, 30), (990, 470, 52), (70, 620, 34), (960, 900, 46),

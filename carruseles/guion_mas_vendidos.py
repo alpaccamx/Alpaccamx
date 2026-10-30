@@ -4,12 +4,9 @@
 - Allure Best of Beauty 2025 y 2026
 - Más vendidos del Sephora Sale 2026 (The Stripe) y reseñas de editoras
 Precios de la preventa (alpacca.mx/?ver=preventa)."""
-PORTADA = {
-    "arriba": "Lo más vendido de", "grande": ["SEPHORA", "2026"],
-    "abajo": ["según datos reales de ventas", "y ahora con 20% OFF en mi preventa"],
-    "esquinas": [("sf-balm", 400, -14, 90, 170), ("kayali-vanilla", 330, 16, 980, 170),
-                 ("tower-sos", 320, 14, 80, 1260), ("laneige-glowy", 340, -16, 1000, 1250)],
-}
+PORTADA = {"estilo": "foto", "fondo": "tienda-rosa.jpg",
+    "arriba": "Lo más vendido de", "grande": ["SEPHORA 2026"], "abajo": ["según datos reales de ventas", "con 20% OFF en mi preventa"],
+    "productos": [("sf-balm", 330), ("kayali-vanilla", 300), ("tower-sos", 330), ("laneige-glowy", 330)]}
 P = lambda que, marca, foto, precio, antes, dato, **kw: dict(que=que, marca=marca, foto=foto, precio=precio, antes=antes, dato=dato, **kw)
 PARES = [
     (P("Bálsamo de labios", "Summer Fridays", "sf-balm", 474, 592, "#1 en sephora.com 2025"),

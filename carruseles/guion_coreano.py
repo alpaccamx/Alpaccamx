@@ -1,10 +1,6 @@
 """Carrusel "Skincare coreano del Sephora Sale": Laneige y Glow Recipe (tarjetas rosas). Precios de la preventa."""
-PORTADA = {
-    "arriba": "Skincare coreano del", "grande": ["SEPHORA", "SALE"],
-    "abajo": ["Laneige y Glow Recipe", "con 20% OFF en mi preventa"],
-    "esquinas": [("laneige-waterbank", 330, -12, 110, 140), ("glow-dew", 400, 20, 980, 170),
-                 ("laneige-lsm", 280, 14, 100, 1240), ("glow-plum", 360, -14, 990, 1220)],
-}
+PORTADA = {"estilo": "heroe", "color": (92, 168, 136), "circulo": (214, 240, 228), "producto": "glow-dew",
+    "arriba": "Laneige y Glow Recipe", "grande": ["SKINCARE", "COREANO"], "pastilla": "20% OFF en mi preventa"}
 P = lambda que, marca, foto, precio, antes, **kw: dict(que=que, marca=marca, foto=foto, precio=precio, antes=antes, **kw)
 PARES = [
     (P("Mascarilla de labios", "Laneige", "laneige-lsm", 474, 592, desde=True, alto=0.62),

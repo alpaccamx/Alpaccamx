@@ -1,11 +1,7 @@
 """Carrusel "Kits y sets de regalo del Sephora Sale" (estilo @namy.gloow), precios de la preventa."""
-PORTADA = {
-    "arriba": "Kits y sets del",
-    "grande": ["SEPHORA", "SALE"],
-    "abajo": ["para regalar (o regalarte)", "con 20% OFF en mi preventa"],
-    "esquinas": [("kit-rare-violet", 300, -14, 90, 110), ("kit-laneige-midnight", 330, 18, 960, 140),
-                 ("kit-huda-mocktail", 320, 16, 80, 1250), ("kit-patrick-set", 330, -14, 1000, 1240)],
-}
+PORTADA = {"estilo": "collage", "color": (196, 40, 62),
+    "arriba": "Kits del Sephora Sale", "grande": ["PARA REGALAR"], "abajo": ["(o regalarte) con 20% OFF"],
+    "productos": ["kit-laneige-midnight", "kit-rare-violet", "kit-huda-mocktail", "kit-patrick-set"]}
 K = lambda que, marca, foto, precio, antes, **kw: dict(que=que, marca=marca, foto="kit-" + foto, precio=precio, antes=antes, **kw)
 PARES = [
     (K("5 minis Lip Mask", "Laneige", "laneige-midnight", 454, 567, alto=0.70),

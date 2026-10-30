@@ -1,10 +1,6 @@
 """Carrusel "Para tu cabello" del Sephora Sale (tarjetas rosas). Precios de la preventa."""
-PORTADA = {
-    "arriba": "Para tu cabello, del", "grande": ["SEPHORA", "SALE"],
-    "abajo": ["cabello suavecito y con brillo", "con 20% OFF en mi preventa"],
-    "esquinas": [("gisou-oil", 400, -14, 110, 170), ("olaplex-3", 380, 18, 980, 180),
-                 ("amika-perkup", 420, 20, 90, 1220), ("ouai-mask", 400, -16, 990, 1220)],
-}
+PORTADA = {"estilo": "heroe", "color": (204, 146, 58), "circulo": (247, 226, 180), "producto": "gisou-oil",
+    "arriba": "Sephora Sale", "grande": ["PARA TU", "CABELLO"], "pastilla": "20% OFF en mi preventa"}
 P = lambda que, marca, foto, precio, antes, **kw: dict(que=que, marca=marca, foto=foto, precio=precio, antes=antes, **kw)
 PARES = [
     (P("Aceite para cabello", "Gisou", "gisou-oil", 493, 617, desde=True, alto=0.72),
