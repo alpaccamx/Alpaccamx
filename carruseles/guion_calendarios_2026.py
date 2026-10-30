@@ -16,6 +16,6 @@ CALENDARIOS = [
 ]
 CIERRE = {
     "pregunta": "¿Cuál te gustaría abrir en diciembre? 🎄",
-    "sub": "Todos están en mi preventa del Sephora Sale. Apartas con el 50% y liquidas cuando llega.",
+    "sub": "Todos están en mi preventa del Sephora Sale. Apartas con el 50% y liquidas antes de que te lo envíe.",
     "pastilla": "Cierra el 8 de noviembre · alpacca.mx",
 }

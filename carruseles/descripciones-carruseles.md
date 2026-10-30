@@ -8,7 +8,7 @@ TIKTOK (modo foto)
 Título: Lo más pedido del Sephora Sale 💗
 Descripción:
 Antes de hacer tu pedido del Sephora Sale, mira esto 👀 Son los 16 que más me piden 🛍️
-20% OFF en mi preventa ✨ Apartas con el 50% y liquidas cuando llega tu pedido.
+20% OFF en mi preventa ✨ Apartas con el 50% y liquidas antes de que te lo envíe.
 Cierra el 8 de noviembre ⏰ Pide en alpacca.mx
 Comenta cuál te llevas 👇
 #sephorasale #sephora #maquillaje #skincare #preventa
@@ -20,7 +20,7 @@ Lo más pedido del Sephora Sale 💗 Desliza para ver los 16 👉
 Laneige, Rhode, Rare Beauty, Fenty, Patrick Ta, Huda, Glow Recipe, Sol de Janeiro, Gisou, Touchland y más… todo con 20% OFF en mi preventa ✨
 
 🛍️ Pide en alpacca.mx (link en mi perfil)
-💳 Aparta con el 50% y liquidas cuando llega tu pedido
+💳 Aparta con el 50% y liquidas antes de que te lo envíe
 ✅ 100% original, comprado directo en Sephora USA
 ⏰ Cierra el 8 de noviembre
 
@@ -38,7 +38,7 @@ TIKTOK (modo foto)
 Título: Kits del Sephora Sale para regalar 🎁
 Descripción:
 ¿Ya tienes tus regalos de Navidad? 🎄 Estos kits del Sephora Sale están en mi preventa con 20% OFF ✨ Desde $395
-Apartas con el 50% y liquidas cuando llega tu pedido. Cierra el 8 de noviembre ⏰ alpacca.mx
+Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuál regalarías? 👇
 #sephorasale #regalosdenavidad #kitsdemaquillaje #sephora #maquillaje
 💬 Únete a mi grupo de WhatsApp: el QR está en la última foto
@@ -57,7 +57,7 @@ Kits y sets del Sephora Sale para regalar (o regalarte) 🎁 Desliza 👉
 🎀 Rare Beauty kit con bolsita · $1,065
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 ¿Buscas otro kit? Mándame mensajito y te lo cotizo 💌
@@ -76,7 +76,7 @@ TIKTOK (modo foto)
 Título: Cuál blush elegir según tu piel 💕
 Descripción:
 Antes de comprar otro blush, mira esto 👀 Te digo cuál va con tu tipo de piel 💕
-Todos están en mi preventa del Sephora Sale con 20% OFF ✨ Apartas con el 50% y liquidas cuando llega tu pedido.
+Todos están en mi preventa del Sephora Sale con 20% OFF ✨ Apartas con el 50% y liquidas antes de que te lo envíe.
 Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuál es tu tipo de piel? Te leo en comentarios 👇
 #blush #sephorasale #maquillaje #tipsdemaquillaje #rarebeauty
@@ -94,7 +94,7 @@ NO compres otro blush sin ver esto 💕 Desliza y encuentra el tuyo según tu pi
 
 Todos con 20% OFF en mi preventa del Sephora Sale ✨
 🛍️ Pide en alpacca.mx (link en mi perfil)
-💳 Aparta con el 50% y liquidas cuando llega tu pedido
+💳 Aparta con el 50% y liquidas antes de que te lo envíe
 ⏰ Cierra el 8 de noviembre
 
 ¿Cuál es tu tipo de piel y qué blush usas? Cuéntame 👇 Guarda este post para cuando hagas tu pedido 📌
@@ -111,7 +111,7 @@ TIKTOK (modo foto)
 Título: Calendarios de adviento 2026 con 20% OFF 🎄
 Descripción:
 Los calendarios de adviento 2026 que puedes apartar en mi preventa del Sephora Sale 🎁 Desde $1,361 ✨
-Apartas con el 50% y liquidas cuando llega tu pedido. Cierra el 8 de noviembre ⏰ alpacca.mx
+Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuál te gustaría abrir en diciembre? 👇
 #calendariodeadviento #adventcalendar #sephorasale #navidad #skincarecoreano
 💬 Únete a mi grupo de WhatsApp: el QR está en la última foto
@@ -126,7 +126,7 @@ Calendarios de adviento 2026 con 20% OFF 🎄 Desliza para ver los 5 👉
 🎁 Charlotte Tilbury Hollywood Beauty Wonderland · $4,339
 
 📦 La foto de portada es de cómo llegaron los de mis clientas el año pasado.
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -144,7 +144,7 @@ TIKTOK (modo foto)
 Título: Perfumes y mists del Sephora Sale 🌸
 Descripción:
 Para oler rico todo el día ✨ Kayali, Rare Beauty, Huda, Sol de Janeiro y más con 20% OFF en mi preventa 🛍️ Desde $316
-Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuál es tu aroma favorito? 👇
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
 #perfumes #kayali #soldejaneiro #sephorasale #perfumetok
@@ -162,7 +162,7 @@ Perfumes y mists del Sephora Sale 🌸 Desliza 👉
 🌸 Rare Beauty Find Comfort · $553
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -179,7 +179,7 @@ TIKTOK (modo foto)
 Título: Skincare coreano del Sephora Sale 🍉
 Descripción:
 Laneige y Glow Recipe con 20% OFF en mi preventa ✨ Glass skin sin gastar de más 💗 Desde $375
-Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuál ya usas? 👇
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
 #skincarecoreano #kbeauty #laneige #glowrecipe #sephorasale
@@ -196,7 +196,7 @@ Skincare coreano del Sephora Sale 🍉 Desliza 👉
 💗 Laneige kit 5 minis Lip Mask · $454
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -213,7 +213,7 @@ TIKTOK (modo foto)
 Título: Lo mejor para tu cabello del Sephora Sale ✨
 Descripción:
 Cabello suavecito y con brillo 💆‍♀️ Gisou, Olaplex, OUAI, Amika y Fable & Mane con 20% OFF en mi preventa ✨ Desde $316
-Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuál necesita tu cabello? 👇
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
 #cabello #olaplex #gisou #haircare #sephorasale
@@ -231,7 +231,7 @@ Lo mejor para tu cabello del Sephora Sale ✨ Desliza 👉
 🌿 Fable & Mane HoliRoots · desde $355
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -248,7 +248,7 @@ TIKTOK (modo foto)
 Título: Regalos de menos de $500 para el intercambio 🎁
 Descripción:
 ¿Te tocó intercambio? 🎄 Estos regalitos del Sephora Sale cuestan menos de $500 en mi preventa ✨ Desde $316
-Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 Etiqueta a quien te tocó 👀👇
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
 #intercambio #regalosdenavidad #sephorasale #regalos #maquillaje
@@ -266,7 +266,7 @@ Regalitos de menos de $500 para el intercambio 🎁 Desliza 👉
 🎀 Gisou perfume para cabello · desde $493
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -283,7 +283,7 @@ TIKTOK (modo foto)
 Título: Cuál gloss o bálsamo elegir 💋
 Descripción:
 Antes de comprar otro gloss, mira esto 👀 Te digo cuál elegir según lo que buscas 💋
-Todos están en mi preventa del Sephora Sale con 20% OFF ✨ Apartas con el 50% y liquidas cuando llega.
+Todos están en mi preventa del Sephora Sale con 20% OFF ✨ Apartas con el 50% y liquidas antes de que te lo envíe.
 Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuál es tu favorito para los labios? 👇
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
@@ -300,7 +300,7 @@ NO compres otro gloss sin ver esto 💋 Desliza y encuentra el tuyo 👉
 💋 Labios sensibles → Tower 28 LipSoftie
 
 Todos con 20% OFF en mi preventa del Sephora Sale ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -317,7 +317,7 @@ TIKTOK (modo foto)
 Título: Cuál fijador elegir según tu piel ✨
 Descripción:
 Antes de comprar otro fijador, mira esto 👀 Te digo cuál va con tu tipo de piel ✨
-Todos están en mi preventa del Sephora Sale con 20% OFF. Apartas con el 50% y liquidas cuando llega.
+Todos están en mi preventa del Sephora Sale con 20% OFF. Apartas con el 50% y liquidas antes de que te lo envíe.
 Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Tu piel es seca, grasa o mixta? 👇
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
@@ -334,7 +334,7 @@ NO compres fijador sin ver esto ✨ Desliza y encuentra el tuyo según tu piel �
 ✨ Eventos largos → Makeup by Mario SurrealSkin
 
 Todos con 20% OFF en mi preventa del Sephora Sale ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -351,7 +351,7 @@ TIKTOK (modo foto)
 Título: Cosas que valen cada centavo 💸 edición Sephora Sale
 Descripción:
 Los que mis clientas me piden cada año y SÍ valen lo que cuestan 💸 Y ahora con 20% OFF en mi preventa ✨
-Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuáles me faltaron? Díganme sus favs para hacer parte 2 👀👇
 💬 Únete a mi grupo de WhatsApp: el QR está en la última foto
 #sephorasale #valelapena #maquillaje #sephora #makeuptok
@@ -372,7 +372,7 @@ Cosas que valen cada centavo 💸 edición Sephora Sale. Desliza 👉
 💸 Gisou Honey Infused Hair Oil · desde $493
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -389,7 +389,7 @@ TIKTOK (modo foto)
 Título: Cosas que valen cada centavo 💸 pt.2
 Descripción:
 Parte 2 con los pedidos de mis clientas del Sephora Sale del año pasado 📦 Todos SÍ valen lo que cuestan 💸
-Este año los tengo con 20% OFF en mi preventa ✨ Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Este año los tengo con 20% OFF en mi preventa ✨ Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuáles me faltaron? Díganme sus favs para la parte 3 👀👇
 💬 Únete a mi grupo de WhatsApp: el QR está en la última foto
 #sephorasale #valelapena #maquillaje #patrickta #rarebeauty
@@ -405,7 +405,7 @@ Cosas que valen cada centavo 💸 pt.2. Desliza 👉
 
 📦 Las fotos son de los pedidos de mis clientas del Sephora Sale 2025.
 Este año, todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -422,7 +422,7 @@ TIKTOK (modo foto)
 Título: Lo más vendido de Sephora (con datos reales) 📊
 Descripción:
 No son mis favoritos, son los que MÁS SE VENDIERON en Sephora 📊 según datos de ventas y los premios Allure 🏆
-Y todos los tengo con 20% OFF en mi preventa ✨ Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Y todos los tengo con 20% OFF en mi preventa ✨ Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuántos ya tienes? 👇
 💬 Únete a mi grupo de WhatsApp: el QR está en la última foto
 #sephorasale #losmasvendidos #sephora #maquillaje #skincare
@@ -442,7 +442,7 @@ Lo más vendido de Sephora 📊 según datos reales de ventas y los premios Allu
 🏆 Merit Bronze Balm · $632 (premio Allure 2025)
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -459,7 +459,7 @@ TIKTOK (modo foto)
 Título: Lo que TODAS compran en Sephora 🛍️
 Descripción:
 No son mis favoritos: son los que MÁS SE VENDEN en Sephora, con datos reales 📊
-Y los tengo con 20% OFF en mi preventa ✨ Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Y los tengo con 20% OFF en mi preventa ✨ Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuántos ya tienes? 👇
 💬 Únete a mi grupo de WhatsApp: el QR está en la última foto
 #sephora #sephorasale #losmasvendidos #summerfridays #rhode
@@ -479,7 +479,7 @@ Lo que TODAS compran en Sephora 🛍️ con datos reales de ventas. Desliza 👉
 🛍️ Merit Bronze Balm · $632
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -496,7 +496,7 @@ TIKTOK (modo foto)
 Título: Lo más vendido de cada marca en Sephora 🛍️
 Descripción:
 Si vas a Sephora (o me encargas a mí 😉), esto es lo más vendido de cada marca, con datos reales 📊
-Todo con 20% OFF en mi preventa ✨ Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Todo con 20% OFF en mi preventa ✨ Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿De qué marca quieres la parte 2? 👇
 💬 Únete a mi grupo de WhatsApp: el QR está en la última foto
 #sephora #sephorasale #losmasvendidos #charlottetilbury #hudabeauty
@@ -514,7 +514,7 @@ Lo más vendido de cada marca en Sephora 🛍️ Desliza 👉
 ✨ Kayali → Vanilla 28 · desde $572
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -531,7 +531,7 @@ TIKTOK (modo foto)
 Título: Dior, Chanel, Fenty y Huda con 20% OFF 💎
 Descripción:
 Lujo que SÍ vale la pena 💎 Dior Lip Glow Oil, Miss Dior, Coco Mademoiselle, Gloss Bomb, Easy Bake y el perfume #1 de Sephora en 2025 ✨
-Todo con 20% OFF en mi preventa. Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Todo con 20% OFF en mi preventa. Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Qué marca de lujo quieres que te traiga? 👇
 💬 Únete a mi grupo de WhatsApp: el QR está en la última foto
 #dior #chanel #fentybeauty #hudabeauty #sephorasale
@@ -549,7 +549,7 @@ Dior, Chanel, Fenty y Huda 💎 lo que sí vale la pena. Desliza 👉
 💎 Kayali Yum Boujee Marshmallow 81 · desde $572 (el perfume #1 de Sephora en 2025)
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -566,7 +566,7 @@ TIKTOK (modo foto)
 Título: Los más amados de Sephora 💗
 Descripción:
 Los productos que MÁS gente tiene en favoritos en Sephora 💗 El Easy Bake de Huda tiene 1.8 MILLONES 🤯
-Todos con 20% OFF en mi preventa ✨ Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Todos con 20% OFF en mi preventa ✨ Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuál tienes en tu lista de deseos? 👇
 💬 Únete a mi grupo de WhatsApp: el QR está en la última foto
 #sephora #sephorasale #hudabeauty #ysl #rhode
@@ -582,7 +582,7 @@ Los más amados de Sephora 💗 los que más gente tiene en favoritos. Desliza �
 💗 Patrick Ta Major Headlines mini · $493 (204 mil)
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 
@@ -599,7 +599,7 @@ TIKTOK (modo foto)
 Título: Sets de Navidad edición limitada 🎄
 Descripción:
 Los sets de edición limitada de Navidad 2026 🎁 se agotan cada año, apártalos ya ✨
-Patrick Ta, Rhode y ONE/SIZE con 20% OFF en mi preventa. Apartas con el 50% y liquidas cuando llega. Cierra el 8 de noviembre ⏰ alpacca.mx
+Patrick Ta, Rhode y ONE/SIZE con 20% OFF en mi preventa. Apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre ⏰ alpacca.mx
 ¿Cuál pedirías para Navidad? 👇
 💬 Únete a mi grupo de WhatsApp: el QR está en la última foto
 #navidad #regalosdenavidad #sephorasale #rhode #patrickta
@@ -613,7 +613,7 @@ Sets de Navidad edición limitada 🎄 se agotan cada año. Desliza 👉
 🎁 ONE/SIZE Big & Bitty fijador grande + mini · $710
 
 Todos con 20% OFF en mi preventa ✨
-💳 Apartas con el 50% y liquidas cuando llega tu pedido
+💳 Apartas con el 50% y liquidas antes de que te lo envíe
 ✅ 100% originales, comprados directo en Sephora USA
 ⏰ Cierra el 8 de noviembre · alpacca.mx (link en mi perfil)
 

@@ -28,7 +28,7 @@ PARES = [
 CIERRE = {
     "titulo": "¿CUÁL TE LLEVAS?",
     "pasos": [("Pide en alpacca.mx", "Todo el catálogo de la preventa"),
-              ("Aparta con el 50%", "Y liquidas cuando llegue tu pedido"),
+              ("Aparta con el 50%", "Liquidas antes de que te lo envíe"),
               ("100% original", "Comprado directo en Sephora USA")],
     "pastilla": "Cierra el 8 de noviembre",
 }
