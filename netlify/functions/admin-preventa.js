@@ -1,6 +1,7 @@
 // Preventa en /admin.html (Stock en México → 🛍️ Preventa). Header "x-admin-key".
 //
 // GET                         → { config, productos (con apartadas/disponibles), apartados }
+// GET ?solo=apartados         → { apartados }  (ligero: para el aviso de Inicio y Pedidos)
 // GET ?archivo=comprobante/<id>/<anticipo|resto>  → el comprobante
 // POST { accion, ... }:
 //   guardar_config    { titulo, descripcion, cierre, llegada, anticipoPct, envioDefault, activa }
@@ -39,6 +40,15 @@ exports.handler = async (event) => {
       const f = await getFile(key);
       if (!f) return json(404, { error: "No existe." });
       return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
+    }
+    if ((event.queryStringParameters || {}).solo === "apartados") {
+      try {
+        const apartados = await listApartados();
+        return json(200, { apartados: apartados.map((a) => ({ id: a.id, folio: a.folio, status: a.status, anticipo: a.anticipo && { status: a.anticipo.status }, resto: a.resto && { status: a.resto.status }, cuenta: cuenta(a) })) });
+      } catch (err) {
+        console.error("admin-preventa GET apartados:", err);
+        return json(500, { error: "No se pudieron cargar los apartados." });
+      }
     }
     try {
       const [config, productos, apartados] = await Promise.all([configActual(), productosConCupo({ conApartadas: true }), listApartados()]);
