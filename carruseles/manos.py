@@ -41,8 +41,12 @@ def lamina(p):
     bloque(L, p["arriba"], W * p.get("x_arriba", 0.4), 120, 62, 760, "Bold", b.WHITE, 6, NEGRO, 1.12)
     y = bloque(L, p["abajo"], W * p.get("x_abajo", 0.58), H - 400, 48, 760, "SemiBold", b.WHITE, 5, NEGRO, 1.15)
     s = f"{'Desde ' if p.get('desde') else ''}${p['precio']:,} en mi preventa" + (f" · {comparacion(p)[0]} ${comparacion(p)[1]:,}" if comparacion(p) else "")
-    pi = b.pastilla(s, "Bold", 36, (232, 112, 145), b.WHITE, padx=30, pady=10)
-    L.alpha_composite(pi, (int(W * p.get("x_abajo", 0.58) - pi.width / 2), int(y + 18)))
+    sz = 36
+    pi = b.pastilla(s, "Bold", sz, (232, 112, 145), b.WHITE, padx=30, pady=10)
+    while pi.width > W - 60 and sz > 26:  # que no se salga de la foto
+        sz -= 2; pi = b.pastilla(s, "Bold", sz, (232, 112, 145), b.WHITE, padx=30, pady=10)
+    x = min(max(30, W * p.get("x_abajo", 0.58) - pi.width / 2), W - 30 - pi.width)
+    L.alpha_composite(pi, (int(x), int(y + 18)))
     ImageDraw.Draw(L).text((W - 40, 360), "@alpaccamx", font=b.F("Medium", 30), fill=(255, 255, 255), anchor="rm")
     return L
 
