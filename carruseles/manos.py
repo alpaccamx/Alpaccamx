@@ -47,6 +47,10 @@ def lamina(p):
         sz -= 2; pi = b.pastilla(s, "Bold", sz, (232, 112, 145), b.WHITE, padx=30, pady=10)
     x = min(max(30, W * p.get("x_abajo", 0.58) - pi.width / 2), W - 30 - pi.width)
     L.alpha_composite(pi, (int(x), int(y + 18)))
+    c = comparacion(p)
+    if c and c[1] > p["precio"]:  # lo que se ahorra, en una pastilla blanca debajo
+        ah = b.pastilla(f"Ahorras ${c[1] - p['precio']:,}", "ExtraBold", 40, b.WHITE, (232, 112, 145), padx=30, pady=8)
+        L.alpha_composite(ah, (int(x + pi.width / 2 - ah.width / 2), int(y + 18 + pi.height + 12)))
     ImageDraw.Draw(L).text((W - 40, 360), "@alpaccamx", font=b.F("Medium", 30), fill=(255, 255, 255), anchor="rm")
     return L
 

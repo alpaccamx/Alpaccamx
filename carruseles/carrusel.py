@@ -87,9 +87,12 @@ def producto(L, caja, p, foto_izq=True):
         sz -= 4
     m, pr, an, de = int(46 * k), int(104 * k), int(44 * k), int(36 * k)
     fm, fp, fa = F(BEBAS, m), F(BEBAS, pr), F(BEBAS, an)
-    alto = len(rs) * sz * 0.92 + 18 * k + m + 30 * k + pr + ((14 * k + an) if comparacion(p) else 0) + (de - 2 if p.get("desde") else 0)
+    alto = len(rs) * sz * 0.92 + 18 * k + m + 30 * k + pr + ((14 * k + an + 8 * k + an * 1.15) if comparacion(p) else 0) + (de - 2 if p.get("desde") else 0)
     if p.get("dato"):  # sello con el dato real (ventas, premio Allure) arriba del nombre
         alto += 60 * k + 16
+    while alto > (y1 - y0) - 36 and sz > 44:  # si no cabe todo en la tarjeta, se achica el título
+        alto -= len(rs) * sz * 0.92; sz -= 4; fn = F(BEBAS, sz); rs = renglones(p["que"], fn, tw)
+        alto += len(rs) * sz * 0.92
     y = cy - alto / 2
     if p.get("dato"):
         fd = F(BEBAS, int(42 * k)); dw = fd.getlength(p["dato"])
@@ -106,7 +109,11 @@ def producto(L, caja, p, foto_izq=True):
         # sin tachar (tachado no se leía): "EN SEPHORA MÉXICO $950" en un tono más oscuro
         y += 14 * k; et, pa = comparacion(p); s = f"EN {et.upper()} ${pa:,}"
         while fa.getlength(s) > tw and fa.size > 24: fa = F(BEBAS, fa.size - 2)
-        d.text((tc, y + an / 2), s, font=fa, fill=(120, 72, 84), anchor="mm")
+        d.text((tc, y + an / 2), s, font=fa, fill=(120, 72, 84), anchor="mm"); y += an + 8 * k
+        if pa > p["precio"]:  # lo que se ahorra, en una pastilla rosa
+            fh = F(BEBAS, int(an * 1.0)); s = f"AHORRAS ${pa - p['precio']:,}"; sw = fh.getlength(s)
+            d.rounded_rectangle((tc - sw / 2 - 18 * k, y, tc + sw / 2 + 18 * k, y + an * 1.15), int(an * 0.57), fill=TINTA)
+            d.text((tc, y + an * 0.6), s, font=fh, fill=BLANCO, anchor="mm")
 
 
 def firma(L):

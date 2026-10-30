@@ -86,9 +86,12 @@ def lamina(p, i):
     d.text((cx, y + 50), s, font=b.F("SemiBold", 38), fill=ROSA, anchor="mm")
     if comparacion(p):
         et, pa = comparacion(p)  # sin tachar: tachado no se leía bien
-        a = f"En {et}: ${pa:,}" + (f"  ·  ahorras ${pa - p['precio']:,}" if not p.get("desde") and pa > p["precio"] else "")
+        a = f"En {et}: ${pa:,}" 
         f = b.F("SemiBold", 32); ya = y + 98
         d.text((cx, ya), a, font=f, fill=(60, 60, 64), anchor="mm")
+        if pa > p["precio"]:
+            ah = b.pastilla(f"Ahorras ${pa - p['precio']:,}", "ExtraBold", 36, ROSA, b.WHITE, padx=30, pady=8)
+            L.alpha_composite(ah, (int(cx - ah.width / 2), int(ya + 26)))
     return L
 
 

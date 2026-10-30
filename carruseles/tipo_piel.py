@@ -41,9 +41,13 @@ def precio(L, p, y):
     L.alpha_composite(pi, (int(W / 2 - pi.width / 2), int(y)))
     if not comparacion(p): return
     et, pa = comparacion(p)  # sin tachar: tachado no se leía bien
-    a = f"En {et}: ${pa:,}" + (f"  ·  ahorras ${pa - p['precio']:,}" if not p.get("desde") and pa > p["precio"] else "")
+    a = f"En {et}: ${pa:,}" 
     f = b.F("SemiBold", 38); d = ImageDraw.Draw(L); yy = y + pi.height + 36
     d.text((W / 2, yy), a, font=f, fill=(60, 60, 64), anchor="mm")
+    if pa > p["precio"]:
+        ah = b.pastilla(f"Ahorras ${pa - p['precio']:,}", "ExtraBold", 42, b.WHITE, ROSA, padx=34, pady=10)
+        ImageDraw.Draw(ah).rounded_rectangle((1, 1, ah.width - 2, ah.height - 2), ah.height // 2, outline=ROSA, width=4)
+        L.alpha_composite(ah, (int(W / 2 - ah.width / 2), int(yy + 32)))
 
 
 def firma(L, color=(150, 150, 156)):
