@@ -229,21 +229,28 @@ function renderSwmGuias() {
 /* Guía de bienvenida: 3 pasos que se van palomeando hasta que hace su
    primer envío. "Copió la dirección" se recuerda en este navegador. */
 const swmCopio = () => { try { return localStorage.getItem("alpacca_swm_copio") === "1"; } catch (err) { return false; } };
+/* La dirección en México no es obligatoria: si recoge en Ciudad Juárez
+   (entrega personal), no tiene que ponerla. Se recuerda en este navegador
+   o porque ya pidió un envío con entrega personal. */
+const swmPrefierePersonal = () => {
+  try { if (localStorage.getItem("alpacca_swm_entrega") === "personal") return true; } catch (err) { /* nada */ }
+  return swm.envios.some((e) => e.entrega === "personal" && e.status !== "cancelado");
+};
 function renderSwmWelcome() {
   const el = document.getElementById("swm-welcome");
-  const tieneDirMx = typeof direccionPrincipal === "function" && Boolean(direccionPrincipal());
+  const tieneDirMx = (typeof direccionPrincipal === "function" && Boolean(direccionPrincipal())) || swmPrefierePersonal();
   // Clienta de Personal shopper (Mae compra por ella, nunca ha mandado su
   // propio paquete): sus pasos son otros; no tiene que copiar la dirección
   // americana ni registrar guías.
   const soloCompras = swm.compras.length > 0 && !swm.paquetes.some((p) => p.origen !== "compra");
   const compraPagada = swm.compras.some((c) => ["pagado", "comprado"].includes(c.status) || (c.pago && c.pago.status === "pagado"));
   const pasos = soloCompras ? [
-    [tieneDirMx, "Pon tu dirección de envío en México", "A donde te mando tus productos cuando crucen. Solo se pone una vez.", `<button type="button" data-swm-dirmx-toggle class="mt-1 block text-xs font-semibold text-rose-ink underline">Poner mi dirección</button>${swm.dirMxOpen ? swmDirMxFormHTML() : ""}`],
+    [tieneDirMx, "Dime cómo recibir tus productos en México", "Pon tu dirección para mandártelos o, si estás en Ciudad Juárez, elige entrega personal (sin dirección).", `<span class="mt-1 flex flex-wrap gap-x-4 gap-y-1"><button type="button" data-swm-dirmx-toggle class="text-xs font-semibold text-rose-ink underline">Poner mi dirección</button><button type="button" data-swm-prefiere-personal class="text-xs font-semibold text-rose-ink underline">📍 Prefiero entrega personal en Juárez</button></span>${swm.dirMxOpen ? swmDirMxFormHTML() : ""}`],
     [compraPagada, "Paga tu cotización", "Abajo, en “Compras”, la ves y la pagas con tarjeta o transferencia. No tienes que registrar ningún paquete ni guía: yo hago la compra por ti.", '<button type="button" data-swm-tab="compras" class="mt-1 block text-xs font-semibold text-rose-ink underline">Ver mi cotización</button>'],
     [swm.compras.some((c) => c.status === "comprado"), "Hago tu compra", "Compro tus productos y llegan solos a la bodega. Te aviso por correo.", ""],
     [swm.envios.length > 0, "Paga tu envío a casa", "Cuando lleguen, armo tu envío solita y aquí te sale lo que pagas.", ""],
   ] : [
-    [tieneDirMx, "Pon tu dirección de envío en México", "A donde te mandamos tus paquetes cuando crucen. Solo se pone una vez.", `<button type="button" data-swm-dirmx-toggle class="mt-1 block text-xs font-semibold text-rose-ink underline">Poner mi dirección</button>${swm.dirMxOpen ? swmDirMxFormHTML() : ""}`],
+    [tieneDirMx, "Dime cómo recibir tus paquetes en México", "Pon tu dirección para mandártelos o, si estás en Ciudad Juárez, elige entrega personal (sin dirección).", `<span class="mt-1 flex flex-wrap gap-x-4 gap-y-1"><button type="button" data-swm-dirmx-toggle class="text-xs font-semibold text-rose-ink underline">Poner mi dirección</button><button type="button" data-swm-prefiere-personal class="text-xs font-semibold text-rose-ink underline">📍 Prefiero entrega personal en Juárez</button></span>${swm.dirMxOpen ? swmDirMxFormHTML() : ""}`],
     [swmCopio() || swm.paquetes.length > 0, "Copia tu dirección americana", "Úsala en tu tienda favorita, con tu código de casillero en el apellido.", '<button type="button" data-swm-abrir-dir class="mt-1 block text-xs font-semibold text-rose-ink underline">Ver mi dirección</button>'],
     [swm.paquetes.length > 0 || swm.compras.length > 0, "Registra tu primer paquete", "Cuando te den el número de rastreo. ¿Sin tarjeta americana? Usa Personal shopper \u2192 Compras en línea.", '<button type="button" data-swm-form="paquete" class="mt-1 block text-xs font-semibold text-rose-ink underline">Registrar paquete</button>'],
     [swm.envios.length > 0, "Paga tu envío a casa", "Cuando tu paquete llegue, armo tu envío solita y aquí te sale lo que pagas.", ""],
@@ -351,7 +358,7 @@ function swmPendientes() {
   const porPagar = (r) => r.status === "cotizado" && r.cotizacion && !(r.pago && r.pago.status === "revision");
   swm.envios.filter(porPagar).forEach((e) => out.push(["💳", `Paga tu envío ${e.folio} · ${swmMXN(e.cotizacion.total)}`, ir("envio", e)]));
   swm.compras.filter(porPagar).forEach((c) => out.push(["💳", `Paga tu compra ${c.folio} · ${swmMXN(c.cotizacion.total)}`, ir("compra", c)]));
-  if (typeof direccionPrincipal === "function" && misDirecciones && !direccionPrincipal()) out.push(["📍", "Pon tu dirección de envío en México", "data-swm-dirmx-toggle"]);
+  if (typeof direccionPrincipal === "function" && misDirecciones && !direccionPrincipal() && !swmPrefierePersonal()) out.push(["📍", "Pon tu dirección de envío en México", "data-swm-dirmx-toggle"]);
   swm.paquetes.filter((p) => swmPorPagar("paquete", p) && !(p.pago && p.pago.status === "revision")).forEach((p) => out.push(["💳", `Paga el cruce de ${p.folio} · ${swmMXN(p.pago.monto || 0)}`, ir("paquete", p)]));
   swm.paquetes.filter((p) => p.datosPendientes && p.status !== "cancelado").forEach((p) => out.push(["⚠️", `Dime qué trae ${p.folio} (llegó sin registrar)`, ir("paquete", p)]));
   swm.paquetes.filter((p) => p.correccion && p.correccion.estado === "pedida").forEach((p) => out.push(["✏️", `Corrige los datos de ${p.folio}`, ir("paquete", p)]));
@@ -980,6 +987,7 @@ function swmFormHTML() {
     if (!disp.length) return `<div class="rounded-2xl bg-pill p-4 text-sm">Todavía no tienes paquetes en México. Cuando crucen te aviso y aquí podrás pedir tu envío a casa. <button type="button" data-swm-form="" class="underline">Cerrar</button></div>`;
     const saved = swmUltimaDireccion();
     const tieneDir = Boolean(saved.nombre && saved.calle && saved.ciudad && /^\d{5}$/.test(saved.cp || ""));
+    const personalPorDefecto = swmPrefierePersonal() && !(typeof direccionPrincipal === "function" && direccionPrincipal());
     const dv = (k, d = "") => escapeHtml(saved[k] || d);
     // Desde "Juntar mis paquetes en México" solo van marcados los que ya cruzaron.
     const enMx = disp.filter((p) => p.enMexicoAt);
@@ -990,14 +998,14 @@ function swmFormHTML() {
       ${disp.length > 1 ? `<label class="flex gap-2 rounded-xl bg-pill/60 p-3 text-sm"><input id="swm-f-consolidar" type="checkbox"${enMx.length > 1 ? " checked" : ""} class="mt-0.5 accent-[#c4466e]"><span><b>📦 Juntar todo en una sola caja</b><span class="block text-xs text-ink/65">Pagas una sola guía a tu casa en vez de una por paquete. +$100 por cada 12 kg.</span></span></label>` : ""}
       <p class="text-xs font-semibold">¿Cómo lo quieres recibir?</p>
       <div class="grid gap-2 sm:grid-cols-2">
-        <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-entrega" value="envio" checked class="mt-0.5 accent-[#c4466e]"><span><b>🚚 Envío a mi domicilio</b><span class="block text-xs text-ink/65">Te lo mando por paquetería.</span></span></label>
-        <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-entrega" value="personal" class="mt-0.5 accent-[#c4466e]"><span><b>📍 Entrega personal en Ciudad Juárez</b><span class="block text-xs text-ink/65">Sin costo de envío. Te contacto para acordar lugar y hora.</span></span></label>
+        <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-entrega" value="envio"${personalPorDefecto ? "" : " checked"} class="mt-0.5 accent-[#c4466e]"><span><b>🚚 Envío a mi domicilio</b><span class="block text-xs text-ink/65">Te lo mando por paquetería.</span></span></label>
+        <label class="flex gap-2 rounded-xl border border-ink/15 p-3 text-sm has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20"><input type="radio" name="swm-entrega" value="personal"${personalPorDefecto ? " checked" : ""} class="mt-0.5 accent-[#c4466e]"><span><b>📍 Entrega personal en Ciudad Juárez</b><span class="block text-xs text-ink/65">Sin costo de envío. Te contacto para acordar lugar y hora.</span></span></label>
       </div>
-      <div data-swm-entrega-personal class="hidden grid gap-3 sm:grid-cols-2">
+      <div data-swm-entrega-personal class="${personalPorDefecto ? "" : "hidden "}grid gap-3 sm:grid-cols-2">
         ${swmInput("swm-p-nombre", "Nombre de quien recibe", `maxlength="100" value="${dv("nombre", swm.name)}"`)}
         ${swmInput("swm-p-telefono", "Teléfono (WhatsApp)", `maxlength="30" inputmode="tel" value="${dv("telefono", swm.phone)}"`)}
       </div>
-      <div data-swm-entrega-envio class="space-y-3">
+      <div data-swm-entrega-envio class="space-y-3${personalPorDefecto ? " hidden" : ""}">
       <p class="text-xs font-semibold">¿A dónde te lo mandamos?</p>
       ${tieneDir ? `<div data-swm-dir-resumen class="flex items-start justify-between gap-3 rounded-xl border border-ink/15 px-3 py-2.5 text-sm">
         <span>📍 <b>${dv("nombre")}</b><span class="block text-ink/75">${escapeHtml([saved.calle, saved.colonia].filter(Boolean).join(", "))}</span><span class="block text-ink/75">${escapeHtml([saved.ciudad, saved.estado].filter(Boolean).join(", "))} · CP ${dv("cp")}</span>${saved.telefono ? `<span class="block text-xs text-ink/60">Tel. ${dv("telefono")}</span>` : ""}</span>
@@ -1014,8 +1022,8 @@ function swmFormHTML() {
         ${swmInput("swm-d-referencias", "Referencias (opcional)", `maxlength="200" value="${dv("referencias")}"`)}
       </div>
       </div>
-      <p data-swm-entrega-nota-envio class="text-xs text-ink/65">Te mando aquí la cotización: el cruce a México${disp.length > 1 ? ", juntar en una caja (si lo elegiste)" : ""} y la guía a tu casa (Estafeta desde $250). La pagas aquí mismo.</p>
-      <p data-swm-entrega-nota-personal class="hidden text-xs text-ink/65">Te mando aquí la cotización: solo el cruce a México${disp.length > 1 ? " y juntar en una caja (si lo elegiste)" : ""}, sin costo de envío. La pagas aquí mismo.</p>`, "Pedir cotización de envío");
+      <p data-swm-entrega-nota-envio class="${personalPorDefecto ? "hidden " : ""}text-xs text-ink/65">Te mando aquí la cotización: el cruce a México${disp.length > 1 ? ", juntar en una caja (si lo elegiste)" : ""} y la guía a tu casa (Estafeta desde $250). La pagas aquí mismo.</p>
+      <p data-swm-entrega-nota-personal class="${personalPorDefecto ? "" : "hidden "}text-xs text-ink/65">Te mando aquí la cotización: solo el cruce a México${disp.length > 1 ? " y juntar en una caja (si lo elegiste)" : ""}, sin costo de envío. La pagas aquí mismo.</p>`, "Pedir cotización de envío");
   }
   return "";
 }
@@ -1222,6 +1230,13 @@ function initSwm() {
     out.textContent = n > SWM_MAX_ARCHIVOS ? `Elegiste ${n}; el máximo es ${SWM_MAX_ARCHIVOS}.` : n ? `✅ ${n} archivo${n === 1 ? "" : "s"} listo${n === 1 ? "" : "s"}. Se suben al terminar.` : "";
   });
   sec.addEventListener("click", (e) => {
+    if (e.target.closest("[data-swm-prefiere-personal]")) {
+      try { localStorage.setItem("alpacca_swm_entrega", "personal"); } catch (err) { /* nada */ }
+      swm.dirMxOpen = false;
+      renderSwmWelcome();
+      renderSwmCasillero();
+      return;
+    }
     if (e.target.closest("[data-swm-dirmx-toggle]")) {
       swm.dirMxOpen = !swm.dirMxOpen;
       renderSwmWelcome();
