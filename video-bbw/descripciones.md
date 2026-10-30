@@ -37,12 +37,14 @@ Los elijo uno por uno, originales y directo de la tienda ✅
 
 Nos vemos en alpacca.mx 🔗 (link en mi perfil)
 
+💬 Únete a mi grupo de WhatsApp: escanea el QR al final del video 📲
+
 #pov #bathandbodyworks #bathandbodyworksmexico #mists #bodymist #shoppingtime #perfumesoriginales #alpacca
 ```
 
 **TikTok**
 ```
-POV: fui a Bath & Body Works por tus mists 💗 $150 c/u en alpacca.mx #pov #bathandbodyworks #bodymist #shopping #perfumes
+POV: fui a Bath & Body Works por tus mists 💗 $150 c/u en alpacca.mx 💬 Únete a mi grupo de WhatsApp (QR al final) #pov #bathandbodyworks #bodymist #shopping #perfumes
 ```
 
 ### 3 · Reventa (emprendedoras)

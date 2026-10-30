@@ -39,10 +39,12 @@ VARIANTES = {
     "pov": dict(
         tomas=[("4704", 0.5, 1.5, 3.0), ("4704", 11.0, 1.4, 2.2), ("4705", 122.8, 1.8, 1.0, ESPEJO), ("4705", 21, 1.3, 1.2),
                ("4705", 57, 1.3, 1.2), ("4705", 93, 1.3, 1.2), ("4705", 162, 1.3, 1.2), ("4705", 210, 1.3, 1.2), ("4705", 75, 1.2, 1.5),
-               ("4705", 190, 2.3, 1.0), ("4705", 127.0, 1.7, 1.0, ESPEJO)],
+               ("4705", 190, 2.3, 1.0), ("4705", 127.0, 1.7, 1.0, ESPEJO),
+               ("4705", 156, 1.6, 1.2), ("4705", 222, 1.6, 1.2), ("4705", 99, 2.4, 1.2)],
         textos=[(0, None, "texto", "POV: fui a Bath & Body Works\npor tus mists 🛍️"), (1, 0, "texto", "Los elijo uno por uno 💗"),
-                (1, 1, "texto", "Originales, directo de la tienda ✅"), (2, 0, "precio", "$150 c/u"), (3, 0, "cta", "Nos vemos en alpacca.mx 👋")],
-        popups=[(2, 0, 2.6, "IMG_4708")]),
+                (1, 1, "texto", "Originales, directo de la tienda ✅"), (2, 0, "precio", "$150 c/u"), (3, 0, "cta", "Nos vemos en alpacca.mx 👋"),
+                (4, 0, "cta", "Únete a mi grupo de WhatsApp 💬")],
+        popups=[(2, 0, 2.6, "IMG_4708"), (4, 0, 99, "QR")]),  # QR del grupo hasta el final
     "reventa": dict(
         tomas=[("4705", 222, 1.4, 1.3), ("4705", 228, 1.4, 1.3), ("4705", 30, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 87, 1.3, 1.3),
                ("4705", 156, 1.3, 1.2), ("4705", 42, 1.4, 1.2), ("4705", 198, 1.3, 1.3), ("4705", 216, 1.4, 1.2),
@@ -61,10 +63,12 @@ VARIANTES = {
         popups=[(2, 1, 2.0, "IMG_4708")]),
 }
 CFG = VARIANTES[VAR]
+SDR = ("zscale=tin=arib-std-b67:min=bt2020nc:pin=bt2020:rin=tv:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,"
+       "tonemap=reinhard:param=0.6:desat=0,zscale=t=bt709:m=bt709:r=tv,format=rgb24")
 
 
 def video(vid, ini, n, vel, zoom=None):
-    vf = f"setpts=PTS/{vel},fps={FPS}"
+    vf = f"{SDR},setpts=PTS/{vel},fps={FPS}"  # el iPhone graba en HDR: sin esto se ve pálido
     if zoom: vf += f",crop=iw*{zoom[2]}:ih*{zoom[2]}:iw*{zoom[0]}:ih*{zoom[1]}"
     vf += f",scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}"
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-ss", str(ini), "-i", os.path.join(CRUDO, f"IMG_{vid}.MOV"), "-t", f"{n * vel / FPS + 0.3:.2f}",
@@ -79,7 +83,11 @@ def video(vid, ini, n, vel, zoom=None):
 
 _cards = {}
 def popup(nombre):
-    """foto en tarjeta blanca chica con sombra"""
+    """foto en tarjeta blanca chica con sombra ("QR" = el código del grupo de WhatsApp de Mae)"""
+    if nombre == "QR" and nombre not in _cards:
+        sys.path.insert(0, os.path.join(os.path.dirname(AQUI), "carruseles"))
+        import whatsapp
+        _cards[nombre] = whatsapp.tarjeta(440)
     if nombre not in _cards:
         im = ImageOps.fit(Image.open(os.path.join(FOTOS, nombre + ".jpg")).convert("RGB"), (400, 520))
         card = Image.new("RGBA", (400 + 24 + 60, 520 + 24 + 60))
@@ -114,7 +122,9 @@ def pon_texto(L, tipo, s, t, y):
         b.pon(L, b.pastilla("$150 c/u", "ExtraBold", 130, PINK, WHITE, padx=56, pady=26), W / 2, y - 60)
         b.pon(L, b.pastilla(s, "Bold", 54, WHITE, INK), W / 2, y + 120, *b.entra(t, 0, 0.35))
     elif tipo == "cta":
-        b.pon(L, b.pastilla(s, "ExtraBold", 62, PINK, WHITE), W / 2, y, *b.entra(t, 0, 0.4))
+        sz = 62
+        while b.pastilla(s, "ExtraBold", sz, PINK, WHITE).width > 1000 and sz > 40: sz -= 4  # que no se salga
+        b.pon(L, b.pastilla(s, "ExtraBold", sz, PINK, WHITE), W / 2, y, *b.entra(t, 0, 0.4))
 
 
 SFX = []
