@@ -1,6 +1,8 @@
 """Carrusel de los mists de Victoria's Secret (hoy a $155), 1080x1350: las tomas de Mae en la tienda de fondo
 (fotos-vs/*.jpg, sacadas de sus videos de la carpeta Ross del Drive) y encima la foto real de los mists.
-Uso: python3 vs.py -> mists-vs/01.jpg, ..."""
+Carrusel 2 (mists-vs-2): fotos de tiendas Victoria's Secret que mandó Mae (fotos-vs/entrada, pure-seduction, ...; se dejaron
+fuera las que eran de tiendas fuera de EE. UU.: letreros en español con precio local y una con precios en euros).
+Uso: python3 vs.py -> mists-vs/01.jpg, ... y mists-vs-2/01.jpg, ..."""
 import os, sys
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
@@ -98,7 +100,48 @@ def laminas():
                           NEGRO, (70, 70, 74), lambda: b.F("Bold", 76), lambda: b.F("SemiBold", 40))
 
 
+def laminas2():
+    # 1. portada: la pared "Mist Collection", el precio y la foto real de los mists
+    L = fondo("mist-collection", 40)
+    caja(L, [("SOLO HOY 🚨", "ExtraBold", 80, VSROSA), ("Mists Victoria's Secret", "ExtraBold", 66, NEGRO)], 170)
+    t = tarjeta("mists", 360).rotate(-6, expand=True, resample=Image.BICUBIC); L.alpha_composite(t, (W - t.width - 20, 690))
+    p = b.pastilla(PRECIO, "ExtraBold", 92, VSROSA, BLANCO); L.alpha_composite(p, (50, 1010))
+    p = b.pastilla("Originales ✅", "Bold", 46, BLANCO, NEGRO); L.alpha_composite(p, (60, 1160))
+    yield L
+    # 2. los clásicos
+    L = fondo("pure-seduction", 50)
+    caja(L, [("Los clásicos 💗", "ExtraBold", 72, NEGRO), ("Pure Seduction · Velvet Petals · Love Spell", "SemiBold", 40, (70, 70, 74))], 170)
+    pastilla(L, PRECIO + " · 250 ml", 1180, sz=64)
+    firma(L); yield L
+    # 3. hay aroma para todas
+    L = fondo("pared-colores", 60)
+    caja(L, [("Hay aroma para todas ✨", "ExtraBold", 66, NEGRO)], 130)
+    t = tarjeta("mists", 470); L.alpha_composite(t, (int(W / 2 - t.width / 2), 230))
+    pastilla(L, "Tú eliges tus favoritos 💗", 1150, sz=56)
+    firma(L); yield L
+    # 4. originales, de la tienda en Estados Unidos
+    L = fondo("estante-rojo", 70)
+    caja(L, [("Originales ✅", "ExtraBold", 74, NEGRO), ("Te los compro en la tienda en Estados Unidos 🇺🇸", "SemiBold", 40, (70, 70, 74))], 180)
+    pastilla(L, PRECIO, 900, sz=120)
+    pastilla(L, "🛍️ Mayoreo desde 1 pieza", 1070, "Bold", 52, BLANCO, NEGRO)
+    pastilla(L, "💸 Si revendes, tú le pones tu precio", 1190, "Bold", 44, BLANCO, NEGRO)
+    yield L
+    # 5. solo hoy
+    L = fondo("tienda", 70)
+    caja(L, [("⏰ Solo por hoy", "ExtraBold", 80, VSROSA), ("Apártalos ya por WhatsApp", "SemiBold", 48, NEGRO)], 190)
+    pastilla(L, PRECIO, 1100, sz=120)
+    firma(L); yield L
+    # 6. grupo de WhatsApp: el QR encima de la entrada de la tienda
+    L = fondo("entrada", 120, borroso=4)
+    caja(L, [("Únete a mi grupo", "ExtraBold", 72, NEGRO), ("de WhatsApp 💬", "ExtraBold", 72, NEGRO),
+             ("Ahí aviso de ofertas como esta", "SemiBold", 40, (70, 70, 74))], 230)
+    q = whatsapp.tarjeta(520); L.alpha_composite(q, (int(W / 2 - q.width / 2), 430))
+    pastilla(L, "📲 Escanéalo con tu cámara", 1210, "Bold", 48)
+    yield L
+
+
 if __name__ == "__main__":
-    out = os.path.join(AQUI, "mists-vs"); os.makedirs(out, exist_ok=True)
-    for i, L in enumerate(laminas(), 1):
-        L.convert("RGB").save(os.path.join(out, f"{i:02d}.jpg"), quality=95); print("ok", f"mists-vs/{i:02d}.jpg")
+    for nombre, fn in [("mists-vs", laminas), ("mists-vs-2", laminas2)]:
+        out = os.path.join(AQUI, nombre); os.makedirs(out, exist_ok=True)
+        for i, L in enumerate(fn(), 1):
+            L.convert("RGB").save(os.path.join(out, f"{i:02d}.jpg"), quality=95); print("ok", f"{nombre}/{i:02d}.jpg")

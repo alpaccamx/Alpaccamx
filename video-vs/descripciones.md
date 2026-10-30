@@ -87,3 +87,22 @@ Carrusel: carruseles/mists-vs/01.jpg a 05.jpg
 **TikTok (modo foto)**
 > SOLO HOY: mists de Victoria's Secret a $155 c/u 🚨 ¿Cuál es tu favorito? 👇
 > #victoriassecret #bodymist #perfumesoriginales #ofertas #fyp
+
+---
+
+## Carrusel 2 (carruseles/mists-vs-2, fotos de tiendas)
+
+**Instagram**
+> Mists de Victoria's Secret a $155 c/u, solo hoy 🚨💗
+>
+> Los clásicos: Pure Seduction, Velvet Petals, Love Spell… y hay aroma para todas ✨
+> ✅ Originales, te los compro en la tienda en Estados Unidos 🇺🇸
+> 🛍️ Mayoreo desde 1 pieza
+>
+> ⏰ Apártalos hoy por WhatsApp. El QR de mi grupo está en la última foto 📲
+>
+> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #mistsvictoriassecret #personalshopper
+
+**TikTok (modo foto)**
+> Mists Victoria's Secret a $155 c/u, solo hoy 🚨 ¿Cuál te llevas? 👇
+> #victoriassecret #bodymist #perfumesoriginales #ofertas #fyp
