@@ -1,0 +1,7 @@
+[
+ {"texto": "Acompáñame a recoger un pedido a Victoria's Secret.", "marcas": ["Acompáñame"]},
+ {"texto": "Mis clientas me encargaron sus mists, y hoy están a ciento cincuenta y cinco pesos.", "marcas": ["encargaron", "ciento cincuenta"]},
+ {"texto": "Los busco uno por uno, y a la bolsa.", "marcas": ["uno por uno", "a la bolsa"]},
+ {"texto": "Listo, pagado y empacado. ¡Ahora sí, van para México!", "marcas": ["pagado", "van para México"]},
+ {"texto": "¿Quieres el tuyo? Únete a mi grupo de WhatsApp: escanea el código que sale en pantalla.", "marcas": ["Únete"]}
+]

@@ -1,6 +1,6 @@
 """Portadas (1080x1920) de los 3 videos de Victoria's Secret. Todo lo importante queda entre y=260 y y=1660
 (el recorte 3:4 con que TikTok e Instagram muestran la portada en el perfil).
-Uso: python3 portada.py CARPETA_DE_VIDEOS -> portada-oferta.jpg, portada-pov.jpg, portada-reventa.jpg"""
+Uso: python3 portada.py CARPETA_DE_VIDEOS -> portada-oferta.jpg, portada-pedido.jpg, portada-razones.jpg"""
 import os, subprocess, sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -47,18 +47,19 @@ b.pon(L, b.pastilla("$155 c/u", "ExtraBold", 120, VSROSA, b.WHITE, padx=54, pady
 b.pon(L, b.pastilla("Originales ✅", "Bold", 54, b.WHITE, NEGRO), W / 2, 1580)
 guarda(L, "portada-oferta.jpg")
 
-# 2. POV: el letrero de la tienda
+# 2. Pedido (vlog): el letrero de la tienda
 L = cuadro("1200", 28.0); oscurece(L)
-titulo(L, "POV:", 420, VSROSA, 130)
-titulo(L, "fui a Victoria's Secret", 560, NEGRO, 82)
-titulo(L, "por tus mists 💗", 670, NEGRO, 82)
-b.pon(L, b.pastilla("HOY a $155 c/u", "ExtraBold", 84, VSROSA, b.WHITE, padx=48, pady=22), W / 2, 1520)
-guarda(L, "portada-pov.jpg")
+v = b.pastilla("📍 Acompáñame a recoger", "ExtraBold", 66, (20, 20, 22, 225), b.WHITE, padx=40, pady=22)
+b.pon(L, v, W / 2, 400)
+v = b.pastilla("un pedido a Victoria's Secret", "ExtraBold", 60, (20, 20, 22, 225), b.WHITE, padx=40, pady=22)
+b.pon(L, v, W / 2, 530)
+b.pon(L, b.pastilla("Mists HOY a $155 c/u", "ExtraBold", 76, VSROSA, b.WHITE, padx=46, pady=22), W / 2, 1520)
+guarda(L, "portada-pedido.jpg")
 
-# 3. Reventa: la bolsa llena de mists
+# 3. Razones: la bolsa llena de mists
 L = cuadro("1198", 10.5); oscurece(L)
-titulo(L, "¿Vendes perfumes? 👀", 400, NEGRO, 100)
-titulo(L, "Mists originales a $155", 530, VSROSA, 84)
-b.pon(L, b.pastilla("Mayoreo desde 1 pieza", "Bold", 58, b.WHITE, NEGRO), W / 2, 1420)
-b.pon(L, b.pastilla("Tú le pones tu precio 💸", "ExtraBold", 58, VSROSA, b.WHITE), W / 2, 1560)
-guarda(L, "portada-reventa.jpg")
+titulo(L, "3 razones", 420, VSROSA, 140)
+titulo(L, "para comprar tus mists", 560, NEGRO, 78)
+titulo(L, "Victoria's Secret conmigo", 660, NEGRO, 78)
+b.pon(L, b.pastilla("Originales · $155 c/u · Mayoreo", "Bold", 54, b.WHITE, NEGRO), W / 2, 1520)
+guarda(L, "portada-razones.jpg")

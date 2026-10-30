@@ -1,6 +1,6 @@
 # Descripciones: mists de Victoria's Secret a $155 (solo hoy)
 
-Videos: VS-oferta-voz.mp4 (portada-oferta.jpg), VS-pov-voz.mp4 (portada-pov.jpg), VS-reventa-voz.mp4 (portada-reventa.jpg)
+Videos: VS-oferta-voz.mp4 (portada-oferta.jpg), VS-pedido-voz.mp4 (portada-pedido.jpg), VS-razones-voz.mp4 (portada-razones.jpg)
 Carrusel: carruseles/mists-vs/01.jpg a 05.jpg
 
 ## Video 1: oferta (solo hoy)
@@ -25,47 +25,47 @@ Carrusel: carruseles/mists-vs/01.jpg a 05.jpg
 
 ---
 
-## Video 2: POV
+## Video 2: acompáñame a recoger un pedido
 
 **TikTok**
-> POV: fui a Victoria's Secret por tus mists 🛍️💗
-> Hoy a $155 c/u · originales
+> Acompáñame a recoger un pedido a Victoria's Secret 📍🛍️
+> Mis clientas me encargaron sus mists… y hoy están a $155 c/u 💗
 > 📲 QR de mi grupo de WhatsApp al final
-> #victoriassecret #pov #bodymist #perfumesoriginales #personalshopper
+> #victoriassecret #acompañame #personalshopper #bodymist #perfumesoriginales
 
 **Instagram**
-> POV: fui a Victoria's Secret por tus mists 🛍️💗
+> Acompáñame a recoger un pedido a Victoria's Secret 📍
 >
-> Los escojo uno por uno, originales y directo de la tienda ✅
-> Y hoy te salen en $155 cada uno (Fragrance Mist de 250 ml).
+> 🧾 Mis clientas me encargaron sus mists
+> 🔎 Los busco uno por uno… y a la bolsa
+> ✅ Pagado y empacado
+> ✈️ ¡Y van para México!
 >
-> ¿Cuál es el tuyo? Déjamelo en comentarios 👇
-> 📲 Escanea el QR al final del video para entrar a mi grupo de WhatsApp.
+> Hoy los mists están a $155 c/u (Fragrance Mist de 250 ml, originales).
+> 📲 ¿Quieres el tuyo? Escanea el QR al final del video para entrar a mi grupo de WhatsApp.
 >
-> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #personalshopper #compraseneeuu #mistsvictoriassecret
+> #victoriassecret #acompañame #personalshopper #compraseneeuu #bodymist #perfumesoriginales #vlog
 
 ---
 
-## Video 3: reventa
+## Video 3: 3 razones
 
 **TikTok**
-> ¿Vendes perfumes? 👀
-> Mists de Victoria's Secret originales a $155 c/u, mayoreo desde 1 pieza
-> Tú le pones tu precio 💸
+> 3 razones para comprar tus mists de Victoria's Secret conmigo 💗
+> 1️⃣ Originales 2️⃣ Hoy a $155 c/u 3️⃣ Mayoreo desde 1 pieza
 > 📲 QR de mi grupo de WhatsApp al final
-> #emprendedorasmexicanas #victoriassecret #reventa #perfumesoriginales #negociodesdecasa
+> #victoriassecret #bodymist #perfumesoriginales #emprendedorasmexicanas #mayoreo
 
 **Instagram**
-> ¿Vendes perfumes o te gustaría empezar? 👀
+> 3 razones para comprar tus mists de Victoria's Secret conmigo 💗
 >
-> Hoy tengo mists de Victoria's Secret originales a $155 cada uno 💗
-> 🛍️ Precio de mayoreo desde 1 pieza
-> 💸 Tú le pones tu precio
-> ✅ Fragrance Mist de 250 ml, directo de la tienda
+> 1️⃣ Son originales: los compro yo directo en la tienda
+> 2️⃣ Hoy te salen en $155 cada uno (250 ml)
+> 3️⃣ Precio de mayoreo desde 1 pieza, por si quieres revender
 >
-> 🤝 Únete a mi grupo de WhatsApp: escanea el QR al final del video o comenta "GRUPO" y te mando el link.
+> 📲 Escanea el QR al final del video para entrar a mi grupo de WhatsApp, o comenta "GRUPO" y te mando el link.
 >
-> #emprendedorasmexicanas #victoriassecret #reventa #perfumesoriginales #negociodesdecasa #emprendimiento #mayoreo
+> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #mayoreo #emprendedorasmexicanas #personalshopper
 
 ---
 

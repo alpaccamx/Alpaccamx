@@ -3,8 +3,9 @@ carpeta Ross del Drive: IMG_1172 entrada, IMG_1198 pared de mists y bolsa, IMG_1
 una frase en pantalla, la voz de Mae y el QR de su grupo de WhatsApp al final. El audio de la tienda no se usa.
 Mismo motor que video-bbw/build.py. 1080x1920, 30 fps.
 
-Uso: python3 build.py VARIANTE CARPETA_DE_VIDEOS   (VARIANTE = oferta | pov | reventa; antes: python3 voz.py VARIANTE)
--> VS-oferta-voz.mp4, VS-pov-voz.mp4, VS-reventa-voz.mp4"""
+Uso: python3 build.py VARIANTE CARPETA_DE_VIDEOS   (VARIANTE = oferta | pedido | razones; antes: python3 voz.py VARIANTE)
+-> VS-oferta-voz.mp4, VS-pedido-voz.mp4, VS-razones-voz.mp4
+No repiten los de Bath & Body Works (POV y reventa): pedido es tipo vlog y razones es una lista con números grandes."""
 import json, os, subprocess, sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -35,22 +36,27 @@ VARIANTES = {
                 (1, 1, "texto", "Tú eliges tus aromas 💗"), (2, 0, "cta", "Apártalos hoy mismo 🛍️"),
                 (3, 0, "cta", "Únete a mi grupo de WhatsApp 💬")],
         popups=[(3, 0, 99, "QR")]),
-    "pov": dict(
-        tomas=[("1172", 2.0, 1.8, 1.5), ("1200", 27.4, 1.4, 1.0), ("1172", 18.6, 1.3, 1.0), ("1198", 0.3, 1.4, 1.2),
-               ("1198", 2.6, 1.3, 1.2), ("1198", 14.6, 1.3, 1.2), ("1198", 9.8, 1.5, 1.0), ("1199", 3.4, 1.6, 1.0),
-               ("1200", 0.5, 1.6, 1.2), ("1200", 13.5, 1.6, 1.2), ("1200", 31.5, 2.4, 1.2)],
-        textos=[(0, None, "texto", "POV: fui a Victoria's Secret\npor tus mists 🛍️"), (1, 0, "texto", "Los escojo uno por uno 💗"),
-                (1, 1, "texto", "Originales, directo de la tienda ✅"), (2, 0, "grande", "HOY a $155 c/u"),
-                (3, 0, "cta", "Únete a mi grupo de WhatsApp 💬")],
-        popups=[(2, 0, 2.6, "bolsa"), (3, 0, 99, "QR")]),
-    "reventa": dict(
-        tomas=[("1198", 14.6, 1.4, 1.2), ("1198", 2.6, 1.4, 1.2), ("1198", 9.8, 1.4, 1.0), ("1200", 27.4, 1.4, 1.0),
-               ("1198", 0.3, 1.4, 1.2), ("1199", 3.4, 1.5, 1.0), ("1200", 0.5, 1.5, 1.2), ("1200", 13.5, 1.4, 1.2),
-               ("1172", 12.0, 1.6, 1.5), ("1200", 31.5, 2.4, 1.2)],
-        textos=[(0, None, "texto", "¿Vendes perfumes? 👀"), (1, 0, "texto", "Mists Victoria's Secret\noriginales ✅"),
-                (1, 1, "precio", PRECIO), (2, 0, "precio2", "Mayoreo desde 1 pieza"), (2, 1, "texto", "Tú le pones tu precio 💸"),
-                (3, 0, "cta", "Únete a mi grupo de WhatsApp 💬")],
-        popups=[(2, 1, 2.2, "bolsa"), (3, 1, 99, "QR")]),
+    "pedido": dict(  # vlog: acompáñame a recoger un pedido (cada renglón de tomas es una escena de la voz)
+        tomas=[("1172", 2.0, 2.0, 1.5), ("1172", 12.0, 1.6, 1.5),
+               ("1200", 27.4, 1.8, 1.0), ("1172", 18.6, 1.6, 1.0), ("1198", 0.3, 2.2, 1.2),
+               ("1198", 2.6, 1.4, 1.2), ("1198", 9.8, 1.8, 1.0),
+               ("1199", 3.4, 1.8, 1.0), ("1200", 0.5, 1.6, 1.2), ("1200", 13.5, 1.5, 1.2),
+               ("1200", 31.5, 2.4, 1.2), ("1200", 18.5, 2.2, 1.2), ("1172", 19.0, 2.2, 1.0)],
+        textos=[(0, None, "vlog", "📍 Recogiendo un pedido en Victoria's Secret"), (1, 0, "vlog", "🧾 Mis clientas me encargaron sus mists"),
+                (1, 1, "precio", "HOY " + PRECIO), (2, 0, "vlog", "🔎 Los busco uno por uno"), (2, 1, "vlog", "🛍️ …y a la bolsa"),
+                (3, 0, "vlog", "✅ Pagado y empacado"), (3, 1, "vlog", "✈️ ¡Van para México! 🇲🇽"),
+                (4, 0, "cta", "Únete a mi grupo de WhatsApp 💬")],
+        popups=[(4, 0, 99, "QR")]),
+    "razones": dict(  # lista: 3 razones con número grande
+        tomas=[("1200", 27.4, 1.6, 1.0), ("1198", 0.3, 1.5, 1.2), ("1172", 12.0, 1.5, 1.5),
+               ("1198", 2.6, 1.5, 1.2), ("1198", 9.8, 1.5, 1.0), ("1199", 3.4, 1.4, 1.0),
+               ("1198", 14.6, 1.6, 1.2), ("1198", 0.8, 1.6, 1.0), ("1200", 0.5, 1.5, 1.2),
+               ("1198", 10.6, 1.7, 1.0), ("1200", 13.5, 1.7, 1.2), ("1172", 18.6, 1.7, 1.0),
+               ("1200", 31.5, 2.0, 1.2), ("1200", 18.5, 2.0, 1.2), ("1172", 2.0, 1.75, 1.5)],
+        textos=[(0, None, "texto", "3 razones para comprar tus\nmists Victoria's Secret conmigo 💗"),
+                (1, 0, "numero", "1|Originales, directo de la tienda ✅"), (2, 0, "numero", "2|Hoy a " + PRECIO),
+                (3, 0, "numero", "3|Mayoreo desde 1 pieza 🛍️"), (4, 0, "cta", "Únete a mi grupo de WhatsApp 💬")],
+        popups=[(4, 0, 99, "QR")]),
 }
 CFG = VARIANTES[VAR]
 SDR = ("zscale=tin=arib-std-b67:min=bt2020nc:pin=bt2020:rin=tv:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,"
@@ -111,6 +117,19 @@ def pon_texto(L, tipo, s, t, y):
     elif tipo == "precio2":
         b.pon(L, b.pastilla(PRECIO, "ExtraBold", 130, VSROSA, WHITE, padx=56, pady=26), W / 2, y - 60)
         b.pon(L, b.pastilla(s, "Bold", 54, WHITE, INK), W / 2, y + 120, *b.entra(t, 0, 0.35))
+    elif tipo == "vlog":  # renglón tipo vlog: caja negra a la izquierda que entra deslizándose
+        c = b.pastilla(s, "SemiBold", 46, NEGRO + (215,), WHITE, padx=34, pady=18)
+        while c.width > 1000: c = c.resize((1000, int(c.height * 1000 / c.width)), Image.LANCZOS)
+        k = b.ease(t / 0.35)
+        b.pon(L, c, 40 + c.width / 2 - 120 * (1 - k), y, 1, min(1, t / 0.2))
+    elif tipo == "numero":  # "N|texto": número grande en círculo rosa y la razón abajo
+        n, s = s.split("|")
+        c = Image.new("RGBA", (260, 260)); d = ImageDraw.Draw(c); d.ellipse((0, 0, 259, 259), fill=VSROSA + (255,), outline=WHITE, width=10)
+        d.text((130, 138), n, font=b.F("ExtraBold", 170), fill=WHITE, anchor="mm")
+        b.pon(L, c, W / 2, y - 120, *b.entra(t, 0, 0.4))
+        sz = 56
+        while b.pastilla(s, "Bold", sz, WHITE, NEGRO).width > 1000 and sz > 36: sz -= 4
+        b.pon(L, b.pastilla(s, "Bold", sz, WHITE, NEGRO), W / 2, y + 110, *b.entra(t, 0.25, 0.35))
     elif tipo == "cta":
         sz = 62
         while b.pastilla(s, "ExtraBold", sz, VSROSA, WHITE).width > 1000 and sz > 40: sz -= 4  # que no se salga
