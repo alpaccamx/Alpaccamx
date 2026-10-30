@@ -3228,6 +3228,7 @@ ${itemLines}
       { n: count("por_enviar"), label: "Por enviar", hint: "Generar guía", go: "por_enviar", cls: "hot" },
       { n: swmLoaded ? swmNewCount : "…", label: "Dirección americana", hint: "Cotizar, comprar o enviar", go: "swm", cls: "blue" },
       { n: restockCount == null ? "…" : restockCount, label: "Avisos de restock", hint: "Clientas esperando", go: "restock" },
+      { n: pvApartadosLigeros ? pvResumen().activos : "…", label: "Apartados de preventa", hint: pvApartadosLigeros && pvResumen().revisar ? `${pvResumen().revisar} comprobante(s) por revisar` : "Sephora Sale", go: "preventa", cls: "hot" },
     ];
     // Lo que tiene pendientes va primero; lo que está en 0 queda chiquito al final.
     cards.sort((a, b) => (Number(b.n) > 0) - (Number(a.n) > 0));
@@ -5398,7 +5399,9 @@ ${itemLines}
   /* ===== Preventa (ej. Sephora Sale): campaña, productos con cupo y
      apartados con anticipo. Backend: admin-preventa.js. ===== */
   let pvData = null; // { config, productos, apartados }
-  let pvFiltro = "revisar";
+  let pvApartadosLigeros = null; // solo estado de cada apartado (ver loadPvResumen)
+  let pvAjustesAbierto = false; // "Productos y ajustes" desplegado
+  let pvFiltro = ""; // vacío = el primero que tenga algo (comprobantes por revisar, si hay)
   let pvEditando = ""; // id del producto que está en el formulario
 
   const PV_ESTADOS = {
@@ -5414,6 +5417,7 @@ ${itemLines}
   const pvEstado = (a) => (a.status === "cancelado" ? "cancelado" : !a.cuenta ? "vencido" : a.status);
   const pvPorRevisar = (a) => a.cuenta && ((a.anticipo && a.anticipo.status === "revision") || (a.resto && a.resto.status === "revision"));
   const PV_FILTROS = [
+    ["activos", "📋 Todos los activos", (a) => a.cuenta && !["entregado", "cancelado"].includes(a.status)],
     ["revisar", "🔎 Comprobantes por revisar", pvPorRevisar],
     ["anticipo", "💳 Falta anticipo", (a) => a.cuenta && a.status === "nuevo" && !pvPorRevisar(a)],
     ["apartado", "✅ Apartados", (a) => a.cuenta && a.status === "apartado"],
@@ -5443,10 +5447,34 @@ ${itemLines}
     }
   }
 
+  /* Resumen de apartados para Inicio y Pedidos (sin cargar los ~2,600
+     productos de la preventa). */
+  const pvActivo = (a) => a.cuenta && !["entregado", "cancelado"].includes(a.status);
+  function pvResumen() {
+    const aps = pvApartadosLigeros || [];
+    return { activos: aps.filter(pvActivo).length, revisar: aps.filter(pvPorRevisar).length };
+  }
+  async function loadPvResumen() {
+    try {
+      const res = await fetch("/.netlify/functions/admin-preventa?solo=apartados", { headers: { "x-admin-key": adminKey }, cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) return;
+      pvApartadosLigeros = data.apartados || [];
+      pvBadge();
+    } catch (err) { /* el aviso es opcional */ }
+  }
+
   function pvBadge() {
-    const n = pvData ? pvData.apartados.filter(pvPorRevisar).length : 0;
+    if (pvData) pvApartadosLigeros = pvData.apartados;
+    const { activos, revisar } = pvResumen();
     const b = document.getElementById("preventa-badge");
-    if (b) { b.textContent = n; b.style.display = n ? "inline-flex" : "none"; }
+    if (b) { b.textContent = revisar; b.style.display = revisar ? "inline-flex" : "none"; }
+    const aviso = document.getElementById("pv-orders-banner");
+    if (aviso) {
+      aviso.style.display = activos || revisar ? "" : "none";
+      aviso.innerHTML = `🛍️ <b>Preventa Sephora:</b> ${activos} apartado${activos === 1 ? "" : "s"}${revisar ? ` · <b>${revisar} comprobante${revisar === 1 ? "" : "s"} por revisar</b>` : ""} <span style="text-decoration:underline;">Ver apartados ›</span>`;
+    }
+    if (currentView === "inicio") renderHome();
   }
 
   async function pvAct(body, btn) {
@@ -5626,18 +5654,22 @@ ${itemLines}
     if (!pvData) return;
     const aps = pvData.apartados;
     const chips = PV_FILTROS.map(([k, t, fn]) => `<button type="button" class="tab ${pvFiltro === k ? "active" : ""}" data-pv-filtro="${k}">${t} (${aps.filter(fn).length})</button>`).join("");
+    if (!pvFiltro) pvFiltro = aps.some(pvPorRevisar) ? "revisar" : "activos";
     const fn = (PV_FILTROS.find(([k]) => k === pvFiltro) || PV_FILTROS[0])[2];
     const lista = aps.filter(fn);
     const llegaTodo = pvFiltro === "apartado" && lista.length > 1
       ? `<p class="meta" style="margin-bottom:6px;">El envío de cada clienta ya viene calculado por peso y código postal; cámbialo en su cuadrito si hace falta y luego avísales a todas juntas:</p><button type="button" class="btn-primary" data-pv-llego-todo style="margin-bottom:8px;">📦 Llegó todo: avisar a las ${lista.length} y cobrar el resto + su envío</button>` : "";
     document.getElementById("pv-admin").innerHTML = `
-      ${pvConfigHTML(pvData.config)}
-      ${pvProductoFormHTML()}
-      <h4 style="margin:18px 0 8px;font-size:16px;">🛍️ Productos (${pvData.productos.length})</h4>
-      <div style="display:flex;flex-direction:column;gap:8px;">${pvProductosHTML()}</div>
-      <h4 style="margin:22px 0 8px;font-size:16px;">💗 Apartados (${aps.length})</h4>
+      <h4 style="margin:4px 0 8px;font-size:16px;">💗 Apartados (${aps.length})</h4>
       <div class="tabs" style="flex-wrap:wrap;">${chips}</div>
-      <div style="margin-top:12px;">${llegaTodo}${lista.map(pvApartadoHTML).join("") || `<p class="abw-intro">No hay apartados aquí.</p>`}</div>`;
+      <div style="margin-top:12px;">${llegaTodo}${lista.map(pvApartadoHTML).join("") || `<p class="abw-intro">No hay apartados aquí.</p>`}</div>
+      <details data-pv-ajustes ${pvAjustesAbierto || pvEditando ? "open" : ""} style="margin-top:22px;">
+        <summary style="cursor:pointer;font-weight:600;font-size:16px;padding:8px 0;">⚙️ Productos y ajustes de la preventa (${pvData.productos.length} productos)</summary>
+        ${pvConfigHTML(pvData.config)}
+        ${pvProductoFormHTML()}
+        <h4 style="margin:18px 0 8px;font-size:16px;">🛍️ Productos (${pvData.productos.length})</h4>
+        <div style="display:flex;flex-direction:column;gap:8px;">${pvProductosHTML()}</div>
+      </details>`;
   }
 
   async function pvOpenFile(key) {
@@ -5775,6 +5807,11 @@ ${itemLines}
   });
 
   let pvBuscarTimer = null;
+  // <details> "Productos y ajustes": que no se cierre solo al volver a pintar.
+  document.getElementById("pv-admin").addEventListener("toggle", (e) => {
+    if (e.target.matches && e.target.matches("[data-pv-ajustes]")) pvAjustesAbierto = e.target.open;
+  }, true);
+  document.getElementById("pv-orders-banner").addEventListener("click", () => showView("preventa"));
   document.getElementById("pv-admin").addEventListener("input", (e) => {
     const t = e.target;
     if (!t.matches("[data-pv-buscar]")) return;
@@ -5913,6 +5950,7 @@ ${itemLines}
     loadSkuMarcaMap();
     loadCardSurchargePct();
     loadRestockRequests();
+    loadPvResumen();
   }
 
   function resetTabs() {
@@ -6071,7 +6109,7 @@ ${itemLines}
     if (!c) return;
     const go = c.dataset.homeGo;
     if (go === "abw") showView("compras");
-    else if (go === "restock" || go === "swm") showView(go);
+    else if (go === "restock" || go === "swm" || go === "preventa") showView(go);
     else goToOrders(go);
   });
   document.getElementById("abw-filtro").addEventListener("click", (e) => {
@@ -6210,4 +6248,5 @@ ${itemLines}
     loadSkuMarcaMap();
     loadCardSurchargePct();
     loadRestockRequests();
+    loadPvResumen();
   }
