@@ -31,11 +31,13 @@ VARIANTES = {
     "restock": dict(
         tomas=[("4705", 122.9, 1.7, 1.0, ESPEJO), ("4704", 11.0, 1.4, 2.2), ("4705", 21, 1.4, 1.2), ("4705", 30, 1.4, 1.2), ("4705", 93, 1.5, 1.2),
                ("4705", 156, 1.4, 1.2), ("4705", 162, 1.4, 1.2), ("4705", 222, 1.3, 1.3), ("4705", 42, 1.4, 1.2), ("4705", 216, 1.4, 1.2),
-               ("4705", 99, 1.5, 1.2), ("4705", 127.0, 1.7, 1.0, ESPEJO), ("4705", 228, 2.6, 1.0)],
+               ("4705", 99, 1.5, 1.2), ("4705", 127.0, 1.7, 1.0, ESPEJO), ("4705", 228, 2.6, 1.0),
+               ("4705", 188, 1.6, 1.2), ("4705", 57, 1.6, 1.2), ("4705", 75, 2.4, 1.2)],
         textos=[(0, None, "grande", "¡RESTOCK! 🚨"), (0, 1, "texto", "Mists Bath & Body Works\nya en mi página ✨"),
                 (1, 0, "precio", "$150 c/u"), (1, 1, "precio2", "Mayoreo desde 1 pieza"),
-                (2, 0, "texto", "Un montón de aromas ✨"), (2, 1, "texto", "…pero se acaban rápido 🔥"), (3, 0, "cta", "Pide en alpacca.mx 🛍️")],
-        popups=[(0, 1, 2.4, "IMG_4708"), (3, 0, 4.4, "IMG_4707")]),
+                (2, 0, "texto", "Un montón de aromas ✨"), (2, 1, "texto", "…pero se acaban rápido 🔥"), (3, 0, "cta", "Pide en alpacca.mx 🛍️"),
+                (4, 0, "cta", "Únete a mi grupo de WhatsApp 💬")],
+        popups=[(0, 1, 2.4, "IMG_4708"), (3, 0, 3.0, "IMG_4707"), (4, 1, 99, "QR")]),
     "pov": dict(
         tomas=[("4704", 0.5, 1.5, 3.0), ("4704", 11.0, 1.4, 2.2), ("4705", 122.8, 1.8, 1.0, ESPEJO), ("4705", 21, 1.3, 1.2),
                ("4705", 57, 1.3, 1.2), ("4705", 93, 1.3, 1.2), ("4705", 162, 1.3, 1.2), ("4705", 210, 1.3, 1.2), ("4705", 75, 1.2, 1.5),
@@ -48,19 +50,21 @@ VARIANTES = {
     "reventa": dict(
         tomas=[("4705", 222, 1.4, 1.3), ("4705", 228, 1.4, 1.3), ("4705", 30, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 87, 1.3, 1.3),
                ("4705", 156, 1.3, 1.2), ("4705", 42, 1.4, 1.2), ("4705", 198, 1.3, 1.3), ("4705", 216, 1.4, 1.2),
-               ("4705", 210, 2.4, 1.2), ("4705", 127.0, 1.7, 1.0, ESPEJO)],
+               ("4705", 210, 2.4, 1.2), ("4705", 127.0, 1.7, 1.0, ESPEJO), ("4705", 162, 1.6, 1.2), ("4705", 99, 2.4, 1.2)],
         textos=[(0, None, "texto", "¿Vendes perfumes? 👀"), (1, 0, "texto", "Mists Bath & Body Works\noriginales ✅"),
                 (1, 1, "precio", "$150 c/u"), (2, 0, "precio2", "Mayoreo desde 1 pieza"), (2, 1, "texto", "Tú le pones tu precio 💸"),
-                (3, 0, "cta", "Comenta “Me quiero unir” 👇")],
-        popups=[(2, 1, 2.2, "IMG_4707")]),
+                (3, 0, "cta", "Únete a mi grupo de WhatsApp 💬")],
+        popups=[(2, 1, 2.2, "IMG_4707"), (3, 1, 99, "QR")]),
     "aromas": dict(
         tomas=[("4705", 27, 1.6, 1.2), ("4705", 87, ("hasta", 1, 0), 1.3), ("4705", 21.6, ("hasta", 1, 1), 1.0),
                ("4705", 29.8, ("hasta", 1, 2), 1.0), ("4705", 68.5, ("hasta", 2, 0), 1.0),
-               ("4705", 156.5, 1.4, 1.2), ("4705", 162.5, 1.4, 1.2), ("4705", 210, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 127.0, 1.7, 1.0, ESPEJO)],
+               ("4705", 156.5, 1.4, 1.2), ("4705", 162.5, 1.4, 1.2), ("4705", 210, 1.4, 1.2), ("4705", 93, 1.4, 1.2), ("4705", 127.0, 1.7, 1.0, ESPEJO),
+               ("4705", 222, 1.6, 1.2), ("4705", 190, 2.4, 1.0)],
         textos=[(0, None, "texto", "¿Cuál es tu aroma favorito? 💭"), (1, 0, "grande", "Gingham Gorgeous"), (1, 1, "grande", "Strawberry Pound Cake"),
                 (1, 2, "grande", "Into the Night"), (2, 0, "precio", "$150 c/u"), (2, 1, "precio2", "Mayoreo desde 1 pieza"),
-                (3, 0, "cta", "Déjamelo en comentarios 👇")],
-        popups=[(2, 1, 2.0, "IMG_4708")]),
+                (3, 0, "cta", "Déjamelo en comentarios 👇"),
+                (4, 0, "cta", "Únete a mi grupo de WhatsApp 💬")],
+        popups=[(2, 1, 2.0, "IMG_4708"), (4, 1, 99, "QR")]),
 }
 CFG = VARIANTES[VAR]
 SDR = ("zscale=tin=arib-std-b67:min=bt2020nc:pin=bt2020:rin=tv:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,"
