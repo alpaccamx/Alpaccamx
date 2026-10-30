@@ -18,7 +18,7 @@ def foto(ruta, y=0.3):
     return im.crop(((im.width - W) // 2, y0, (im.width - W) // 2 + W, y0 + H)).convert("RGBA")
 
 
-def tarjeta_producto(L, nombre, alto=500, cy=650):
+def tarjeta_producto(L, nombre, alto=500, cy=650, cx=W / 2):
     """el producto recortado en una tarjeta blanca redondeada encima de la foto de la tienda"""
     from carrusel import foto as recorte
     im = recorte(nombre, alto * 0.82, 520)
@@ -26,7 +26,8 @@ def tarjeta_producto(L, nombre, alto=500, cy=650):
     t = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     ImageDraw.Draw(t).rounded_rectangle((0, 0, w - 1, h - 1), 48, fill=(255, 255, 255, 235))
     t.alpha_composite(im, ((w - im.width) // 2, (h - im.height) // 2))
-    L.alpha_composite(t, (int(W / 2 - w / 2), int(cy - h / 2)))
+    cx = min(max(cx, w / 2 + 30), W - w / 2 - 30)  # que no se salga de la foto
+    L.alpha_composite(t, (int(cx - w / 2), int(cy - h / 2)))
 
 
 ROSA, GRIS_T, TINTA_T = (232, 112, 145), (120, 120, 126), (30, 30, 34)
@@ -62,7 +63,7 @@ def lamina(p):
     abajo: una caja con la frase, el precio de la preventa, la comparación y lo que se ahorra"""
     carpeta = "fotos-sephora" if p.get("tienda") else "fotos-mae"
     L = foto(os.path.join(AQUI, carpeta, p["foto"] + ".jpg"), p.get("y", 0.3))
-    if p.get("producto"): tarjeta_producto(L, p["producto"])
+    if p.get("producto"): tarjeta_producto(L, p["producto"], **p.get("pop", {}))  # pop: tamaño/lugar de la tarjeta
     arriba = p["arriba"].replace("\n", " ")
     if ": " in arriba:
         marca, nombre = arriba.split(": ", 1)
