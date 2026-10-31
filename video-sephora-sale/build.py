@@ -27,10 +27,13 @@ INI = [0.0]
 for e in T: INI.append(INI[-1] + e["dur"])
 def marca(e, m=None): return INI[e] + (0 if m is None else T[e]["marcas"][m])
 
-# tomas en orden: (fuente, inicio, segundos, velocidad); se estiran parejo para llenar lo que dura la voz.
+# Mae en el espejo redondo de Sephora (solo se ve 0.7 s al inicio de v62: va en cámara lenta): recorte (x, y, ancho, alto) sobre el video de 1080x1444.
+# El reflejo en el coche (v45 al inicio) no le gustó: no se usa.
+ESPEJO = (440, 380, 600, 1064)
+# tomas en orden: (fuente, inicio, segundos, velocidad[, recorte]); se estiran parejo para llenar lo que dura la voz.
 # cada renglón es una frase de la voz. fuente "bolsa" = la foto de la bolsa (con un zoom lento)
 TOMAS = {
-    "lista": [("v45", 0.8, 1.3, 1.0), ("v45", 62, 1.0, 3.0), ("v45", 262, 1.0, 2.0), ("v45", 286, 1.0, 1.5),
+    "lista": [("v45", 62, 1.0, 3.0), ("v45", 262, 1.0, 2.0), ("v45", 286, 1.0, 1.5), ("v62", 0.0, 1.3, 0.55, ESPEJO),
               ("v69", 15, 1.6, 1.0), ("v69", 128, 1.2, 1.0),
               ("v69", 166, 2.0, 1.0), ("v62", 8, 1.6, 1.0),
               ("v62", 78.5, 2.8, 1.0),
@@ -50,14 +53,15 @@ TOMAS = {
 }[VAR]
 
 
-def video(fuente, ini, n, vel):
+def video(fuente, ini, n, vel, recorte=None):
     if fuente == "bolsa":  # foto fija con acercamiento lento
         im = ImageOps.fit(Image.open(os.path.join(AQUI, "fotos", "bolsa.jpg")).convert("RGB"), (W, H))
         for k in range(n):
             z = 1 + 0.08 * k / max(1, n - 1); w, h = int(W / z), int(H / z)
             yield im.crop(((W - w) // 2, (H - h) // 2, (W - w) // 2 + w, (H - h) // 2 + h)).resize((W, H), Image.BILINEAR).convert("RGBA")
         return
-    vf = f"setpts=PTS/{vel},fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}"
+    vf = f"setpts=PTS/{vel},fps={FPS}" + (",crop={2}:{3}:{0}:{1}".format(*recorte) if recorte else "")
+    vf += f",scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}"
     p = subprocess.Popen(["ffmpeg", "-nostdin", "-v", "error", "-ss", str(ini), "-i", os.path.join(CRUDO, f"est_{fuente}.mp4"),
                           "-t", f"{n * vel / FPS + 0.3:.2f}", "-an", "-vf", vf, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
     last = None
@@ -237,7 +241,7 @@ def cuadros():
     k = total / sum(raw); ns = [int(r * k) for r in raw]; ns[-1] += total - sum(ns)
     f = 0
     for tm, n in zip(TOMAS, ns):
-        for j, L in zip(range(n), video(tm[0], tm[1], n, tm[3])):
+        for j, L in zip(range(n), video(tm[0], tm[1], n, *tm[3:])):
             CAPA(L, (f + j) / FPS)
             yield L
         f += n
