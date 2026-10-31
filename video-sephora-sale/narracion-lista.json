@@ -1,0 +1,8 @@
+[
+ {"texto": "Hoy fui al Sephora Sale con la lista de pedidos de mis clientas.", "marcas": ["lista"]},
+ {"texto": "Primero Saie, y luego Rhode.", "marcas": ["Saie", "Rhode"]},
+ {"texto": "Después Sol de Janeiro y Rare Beauty.", "marcas": ["Sol de Janeiro", "Rare Beauty"]},
+ {"texto": "Y no podía faltar Charlotte Tilbury.", "marcas": ["Charlotte"]},
+ {"texto": "¡Lista completa, y la bolsa llena!", "marcas": ["Lista completa"]},
+ {"texto": "¿Quieres que te traiga algo? Mi preventa cierra el ocho de noviembre. Únete a mi grupo de WhatsApp: escanea el código que sale en pantalla.", "marcas": ["preventa", "Únete"]}
+]
