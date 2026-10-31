@@ -115,7 +115,7 @@ def libreta(tg):
     im.putalpha(sh.filter(ImageFilter.GaussianBlur(14)))
     d = ImageDraw.Draw(im); d.rounded_rectangle((20, 20, w + 20, h + 20), 30, fill=(255, 253, 247))
     d.line((92, 20, 92, h + 20), fill=(240, 160, 180), width=3)  # margen de libreta
-    im.alpha_composite(b.linea("Pedidos de mis clientas 📝", "ExtraBold", 38, NEGRO), (110, 40))
+    im.alpha_composite(b.linea("Pedidos de mis clientas 📝", "ExtraBold", 33, NEGRO), (110, 44))
     for i, (s, (e, m)) in enumerate(LISTA):
         y = 130 + 78 * i
         d.line((92, y + 62, w + 10, y + 62), fill=(225, 225, 232), width=2)
