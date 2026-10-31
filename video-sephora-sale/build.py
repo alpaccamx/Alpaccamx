@@ -27,13 +27,13 @@ INI = [0.0]
 for e in T: INI.append(INI[-1] + e["dur"])
 def marca(e, m=None): return INI[e] + (0 if m is None else T[e]["marcas"][m])
 
-# Mae en el espejo redondo de Sephora (solo se ve 0.7 s al inicio de v62: va en cámara lenta): recorte (x, y, ancho, alto) sobre el video de 1080x1444.
-# El reflejo en el coche (v45 al inicio) no le gustó: no se usa.
-ESPEJO = (440, 380, 600, 1064)
+# Mae de cuerpo completo en el espejo de Beauty Services, sonriendo con su bolsa (v62, 57.0-58.5 s): recorte (x, y, ancho,
+# alto) sobre el video de 1080x1444. No usar el reflejo en el coche (inicio de v45) ni el espejo redondo (inicio de v62).
+ESPEJO = (180, 306, 640, 1138)
 # tomas en orden: (fuente, inicio, segundos, velocidad[, recorte]); se estiran parejo para llenar lo que dura la voz.
 # cada renglón es una frase de la voz. fuente "bolsa" = la foto de la bolsa (con un zoom lento)
 TOMAS = {
-    "lista": [("v45", 62, 1.0, 3.0), ("v45", 262, 1.0, 2.0), ("v45", 286, 1.0, 1.5), ("v62", 0.0, 1.3, 0.55, ESPEJO),
+    "lista": [("v45", 62, 1.0, 3.0), ("v45", 262, 1.0, 2.0), ("v45", 286, 1.0, 1.5), ("v62", 57.0, 1.5, 1.0, ESPEJO),
               ("v69", 15, 1.6, 1.0), ("v69", 128, 1.2, 1.0),
               ("v69", 166, 2.0, 1.0), ("v62", 8, 1.6, 1.0),
               ("v62", 78.5, 2.8, 1.0),
