@@ -137,9 +137,10 @@ def capa_lista(L, tg):
     if tg < INI[1]:
         pas(L, "Hoy: la lista de pedidos de mis clientas 📝", 420, "Bold", 46, (20, 20, 22, 220), WHITE, tg, 0.1)
     elif tg < INI[5]:
-        lb = libreta(tg); s, a = b.entra(tg, INI[1] - 0.15, 0.4)
-        b.pon(L, lb, 40 + lb.width / 2, 250 + lb.height / 2, s, a)
-        if tg >= marca(4, 0): b.pon(L, sello("¡Lista completa! ✅"), W / 2, 1150, *b.entra(tg, marca(4, 0), 0.4))
+        lb = libreta(tg); lb = lb.resize((int(lb.width * 1.3), int(lb.height * 1.3)), Image.LANCZOS)  # que se lea bien
+        s, a = b.entra(tg, INI[1] - 0.15, 0.4)
+        b.pon(L, lb, 20 + lb.width / 2, 230 + lb.height / 2, s, a)
+        if tg >= marca(4, 0): b.pon(L, sello("¡Lista completa! ✅"), W / 2, 1250, *b.entra(tg, marca(4, 0), 0.4))
     else:
         if tg < marca(5, 1): pas(L, "Mi preventa cierra el 8 de noviembre 🗓️", 700, sz=52, t=tg, t0=marca(5, 0))
         cta(L, tg, 5)
