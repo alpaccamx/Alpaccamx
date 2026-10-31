@@ -28,6 +28,7 @@ const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { getRecord, mutateRecord } = require("./lib/swm-store.js");
 const { avisar, cotizarEnvio } = require("./lib/swm-core.js");
+const { envioEstimado } = require("./lib/preventa-core.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -109,8 +110,9 @@ exports.handler = async (event) => {
     }
 
     // Envío de Dirección americana todavía sin pagar: se guarda la guía y se
-    // le cobra a la clienta (cruce + envío con el precio de la paquetería) en
-    // un solo paso. En cuanto paga, sale sola con esta guía (aplicarPago).
+    // le cobra a la clienta (cruce + envío según la tabla de Mae; si su CP no
+    // está en la tabla, el precio de la paquetería) en un solo paso. En
+    // cuanto paga, sale sola con esta guía (aplicarPago).
     if (envioId && !envioPagado) {
       const at = new Date().toISOString();
       await mutateRecord("envio", String(envioId), (e) => {
@@ -118,7 +120,8 @@ exports.handler = async (event) => {
         e.history = [...(e.history || []), { at, status: e.status, guiaGenerada: provider }];
         return e;
       });
-      const r = await cotizarEnvio(String(envioId), { envio: Number(body.total) || 0, premioLealtad: !!body.premioLealtad });
+      const tabla = await envioEstimado(destination.zipCode, weightNum);
+      const r = await cotizarEnvio(String(envioId), { envio: tabla != null ? tabla : Number(body.total) || 0, premioLealtad: !!body.premioLealtad });
       if (r.error) return jsonResponse(200, { guiaAnticipada: true, error: `La guía ${trackingNumber} quedó lista, pero no se pudo cobrar: ${r.error}` });
       return jsonResponse(200, { envio: r.envio, guiaAnticipada: true });
     }

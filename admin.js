@@ -4549,7 +4549,11 @@ ${itemLines}
         const r = swmGuiaState[id].rates[swmGuiaState[id].selected];
         const lealtad = card.querySelector("[data-g-lealtad]");
         const cruce = Number(cobro.dataset.cruce) || 0;
-        const total = (Number(cobro.dataset.cobroBase) || 0) - (lealtad && lealtad.checked ? cruce / 2 : 0) + (Number(r.total) || 0);
+        // A la clienta se le cobra el envío de tu tabla (si su CP está); la
+        // paquetería que elijas es solo lo que te cuesta a ti la guía.
+        const tabla = swmGuiaState[id].tabla;
+        const envioCobro = tabla != null ? tabla : Number(r.total) || 0;
+        const total = (Number(cobro.dataset.cobroBase) || 0) - (lealtad && lealtad.checked ? cruce / 2 : 0) + envioCobro;
         genBtn.textContent = `2️⃣ Hacer guía y cobrarle ${formatPrice(total)}`;
       }
       return;
@@ -4567,7 +4571,9 @@ ${itemLines}
         });
         const data = await res.json();
         if (!res.ok || !(data.rates || []).length) { ratesEl.textContent = ""; errEl.textContent = data.error || "No hay opciones de envío para esos datos."; return; }
-        swmGuiaState[id] = { rates: data.rates, selected: null };
+        swmGuiaState[id] = { rates: data.rates, selected: null, tabla: data.tabla != null ? Number(data.tabla) : null };
+        const nota = card.querySelector("[data-guia-tabla]");
+        if (nota) nota.innerHTML = data.tabla != null ? `🧾 Envío que le cobras según tu tabla (${weight} kg a CP ${escapeHtml(g("cp"))}): <b>${formatPrice(data.tabla)}</b>. La paquetería que elijas es lo que te cuesta a ti la guía.` : "⚠️ Su código postal no está en tu tabla: se le cobra el precio de la paquetería que elijas.";
         const badge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
         ratesEl.innerHTML = data.rates.map((r, i) => `<label class="rate-option" data-guia-rate="${i}"><input type="radio" name="guia-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}</span></label>`).join("");
       } catch (err) { ratesEl.textContent = ""; errEl.textContent = "No se pudo conectar con el servidor."; }
@@ -5027,11 +5033,12 @@ ${itemLines}
           <label style="max-width:150px;">Peso de la caja (kg)<input data-g="peso" type="text" inputmode="decimal" value="${kg}"></label>
           <button type="button" class="btn-secondary" data-guia-cotizar style="padding:8px 14px;">1️⃣ Ver precios de envío</button>
         </div>
+        <div class="meta" data-guia-tabla style="margin-top:6px;"></div>
         ${rates}
         ${libres ? `<label class="swm-check" style="margin-top:8px;"><input type="checkbox" data-g-lealtad> 🎁 Cruce al 50% por lealtad (le quedan ${libres})</label>` : ""}
         <details style="margin-top:8px;"><summary style="cursor:pointer;font-size:13px;color:#6b6370;">📍 Dirección de envío (revísala si quieres)</summary>${dir}</details>
         <div style="margin-top:10px;"><button type="button" class="btn-primary" data-guia-generar disabled>2️⃣ Hacer guía y cobrarle</button></div>
-        <div class="meta" style="margin-top:4px;">Le cobro cruce ${formatPrice(base)} + el envío que elijas. Cuando pague, le llega su guía sola.</div>
+        <div class="meta" style="margin-top:4px;">Le cobro cruce ${formatPrice(base)} + el envío de tu tabla. Cuando pague, le llega su guía sola.</div>
       </div>`;
     }
     return `<details style="margin-top:10px;"><summary style="cursor:pointer;font-weight:700;font-size:14px;">📦 Generar guía real (comparar precios)</summary>

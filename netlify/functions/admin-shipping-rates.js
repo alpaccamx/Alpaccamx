@@ -13,6 +13,7 @@ const { quoteRates: quoteEnviosPerros } = require("./lib/enviosperros.js");
 const { quoteRates: quoteSkydropx } = require("./lib/skydropx.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { getRecord } = require("./lib/swm-store.js");
+const { envioEstimado } = require("./lib/preventa-core.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -120,8 +121,13 @@ exports.handler = async (event) => {
     });
   }
 
+  // Dirección americana: a la clienta se le cobra el envío de la tabla de
+  // Mae (la misma de la tienda), no lo que cuesta la guía.
+  const tabla = envioId ? await envioEstimado(destinationZipCode, weightNum) : null;
+
   return jsonResponse(200, {
     rates,
+    tabla,
     providerErrors: {
       enviosperros: epResult.status === "rejected",
       skydropx: sdResult.status === "rejected",
