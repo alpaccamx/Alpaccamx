@@ -15,7 +15,8 @@ const K = Number(process.env.K) || 12;  // con 12 salen ~50 cuadros por segundo 
 (async () => {
   fs.rmSync('grabacion/cuadros', { recursive: true, force: true });  // deja grabacion/.gitignore
   fs.mkdirSync('grabacion/cuadros', { recursive: true });
-  const b = await chromium.launch();
+  // Chromium completo (no el headless shell) y en español: así el botón de subir archivo dice «Seleccionar archivo»
+  const b = await chromium.launch({ channel: 'chromium', args: ['--lang=es-MX'], env: { ...process.env, LANGUAGE: 'es', LANG: 'es_MX.UTF-8' } });
   const ctx = await b.newContext({ ...devices['iPhone 13'], deviceScaleFactor: 2, locale: 'es-MX' });
   // los temporizadores de la página (carrusel, avisos) también K veces más lentos, para que en el video vayan a su ritmo
   await ctx.addInitScript((k) => {
@@ -65,6 +66,7 @@ const K = Number(process.env.K) || 12;  // con 12 salen ~50 cuadros por segundo 
     .toque-mae { position: fixed; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
       background: rgba(232,70,120,.35); border: 4px solid rgb(232,70,120); pointer-events: none; z-index: 2147483647;
       animation: toque-mae .7s ease-out forwards; }
+    ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .45s; animation-timing-function: ease-in-out; }
     @keyframes toque-mae { from { transform: scale(.5); opacity: 1 } to { transform: scale(1.6); opacity: 0 } }` });
   await p.waitForTimeout(800);
   // animaciones y transiciones CSS K veces más lentas
@@ -136,7 +138,15 @@ const K = Number(process.env.K) || 12;  // con 12 salen ~50 cuadros por segundo 
   await marca(); await hasta(0, 1.6); await desliza(300, 12, 50); await hasta(0, 3.4); await desliza(-300, 12, 50); await espera(0);
   // 1: «Entra a alpacca punto eme equis y toca Stock en México.» — el toque cae en «Stock en México»
   await marca(); const ic = p.getByRole('button', { name: /Stock en México/i }).first();
-  await tocaEn(1, MARCAS[1][1], ic); await espera(1);
+  // la página cambia de vista al tocar (esconde la portada y muestra Stock en México); el cambio se hace con una
+  // transición de desvanecido (View Transitions de Chrome) para que no se vea como un brinco
+  await ic.scrollIntoViewIfNeeded(); await hasta(1, MARCAS[1][1]); anota(1, 'toque');
+  const bi = await ic.boundingBox(); await circulo(bi.x + bi.width / 2, bi.y + bi.height / 2); await w(250);
+  await p.evaluate(() => {
+    const el = [...document.querySelectorAll('button')].find(e => /Stock en México/i.test(e.textContent));
+    if (document.startViewTransition) document.startViewTransition(() => el.click()); else el.click();
+  });
+  await espera(1);
   // 2: «Aquí está todo lo que ya tengo en México, listo para enviarse. Puedes filtrar por categoría.»
   //    se ven los productos y en «filtrar» se toca Categoría
   await marca(); await hasta(2, 0.8); await desliza(330, 20, 45); await hasta(2, 2.9); await desliza(-330, 16, 45);
