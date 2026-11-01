@@ -116,7 +116,7 @@ const K = Number(process.env.K) || 12;  // con 12 salen ~50 cuadros por segundo 
       const e = document.querySelector(s); const r = e.getBoundingClientRect();
       let c = e.parentElement; while (c && c !== document.body) { const st = getComputedStyle(c); if (/(auto|scroll)/.test(st.overflowY) && c.scrollHeight > c.clientHeight) break; c = c.parentElement; }
       const caja = (!c || c === document.body) ? { top: 0, height: innerHeight } : c.getBoundingClientRect();
-      const meta = dn === 'start' ? caja.top + 20 : caja.top + caja.height / 2 - r.height / 2;
+      const meta = dn === 'start' ? caja.top + 20 : dn === 'end' ? caja.top + caja.height - r.height - 16 : caja.top + caja.height / 2 - r.height / 2;
       if (c && c !== document.body) { c.id = c.id || 'panel-' + Math.random().toString(36).slice(2, 7); window.__panel = '#' + c.id; } else window.__panel = null;
       return r.top - meta;
     }, [sel, donde]);
@@ -187,21 +187,30 @@ const K = Number(process.env.K) || 12;  // con 12 salen ~50 cuadros por segundo 
   await hasta(6, MARCAS[6][0]); anota(6, 'datos');
   await escribe('customer-name', 'Ana López', 0.5); await escribe('customer-phone', '5512345678', 0.5);
   await llevaA('#customer-street', 'center', 6);
-  await escribe('customer-street', 'Av. Reforma 123', 0.6); await escribe('customer-colonia', 'Roma Norte', 0.4);
-  await escribe('customer-municipio', 'Cuauhtémoc', 0.3);
-  await hasta(6, MARCAS[6][1] - 0.2); anota(6, 'cp'); await escribe('customer-cp', '06700', 0.5);
-  await p.selectOption('#customer-estado', 'Ciudad de México').catch(() => {});
+  await escribe('customer-street', 'Calle Roble 123', 0.6); await escribe('customer-colonia', 'Centro', 0.3);
+  await escribe('customer-municipio', 'Juárez', 0.3);
+  await hasta(6, MARCAS[6][1] - 0.2); anota(6, 'cp'); await escribe('customer-cp', '32000', 0.5);
+  await p.selectOption('#customer-estado', 'Chihuahua').catch(() => {});
   await p.evaluate(() => { const c = document.getElementById('customer-consent'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); });
   await espera(6);
-  // 7: «Elige cómo pagar: por transferencia te ahorras un poquito, o con tarjeta por Mercado Pago.»
+  // 7: «Y si estás en Ciudad Juárez, puedes elegir entre envío o entrega personal, que no tiene costo.»
+  //    sube a la casilla de entrega personal (sale con una dirección de Juárez); en «envío» se quita y se ve el costo
+  //    del envío nacional, en «entrega personal» se vuelve a poner y queda «Sin costo»
+  await marca(); await llevaA('#cart-entrega-personal-wrap', 'end', 12);  // abajo, para que arriba se vea la línea del envío
+  const ep = p.locator('#cart-entrega-personal-wrap');
+  await hasta(7, MARCAS[7][0]); anota(7, 'juarez');
+  const be = await ep.boundingBox().catch(() => null); if (be) await circulo(be.x + 40, be.y + be.height / 2);
+  await tocaEn(7, MARCAS[7][1] - 0.9, p.locator('#cart-entrega-personal'));  // en «elegir entre envío»: se ve el costo un rato
+  await tocaEn(7, MARCAS[7][2], p.locator('#cart-entrega-personal')); await espera(7);
+  // 8: «Elige cómo pagar: por transferencia te ahorras un poquito, o con tarjeta por Mercado Pago.»
   await marca(); await llevaA('#pay-method', 'start', 10);
-  await tocaEn(7, MARCAS[7][1], p.locator('input[name=pay-method][value=transfer]').locator('xpath=..'));
-  await tocaEn(7, MARCAS[7][2], p.locator('input[name=pay-method][value=card]').locator('xpath=..'), { click: false }); await espera(7);
-  // 8: «Si pagas por transferencia, sube tu comprobante y toca Enviar pedido. ¡Y listo!» (sin mandar nada)
-  await marca(); await hasta(8, 0.3); await llevaA('#proof-file-input', 'center', 16);
-  await tocaEn(8, MARCAS[8][0], p.locator('#proof-file-input'), { click: false });
+  await tocaEn(8, MARCAS[8][1], p.locator('input[name=pay-method][value=transfer]').locator('xpath=..'));
+  await tocaEn(8, MARCAS[8][2], p.locator('input[name=pay-method][value=card]').locator('xpath=..'), { click: false }); await espera(8);
+  // 9: «Si pagas por transferencia, sube tu comprobante y toca Enviar pedido. ¡Y listo!» (sin mandar nada)
+  await marca(); await hasta(9, 0.3); await llevaA('#proof-file-input', 'center', 16);
+  await tocaEn(9, MARCAS[9][0], p.locator('#proof-file-input'), { click: false });
   await p.setInputFiles('#proof-file-input', 'pantallas/comprobante-ejemplo.jpg').catch(() => {});
-  await tocaEn(8, MARCAS[8][1], p.locator('#send-quote'), { click: false }); await espera(8);
+  await tocaEn(9, MARCAS[9][1], p.locator('#send-quote'), { click: false }); await espera(9);
   await marca(); await w(300);
   console.log('toques', registro.join(' '));
   grabando = false; await captura;

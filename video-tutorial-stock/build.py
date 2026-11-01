@@ -31,8 +31,9 @@ PASOS = [
     ("4. Revisa tu carrito", [("06", None), ("07", 1)]),
     ("5. Inicia sesión o crea tu cuenta", [("08", 0), ("09", 1)]),
     ("6. Llena tus datos de envío", [("10", None), ("11", 1)]),
-    ("7. Elige cómo pagar", [("12", None), ("13", 1)]),
-    ("8. Envía tu pedido", [("14", 1)]),
+    ("7. Envío o entrega personal", [("11", None)]),
+    ("8. Elige cómo pagar", [("12", None), ("13", 1)]),
+    ("9. Envía tu pedido", [("14", 1)]),
     ("¡Listo! 📦", []),
 ]
 

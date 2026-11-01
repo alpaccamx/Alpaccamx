@@ -6,6 +6,7 @@
  {"texto": "En tu carrito ves el total, y si lo vas a revender, cuánto ganas por pieza.", "marcas": ["total", "revender"]},
  {"texto": "Para seguir, inicia sesión o crea tu cuenta gratis.", "marcas": ["inicia", "crea"]},
  {"texto": "Llena tus datos y tu dirección. El envío se calcula con tu código postal.", "marcas": ["datos", "código postal"]},
+ {"texto": "Y si estás en Ciudad Juárez, puedes elegir entre envío o entrega personal, que no tiene costo.", "marcas": ["Ciudad Juárez", "envío", "entrega personal"]},
  {"texto": "Elige cómo pagar: por transferencia te ahorras un poquito, o con tarjeta por Mercado Pago.", "marcas": ["cómo pagar", "transferencia", "tarjeta"]},
  {"texto": "Si pagas por transferencia, sube tu comprobante y toca Enviar pedido. ¡Y listo!", "marcas": ["comprobante", "Enviar pedido", "listo"]},
  {"texto": "Como ya está en México, te lo mando de inmediato. Guarda este video para cuando lo necesites.", "marcas": ["inmediato", "Guarda"]}
