@@ -106,3 +106,49 @@ Un vlog que cuenta el día necesita momentos distintos, no solo pasillos. En cad
 8. **En casa:** sacando los productos o empacando el pedido.
 
 Subtítulo del vlog: una palabra chiquita, blanca, sin borde, en el tercio de arriba. Cierre con pregunta: "¿Quieren que les traiga algo de aquí? Díganme".
+
+## Lo que aplicamos de los 6 videos de estrategia (nov 2026)
+
+### 1. Etapas para crecer (análisis de Ros Díaz)
+- **Etapa 1 (donde estás):** hablar de **un solo tema una y otra vez** para que te reconozcan: "te traigo lo de EE. UU. más barato que en México". Variar poco a poco (hauls, empacar pedidos, tu negocio).
+- Vender desde el inicio **sí ayuda** a formar comunidad (tú ya lo haces con las preventas).
+- **Etapa 2:** cuando ya te reconozcan, ir mostrando más de tu vida y personalidad (sin cara si no quieres: tu voz, tus manos, tu casa).
+
+### 2. Cómo conseguir comentarios
+- **Omite información a propósito.** Ejemplo: "Me traje esto del Sephora Sale… ¿cuánto creen que me costó?" y **no** decir el precio en el video. Lo preguntan en comentarios y tú contestas con el precio y el link. (Alternar con los videos que sí dicen el precio.)
+- **Preguntas directas y específicas**, no "¿qué opinan?". Ejemplos para ti:
+  - "¿Ya probaron Saie o soy la única que no lo conocía?"
+  - "¿Cuál se llevan: Rhode o Rare Beauty?"
+  - "¿Alguien más compra todo en el Sephora Sale y luego se arrepiente?"
+- **Opinión que divida (sin pelear):** "Neta, el Sephora Sale de EE. UU. es mejor que el de México", "El Glazing Milk de Rhode está sobrevalorado", "Prefiero un mist de Bath & Body que un perfume caro". La gente comenta para estar de acuerdo o no.
+- **Siempre una pregunta en la descripción.**
+
+### 3. Ganchos visuales fáciles (primeros 2 segundos)
+- Objetos que aparecen flotando con sonido (los productos entrando a la pantalla).
+- Congelar la imagen con sonido de foto ("clic") y seguir.
+- Pausa dramática con chasquido: "¿Sabías que… *(pausa)* …en México esto cuesta el doble?"
+- Zoom rápido y de regreso sobre el producto.
+
+### 4. Yapping (hablar sin aburrir) con UNA idea específica
+- No "hablemos de maquillaje", sino una idea concreta que la gente ya piensa. Pregunta guía: **¿qué una sola cosa quiero que recuerden?**
+- Ideas para ti (con tu voz sobre tus tomas, sin salir a cámara):
+  - "Por qué comprar en el Sephora Sale de EE. UU. te sale más barato aunque pagues envío."
+  - "El error que todas cometen cuando piden algo de EE. UU.: pagar el precio de reventa."
+  - "Cómo saber si un perfume de Mercado Libre es original."
+
+### 5. Series de contenido (lo más importante para crecer)
+Una serie = mismo tema, cada capítulo cambia un poco, con **elementos que se repiten** y **día fijo**.
+| Serie | Tipo | Elemento que se repite | Día |
+|---|---|---|---|
+| **"¿Cuánto cuesta en México?"** | no secuencial | Siempre empieza igual: "¿Cuánto crees que cuesta esto en México?" + el "$ ???" rosa | Lunes y jueves |
+| **"Las wish lists de mis clientas"** | no secuencial | "Holi, acompáñame…" + lista que se palomea | Martes |
+| **"Lo que llegó"** (unboxing del envío) | secuencial por preventa | Abrir la caja + "Capítulo N" | Cuando llega cada envío |
+| **"¿Cuánto ganas revendiendo?"** | no secuencial | Ticket de ganancia | Miércoles |
+Poner **"Cap. 1, Cap. 2…"** en pantalla y en la descripción para que esperen el siguiente.
+
+### 6. Colgarte de algo que ya es famoso
+Ligar tus productos a algo que la gente ya conoce:
+- "El blush de Hailey Bieber (Rhode): ¿cuánto cuesta en México vs. conmigo?"
+- "Lo que usa Selena Gomez (Rare Beauty) a precio de Sephora USA."
+- "Los productos virales de TikTok del mes: ¿valen la pena?"
+- Temporadas: Buen Fin, Black Friday, Navidad, San Valentín, regreso a clases.
