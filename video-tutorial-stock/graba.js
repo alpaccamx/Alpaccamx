@@ -10,7 +10,7 @@ const { chromium, devices } = require('playwright');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
 const DUR = JSON.parse(fs.readFileSync('tiempos-tutorial.json')).map(e => e.dur);
-const K = 12;  // con 12 salen ~50 cuadros por segundo de video y ninguno se repite al pasar a 30 (con 4 eran ~15 y se veía trabado)
+const K = Number(process.env.K) || 12;  // con 12 salen ~50 cuadros por segundo de video y ninguno se repite al pasar a 30 (con 4 eran ~15 y se veía trabado)
 
 (async () => {
   fs.rmSync('grabacion/cuadros', { recursive: true, force: true });  // deja grabacion/.gitignore
@@ -84,58 +84,78 @@ const K = 12;  // con 12 salen ~50 cuadros por segundo de video y ninguno se rep
     if (panel) await deslizaEn(panel, dy, n); else await desliza(dy, n, 40);
   };
 
-  // 0: la página
-  await marca(); await w(1500); await desliza(300); await w(600); await desliza(-300); await espera(0);
-  // 1: tocar "Stock en México"
+  // cada acción cae cuando la voz dice su palabra: MARCAS[i][j] es el segundo de la palabra clave dentro de la frase i
+  // (tiempos-tutorial.json). hasta(i, t) espera a ese momento del video; el círculo del toque sale justo ahí.
+  const MARCAS = JSON.parse(fs.readFileSync('tiempos-tutorial.json')).map(e => e.marcas);
+  const hasta = async (i, t) => { const falta = pasos[i] + t - ahora(); if (falta > 0) await w(falta * 1000); };
+  const registro = [];
+  const anota = (i, que) => registro.push(`${i}:${que}@${(ahora() - pasos[i]).toFixed(2)}`);
+  const tocaEn = async (i, t, loc, op) => { await loc.scrollIntoViewIfNeeded().catch(() => {}); await hasta(i, t); anota(i, 'toque'); await toca(loc, op); };
+  // escribir repartiendo las letras en una ventana de tiempo del video
+  const escribe = async (id, v, seg) => { await p.click('#' + id).catch(() => {}); await p.type('#' + id, v, { delay: seg * 1000 / v.length * K }); };
+
+  // 0: «Te enseño cómo comprar lo que tengo en stock en mi página, paso a paso.» — la página, un vistazo hacia abajo
+  await marca(); await hasta(0, 1.6); await desliza(300, 12, 50); await hasta(0, 3.4); await desliza(-300, 12, 50); await espera(0);
+  // 1: «Entra a alpacca punto eme equis y toca Stock en México.» — el toque cae en «Stock en México»
   await marca(); const ic = p.getByRole('button', { name: /Stock en México/i }).first();
-  await ic.scrollIntoViewIfNeeded(); await w(DUR[1] * 1000 * 0.45); await toca(ic); await espera(1);
-  // 2: la sección de stock, filtros y productos
-  await marca(); await w(900); const fil = p.locator('#stock-section select').first();
-  await toca(fil, { click: false }); await w(1300); await desliza(700, 20, 45); await espera(2);
-  // 3: Agregar y Ver carrito
+  await tocaEn(1, MARCAS[1][1], ic); await espera(1);
+  // 2: «Aquí está todo lo que ya tengo en México, listo para enviarse. Puedes filtrar por categoría.»
+  //    se ven los productos y en «filtrar» se toca Categoría
+  await marca(); await hasta(2, 0.8); await desliza(330, 20, 45); await hasta(2, 2.9); await desliza(-330, 16, 45);
+  const fil = p.locator('#stock-section select').first();
+  await tocaEn(2, MARCAS[2][1], fil, { click: false }); await espera(2);
+  // 3: «Elige tu producto y toca Agregar. Luego, toca Ver carrito.»
   await marca(); const card = p.locator('#stock-grid > *').filter({ hasText: 'Champagne Toast' }).first();
-  await card.scrollIntoViewIfNeeded(); await p.evaluate(() => window.scrollBy(0, -150)); await w(900);
-  await toca(card.getByRole('button', { name: /Agregar/i }));
-  // el aviso "Agregado al carrito" se quita solo con un temporizador de la página (no se hace lento), así que se
-  // toca "Ver carrito" en tiempo real; si ya no está, se abre desde el ícono del carrito
-  await p.waitForTimeout(1600);
+  const dyCard = await card.evaluate(e => e.getBoundingClientRect().top - 150);
+  await desliza(dyCard, 18, 45);
+  await tocaEn(3, MARCAS[3][0], card.getByRole('button', { name: /Agregar/i }));
+  // el toque se marca sobre «Ver carrito» y el carrito se abre con su botón (si el aviso ya se quitó, el toque
+  // caería en otro producto)
+  await hasta(3, MARCAS[3][1]);
   const ver = p.getByRole('button', { name: /Ver carrito/i });
-  // se marca el toque sobre «Ver carrito» y el carrito se abre con su botón (el aviso puede quitarse mientras tanto
-  // y el toque caería en otro producto)
   const bb = (await ver.isVisible().catch(() => false)) ? await ver.boundingBox() : null;
+  anota(3, 'ver carrito');
   if (bb) await circulo(bb.x + bb.width / 2, bb.y + bb.height / 2); else await toca(p.locator('#cart-toggle'), { click: false });
-  await p.waitForTimeout(250);
-  await p.evaluate(() => document.getElementById('cart-toggle').click());
+  await w(250); await p.evaluate(() => document.getElementById('cart-toggle').click());
   await espera(3);
-  // 4: el carrito, total y ganancia
-  await marca(); await w(1800);
-  await llevaA('#cart-login-cta', 'center', 18); await espera(4);
-  // 5: iniciar sesión / crear cuenta
-  await marca(); const cta = p.locator('#cart-login-cta'); await cta.scrollIntoViewIfNeeded(); await w(400);
-  await toca(cta); await w(1300); await toca(p.locator('#acct-tab-signup')); await espera(5);
-  // 6: datos de envío (se muestran solo en este navegador) y se escriben
-  await marca(); await p.click('#account-close'); await w(500); await p.click('#cart-toggle'); await w(600);
-  await p.evaluate(() => { document.getElementById('cart-login-required').classList.add('hidden'); document.getElementById('quote-form').classList.remove('hidden'); });
-  await llevaA('#customer-name', 'center', 8);
-  const escribe = async (id, v, d = 35) => { await p.click('#' + id).catch(() => {}); await p.type('#' + id, v, { delay: d * K }); };
-  await escribe('customer-name', 'Ana López', 45); await escribe('customer-phone', '5512345678', 30);
-  await llevaA('#customer-street', 'center', 8);
-  await escribe('customer-street', 'Av. Reforma 123', 25); await escribe('customer-colonia', 'Roma Norte', 25);
-  await escribe('customer-municipio', 'Cuauhtémoc', 20); await escribe('customer-cp', '06700', 60);
+  // 4: «En tu carrito ves el total, y si lo vas a revender, cuánto ganas por pieza.»
+  //    en «total» se marca el total; en «revender» se baja al cuadro de ganancia
+  await marca(); const tot = p.getByText(/Total estimado/i).first();
+  await hasta(4, MARCAS[4][0]); anota(4, 'total');
+  const bt = await tot.boundingBox().catch(() => null); if (bt) await circulo(bt.x + 60, bt.y + bt.height / 2);
+  await hasta(4, MARCAS[4][1] - 0.4); await llevaA('#cart-login-cta', 'center', 12); await espera(4);
+  // 5: «Para seguir, inicia sesión o crea tu cuenta gratis.» — «inicia»: botón; «crea»: pestaña Crear cuenta
+  await marca(); const cta = p.locator('#cart-login-cta');
+  await tocaEn(5, MARCAS[5][0] - 0.1, cta);
+  await tocaEn(5, MARCAS[5][1], p.locator('#acct-tab-signup')); await espera(5);
+  // 6: «Llena tus datos y tu dirección. El envío se calcula con tu código postal.»
+  //    el formulario sale de inmediato (solo en este navegador) y el código postal se escribe en «código postal»
+  await marca();
+  await p.evaluate(() => {
+    document.getElementById('account-close').click(); document.getElementById('cart-toggle').click();
+    document.getElementById('cart-login-required').classList.add('hidden'); document.getElementById('quote-form').classList.remove('hidden');
+    document.getElementById('customer-name').scrollIntoView({ block: 'center' });
+  });
+  await hasta(6, MARCAS[6][0]); anota(6, 'datos');
+  await escribe('customer-name', 'Ana López', 0.5); await escribe('customer-phone', '5512345678', 0.5);
+  await llevaA('#customer-street', 'center', 6);
+  await escribe('customer-street', 'Av. Reforma 123', 0.6); await escribe('customer-colonia', 'Roma Norte', 0.4);
+  await escribe('customer-municipio', 'Cuauhtémoc', 0.3);
+  await hasta(6, MARCAS[6][1] - 0.2); anota(6, 'cp'); await escribe('customer-cp', '06700', 0.5);
   await p.selectOption('#customer-estado', 'Ciudad de México').catch(() => {});
   await p.evaluate(() => { const c = document.getElementById('customer-consent'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); });
   await espera(6);
-  // 7: forma de pago
-  await marca(); await llevaA('#pay-method', 'start', 16);
-  await w(800); const tr = p.locator('input[name=pay-method][value=transfer]').locator('xpath=..');
-  await toca(tr); await w(1600);
-  await toca(p.locator('input[name=pay-method][value=card]').locator('xpath=..'), { click: false }); await espera(7);
-  // 8: comprobante y enviar (sin mandar nada)
-  await marca(); await llevaA('#proof-file-input', 'center', 16);
-  await w(700); await toca(p.locator('#proof-file-input'), { click: false });
+  // 7: «Elige cómo pagar: por transferencia te ahorras un poquito, o con tarjeta por Mercado Pago.»
+  await marca(); await llevaA('#pay-method', 'start', 10);
+  await tocaEn(7, MARCAS[7][1], p.locator('input[name=pay-method][value=transfer]').locator('xpath=..'));
+  await tocaEn(7, MARCAS[7][2], p.locator('input[name=pay-method][value=card]').locator('xpath=..'), { click: false }); await espera(7);
+  // 8: «Si pagas por transferencia, sube tu comprobante y toca Enviar pedido. ¡Y listo!» (sin mandar nada)
+  await marca(); await hasta(8, 0.3); await llevaA('#proof-file-input', 'center', 16);
+  await tocaEn(8, MARCAS[8][0], p.locator('#proof-file-input'), { click: false });
   await p.setInputFiles('#proof-file-input', 'pantallas/comprobante-ejemplo.jpg').catch(() => {});
-  await w(1300); await toca(p.locator('#send-quote'), { click: false }); await espera(8);
+  await tocaEn(8, MARCAS[8][1], p.locator('#send-quote'), { click: false }); await espera(8);
   await marca(); await w(300);
+  console.log('toques', registro.join(' '));
   grabando = false; await captura;
   await ctx.close(); await b.close();
 
