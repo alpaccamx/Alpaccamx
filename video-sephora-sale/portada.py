@@ -107,7 +107,7 @@ if os.path.exists(os.path.join(CRUDO, "est_v62.mp4")):
     B.pas(L, "Sephora Sale · 20% OFF", 1500, sz=56)
     guarda(L, "portada-allure.jpg")
 # 9-11. serie Allure por categoría
-for var in ["allure-rostro", "allure-labios", "allure-piel"]:
+for var in ["allure-base", "allure-mejillas", "allure-labios"]:
     if not os.path.exists(os.path.join(CRUDO, "est_v111.mp4")): break
     B = motor(var); b = B.b; C = B.CAT
     L = cuadro(B, "v111", 16)
@@ -116,6 +116,6 @@ for var in ["allure-rostro", "allure-labios", "allure-piel"]:
     b.pon(L, b.pastilla(f"Cap. {C['cap']} · {C['nombre']}", "ExtraBold", 80, B.ROSA, B.WHITE, padx=50, pady=20), B.W / 2, 580)
     n = len(C["productos"])
     for k, p in enumerate(C["productos"]):
-        b.pon(L, B.recorte(p["rec"], 560 if n > 1 else 720), B.W / 2 + (k - (n - 1) / 2) * 470, 1080)
-    B.pas(L, "para qué sirven y cuánto cuestan 💸" if n > 1 else "para qué sirve y cuánto cuesta 💸", 1480, "Bold", 48, B.WHITE, B.NEGRO)
+        x, y = B.rejilla(k, n); b.pon(L, B.recorte(p["rec"], 380), x, y - 20)
+    B.pas(L, "para qué sirven y cuánto cuestan 💸", 1620, "Bold", 46, B.WHITE, B.NEGRO)
     guarda(L, f"portada-{var}.jpg")

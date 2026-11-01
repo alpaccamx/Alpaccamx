@@ -538,12 +538,28 @@ BENEFICIOS = {1: ["💧 A prueba de agua", "✨ Hidrata mientras fija"],
 
 # fotos oficiales sin recortar (en una tarjeta blanca se ven limpias; recortadas quedaban con orillas o sombras)
 FOTO_OFICIAL = {"dior-lipoil": os.path.join(AQUI, "fotos", "dior-lipglow-oficial.jpg"),
-                "glassbalm": os.path.join(AQUI, "fotos", "glassbalm-oficial.jpg")}  # glowrecipe.com
+                "glassbalm": os.path.join(AQUI, "fotos", "glassbalm-oficial.jpg"),  # glowrecipe.com
+                # rarebeauty.com y patrickta.com (fotos de estudio: se recortan alrededor del producto)
+                "rare-contour": (os.path.join(AQUI, "fotos", "rare-contour-oficial.jpg"), (300, 380, 1100, 1660)),
+                "rare-matteblush": (os.path.join(AQUI, "fotos", "rare-matteblush-oficial.jpg"), (200, 420, 1200, 1600)),
+                "rare-highlighter": (os.path.join(AQUI, "fotos", "rare-highlighter-oficial.jpg"), (250, 560, 1150, 1520)),
+                "rare-brow": (os.path.join(AQUI, "fotos", "rare-brow2-oficial.jpg"), (320, 260, 1120, 1660)),
+                "patrick-majorskin": (os.path.join(AQUI, "fotos", "patrick-majorskin-oficial.jpg"), (330, 60, 1070, 1340))}
 
 
 @lru_cache(None)
 def recorte(nombre, alto):
     """el producto en una tarjeta blanca redondeada con sombra (así no se notan las orillas del recorte)"""
+    if isinstance(FOTO_OFICIAL.get(nombre), tuple):  # foto de estudio de la marca, recortada
+        ruta, caja = FOTO_OFICIAL[nombre]
+        im = Image.open(ruta).convert("RGB").crop(caja).convert("RGBA")
+        im.thumbnail((620, alto - 40), Image.LANCZOS)
+        c = Image.new("RGBA", (im.width + 60, im.height + 60))
+        sh = Image.new("L", c.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 42, im.width + 30, im.height + 42), 40, fill=110)
+        c.putalpha(sh.filter(ImageFilter.GaussianBlur(18)))
+        m = Image.new("L", im.size, 0); ImageDraw.Draw(m).rounded_rectangle((0, 0, im.width - 1, im.height - 1), 40, fill=255)
+        c.paste(im, (30, 30), m)
+        return c
     if nombre in FOTO_OFICIAL:
         im = Image.open(FOTO_OFICIAL[nombre]).convert("RGB")
         bb = Image.eval(im.convert("L"), lambda v: 255 if v < 232 else 0).getbbox()  # quitar el margen del fondo
@@ -612,27 +628,34 @@ def capa_allure(L, tg):
 # ---------------- serie Allure por categoría (cap. 1 cara, cap. 2 labios, cap. 3 piel) ----------------
 # cada producto: foto, nombre, premio, beneficios [((escena, marca), texto)], precio de comparación ((e, m), tienda o
 # None = no se vende en México, precio), el de Mae ((e, m), texto), ahorro y las escenas que dura
-CATEGORIAS = {
-    "allure-rostro": dict(cap=1, nombre="Cara", siguiente="Cap. 2: Labios 💋", productos=[
-        dict(rec="dior-forever", nom="Dior Forever Skin Glow", premio="Allure 2026: Mejor base líquida luminosa", esc=(1, 1),
-             benef=[((1, 1), "✨ Piel con glow"), ((1, 2), "⏱️ Dura hasta 24 horas")],
-             cmp=((1, 3), "Sephora México", 1550), mio=((1, 4), "$1,184"), ahorro=366),
-        dict(rec="ct-spray", nom="Charlotte Tilbury Airbrush Flawless Setting Spray", premio="Allure 2026: Mejor fijador luminoso", esc=(2, 2),
-             benef=[((2, 1), "💧 A prueba de agua"), ((2, 2), "✨ Hidrata mientras fija")],
-             cmp=((2, 3), "Sephora USA", 617), mio=((2, 4), "desde $493"), ahorro=124)]),
-    "allure-labios": dict(cap=2, nombre="Labios", siguiente="Cap. 3: Piel 🌿", productos=[
-        dict(rec="dior-lipoil", nom="Dior Lip Glow Oil", premio="Allure 2026: Mejor aceite de labios con color", esc=(1, 1),
-             benef=[((1, 1), "🍒 Con aceite de cereza"), ((1, 2), "💋 Hidrata sin ser pegajoso"), ((1, 3), "🌸 Realza tu color natural")],
-             cmp=((1, 4), "Sephora México", 970), mio=((1, 5), "$829"), ahorro=141),
-        dict(rec="glassbalm", nom="Glow Recipe Glass Balm", premio="Ganador Allure 2025", esc=(2, 2),
-             benef=[((2, 1), "💧 Con ácido hialurónico"), ((2, 2), "⏱️ Hidrata hasta 12 horas"), ((2, 3), "✨ Labios como de cristal")],
-             cmp=((2, 4), "Sephora USA", 543), mio=((2, 5), "$434"), ahorro=109)]),
-    "allure-piel": dict(cap=3, nombre="Piel", siguiente=None, productos=[
-        dict(rec="tower-sos-solo", nom="Tower 28 SOS Daily Rescue Spray", premio="Ganador Allure 2026", esc=(1, 2),
-             benef=[((1, 1), "🩺 Aprobado por dermatólogos"), ((1, 2), "🌿 Calma los granitos"), ((1, 3), "🌸 Baja las rojeces"),
-                    ((2, 0), "💪 Ideal después del gym")],
-             cmp=((2, 1), None, None), mio=((2, 2), "desde $237"), ahorro=None)]),
+# (foto, nombre, premio, beneficios, tienda de comparación o None = no se vende en México, precio ahí, el de Mae, ahorro).
+# Cada producto es una frase de la voz con marcas [nombre, beneficio…, precio de comparación, "Conmigo"].
+# Premios: Allure Best of Beauty 2026 (therealchiclife.com, 22 sep 2026), 2025 (nikkifromhr.com) y los años que pone
+# cada marca en su tienda (Rare Beauty: "Award: allure-2026/2025/2024"; Glow Recipe: sello 2025 en su foto).
+# Precios: catálogo de la preventa; Sephora México solo donde lo tenemos (carruseles/precios-sephora-mx.csv).
+_SERIE = {
+    "allure-base": dict(cap=1, nombre="Base y piel", siguiente="Cap. 2: Mejillas 🌸", productos=[
+        ("dior-forever", "Dior Forever Skin Glow", "Allure 2026: Mejor base luminosa", ["✨ Piel con glow", "⏱️ Dura hasta 24 horas"], "Sephora México", 1550, "$1,184", 366),
+        ("patrick-majorskin", "Patrick Ta Major Skin Foundation", "Allure 2025: Mejor base líquida", ["💧 Ligera e hidratante", "✨ Difumina imperfecciones"], "Sephora USA", 1430, "$1,144", 286),
+        ("ct-spray", "Charlotte Tilbury Airbrush Flawless Setting Spray", "Allure 2026: Mejor fijador luminoso", ["💧 A prueba de agua", "✨ Hidrata mientras fija"], "Sephora USA", 617, "desde $493", 124),
+        ("tower-sos-solo", "Tower 28 SOS Daily Rescue Spray", "Ganador Allure 2026", ["🌿 Calma los granitos", "🌸 Baja las rojeces"], None, None, "desde $237", None)]),
+    "allure-mejillas": dict(cap=2, nombre="Mejillas", siguiente="Cap. 3: Labios y cejas 💋", productos=[
+        ("rare-contour", "Rare Beauty Soft Pinch Liquid Contour", "Ganador Allure 2026", ["🪶 Ligerito", "🖌️ Se difumina fácil", "✨ Efecto levantado natural"], "Sephora USA", 740, "$592", 148),
+        ("rare-matteblush", "Rare Beauty Soft Pinch Matte Bouncy Blush", "Ganador Allure 2025", ["☁️ De crema a polvo", "🌸 Rubor mate que dura"], "Sephora USA", 666, "$533", 133),
+        ("rare-highlighter", "Rare Beauty Positive Light Highlighter", "Ganador Allure 2025", ["✨ Brillo como de cristal", "🌿 Natural y dura"], "Sephora USA", 691, "$553", 138)]),
+    "allure-labios": dict(cap=3, nombre="Labios y cejas", siguiente=None, productos=[
+        ("dior-lipoil", "Dior Lip Glow Oil", "Allure 2026: Mejor aceite de labios", ["🍒 Con aceite de cereza", "💋 Hidrata sin ser pegajoso", "🌸 Realza tu color natural"], "Sephora México", 970, "$829", 141),
+        ("glassbalm", "Glow Recipe Glass Balm", "Ganador Allure 2025", ["💧 Con ácido hialurónico", "⏱️ Hidrata hasta 12 horas", "✨ Labios como de cristal"], "Sephora USA", 543, "$434", 109),
+        ("rare-brow", "Rare Beauty Brow Harmony Precision Pencil", "Ganador Allure 2024", ["💧 A prueba de agua", "✏️ Trazos como pelitos"], "Sephora USA", 469, "$375", 94)]),
 }
+CATEGORIAS = {}
+for _v, _c in _SERIE.items():
+    _ps = []
+    for _i, (rec, nom, premio, ben, tienda, precio, mio, ahorro) in enumerate(_c["productos"]):
+        e = _i + 1; nb = len(ben)
+        _ps.append(dict(rec=rec, nom=nom, premio=premio, esc=(e, e), benef=[((e, 1 + k), t) for k, t in enumerate(ben)],
+                        cmp=((e, nb + 1), tienda, precio), mio=((e, nb + 2), mio), ahorro=ahorro))
+    CATEGORIAS[_v] = dict(_c, productos=_ps)
 CAT = CATEGORIAS.get(VAR)
 
 
@@ -640,6 +663,13 @@ def _bagel(txt, sz, col):
     f = ImageFont.truetype(os.path.join(FUENTES, "BagelFatOne-Regular.ttf"), sz)
     im = Image.new("RGBA", (int(f.getlength(txt)) + 40, int(sz * 1.45))); ImageDraw.Draw(im).text((20, im.height // 2), txt, font=f, fill=col, anchor="lm")
     return _sombra(im, 12, 170)
+
+
+def rejilla(k, n):
+    """posición de la tarjeta k de n en 2 columnas (la última sola va al centro)"""
+    fila, col = divmod(k, 2)
+    x = W / 2 if (n % 2 and k == n - 1) else [290, 790][col]
+    return x, 880 + 470 * fila
 
 
 def capa_allure_cat(L, tg):
@@ -650,13 +680,12 @@ def capa_allure_cat(L, tg):
     if e == 0:  # portada del capítulo y los productos entrando
         b.pon(L, _bagel("Premios Allure", 110, WHITE), W / 2, 300, *b.entra(tg, 0.1, 0.4))
         b.pon(L, b.pastilla(f"Cap. {CAT['cap']} · {CAT['nombre']}", "ExtraBold", 70, ROSA, WHITE, padx=44, pady=18), W / 2, 450, *b.entra(tg, 0.4, 0.4))
-        n = len(prods)
-        for k, p in enumerate(prods):
-            t0 = 0.9 + 0.4 * k
+        for k, p in enumerate(prods):  # entran flotando, en cuadrícula de 2 columnas
+            t0 = 0.9 + 0.3 * k
             if tg >= t0:
-                x = W / 2 + (k - (n - 1) / 2) * 470; dy = 260 * (1 - b.ease((tg - t0) / 0.5))
-                b.pon(L, recorte(p["rec"], 560 if n > 1 else 700), x, 1050 + dy + 10 * math.sin(2 * (tg + k)), 1, min(1, (tg - t0) / 0.2))
-        subtitulo(L, tg, 1640)
+                x, y = rejilla(k, len(prods)); dy = 260 * (1 - b.ease((tg - t0) / 0.5))
+                b.pon(L, recorte(p["rec"], 420), x, y + dy + 10 * math.sin(2 * (tg + k)), 1, min(1, (tg - t0) / 0.2))
+        subtitulo(L, tg, 1780)
         return
     p = next((p for p in prods if p["esc"][0] <= e <= p["esc"][1]), None)
     if p is None:  # cierre

@@ -191,62 +191,78 @@ Fuente: Allure Best of Beauty 2026 (lista vía therealchiclife.com, 22 sep 2026;
 
 ---
 
-# Serie: Premios Allure por categoría (3 capítulos)
+# Serie: Premios Allure por categoría (3 capítulos, 3 a 4 productos cada uno)
 Por qué: una serie (Cap. 1, 2, 3) hace que esperen el siguiente y te sigan. Cada producto: premio, beneficios y luego el precio. Al final de cada capítulo se anuncia el siguiente.
-Publica uno por día, en orden. Fuente: Allure Best of Beauty 2026 (therealchiclife.com, 22 sep 2026); Glass Balm = Allure 2025 (sello en la foto oficial de Glow Recipe). Beneficios: los de cada marca.
+Publica uno por día, en orden. Premios: Allure Best of Beauty 2026 (therealchiclife.com, 22 sep 2026), 2025 (nikkifromhr.com) y el año que pone cada marca en su tienda oficial (Rare Beauty, Glow Recipe). Beneficios: los de cada marca.
 
-## Cap. 1 · Cara (Sale-allure-rostro-voz.mp4, portada-allure-rostro.jpg)
+## Cap. 1 · Base y piel (Sale-allure-base-voz.mp4, portada-allure-base.jpg)
 **TikTok**
-> Premios Allure 2026, cap. 1: lo mejor para tu cara 🏆 para qué sirven y cuánto cuestan en México vs. conmigo
-> ¿Cuál te llevas? Comenta GRUPO 👇 · Mañana: cap. 2, labios 💋
-> #allure #bestofbeauty #dior #charlottetilbury #sephorasale
+> Premios Allure, cap. 1: base y piel 🏆 para qué sirven y cuánto cuestan en México vs. conmigo
+> ¿Cuál te llevas? Comenta GRUPO 👇 · Mañana: cap. 2, mejillas 🌸
+> #allure #bestofbeauty #dior #patrickta #charlottetilbury #tower28
 
 **Instagram**
-> Premios Allure 2026 · Cap. 1: Cara 🏆
+> Premios Allure · Cap. 1: Base y piel 🏆
 >
-> ✨ Dior Forever Skin Glow · mejor base líquida luminosa
+> ✨ Dior Forever Skin Glow · Allure 2026, mejor base luminosa
 > Piel con glow y dura hasta 24 horas. Sephora México $1,550 → conmigo $1,184
 >
-> 💧 Charlotte Tilbury Airbrush Flawless Setting Spray · mejor fijador luminoso
+> 💧 Patrick Ta Major Skin Foundation · Allure 2025, mejor base líquida
+> Ligera, hidratante y difumina imperfecciones. Sephora USA $1,430 → conmigo $1,144
+>
+> 💧 Charlotte Tilbury Airbrush Flawless Setting Spray · Allure 2026, mejor fijador luminoso
 > A prueba de agua e hidrata mientras fija. Sephora USA $617 → conmigo desde $493
 >
-> Preventa del Sephora Sale: 20% OFF, apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre.
-> 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. Mañana: cap. 2, labios 💋
+> 🌿 Tower 28 SOS · ganador Allure 2026
+> Calma granitos y rojeces. No se vende en México → conmigo desde $237
 >
-> #allure #bestofbeauty #sephorasale #dior #charlottetilbury #maquillajeoriginal
+> Preventa del Sephora Sale: 20% OFF, apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre.
+> 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. Mañana: cap. 2, mejillas 🌸
+>
+> #allure #bestofbeauty #sephorasale #dior #patrickta #charlottetilbury #tower28
 
-## Cap. 2 · Labios (Sale-allure-labios-voz.mp4, portada-allure-labios.jpg)
+## Cap. 2 · Mejillas (Sale-allure-mejillas-voz.mp4, portada-allure-mejillas.jpg)
 **TikTok**
-> Premios Allure, cap. 2: lo mejor para tus labios 💋 para qué sirven y cuánto cuestan
-> ¿Cuál te llevas? Comenta GRUPO 👇 · Mañana: cap. 3, piel 🌿
-> #allure #bestofbeauty #dior #lipglowoil #glowrecipe #glassbalm
+> Premios Allure, cap. 2: mejillas 🌸 contorno, rubor e iluminador de Rare Beauty
+> ¿Cuál te llevas? Comenta GRUPO 👇 · Mañana: cap. 3, labios y cejas 💋
+> #allure #bestofbeauty #rarebeauty #softpinch #rubor
 
 **Instagram**
-> Premios Allure · Cap. 2: Labios 💋
+> Premios Allure · Cap. 2: Mejillas 🌸 (todos de Rare Beauty)
 >
-> 🍒 Dior Lip Glow Oil · Allure 2026, mejor aceite de labios con color
+> 🖌️ Soft Pinch Liquid Contour · ganador Allure 2026
+> Ligerito, se difumina fácil y da un efecto levantado natural. Sephora USA $740 → conmigo $592
+>
+> 🌸 Soft Pinch Matte Bouncy Blush · ganador Allure 2025
+> De crema a polvo, rubor mate que dura. Sephora USA $666 → conmigo $533
+>
+> ✨ Positive Light Silky Touch Highlighter · ganador Allure 2025
+> Brillo como de cristal, natural y que dura. Sephora USA $691 → conmigo $553
+>
+> Preventa del Sephora Sale: cierra el 8 de noviembre.
+> 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. Mañana: cap. 3, labios y cejas 💋
+>
+> #allure #bestofbeauty #sephorasale #rarebeauty #softpinch #rubor #iluminador
+
+## Cap. 3 · Labios y cejas (Sale-allure-labios-voz.mp4, portada-allure-labios.jpg)
+**TikTok**
+> Premios Allure, cap. 3: labios y cejas 💋 para qué sirven y cuánto cuestan
+> ¿Cuál te llevas? Comenta GRUPO 👇
+> #allure #bestofbeauty #dior #glowrecipe #rarebeauty
+
+**Instagram**
+> Premios Allure · Cap. 3: Labios y cejas 💋
+>
+> 🍒 Dior Lip Glow Oil · Allure 2026, mejor aceite de labios
 > Con aceite de cereza, hidrata sin ser pegajoso y realza tu color natural. Sephora México $970 → conmigo $829
 >
 > 💧 Glow Recipe Glass Balm · ganador Allure 2025
 > Con ácido hialurónico, hidrata hasta 12 horas y deja los labios como de cristal. Sephora USA $543 → conmigo $434
 >
+> ✏️ Rare Beauty Brow Harmony Precision Pencil · ganador Allure 2024
+> A prueba de agua, punta fina para trazos como pelitos. Sephora USA $469 → conmigo $375
+>
 > Preventa del Sephora Sale: cierra el 8 de noviembre.
-> 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. Mañana: cap. 3, piel 🌿
+> 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link.
 >
-> #allure #bestofbeauty #sephorasale #dior #glowrecipe #glassbalm #labios
-
-## Cap. 3 · Piel (Sale-allure-piel-voz.mp4, portada-allure-piel.jpg)
-**TikTok**
-> Premios Allure 2026, cap. 3: piel 🌿 y este ni siquiera se vende en México
-> Comenta GRUPO y te mando el link 👇
-> #allure #bestofbeauty #tower28 #sos #granitos #skincare
-
-**Instagram**
-> Premios Allure 2026 · Cap. 3: Piel 🌿
->
-> Tower 28 SOS Daily Rescue Spray: spray con ácido hipocloroso, aprobado por dermatólogos. Calma los granitos, baja las rojeces e ideal después del gym.
-> No se vende en México → conmigo desde $237
->
-> 💬 ¿Lo quieres? Comenta GRUPO y te mando el link.
->
-> #allure #bestofbeauty #sephorasale #tower28 #skincare #granitos #pielsensible
+> #allure #bestofbeauty #sephorasale #dior #glowrecipe #rarebeauty #labios #cejas
