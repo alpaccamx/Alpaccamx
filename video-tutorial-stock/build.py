@@ -1,7 +1,8 @@
-"""Tutorial "Cómo comprar stock en alpacca.mx": capturas reales de la página en un celular (captura.js), un dedo y un
-aro que marcan dónde tocar en cada paso, el título del paso arriba y la voz de Mae. Los datos del banco salen
-difuminados (el video es público). 1080x1920, 30 fps.
-Uso: node captura.js; python3 voz.py tutorial; python3 build.py  -> Tutorial-stock-voz.mp4 y portada-tutorial.jpg"""
+"""Tutorial "Cómo comprar stock en alpacca.mx": la grabación de pantalla real de la página (graba.js: toques,
+deslizar, escribir los datos) dentro de un celular, el título del paso arriba y la voz de Mae. Si no hay grabación,
+usa las capturas (captura.js) con un dedo y un aro donde tocar. Los datos del banco salen difuminados (el video es
+público). 1080x1920, 30 fps.
+Uso: python3 voz.py tutorial; node graba.js (o node captura.js); python3 build.py -> Tutorial-stock-voz.mp4 y portada-tutorial.jpg"""
 import json, math, os, subprocess, sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -62,6 +63,48 @@ def pantalla(n):
 
 TEL_Y = 340  # arriba del teléfono
 
+# grabación de pantalla: cada paso de graba.js dura lo mismo que su frase, así que el tramo [pasos[0], pasos[9]]
+# cae justo sobre los pasos 0 a 8 del video
+GRAB_DIR = os.path.join(AQUI, "grabacion")
+GRAB = None
+if os.path.exists(os.path.join(GRAB_DIR, "pantalla.mp4")):
+    GRAB = (os.path.join(GRAB_DIR, "pantalla.mp4"), json.load(open(os.path.join(GRAB_DIR, "pasos.json"))))
+_marco = {}
+
+
+def marco_vacio(gw, gh):
+    """marco negro del celular para el tamaño de la grabación (con sombra)"""
+    if (gw, gh) in _marco: return _marco[(gw, gh)]
+    borde = 18; c = Image.new("RGBA", (gw + 2 * borde + 60, gh + 2 * borde + 60))
+    sh = Image.new("L", c.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 46, gw + 2 * borde + 30, gh + 2 * borde + 46), 70, fill=130)
+    c.putalpha(sh.filter(ImageFilter.GaussianBlur(22)))
+    ImageDraw.Draw(c).rounded_rectangle((30, 30, gw + 2 * borde + 30, gh + 2 * borde + 30), 70, fill=NEGRO)
+    m = Image.new("L", (gw, gh), 0); ImageDraw.Draw(m).rounded_rectangle((0, 0, gw - 1, gh - 1), 54, fill=255)
+    _marco[(gw, gh)] = (c, m, 30 + borde)
+    return _marco[(gw, gh)]
+
+
+class Grabacion:
+    """lee la grabación cuadro por cuadro, ya escalada al alto del teléfono"""
+    def __init__(self):
+        v, p = GRAB
+        ww, hh = map(int, subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height",
+                                          "-of", "csv=p=0", v], capture_output=True, text=True).stdout.split(","))
+        self.gh = TEL_ALTO; self.gw = int(round(ww * TEL_ALTO / hh / 2)) * 2
+        # si el paso 0 empezó un pelito antes del primer cuadro, se repite el primer cuadro
+        self.pre = max(0, int(round(-p[0] * FPS)))
+        self.p = subprocess.Popen(["ffmpeg", "-v", "error", "-ss", f"{max(0, p[0]):.3f}", "-i", v, "-t", f"{p[-1] - max(0, p[0]):.3f}",
+                                   "-vf", f"fps={FPS},scale={self.gw}:{self.gh}:flags=lanczos", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                                  stdout=subprocess.PIPE)
+        self.ult = None
+
+    def cuadro(self):
+        if self.pre and self.ult is not None: self.pre -= 1; return self.ult
+        n = self.gw * self.gh * 3; d = self.p.stdout.read(n)
+        if len(d) == n: self.ult = Image.frombytes("RGB", (self.gw, self.gh), d)
+        return self.ult
+GRABADOR = None
+
 
 def toque(L, n, t, t0, x0, y0):
     """aro rosa que crece y un dedo en el centro de lo que hay que tocar"""
@@ -116,6 +159,11 @@ def cuadro(tg):
     titulo(L, tit, tg, INI[e])
     if not pantallas:
         final(L, tg, INI[e]); return L
+    if GRABADOR is not None:
+        im = GRABADOR.cuadro()
+        c, m, off = marco_vacio(GRABADOR.gw, GRABADOR.gh); c = c.copy(); c.paste(im, (off, off), m)
+        L.alpha_composite(c, (int(W / 2 - c.width / 2), TEL_Y))
+        return L
     # qué pantalla toca ahora: la siguiente entra 0.7 s después del toque de la anterior
     act = 0
     for j in range(1, len(pantallas)):
@@ -134,10 +182,12 @@ SFX = []
 
 if __name__ == "__main__":
     total = int(round(INI[-1] * FPS))
+    if GRAB: GRABADOR = Grabacion()
     for e, (_, ps) in enumerate(PASOS):
         SFX.append((INI[e] + 0.05, "pop"))
-        for _, m in ps:
-            if m is not None: SFX.append((marca(e, m), "click"))
+        if GRABADOR is None:
+            for _, m in ps:
+                if m is not None: SFX.append((marca(e, m), "click"))
     SFX.append((marca(len(T) - 1, 1), "glitter"))
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                           "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium", "-movflags", "+faststart", OUT], stdin=subprocess.PIPE)

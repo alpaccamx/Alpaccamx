@@ -2,7 +2,7 @@
 
 Video: Tutorial-stock-voz.mp4 (portada-tutorial.jpg), 55 s.
 Por qué: un tutorial quita la duda de "¿y cómo le hago?" que frena la compra; además la gente lo guarda para después (guardar = más alcance). Úsalo también para mandarlo por WhatsApp a quien te pregunte cómo comprar.
-Hecho con capturas reales de la página en un celular. Los datos del banco salen difuminados.
+Hecho con una grabación de pantalla real de la página en un celular (toques, deslizar y escribir los datos). No se mandó ningún pedido ni se creó ninguna cuenta, y los datos del banco salen difuminados.
 
 **TikTok**
 > Cómo comprar en mi página paso a paso 🛍️ Lo que está en Stock en México te lo mando de inmediato 📦
