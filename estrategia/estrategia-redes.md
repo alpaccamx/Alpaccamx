@@ -82,3 +82,12 @@ Horario: 7–9 pm hora de México (cuando más gente usa el celular después del
 - **Retención:** % que ve hasta el final. Meta: más de 50 % en videos de 20 s.
 - **Comentarios con palabra clave:** cuántos "GRUPO" o "REVENDER" llegaron. Es tu medida de ventas.
 - **Mensajes y apartados:** cuántos pedidos salieron de cada video.
+
+## Estilo de edición (de los videos de inspiración de @itsmaafer y @thaliarueda)
+
+1. **Subtítulos que cambian de tamaño:** las palabras normales chicas y blancas; las clave (marca, precio, "GRUPO") grandes en rosa con la tipografía gordita (Bagel). Por qué: mucha gente ve sin sonido y así lee lo importante.
+2. **Sin bordes en el texto:** solo una sombra suave. Se ve más limpio y profesional.
+3. **Algo inesperado al inicio, a la mitad y al final:** título grande al inicio, un golpe a la mitad (ej. "20% OFF" gigante con sonido) y la tarjeta de "Comenta GRUPO" al final. Por qué: evita que se vayan a la mitad; que lo vean completo es lo que más pesa para que la app lo muestre.
+4. **Colores de la marca siempre:** rosa Alpacca, blanco y negro.
+5. **Voz de amiga, con opinión propia** ("neta…", "esa sí me la quería quedar") y el producto en la mano, pegado a la cámara.
+6. **La cara de Mae no sale:** revisar cada video cuadro por cuadro, también los espejos y reflejos.

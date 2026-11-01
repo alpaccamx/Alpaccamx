@@ -23,7 +23,7 @@ RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, os.path.join(RAIZ, "video-envio"))
 sys.argv = [sys.argv[0], "/dev/null"]
 import build as b
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 W, H, FPS = 1080, 1920, 30
 WHITE, INK = b.WHITE, b.INK
@@ -426,13 +426,44 @@ def _palabras():
 
 _PAL = []
 
+FUENTES = os.path.join(RAIZ, "carruseles", "fuentes")
+# palabras clave: grandes, en rosa y con la tipografía gordita de la marca (estilo del video de @thaliarueda)
+CLAVE = {"Holi", "Sale", "One", "Size", "Gisou", "neta", "delicioso", "Tarte", "Charlotte", "Tilbury", "veinte",
+         "llena", "México", "preventa", "GRUPO", "Bye"}
+
+
+def _sombra(im, r=10, a=150):
+    """texto sin borde: solo una sombra suave detrás para que se lea"""
+    sh = Image.new("RGBA", (im.width + 4 * r, im.height + 4 * r))
+    m = im.getchannel("A").point(lambda v: v * a // 255)
+    base = Image.new("RGBA", im.size, (20, 10, 16, 255)); base.putalpha(m)
+    sh.alpha_composite(base, (2 * r, 2 * r + 4)); sh = sh.filter(ImageFilter.GaussianBlur(r))
+    sh.alpha_composite(im, (2 * r, 2 * r)); return sh
+
+
 def subtitulo(L, tg):
-    """la palabra que se está diciendo, blanca con orilla rosa, como en el video de inspiración"""
+    """la palabra que se dice: chica y blanca; las clave, grandes en rosa con Bagel. Sin bordes."""
     if not _PAL: _PAL.extend(_palabras())
-    act = [w for t, w in _PAL if t <= tg]
+    act = [(t, w) for t, w in _PAL if t <= tg]
     if not act or tg > _PAL[-1][0] + 0.8: return
-    w = act[-1]
-    b.pon(L, b.linea(w, "ExtraBold", 84, WHITE, stroke=9, sfill=ROSA), W / 2, 1500)
+    t0, w = act[-1]
+    if w in CLAVE:
+        f = ImageFont.truetype(os.path.join(FUENTES, "BagelFatOne-Regular.ttf"), 150)
+        im = Image.new("RGBA", (int(f.getlength(w)) + 40, 220)); ImageDraw.Draw(im).text((20, 110), w, font=f, fill=ROSA, anchor="lm")
+        s_, a_ = b.entra(tg, t0, 0.3)
+        b.pon(L, _sombra(im), W / 2, 1480, s_, a_)
+    else:
+        b.pon(L, _sombra(b.linea(w, "ExtraBold", 70, WHITE)), W / 2, 1480)
+
+
+def interrupcion(L, tg, t0, texto, dur=0.9):
+    """algo que no se ve venir a la mitad: título gigante con Bebas que entra de golpe"""
+    if not (t0 <= tg < t0 + dur): return
+    f = ImageFont.truetype(os.path.join(FUENTES, "BebasNeue-Regular.ttf"), 420)
+    im = Image.new("RGBA", (int(f.getlength(texto)) + 40, 460)); ImageDraw.Draw(im).text((20, 230), texto, font=f, fill=ROSA, anchor="lm")
+    if im.width > 1040: im = im.resize((1040, int(im.height * 1040 / im.width)), Image.LANCZOS)
+    k = (tg - t0) / dur
+    b.pon(L, _sombra(im, 14, 170), W / 2, 960, 1.25 - 0.25 * b.ease(k / 0.25), min(1.0, (1 - k) / 0.2))
 
 
 def sticker(L, nom, fotos, tg, t0, t1):
@@ -445,11 +476,12 @@ def sticker(L, nom, fotos, tg, t0, t1):
 
 
 def capa_vlog(L, tg):
-    if tg < INI[1] - 0.2:
-        t = b.linea("Sephora Sale 🛍️", "ExtraBold", 96, WHITE, stroke=6, sfill=(30, 20, 26))
-        b.pon(L, t, W / 2, 330, *b.entra(tg, 0.0, 0.35))
-        t = b.linea("las wish lists de mis clientas", "Bold", 54, WHITE, stroke=5, sfill=(30, 20, 26))
-        b.pon(L, t, W / 2, 440, *b.entra(tg, 0.2, 0.35))
+    if tg < INI[1] - 0.2:  # inicio: título con la tipografía de la marca, sin bordes
+        f = ImageFont.truetype(os.path.join(FUENTES, "BagelFatOne-Regular.ttf"), 130)
+        im = Image.new("RGBA", (int(f.getlength("Sephora Sale")) + 40, 190)); ImageDraw.Draw(im).text((20, 95), "Sephora Sale", font=f, fill=WHITE, anchor="lm")
+        b.pon(L, _sombra(im, 12, 170), W / 2, 330, *b.entra(tg, 0.0, 0.35))
+        b.pon(L, _sombra(b.linea("las wish lists de mis clientas 🛍️", "Bold", 52, WHITE)), W / 2, 450, *b.entra(tg, 0.2, 0.35))
+    interrupcion(L, tg, marca(3, 2), "20% OFF")  # a la mitad: algo que no se ve venir (con sonido)
     # ONE/SIZE: el waterproof que tenía en la mano (no el de SPF)
     for rec, t0, t1 in [("onesize-waterproof", marca(1, 0), INI[2]), ("gisou-oil", marca(2, 0), INI[3])]:
         if t0 <= tg < t1:  # estampa con la foto del producto, arriba (abajo va en su mano)
@@ -481,6 +513,7 @@ def cuadros():
 if __name__ == "__main__":
     # sonidos: un pop en cada marca de la voz y brillo al inicio
     SFX += [(0.05, "glitter")] + [(INI[e] + m, "pop") for e in range(len(T)) for m in T[e]["marcas"] if INI[e] + m > 0.3]
+    if VAR == "vlog": SFX.append((marca(3, 2), "glitter"))  # la interrupción de la mitad
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                           "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium", "-movflags", "+faststart", OUT], stdin=subprocess.PIPE)
     cnt = 0
