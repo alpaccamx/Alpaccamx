@@ -12,6 +12,8 @@ estrategia de estrategia/estrategia-redes.md (gancho en el segundo 0, 20-25 s, C
   dior   = prueba de precio: ¿cuánto cuesta esta paleta Dior en México?
   noche  = detrás de cámaras: 8 de la noche y sigo en Sephora por sus pedidos
   amiga  = para compartir: mándale esto a la amiga que siempre te pide algo de Sephora
+  vlog   = estilo del video de inspiración de @itsmaafer: voz de amiga con opinión, el producto en la mano, casi sin
+           texto (subtítulo de una palabra) y una sola mención de la preventa al final
 Uso: python3 build.py VARIANTE CARPETA_CON_est_vNN.mp4   (antes: python3 voz.py VARIANTE) -> Sale-VARIANTE-voz.mp4"""
 import json, os, subprocess, sys
 
@@ -73,6 +75,12 @@ TOMAS = {
               ("v5364", 3.5, 2.5, 1.0), ("v111", 18, 2.6, 1.2),
               ("v111", 30, 3.0, 1.2),
               ("v5362", 1.5, 2.6, 1.0), ("bolsa", 0, 2.7, 1.0)],
+    "vlog": [("v111", 3.5, 2.6, 1.0), ("v111", 7.0, 2.65, 1.0),
+             ("v69", 14.5, 2.5, 1.0), ("v69", 17.0, 2.5, 1.0), ("v69", 19.5, 2.4, 1.0),
+             ("v69", 41.8, 2.1, 1.0), ("v69", 81.5, 2.1, 1.0), ("v111", 16, 2.08, 1.0),
+             ("v5364", 5.2, 3.3, 1.0), ("v5364", 14.0, 3.2, 1.0),
+             ("v5362", 1.5, 2.4, 1.0), ("bolsa", 0, 2.43, 1.0),
+             ("v111", 23, 2.8, 1.2), ("v5362", 12.6, 2.9, 1.0), ("v111", 2.0, 2.85, 1.0)],
 }[VAR]
 
 
@@ -390,8 +398,66 @@ def capa_amiga(L, tg):
         cta_comenta(L, tg, 4, 1)
 
 
+# ---------------- vlog: estilo @itsmaafer (voz de amiga, subtítulo de una palabra, casi sin texto) ----------------
+def _palabras():
+    """(segundo, palabra) de toda la voz, con los tiempos por letra que guardó ElevenLabs"""
+    import hashlib, re
+    v = open(os.path.join(AQUI, "voz.py")).read()
+    voz = re.search(r'^VOZ = "([^"]+)"', v, re.M).group(1)
+    frases = json.load(open(os.path.join(AQUI, f"narracion-{VAR}.json"))); out = []
+    for n, fr in enumerate(frases):
+        k = hashlib.sha1(f"{voz}|eleven_v4|0.5|{fr['texto']}".encode()).hexdigest()[:12]
+        a = json.load(open(os.path.join(AQUI, "voz", "cache", k + ".json")))["alignment"]
+        ch, st = a["characters"], a["character_start_times_seconds"]
+        ini = max(0.0, st[0] - 0.03); off = 0.25 if n == 0 else 0.0
+        pal, tp = "", None
+        for c, t in zip(ch + [" "], st + [st[-1]]):
+            if c.isspace():
+                if pal: out.append((INI[n] + off + tp - ini, pal.strip(".,:;…")))
+                pal = ""; continue
+            if not pal: tp = t
+            pal += c
+    return out
+
+_PAL = []
+
+def subtitulo(L, tg):
+    """la palabra que se está diciendo, blanca con orilla rosa, como en el video de inspiración"""
+    if not _PAL: _PAL.extend(_palabras())
+    act = [w for t, w in _PAL if t <= tg]
+    if not act or tg > _PAL[-1][0] + 0.8: return
+    w = act[-1]
+    b.pon(L, b.linea(w, "ExtraBold", 84, WHITE, stroke=9, sfill=ROSA), W / 2, 1500)
+
+
+def sticker(L, nom, fotos, tg, t0, t1):
+    """la tarjeta con lo que compró, chica y ladeada, como estampa"""
+    if not (t0 <= tg < t1): return
+    tj = tarjeta_compra(nom, fotos)
+    k = 620 / max(tj.width, 620); tj = tj.resize((int(tj.width * k), int(tj.height * k)), Image.LANCZOS)
+    tj = tj.rotate(-4, expand=True, resample=Image.BICUBIC)
+    b.pon(L, tj, W / 2 + 150, 640, *b.entra(tg, t0, 0.35))  # arriba: abajo va el producto en su mano
+
+
+def capa_vlog(L, tg):
+    if tg < INI[1] - 0.2:
+        t = b.linea("Sephora Sale 🛍️", "ExtraBold", 96, WHITE, stroke=6, sfill=(30, 20, 26))
+        b.pon(L, t, W / 2, 330, *b.entra(tg, 0.0, 0.35))
+        t = b.linea("las wish lists de mis clientas", "Bold", 54, WHITE, stroke=5, sfill=(30, 20, 26))
+        b.pon(L, t, W / 2, 440, *b.entra(tg, 0.2, 0.35))
+    fot = {n: f for n, _, f in LISTA}
+    sticker(L, "Saie", fot["Saie"], tg, marca(1, 0), INI[2])
+    sticker(L, "amika", fot["amika"], tg, marca(2, 0), marca(2, 1))
+    sticker(L, "Tower 28", fot["Tower 28"], tg, marca(2, 1), INI[3])
+    sticker(L, "Dior", fot["Dior"], tg, marca(3, 0), INI[4])
+    if INI[5] <= tg < marca(5, 1):
+        pas(L, "Mi preventa cierra el 8 de noviembre 🗓️", 420, "Bold", 46, (20, 20, 22, 220), WHITE, tg, marca(5, 0))
+    if tg >= marca(5, 1): cta_comenta(L, tg, 5, 1)
+    else: subtitulo(L, tg)
+
+
 CAPA = {"lista": capa_lista, "juego": capa_juego, "cierre": capa_cierre,
-        "dior": capa_dior, "noche": capa_noche, "amiga": capa_amiga}[VAR]
+        "dior": capa_dior, "noche": capa_noche, "amiga": capa_amiga, "vlog": capa_vlog}[VAR]
 SFX = []
 
 

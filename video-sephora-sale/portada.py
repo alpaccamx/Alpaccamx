@@ -84,3 +84,11 @@ if os.path.exists(os.path.join(CRUDO, "est_v5362.mp4")):
     bb = B.burbuja("porfa 🙏🙏"); b.pon(L, bb, 60 + bb.width / 2, 880)
     B.pas(L, "20% OFF · cierra el 8 de noviembre", 1480, "Bold", 50, B.WHITE, B.NEGRO)
     guarda(L, "portada-amiga.jpg")
+if os.path.exists(os.path.join(CRUDO, "est_v111.mp4")):
+    # 7. vlog: estilo del video de inspiración (título blanco sin caja, sobre el letrero de Sephora)
+    B = motor("vlog"); b = B.b
+    L = cuadro(B, "v111", 3.5)
+    b.pon(L, b.linea("Sephora Sale 🛍️", "ExtraBold", 120, B.WHITE, stroke=7, sfill=(30, 20, 26)), B.W / 2, 420)
+    b.pon(L, b.linea("las wish lists de mis clientas", "Bold", 62, B.WHITE, stroke=6, sfill=(30, 20, 26)), B.W / 2, 560)
+    b.pon(L, b.linea("acompáñame", "ExtraBold", 96, B.WHITE, stroke=10, sfill=B.ROSA), B.W / 2, 1450)
+    guarda(L, "portada-vlog.jpg")
