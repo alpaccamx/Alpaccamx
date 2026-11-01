@@ -36,32 +36,25 @@ PASOS = [
     ("¡Listo! 📦", []),
 ]
 
-# teléfono en pantalla
-TEL_ALTO = 1420
+# teléfono en pantalla: un iPhone con barra de estado y Safari (iphone.py); la página va entre las dos barras
+from iphone import Iphone
+TEL = Iphone(1440)
 _cache = {}
 
 
 def pantalla(n):
-    """captura en un marco de celular (con lo del banco difuminado)"""
+    """captura dentro del iPhone (con lo del banco difuminado): imagen, escala y dónde empieza la página"""
     if n in _cache: return _cache[n]
     im = Image.open(os.path.join(AQUI, "pantallas", n + ".png")).convert("RGB")
     tp = TOQUES[n].get("tapar")
     if tp:
         x, y, w, h = [int(v) for v in tp]
         im.paste(im.crop((x, y, x + w, y + h)).filter(ImageFilter.GaussianBlur(26)), (x, y))
-    k = TEL_ALTO / im.height; iw, ih = int(im.width * k), TEL_ALTO
-    im = im.resize((iw, ih), Image.LANCZOS)
-    borde = 18; c = Image.new("RGBA", (iw + 2 * borde + 60, ih + 2 * borde + 60))
-    sh = Image.new("L", c.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 46, iw + 2 * borde + 30, ih + 2 * borde + 46), 70, fill=130)
-    c.putalpha(sh.filter(ImageFilter.GaussianBlur(22)))
-    ImageDraw.Draw(c).rounded_rectangle((30, 30, iw + 2 * borde + 30, ih + 2 * borde + 30), 70, fill=NEGRO)
-    m = Image.new("L", (iw, ih), 0); ImageDraw.Draw(m).rounded_rectangle((0, 0, iw - 1, ih - 1), 54, fill=255)
-    c.paste(im, (30 + borde, 30 + borde), m)
-    _cache[n] = (c, k, 30 + borde)
+    _cache[n] = (TEL.con(im), TEL.pw / im.width, TEL.x0, TEL.y0 + TEL.arriba)
     return _cache[n]
 
 
-TEL_Y = 340  # arriba del teléfono
+TEL_Y = 290 - (TEL.y0 - TEL.bez - TEL.tit)  # que el cuerpo del iPhone empiece en y=290
 
 # grabación de pantalla: cada paso de graba.js dura lo mismo que su frase, así que el tramo [pasos[0], pasos[9]]
 # cae justo sobre los pasos 0 a 8 del video
@@ -72,25 +65,11 @@ if os.path.exists(os.path.join(GRAB_DIR, "pantalla.mp4")):
 _marco = {}
 
 
-def marco_vacio(gw, gh):
-    """marco negro del celular para el tamaño de la grabación (con sombra)"""
-    if (gw, gh) in _marco: return _marco[(gw, gh)]
-    borde = 18; c = Image.new("RGBA", (gw + 2 * borde + 60, gh + 2 * borde + 60))
-    sh = Image.new("L", c.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 46, gw + 2 * borde + 30, gh + 2 * borde + 46), 70, fill=130)
-    c.putalpha(sh.filter(ImageFilter.GaussianBlur(22)))
-    ImageDraw.Draw(c).rounded_rectangle((30, 30, gw + 2 * borde + 30, gh + 2 * borde + 30), 70, fill=NEGRO)
-    m = Image.new("L", (gw, gh), 0); ImageDraw.Draw(m).rounded_rectangle((0, 0, gw - 1, gh - 1), 54, fill=255)
-    _marco[(gw, gh)] = (c, m, 30 + borde)
-    return _marco[(gw, gh)]
-
-
 class Grabacion:
     """lee la grabación cuadro por cuadro, ya escalada al alto del teléfono"""
     def __init__(self):
         v, p = GRAB
-        ww, hh = map(int, subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height",
-                                          "-of", "csv=p=0", v], capture_output=True, text=True).stdout.split(","))
-        self.gh = TEL_ALTO; self.gw = int(round(ww * TEL_ALTO / hh / 2)) * 2
+        self.gw, self.gh = TEL.pw, TEL.ph
         # si el paso 0 empezó un pelito antes del primer cuadro, se repite el primer cuadro
         self.pre = max(0, int(round(-p[0] * FPS)))
         self.p = subprocess.Popen(["ffmpeg", "-v", "error", "-ss", f"{max(0, p[0]):.3f}", "-i", v, "-t", f"{p[-1] - max(0, p[0]):.3f}",
@@ -110,12 +89,13 @@ def toque(L, n, t, t0, x0, y0):
     """aro rosa que crece y un dedo en el centro de lo que hay que tocar"""
     tq = TOQUES[n].get("toque")
     if not tq or not (t0 - 0.35 <= t < t0 + 1.1): return
-    _, k, off = pantalla(n)
-    x, y, w, h = tq; cx = x0 + off + (x + w / 2) * k; cy = y0 + off + (y + h / 2) * k
+    _, k, ox, oy = pantalla(n)
+    x0, y0 = x0 + ox, y0 + oy
+    x, y, w, h = tq; cx = x0 + (x + w / 2) * k; cy = y0 + (y + h / 2) * k
     # recuadro rosa alrededor del elemento
     d = ImageDraw.Draw(L)
     a = min(1, (t - t0 + 0.35) / 0.2)
-    d.rounded_rectangle((x0 + off + x * k - 8, y0 + off + y * k - 8, x0 + off + (x + w) * k + 8, y0 + off + (y + h) * k + 8), 18,
+    d.rounded_rectangle((x0 + x * k - 8, y0 + y * k - 8, x0 + (x + w) * k + 8, y0 + (y + h) * k + 8), 18,
                         outline=ROSA + (int(255 * a),), width=7)
     if t >= t0:
         r = 30 + 70 * min(1, (t - t0) / 0.5); al = int(220 * max(0, 1 - (t - t0) / 0.9))
@@ -161,7 +141,7 @@ def cuadro(tg):
         final(L, tg, INI[e]); return L
     if GRABADOR is not None:
         im = GRABADOR.cuadro()
-        c, m, off = marco_vacio(GRABADOR.gw, GRABADOR.gh); c = c.copy(); c.paste(im, (off, off), m)
+        c = TEL.con(im)
         L.alpha_composite(c, (int(W / 2 - c.width / 2), TEL_Y))
         return L
     # qué pantalla toca ahora: la siguiente entra 0.7 s después del toque de la anterior
@@ -171,7 +151,7 @@ def cuadro(tg):
         cambio = (marca(e, m) + 0.7) if m is not None else (INI[e] + (marca(e, pantallas[j][1]) - INI[e]) * 0.45)
         if tg >= cambio: act = j
     n, m = pantallas[act]
-    tel, _, _ = pantalla(n)
+    tel = pantalla(n)[0]
     x0, y0 = int(W / 2 - tel.width / 2), TEL_Y
     L.alpha_composite(tel, (x0, y0))
     if m is not None: toque(L, n, tg, marca(e, m), x0, y0)
@@ -202,9 +182,11 @@ if __name__ == "__main__":
     fil.append("[v]" + "".join(f"[s{j}]" for j in range(len(SFX))) + f"amix=inputs={len(SFX) + 1}:normalize=0:duration=first,loudnorm=I=-14:TP=-1:LRA=11[a]")
     subprocess.run(["ffmpeg", "-v", "error", "-y", *ins, "-filter_complex", ";".join(fil), "-map", "0:v", "-map", "[a]",
                     "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-ar", "48000", "-shortest", "-movflags", "+faststart", final_], check=True)
-    # portada: el paso 1 con el título
-    L = FONDO.copy(); tel, _, _ = pantalla("02"); L.alpha_composite(tel, (int(W / 2 - tel.width / 2), TEL_Y + 60))
-    b.pon(L, b.pastilla("Cómo comprar stock", "ExtraBold", 84, ROSA, WHITE, padx=46, pady=22), W / 2, 210)
-    b.pon(L, b.pastilla("en alpacca.mx · paso a paso 👆", "Bold", 52, NEGRO, WHITE, padx=36, pady=16), W / 2, 340)
+    # portada: la página dentro de un iPhone más chico, todo dentro de la zona 3:4 que se ve en el perfil (y 240-1680)
+    tc = Iphone(1090); im = Image.open(os.path.join(AQUI, "pantallas", "02.png")).convert("RGB")
+    tel = tc.con(im); cuerpo = tc.y0 - tc.bez - tc.tit
+    L = FONDO.copy(); L.alpha_composite(tel, (int(W / 2 - tel.width / 2), 535 - cuerpo))
+    b.pon(L, b.pastilla("Cómo comprar stock", "ExtraBold", 84, ROSA, WHITE, padx=46, pady=22), W / 2, 315)
+    b.pon(L, b.pastilla("en alpacca.mx · paso a paso 👆", "Bold", 52, NEGRO, WHITE, padx=36, pady=16), W / 2, 445)
     L.convert("RGB").save(os.path.join(AQUI, "portada-tutorial.jpg"), quality=92)
     print("ok", final_, f"{total / FPS:.1f}s")
