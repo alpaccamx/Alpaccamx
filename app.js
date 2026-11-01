@@ -3537,6 +3537,8 @@ function renderQuickIcons() {
     icons.push({ key: "stock", label: "Stock en México", img: icon("stock") });
   }
   icons.push({ key: "catalog", label: "Catálogo completo", img: icon("catalogo") });
+  // Calculadora de Personal shopper (precio en dólares → pesos en México).
+  if (typeof openPsCalc === "function") icons.push({ key: "calc", label: "Calculadora USA", emoji: "🧮" });
 
   const counts = new Map();
   avail.forEach((p) => p.categoria && counts.set(p.categoria, (counts.get(p.categoria) || 0) + 1));
@@ -3565,7 +3567,7 @@ function renderQuickIcons() {
           ${
             ic.img
               ? `<img src="${escapeAttr(ic.img)}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover" />`
-              : ""
+              : ic.emoji ? `<span class="text-3xl sm:text-4xl" aria-hidden="true">${ic.emoji}</span>` : ""
           }
         </span>
         <span class="text-xs font-medium text-ink leading-tight">${escapeHtml(ic.label)}</span>
@@ -3588,6 +3590,7 @@ function renderQuickIcons() {
     else if (key === "best") goHomeTo("featured-section");
     else if (key === "stock") openStockSection();
     else if (key === "catalog") openFullCatalog();
+    else if (key === "calc") openPsCalc();
     else if (key === "brands") goHomeTo("brands-section");
     else if (key === "shipping") document.getElementById("shipping-times-open").click();
     else if (key.startsWith("cat:")) showCategoryProducts(key.slice(4));
