@@ -4,7 +4,7 @@ fotos/bolsa.jpg = su bolsa llena (IMG_5355, con el ticket difuminado).
 Los videos se pasan antes a color normal y se estabilizan (est_vNN.mp4, con scratchpad/sale/estabiliza.sh).
 
 Formatos que no se repiten con los de BBW, Victoria's Secret ni los de Sephora anteriores:
-  lista  = la lista de pedidos de sus clientas que se va palomeando
+  lista  = la lista de pedidos de sus clientas que se va palomeando (con lo que de verdad compró: ver LISTA)
   juego  = ¿adivinas cuánto cuesta en México? (precio de México y luego el de Mae)
   cierre = la preventa cierra el 8 de noviembre: línea de tiempo de cómo funciona
 Uso: python3 build.py VARIANTE CARPETA_CON_est_vNN.mp4   (antes: python3 voz.py VARIANTE) -> Sale-VARIANTE-voz.mp4"""
@@ -34,9 +34,9 @@ ESPEJO = (180, 306, 640, 1138)
 # cada renglón es una frase de la voz. fuente "bolsa" = la foto de la bolsa (con un zoom lento)
 TOMAS = {
     "lista": [("v45", 62, 1.0, 3.0), ("v45", 262, 1.0, 2.0), ("v62", 65.5, 1.8, 1.0),  # sin el espejo ni la toma movida de v45 286
-              ("v69", 15, 1.6, 1.0), ("v69", 128, 1.2, 1.0),
-              ("v69", 166, 2.0, 1.0), ("v62", 8, 1.6, 1.0),
-              ("v62", 78.5, 2.8, 1.0),
+              ("v69", 0.8, 1.7, 1.0), ("v69", 41.5, 1.7, 1.0),          # amika (y Tower 28 con su tarjeta)
+              ("v69", 15, 1.6, 1.0), ("v69", 26, 1.3, 1.0),             # Saie, Too Faced
+              ("v62", 66, 1.5, 1.0), ("v69", 198, 1.4, 1.0),            # Mane, Dior (tomas de la tienda)
               ("bolsa", 0, 3.2, 1.0),
               ("v69", 215, 2.4, 1.2), ("v69", 256, 2.2, 1.0), ("v69", 278, 2.2, 1.0), ("v62", 96, 2.5, 1.2)],
     "juego": [("v69", 186, 1.6, 1.3), ("v62", 90, 1.6, 1.3),
@@ -110,7 +110,34 @@ def cta(L, tg, e):
 
 
 # ---------------- lista: la libreta de pedidos que se va palomeando ----------------
-LISTA = [("Saie", (1, 0)), ("Rhode", (1, 1)), ("Sol de Janeiro", (2, 0)), ("Rare Beauty", (2, 1)), ("Charlotte Tilbury", (3, 0))]
+# lo que de verdad compró ese día (su correo de Sephora): marca, cuándo se palomea y las fotos de sus productos (compra/*.png,
+# recortadas de las capturas del correo). Tower 28, Too Faced, Mane y Dior no salen en sus videos: por eso la tarjeta con la foto
+LISTA = [("amika", (1, 0), ["amika-hydrorush", "amika-wizard", "amika-soulfood", "amika-mini"]),
+         ("Tower 28", (1, 1), ["tower-beachplease", "tower-getset", "tower-gogo"]),
+         ("Saie", (2, 0), ["saie-dew", "saie-minidew"]),
+         ("Too Faced", (2, 1), ["toofaced-concealer"]),
+         ("Mane", (3, 0), ["mane-cottoncandy", "mane-pinky", "mane-tempcheck"]),
+         ("Dior", (3, 1), ["dior-palette", "dior-missdior"])]
+
+
+def tarjeta_compra(marca_, fotos):
+    """las fotos de lo que compró de esa marca, en una tarjeta blanca con el nombre"""
+    k = ("compra", marca_)
+    if k not in _cache:
+        ims = []
+        for f in fotos:
+            im = Image.open(os.path.join(AQUI, "compra", f + ".png")).convert("RGB"); im.thumbnail((260, 250), Image.LANCZOS); ims.append(im)
+        t = b.linea(f"✅ {marca_}", "ExtraBold", 50, NEGRO)
+        w = max(sum(i.width for i in ims) + 30 * (len(ims) - 1) + 80, t.width + 80); h = 250 + 140
+        c = Image.new("RGBA", (w + 60, h + 60))
+        sh = Image.new("L", c.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 42, w + 30, h + 42), 44, fill=120)
+        c.putalpha(sh.filter(ImageFilter.GaussianBlur(18)))
+        ImageDraw.Draw(c).rounded_rectangle((30, 30, w + 30, h + 30), 44, fill=WHITE)
+        x = 30 + (w - (sum(i.width for i in ims) + 30 * (len(ims) - 1))) // 2
+        for im in ims: c.paste(im, (x, 70 + (250 - im.height) // 2)); x += im.width + 30
+        c.alpha_composite(t, ((c.width - t.width) // 2, 70 + 250 + 10))
+        _cache[k] = c
+    return _cache[k]
 
 def libreta(tg):
     w, h = 560, 120 + 78 * len(LISTA)
@@ -120,7 +147,7 @@ def libreta(tg):
     d = ImageDraw.Draw(im); d.rounded_rectangle((20, 20, w + 20, h + 20), 30, fill=(255, 253, 247))
     d.line((92, 20, 92, h + 20), fill=(240, 160, 180), width=3)  # margen de libreta
     im.alpha_composite(b.linea("Pedidos de mis clientas 📝", "ExtraBold", 33, NEGRO), (110, 44))
-    for i, (s, (e, m)) in enumerate(LISTA):
+    for i, (s, (e, m), _) in enumerate(LISTA):
         y = 130 + 78 * i
         d.line((92, y + 62, w + 10, y + 62), fill=(225, 225, 232), width=2)
         hecho = tg >= marca(e, m)
@@ -143,8 +170,14 @@ def capa_lista(L, tg):
     elif tg < INI[5]:
         lb = libreta(tg); lb = lb.resize((int(lb.width * 1.3), int(lb.height * 1.3)), Image.LANCZOS)  # que se lea bien
         s, a = b.entra(tg, INI[1] - 0.15, 0.4)
-        b.pon(L, lb, 20 + lb.width / 2, 230 + lb.height / 2, s, a)
-        if tg >= marca(4, 0): b.pon(L, sello("¡Lista completa! ✅"), W / 2, 1250, *b.entra(tg, marca(4, 0), 0.4))
+        b.pon(L, lb, 20 + lb.width / 2, 200 + lb.height / 2, s, a)
+        act = [x for x in LISTA if tg >= marca(*x[1])]
+        if act and tg < marca(4, 0):  # la tarjeta con las fotos de lo último que se palomeó
+            nom, (e, m), fotos = act[-1]; t0 = marca(e, m)
+            tj = tarjeta_compra(nom, fotos)
+            if tj.width > 1040: tj = tj.resize((1040, int(tj.height * 1040 / tj.width)), Image.LANCZOS)
+            b.pon(L, tj, W / 2, 1360, *b.entra(tg, t0, 0.35))
+        if tg >= marca(4, 0): b.pon(L, sello("¡Lista completa! ✅"), W / 2, 1380, *b.entra(tg, marca(4, 0), 0.4))
     else:
         if tg < marca(5, 1): pas(L, "Mi preventa cierra el 8 de noviembre 🗓️", 700, sz=52, t=tg, t0=marca(5, 0))
         cta(L, tg, 5)

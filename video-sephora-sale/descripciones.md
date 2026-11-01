@@ -7,24 +7,25 @@ Preventa: 20% OFF · aparta con el 50% · liquidas antes de que te lo envíe · 
 
 **TikTok**
 > Fui al Sephora Sale con la lista de pedidos de mis clientas 📝✅
-> Saie, Rhode, Sol de Janeiro, Rare Beauty, Charlotte Tilbury… ¡lista completa!
+> amika, Tower 28, Saie, Too Faced, Mane y Dior… ¡lista completa!
 > Mi preventa cierra el 8 de noviembre 🗓️ · QR de mi grupo de WhatsApp al final
-> #sephorasale #sephora #personalshopper #rhode #rarebeauty
+> #sephorasale #sephora #personalshopper #amika #tower28
 
 **Instagram**
 > Hoy fui al Sephora Sale con la lista de pedidos de mis clientas 📝
 >
+> ✅ amika
+> ✅ Tower 28
 > ✅ Saie
-> ✅ Rhode
-> ✅ Sol de Janeiro
-> ✅ Rare Beauty
-> ✅ Charlotte Tilbury
+> ✅ Too Faced
+> ✅ Mane
+> ✅ Dior
 >
 > ¡Lista completa y la bolsa llena! 🛍️
 > ¿Quieres que te traiga algo? Mi preventa tiene 20% OFF y cierra el 8 de noviembre: apartas con el 50% y liquidas antes de que te lo envíe.
 > 📲 Escanea el QR al final del video para entrar a mi grupo de WhatsApp.
 >
-> #sephorasale #sephora #personalshopper #compraseneeuu #rhode #rarebeauty #soldejaneiro #charlottetilbury
+> #sephorasale #sephora #personalshopper #compraseneeuu #amika #tower28 #saie #dior
 
 ---
 
