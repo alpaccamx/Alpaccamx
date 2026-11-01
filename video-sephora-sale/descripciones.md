@@ -137,22 +137,23 @@ Por qué: un video hecho para mandárselo a alguien llega a gente que no te sigu
 ---
 
 ## Video 7: acompáñame al Sephora Sale (estilo del video de inspiración de @itsmaafer)
-Por qué: hablar como amiga, con opinión propia ("neta, el color en persona está precioso"), el producto en la mano y casi sin texto se siente real y no como anuncio. Eso genera confianza y hace que lo vean completo. La venta va una sola vez, al final.
-Revisa que las opiniones de la voz sean tuyas antes de publicarlo.
+Por qué: hablar como amiga, con opinión propia, el producto en la mano y casi sin texto se siente real y no como anuncio. Eso genera confianza y hace que lo vean completo. La venta va una sola vez, al final.
+Productos que no salen en los otros videos: ONE/SIZE, Gisou, Tarte y Charlotte Tilbury. Revisa que las opiniones de la voz sean tuyas antes de publicarlo.
 
 **TikTok**
 > Holi, acompáñame al Sephora Sale a cumplir las wish lists de mis clientas 🛍️💗
-> Saie, amika, Tower 28 y la paleta de Dior que me quería quedar 🥹
+> ONE/SIZE, Gisou, Tarte Shape Tape y Charlotte Tilbury con 20% OFF ✨
 > Mi preventa cierra el 8 de noviembre · comenta GRUPO 👇
-> #sephorasale #sephora #acompañame #personalshopper #saie #dior
+> #sephorasale #sephora #acompañame #personalshopper #onesize #gisou #tarte
 
 **Instagram**
 > Holi, acompáñame al Sephora Sale a cumplir las wish lists de mis clientas 🛍️💗
 >
-> Lo que más me pidieron: Saie Dew Blush (neta, el color en persona está precioso), amika y Tower 28, que con el 20% salen súper bien de precio.
-> Y la paleta Dior Backstage Glow… esa sí me la quería quedar 🥹
+> Encontré el setting spray de ONE/SIZE (On 'Til Dawn), el que hace que el maquillaje te dure todo el día.
+> Pasé por Gisou: neta, el aceite de miel huele delicioso 🍯
+> Y el Shape Tape de Tarte y lo de Charlotte Tilbury, que con el 20% salen súper bien de precio.
 >
 > Si quieres algo, mi preventa cierra el 8 de noviembre: apartas con el 50% y liquidas antes de que te lo envíe.
 > 💬 Comenta GRUPO y te paso el link de mi grupo de WhatsApp.
 >
-> #sephorasale #sephora #acompañame #personalshopper #compraseneeuu #saie #amika #tower28 #dior
+> #sephorasale #sephora #acompañame #personalshopper #compraseneeuu #onesize #gisou #tarte #charlottetilbury

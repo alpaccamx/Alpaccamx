@@ -1,8 +1,46 @@
 [
- {"texto": "Holi, acompáñame al Sephora Sale a cumplir las wish lists de mis clientas.", "marcas": ["Holi", "wish lists"]},
- {"texto": "Lo que más me pidieron fue Saie, el Dew Blush. Y neta, el color en persona está precioso.", "marcas": ["Saie", "neta"]},
- {"texto": "También amika y Tower 28, que con el veinte por ciento salen súper bien de precio.", "marcas": ["amika", "Tower", "veinte"]},
- {"texto": "Y la paleta de Dior, la Backstage Glow… esa sí me la quería quedar, la verdad.", "marcas": ["Dior", "quedar"]},
- {"texto": "Y bueno, salí con la bolsa llena, lista para mandarla a México.", "marcas": ["bolsa", "México"]},
- {"texto": "Si quieres algo, mi preventa cierra el ocho de noviembre. Comenta GRUPO y te paso el link. Bye, las quiero.", "marcas": ["preventa", "Comenta", "Bye"]}
+ {
+  "texto": "Holi, acompáñame al Sephora Sale a cumplir las wish lists de mis clientas.",
+  "marcas": [
+   "Holi",
+   "wish lists"
+  ]
+ },
+ {
+  "texto": "Encontré el setting spray de One Size, el On Til Dawn, el que hace que el maquillaje te dure todo el día.",
+  "marcas": [
+   "One Size",
+   "dure"
+  ]
+ },
+ {
+  "texto": "Pasé por Gisou, y neta, el aceite de miel huele delicioso.",
+  "marcas": [
+   "Gisou",
+   "neta"
+  ]
+ },
+ {
+  "texto": "Y el Shape Tape de Tarte, y lo de Charlotte Tilbury, que con el veinte por ciento salen súper bien de precio.",
+  "marcas": [
+   "Shape Tape",
+   "Charlotte",
+   "veinte"
+  ]
+ },
+ {
+  "texto": "Y bueno, salí con la bolsa llena, lista para mandarla a México.",
+  "marcas": [
+   "bolsa",
+   "México"
+  ]
+ },
+ {
+  "texto": "Si quieres algo, mi preventa cierra el ocho de noviembre. Comenta GRUPO y te paso el link. Bye, las quiero.",
+  "marcas": [
+   "preventa",
+   "Comenta",
+   "Bye"
+  ]
+ }
 ]

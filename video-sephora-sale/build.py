@@ -76,9 +76,10 @@ TOMAS = {
               ("v111", 30, 3.0, 1.2),
               ("v5362", 1.5, 2.6, 1.0), ("bolsa", 0, 2.7, 1.0)],
     "vlog": [("v111", 3.5, 2.6, 1.0), ("v111", 7.0, 2.65, 1.0),
-             ("v69", 14.5, 2.5, 1.0), ("v69", 17.0, 2.5, 1.0), ("v69", 19.5, 2.4, 1.0),
-             ("v69", 41.8, 2.1, 1.0), ("v69", 81.5, 2.1, 1.0), ("v111", 16, 2.08, 1.0),
-             ("v5364", 5.2, 3.3, 1.0), ("v5364", 14.0, 3.2, 1.0),
+             # productos que no salen en los otros videos (Mae no quiso repetir Saie, amika, Tower 28 ni Dior)
+             ("v62", 43.0, 3.6, 1.0), ("v62", 45.5, 3.56, 1.0),                    # ONE/SIZE On 'Til Dawn en su mano
+             ("v69", 58.5, 2.4, 1.0), ("v69", 60.3, 2.84, 1.0),                    # Gisou, el aceite de miel
+             ("v5364", 47.5, 2.4, 1.0), ("v5364", 49.5, 2.0, 1.0), ("v62", 78.5, 2.6, 1.0),  # Tarte Shape Tape, Charlotte
              ("v5362", 1.5, 2.4, 1.0), ("v111", 0.3, 2.43, 1.0),  # sin la foto de la bolsa (ya salió en muchos)
              ("v111", 23, 2.8, 1.2), ("v5362", 12.6, 2.9, 1.0), ("v111", 2.0, 2.85, 1.0)],
 }[VAR]
@@ -445,11 +446,10 @@ def capa_vlog(L, tg):
         b.pon(L, t, W / 2, 330, *b.entra(tg, 0.0, 0.35))
         t = b.linea("las wish lists de mis clientas", "Bold", 54, WHITE, stroke=5, sfill=(30, 20, 26))
         b.pon(L, t, W / 2, 440, *b.entra(tg, 0.2, 0.35))
-    fot = {n: f for n, _, f in LISTA}
-    sticker(L, "Saie", fot["Saie"], tg, marca(1, 0), INI[2])
-    sticker(L, "amika", fot["amika"], tg, marca(2, 0), marca(2, 1))
-    sticker(L, "Tower 28", fot["Tower 28"], tg, marca(2, 1), INI[3])
-    sticker(L, "Dior", fot["Dior"], tg, marca(3, 0), INI[4])
+    for rec, t0, t1 in [("onesize-spray", marca(1, 0), INI[2]), ("gisou-oil", marca(2, 0), INI[3])]:
+        if t0 <= tg < t1:  # estampa con la foto del producto, arriba (abajo va en su mano)
+            p = producto(rec, 360).rotate(-4, expand=True, resample=Image.BICUBIC)
+            b.pon(L, p, W / 2 + 230, 600, *b.entra(tg, t0, 0.35))
     if INI[5] <= tg < marca(5, 1):
         pas(L, "Mi preventa cierra el 8 de noviembre 🗓️", 420, "Bold", 46, (20, 20, 22, 220), WHITE, tg, marca(5, 0))
     if tg >= marca(5, 1): cta_comenta(L, tg, 5, 1)
