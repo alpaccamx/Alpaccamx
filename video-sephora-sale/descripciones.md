@@ -149,7 +149,7 @@ Productos que no salen en los otros videos: ONE/SIZE, Gisou, Tarte y Charlotte T
 **Instagram**
 > Holi, acompáñame al Sephora Sale a cumplir las wish lists de mis clientas 🛍️💗
 >
-> Encontré el setting spray de ONE/SIZE (On 'Til Dawn), el que hace que el maquillaje te dure todo el día.
+> Encontré el setting spray de ONE/SIZE (On 'Til Dawn waterproof), el que hace que el maquillaje te dure todo el día.
 > Pasé por Gisou: neta, el aceite de miel huele delicioso 🍯
 > Y el Shape Tape de Tarte y lo de Charlotte Tilbury, que con el 20% salen súper bien de precio.
 >

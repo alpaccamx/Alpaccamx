@@ -37,6 +37,7 @@ def marca(e, m=None): return INI[e] + (0 if m is None else T[e]["marcas"][m])
 # recorte (x, y, ancho, alto) sobre el video de 1080x1444. Mae pidió quitar sus tomas en espejos (coche, espejo redondo y
 # Beauty Services en v62 57 s) y la toma movida de v45 286 s (no se ve nada): no usarlas.
 ESPEJO = (180, 306, 640, 1138)
+SIN_ESPEJO_OS = (400, 120, 680, 1209)  # v62 43-49 s: solo la mitad derecha (el espejo queda fuera)
 # tomas en orden: (fuente, inicio, segundos, velocidad[, recorte]); se estiran parejo para llenar lo que dura la voz.
 # cada renglón es una frase de la voz. fuente "bolsa" = la foto de la bolsa (con un zoom lento)
 TOMAS = {
@@ -77,7 +78,10 @@ TOMAS = {
               ("v5362", 1.5, 2.6, 1.0), ("bolsa", 0, 2.7, 1.0)],
     "vlog": [("v111", 3.5, 2.6, 1.0), ("v111", 7.0, 2.65, 1.0),
              # productos que no salen en los otros videos (Mae no quiso repetir Saie, amika, Tower 28 ni Dior)
-             ("v62", 43.0, 3.6, 1.0), ("v62", 45.5, 3.56, 1.0),                    # ONE/SIZE On 'Til Dawn en su mano
+             # ONE/SIZE On 'Til Dawn waterproof en su mano; recortado para que no salga el espejo redondo de la
+             # izquierda (ahí se refleja la cara de Mae)
+             # (cámara lenta para no pasar de 47.0 s: después la cámara gira y entra el espejo con su cara)
+             ("v62", 43.0, 3.6, 0.65, SIN_ESPEJO_OS), ("v62", 45.4, 3.56, 0.45, SIN_ESPEJO_OS),
              ("v69", 58.5, 2.4, 1.0), ("v69", 60.3, 2.84, 1.0),                    # Gisou, el aceite de miel
              ("v5364", 47.5, 2.4, 1.0), ("v5364", 49.5, 2.0, 1.0), ("v62", 78.5, 2.6, 1.0),  # Tarte Shape Tape, Charlotte
              ("v5362", 1.5, 2.4, 1.0), ("v111", 0.3, 2.43, 1.0),  # sin la foto de la bolsa (ya salió en muchos)
@@ -446,7 +450,8 @@ def capa_vlog(L, tg):
         b.pon(L, t, W / 2, 330, *b.entra(tg, 0.0, 0.35))
         t = b.linea("las wish lists de mis clientas", "Bold", 54, WHITE, stroke=5, sfill=(30, 20, 26))
         b.pon(L, t, W / 2, 440, *b.entra(tg, 0.2, 0.35))
-    for rec, t0, t1 in [("onesize-spray", marca(1, 0), INI[2]), ("gisou-oil", marca(2, 0), INI[3])]:
+    # ONE/SIZE: el waterproof que tenía en la mano (no el de SPF)
+    for rec, t0, t1 in [("onesize-waterproof", marca(1, 0), INI[2]), ("gisou-oil", marca(2, 0), INI[3])]:
         if t0 <= tg < t1:  # estampa con la foto del producto, arriba (abajo va en su mano)
             p = producto(rec, 360).rotate(-4, expand=True, resample=Image.BICUBIC)
             b.pon(L, p, W / 2 + 230, 600, *b.entra(tg, t0, 0.35))
