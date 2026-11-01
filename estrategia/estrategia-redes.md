@@ -91,3 +91,18 @@ Horario: 7–9 pm hora de México (cuando más gente usa el celular después del
 4. **Colores de la marca siempre:** rosa Alpacca, blanco y negro.
 5. **Voz de amiga, con opinión propia** ("neta…", "esa sí me la quería quedar") y el producto en la mano, pegado a la cámara.
 6. **La cara de Mae no sale:** revisar cada video cuadro por cuadro, también los espejos y reflejos.
+
+## Qué grabar en cada ida a la tienda (para vlogs con historia, estilo @andybadilloo)
+
+Un vlog que cuenta el día necesita momentos distintos, no solo pasillos. En cada salida, graba 3 a 5 segundos de cada uno (sin que salga tu cara si no quieres; también evita espejos):
+
+1. **Salida:** tus manos tomando las llaves o la bolsa vacía, la puerta de tu casa.
+2. **Camino:** el volante o la ventana del carro, el estacionamiento (sin tu reflejo).
+3. **Llegada:** el letrero de la tienda y la puerta al entrar.
+4. **Buscando:** 4 a 6 productos distintos en tu mano, pegados a la cámara (uno por marca, que no se repitan con otros videos).
+5. **Un dato:** algo nuevo o que no esperabas (un set de Navidad, algo agotado, un descuento extra). Esto es lo que hace que lo vean completo.
+6. **La caja:** el pago o la bolsa en el mostrador (sin que se lea el ticket).
+7. **Salida y cierre bonito:** la bolsa llena, el atardecer o la tienda de noche.
+8. **En casa:** sacando los productos o empacando el pedido.
+
+Subtítulo del vlog: una palabra chiquita, blanca, sin borde, en el tercio de arriba. Cierre con pregunta: "¿Quieren que les traiga algo de aquí? Díganme".
