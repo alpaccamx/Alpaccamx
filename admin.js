@@ -372,11 +372,40 @@
     ordersEl.querySelectorAll("[data-cancel]").forEach((btn) => {
       btn.addEventListener("click", () => confirmOrCancel(btn.dataset.cancel, "cancel"));
     });
+    ordersEl.querySelectorAll("[data-mp-check]").forEach((btn) => {
+      btn.addEventListener("click", () => revisarMercadoPago(btn.dataset.mpCheck, btn));
+    });
     wireCopyAddressButtons(ordersEl);
     wireEditButtons(ordersEl);
     wireProofLinkButtons(ordersEl);
     wireSupplierPromptButtons(ordersEl);
     wireSupplierNoteButtons(ordersEl);
+  }
+
+  /* Pedido con tarjeta que sigue "por confirmar": le pregunta a Mercado
+     Pago qué pasó (admin-mp-check). Si ya hay un pago aprobado, lo aplica. */
+  const MP_ESTADOS = {
+    approved: "✅ Aprobado", rejected: "❌ Rechazado", pending: "⏳ Pendiente (pago en efectivo o en proceso)",
+    in_process: "⏳ En revisión de Mercado Pago", cancelled: "❌ Cancelado / vencido", refunded: "↩️ Reembolsado", charged_back: "↩️ Contracargo",
+  };
+  async function revisarMercadoPago(orderId, btn) {
+    const out = document.querySelector(`[data-mp-result="${CSS.escape(orderId)}"]`);
+    btn.disabled = true; const label = btn.textContent; btn.textContent = "Revisando...";
+    try {
+      const res = await fetch("/.netlify/functions/admin-mp-check", {
+        method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo revisar.");
+      if (data.aplicado) { showToast("✅ Mercado Pago ya lo había aprobado: pedido confirmado"); fetchOrders(); return; }
+      out.innerHTML = data.pagos.length
+        ? data.pagos.map((p) => `${MP_ESTADOS[p.status] || escapeHtml(p.status)} · ${formatPrice(p.monto)} · ${escapeHtml(p.metodo)}${p.detalle ? ` <span style="color:#8a828f;">(${escapeHtml(p.detalle)})</span>` : ""} · ${new Date(p.fecha).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}`).join("<br>")
+        : "Mercado Pago no tiene ningún intento de pago de este pedido: la clienta no llegó a pagar (cerró la página de pago). Escríbele o cancélalo.";
+    } catch (err) {
+      out.textContent = err.message;
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
   }
 
   function renderHistory(orders, pendingShownAbove = false) {
@@ -1634,6 +1663,8 @@ ${itemLines}
             <button class="btn-primary" data-confirm="${o.id}" title="Esto resta las piezas vendidas del stock automáticamente">✅ Ya me pagó</button>
             <button class="btn-danger" data-cancel="${o.id}">✕ No pagó / Cancelar</button>
           </div>
+          ${o.source === "mercadopago" ? `<div class="meta" style="margin-top:6px;">💳 Eligió pagar con tarjeta: este pedido se confirma solo cuando Mercado Pago aprueba el pago. Si sigue aquí, puede que no haya terminado de pagar o que le rechazaran la tarjeta.</div>
+          <div class="actions"><button class="btn-secondary" data-mp-check="${o.id}">🔎 Revisar en Mercado Pago</button></div><div class="meta" data-mp-result="${o.id}"></div>` : ""}
           ${editBlockHTML(o)}
           ${supplierPromptBlockHTML(o)}
           ${supplierNoteBlockHTML(o)}
