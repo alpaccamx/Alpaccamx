@@ -515,11 +515,29 @@ ALLURE = {1: ("ct-spray", "Charlotte Tilbury Airbrush Flawless Setting Spray", "
 AHORRO = {1: 124, 2: 141, 3: 366}
 
 
+# fotos oficiales sin recortar (en una tarjeta blanca se ven limpias; recortadas quedaban con orillas o sombras)
+FOTO_OFICIAL = {"dior-lipoil": os.path.join(AQUI, "fotos", "dior-lipglow-oficial.jpg")}
+
+
 @lru_cache(None)
 def recorte(nombre, alto):
-    im = Image.open(os.path.join(RAIZ, "carruseles", "recortes", nombre + ".png")).convert("RGBA")
-    im.thumbnail((620, alto), Image.LANCZOS)
-    return _sombra(im, 24, 120)
+    """el producto en una tarjeta blanca redondeada con sombra (así no se notan las orillas del recorte)"""
+    if nombre in FOTO_OFICIAL:
+        im = Image.open(FOTO_OFICIAL[nombre]).convert("RGB")
+        bb = Image.eval(im.convert("L"), lambda v: 255 if v < 232 else 0).getbbox()  # quitar el margen del fondo
+        im = im.crop((max(0, bb[0] - 30), max(0, bb[1] - 30), min(im.width, bb[2] + 30), min(im.height, bb[3] + 30)))
+        im = im.point(lambda v: min(255, int(v * 255 / 240))).convert("RGBA")  # el fondo gris claro de la foto, a blanco
+    else:
+        im = Image.open(os.path.join(RAIZ, "carruseles", "recortes", nombre + ".png")).convert("RGBA")
+    im.thumbnail((560, alto - 70), Image.LANCZOS)
+    w, h = max(im.width + 70, int(alto * 0.62)), alto
+    c = Image.new("RGBA", (w + 60, h + 60))
+    sh = Image.new("L", c.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 42, w + 30, h + 42), 46, fill=110)
+    c.putalpha(sh.filter(ImageFilter.GaussianBlur(18)))
+    card = Image.new("RGBA", (w, h), (0, 0, 0, 0)); ImageDraw.Draw(card).rounded_rectangle((0, 0, w - 1, h - 1), 46, fill=(255, 255, 255, 255))
+    if im.mode == "RGBA": card.alpha_composite(im, ((w - im.width) // 2, (h - im.height) // 2))
+    c.alpha_composite(card, (30, 30))
+    return c
 
 
 def numero(n, total=4):
@@ -537,12 +555,12 @@ def capa_allure(L, tg):
             im = Image.new("RGBA", (int(f.getlength(txt)) + 40, 180)); ImageDraw.Draw(im).text((20, 90), txt, font=f, fill=col, anchor="lm")
             b.pon(L, _sombra(im, 12, 170), W / 2, y, *b.entra(tg, 0.1 + 0.2 * k, 0.4))
         b.pon(L, _sombra(b.linea("¿cuánto cuestan en México vs. conmigo?", "Bold", 44, WHITE)), W / 2, 600, *b.entra(tg, marca(0, 1) - 0.3, 0.35))
-        for k, rec in enumerate(["ct-spray", "dior-lipoil", "dior-forever", "tower-sos-solo"]):  # entran flotando
-            t0 = 0.6 + 0.35 * k; p = recorte(rec, 520)
+        for k, rec in enumerate(["ct-spray", "dior-lipoil", "dior-forever", "tower-sos-solo"]):  # entran flotando, 2×2
+            t0 = 0.6 + 0.35 * k; p = recorte(rec, 430)
             if tg >= t0:
                 dy = 260 * (1 - b.ease((tg - t0) / 0.5)); fl = 10 * math.sin(2 * (tg + k))
-                b.pon(L, p, 150 + 260 * k, 1080 + dy + fl, 0.85, min(1, (tg - t0) / 0.2))
-        subtitulo(L, tg, 1560)
+                b.pon(L, p, [290, 790][k % 2], [930, 1410][k // 2] + dy + fl, 1.0, min(1, (tg - t0) / 0.2))
+        subtitulo(L, tg, 1730)
     elif e in ALLURE:
         rec, nom, tienda, pt, mio = ALLURE[e]; t0 = INI[e]
         b.pon(L, numero(e), W - 150, 150, *b.entra(tg, t0, 0.3))

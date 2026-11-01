@@ -103,6 +103,6 @@ if os.path.exists(os.path.join(CRUDO, "est_v62.mp4")):
         b.pon(L, B._sombra(im, 12, 170), B.W / 2, y)
     b.pon(L, B._sombra(b.linea("¿cuánto cuestan en México vs. conmigo?", "Bold", 46, B.WHITE)), B.W / 2, 690)
     for k, rec in enumerate(["ct-spray", "dior-lipoil", "dior-forever", "tower-sos-solo"]):
-        b.pon(L, B.recorte(rec, 560), 150 + 260 * k, 1120, 0.9)
+        b.pon(L, B.recorte(rec, 380), [290, 790][k % 2], [960, 1380][k // 2])
     B.pas(L, "Sephora Sale · 20% OFF", 1500, sz=56)
     guarda(L, "portada-allure.jpg")
