@@ -6,7 +6,7 @@ Hecho con una grabación de pantalla real de la página en un celular (toques, d
 
 **TikTok**
 > Cómo comprar en mi página paso a paso 🛍️ Lo que está en Stock en México te lo mando de inmediato 📦
-> Guárdalo para cuando lo necesites 📌 · ¿Dudas? Comenta GRUPO 👇
+> Guárdalo para cuando lo necesites 📌 ¿Qué producto quieres que tenga en stock? 👇
 > #tutorial #comprasenlinea #skincarecoreano #bathandbodyworks #personalshopper
 
 **Instagram**
@@ -22,6 +22,7 @@ Hecho con una grabación de pantalla real de la página en un celular (toques, d
 > 8️⃣ Si pagas por transferencia, sube tu comprobante y envía tu pedido
 >
 > 📦 Lo que está en Stock en México se envía de inmediato.
-> 📌 Guárdalo para cuando lo necesites. ¿Dudas? Comenta GRUPO y te ayudo.
+> 📌 Guárdalo para cuando lo necesites.
+> ¿Qué producto te gustaría que tuviera en stock? Te leo 👇
 >
 > #tutorial #alpacca #comprasenlinea #skincarecoreano #bathandbodyworks #personalshopper #envioatodomexico

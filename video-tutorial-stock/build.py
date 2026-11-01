@@ -120,13 +120,12 @@ FONDO = fondo()
 
 
 def final(L, t, t0):
-    """cierre: entrega inmediata y Comenta GRUPO"""
-    b.pon(L, b.pastilla("📦 Stock en México = envío inmediato", "ExtraBold", 52, NEGRO, WHITE, padx=36, pady=18), W / 2, 520, *b.entra(t, t0, 0.35))
-    im = Image.new("RGBA", (860, 360)); d = ImageDraw.Draw(im)
-    d.rounded_rectangle((0, 0, 859, 359), 50, fill=WHITE)
-    tt = b.linea("💬 ¿Dudas? Comenta", "Bold", 56, (110, 110, 116)); im.alpha_composite(tt, ((860 - tt.width) // 2, 34))
-    d.text((430, 200), "GRUPO", font=b.F("ExtraBold", 140), fill=ROSA, anchor="mm")
-    tt = b.linea("y te ayudo 👇", "Bold", 50, NEGRO); im.alpha_composite(tt, ((860 - tt.width) // 2, 278))
+    """cierre: entrega inmediata, alpacca.mx y «guárdalo» (sin Comenta GRUPO)"""
+    b.pon(L, b.pastilla("📦 Stock en México = envío inmediato", "ExtraBold", 46, NEGRO, WHITE, padx=34, pady=18), W / 2, 520, *b.entra(t, t0, 0.35))
+    im = Image.new("RGBA", (860, 330)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle((0, 0, 859, 329), 50, fill=WHITE)
+    tt = b.linea("📌 Guárdalo", "ExtraBold", 110, ROSA); im.alpha_composite(tt, ((860 - tt.width) // 2, 60))
+    tt = b.linea("para cuando lo necesites", "Bold", 52, NEGRO); im.alpha_composite(tt, ((860 - tt.width) // 2, 220))
     tm = marca(len(T) - 1, 1)
     if t >= tm - 0.3: b.pon(L, im, W / 2, 900, *b.entra(t, tm - 0.3, 0.4))
     b.pon(L, b.pastilla("alpacca.mx", "ExtraBold", 70, ROSA, WHITE, padx=44, pady=18), W / 2, 1300, *b.entra(t, t0 + 0.6, 0.35))
