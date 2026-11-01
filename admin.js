@@ -5004,7 +5004,8 @@ ${itemLines}
       <summary><span>👤 <b>${escapeHtml(p0.name || email)}</b>${cas ? ` · ${escapeHtml(cas)}` : ""}</span><span class="swm-cli-n">${ps.length}</span></summary>
       <div class="swm-cli-body">
         ${libres.length && !abierto ? `<button type="button" class="btn-primary" data-cons-toggle="${escapeHtml(email)}" style="padding:8px 14px;font-size:13px;margin-bottom:8px;">📦 ${libres.length > 1 ? "Juntar en una caja y crear envío" : "Crear envío"}</button>` : ""}
-        ${mandables.length && !enviando ? `<button type="button" class="btn-secondary" data-env-toggle="${escapeHtml(email)}" style="padding:8px 14px;font-size:13px;margin-bottom:8px;">🚚 Ya lo mandé: anotar guía</button>` : ""}
+        ${mandables.length && !enviando ? `<button type="button" class="btn-secondary" data-env-toggle="${escapeHtml(email)}" style="padding:8px 14px;font-size:13px;margin-bottom:8px;">🚚 Ya lo mandé: anotar guía</button>
+          <button type="button" class="btn-secondary" data-env-personal-todo="${escapeHtml(email)}" data-env-ids="${escapeHtml(mandables.map((p) => p.id).join(","))}" data-env-folios="${escapeHtml(mandables.map((p) => p.folio).join(", "))}" style="padding:8px 14px;font-size:13px;margin-bottom:8px;">📍 Se lo entregué en persona</button>` : ""}
         ${form}${formGuia}${ps.map(swmPaqueteCard).join("")}
       </div></details>`;
   }
@@ -5172,6 +5173,15 @@ ${itemLines}
     }
     const envToggle = t.closest("[data-env-toggle]");
     if (envToggle) { swmEnviarEmail = envToggle.dataset.envToggle; renderSwmAdmin(); return; }
+    // "Se lo entregué en persona" afuera del cuadro: todos sus paquetes en México.
+    const personalTodo = t.closest("[data-env-personal-todo]");
+    if (personalTodo) {
+      const paqueteIds = personalTodo.dataset.envIds.split(",").filter(Boolean);
+      if (!confirm(`¿Marcar como entregado en persona ${personalTodo.dataset.envFolios}? Le llega un correo avisándole.`)) return;
+      const ok = await swmAct({ accion: "enviar_directo", personal: true, email: personalTodo.dataset.envPersonalTodo, paqueteIds, avisar: true }, personalTodo);
+      if (ok) { swmTab = "entregados"; renderSwmAdmin(); }
+      return;
+    }
     if (t.closest("[data-env-personal]")) {
       const box = t.closest("[data-swm-enviar]");
       const paqueteIds = [...box.querySelectorAll("[data-env-pick]:checked")].map((c) => c.dataset.envPick);
