@@ -100,7 +100,18 @@ TOMAS = {
                ("v111", 29.0, 2.8, 1.0), ("v111", 32.0, 2.8, 1.0), ("v111", 34.9, 2.9, 1.0),  # v111 27-28 s: espejo
                ("v111", 38, 2.6, 1.0), ("v5362", 12.6, 2.6, 1.0), ("v111", 2.0, 2.5, 1.0)],
 }
-TOMAS = TOMAS.get(VAR) or TOMAS["allure"]  # allure-*: las mismas tomas ya revisadas sin espejos
+# fondo de la serie Allure: tomas a velocidad normal (sin cámara lenta, que se veía trabado), todas revisadas sin
+# espejos y sin pasarse del final de su clip (v111 dura 42.3 s); se usan en orden hasta llenar lo que dura la voz
+FONDO_ALLURE = [("v111", 7.0, 2.6), ("v111", 16.0, 2.6), ("v69", 215.0, 2.6), ("v62", 78.5, 3.4), ("v111", 12.0, 2.8),
+                ("v111", 20.0, 2.8), ("v62", 77.0, 3.4), ("v111", 23.0, 2.8), ("v111", 29.0, 2.8), ("v62", 80.0, 3.4),
+                ("v111", 32.0, 2.8), ("v111", 34.9, 2.9), ("v62", 65.0, 1.5), ("v111", 38.0, 2.6), ("v111", 9.6, 2.0),
+                ("v111", 18.6, 1.4), ("v69", 217.6, 2.0), ("v111", 2.0, 2.5), ("v5362", 12.6, 2.6), ("v111", 39.5, 2.5)]
+if VAR.startswith("allure"):
+    _tot, TOMAS = sum(e["dur"] for e in T), []
+    while sum(t[2] for t in TOMAS) < _tot + 0.5:
+        f, ini, d = FONDO_ALLURE[len(TOMAS) % len(FONDO_ALLURE)]; TOMAS.append((f, ini, d, 1.0))
+else:
+    TOMAS = TOMAS[VAR]
 
 
 def video(fuente, ini, n, vel, recorte=None):
@@ -682,8 +693,14 @@ SFX = []
 def cuadros():
     total = int(round(INI[-1] * FPS))
     raw = [int(tm[2] * FPS) for tm in TOMAS]
-    k = total / sum(raw); ns = [int(r * k) for r in raw]; ns[-1] += total - sum(ns)
-    lento = k if VAR.startswith("allure") else 1.0  # allure: misma porción de cada toma (revisada sin espejos), en cámara lenta
+    k = total / sum(raw) if not VAR.startswith("allure") else 1.0  # allure: cada toma a su duración real
+    ns = [int(r * k) for r in raw]
+    if VAR.startswith("allure"):  # recortar la última para que cuadre exacto
+        while sum(ns) - ns[-1] >= total: ns.pop()
+        ns[-1] = total - sum(ns[:-1])
+    else:
+        ns[-1] += total - sum(ns)
+    lento = 1.0
     f = 0
     for tm, n in zip(TOMAS, ns):
         for j, L in zip(range(n), video(tm[0], tm[1], n, tm[3] / lento, *tm[4:])):
