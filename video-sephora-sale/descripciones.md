@@ -157,3 +157,27 @@ Productos que no salen en los otros videos: ONE/SIZE, Gisou, Tarte y Charlotte T
 > 💬 Comenta GRUPO y te paso el link de mi grupo de WhatsApp.
 >
 > #sephorasale #sephora #acompañame #personalshopper #compraseneeuu #onesize #gisou #tarte #charlottetilbury
+
+---
+
+## Video 8: ganadores de los premios Allure 2026
+Por qué: se cuelga de algo que la gente ya conoce y respeta (los premios Allure) y lo convierte en prueba de precio. Lista numerada (1/4…4/4) para que lo vean hasta el final, y cierre que pide la parte 2.
+Fuente de los ganadores: Allure Best of Beauty 2026 (lista vía therealchiclife.com, 22 sep 2026; Tower 28 SOS trae el sello de Allure 2026 en la foto de la marca).
+
+**TikTok**
+> Los ganadores de los premios Allure 2026… ¿cuánto cuestan en México vs. conmigo? 🏆💸
+> ¿Cuál te llevas? Comenta GRUPO 👇 · ¿Parte 2? Dímelo en comentarios
+> #allure #bestofbeauty #sephorasale #dior #charlottetilbury #tower28
+
+**Instagram**
+> Los ganadores de los premios Allure 2026 🏆 ¿cuánto cuestan en México vs. conmigo?
+>
+> 1️⃣ Charlotte Tilbury Airbrush Flawless Setting Spray: en Sephora USA $617 · conmigo desde $493
+> 2️⃣ Dior Lip Glow Oil: en Sephora México $970 · conmigo $829
+> 3️⃣ Dior Forever Skin Glow: en Sephora México $1,550 · conmigo $1,184
+> 4️⃣ Tower 28 SOS: no se vende en México · conmigo desde $237
+>
+> Es mi preventa del Sephora Sale: 20% OFF, apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre.
+> 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. ¿Quieres la parte 2? Dímelo en comentarios.
+>
+> #allure #bestofbeauty #sephorasale #sephora #dior #charlottetilbury #tower28 #maquillajeoriginal

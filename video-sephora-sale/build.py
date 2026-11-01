@@ -12,10 +12,13 @@ estrategia de estrategia/estrategia-redes.md (gancho en el segundo 0, 20-25 s, C
   dior   = prueba de precio: ¿cuánto cuesta esta paleta Dior en México?
   noche  = detrás de cámaras: 8 de la noche y sigo en Sephora por sus pedidos
   amiga  = para compartir: mándale esto a la amiga que siempre te pide algo de Sephora
+  allure = ganadores de los premios Allure 2026: ¿cuánto cuestan en México vs. conmigo? (lista numerada, producto
+           flotando, prueba de precio; fondo de la tienda difuminado)
   vlog   = estilo del video de inspiración de @itsmaafer: voz de amiga con opinión, el producto en la mano, casi sin
            texto (subtítulo de una palabra) y una sola mención de la preventa al final
 Uso: python3 build.py VARIANTE CARPETA_CON_est_vNN.mp4   (antes: python3 voz.py VARIANTE) -> Sale-VARIANTE-voz.mp4"""
-import json, os, subprocess, sys
+import json, math, os, subprocess, sys
+from functools import lru_cache
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 VAR, CRUDO = sys.argv[1], sys.argv[2]
@@ -86,6 +89,13 @@ TOMAS = {
              ("v5364", 47.5, 2.4, 1.0), ("v5364", 49.5, 2.0, 1.0), ("v62", 78.5, 2.6, 1.0),  # Tarte Shape Tape, Charlotte
              ("v5362", 1.5, 2.4, 1.0), ("v111", 0.3, 2.43, 1.0),  # sin la foto de la bolsa (ya salió en muchos)
              ("v111", 23, 2.8, 1.2), ("v5362", 12.6, 2.9, 1.0), ("v111", 2.0, 2.85, 1.0)],
+    # fondo difuminado (el producto es lo importante); sin los tramos con espejos donde sale Mae
+    "allure": [("v111", 7.0, 2.6, 1.0), ("v111", 16, 2.6, 1.0), ("v69", 215, 2.6, 1.0),
+               ("v62", 78.5, 3.5, 1.0), ("v62", 80.0, 3.4, 1.0), ("v62", 77.0, 3.4, 1.0),
+               ("v5364", 15.0, 2.8, 1.0), ("v5364", 18.0, 2.8, 1.0), ("v5364", 21.0, 2.8, 1.0),
+               ("v5364", 23.0, 3.0, 1.0), ("v5364", 25.5, 3.0, 1.0), ("v5364", 28.0, 2.9, 1.0),
+               ("v111", 26, 2.8, 1.0), ("v111", 30, 2.8, 1.0), ("v111", 34, 2.9, 1.0),
+               ("v111", 38, 2.6, 1.0), ("v5362", 12.6, 2.6, 1.0), ("v111", 2.0, 2.5, 1.0)],
 }[VAR]
 
 
@@ -429,7 +439,7 @@ _PAL = []
 FUENTES = os.path.join(RAIZ, "carruseles", "fuentes")
 # palabras clave: grandes, en rosa y con la tipografía gordita de la marca (estilo del video de @thaliarueda)
 CLAVE = {"Holi", "Sale", "One", "Size", "Gisou", "neta", "delicioso", "Tarte", "Charlotte", "Tilbury", "veinte",
-         "llena", "México", "preventa", "GRUPO", "Bye"}
+         "llena", "México", "preventa", "GRUPO", "Bye", "Allure", "Dior", "Forever", "Tower", "Conmigo", "Cuál"}
 
 
 def _sombra(im, r=10, a=150):
@@ -441,7 +451,7 @@ def _sombra(im, r=10, a=150):
     sh.alpha_composite(im, (2 * r, 2 * r)); return sh
 
 
-def subtitulo(L, tg):
+def subtitulo(L, tg, y=1480):
     """la palabra que se dice: chica y blanca; las clave, grandes en rosa con Bagel. Sin bordes."""
     if not _PAL: _PAL.extend(_palabras())
     act = [(t, w) for t, w in _PAL if t <= tg]
@@ -451,9 +461,9 @@ def subtitulo(L, tg):
         f = ImageFont.truetype(os.path.join(FUENTES, "BagelFatOne-Regular.ttf"), 150)
         im = Image.new("RGBA", (int(f.getlength(w)) + 40, 220)); ImageDraw.Draw(im).text((20, 110), w, font=f, fill=ROSA, anchor="lm")
         s_, a_ = b.entra(tg, t0, 0.3)
-        b.pon(L, _sombra(im), W / 2, 1480, s_, a_)
+        b.pon(L, _sombra(im), W / 2, y, s_, a_)
     else:
-        b.pon(L, _sombra(b.linea(w, "ExtraBold", 70, WHITE)), W / 2, 1480)
+        b.pon(L, _sombra(b.linea(w, "ExtraBold", 70, WHITE)), W / 2, y)
 
 
 def interrupcion(L, tg, t0, texto, dur=0.9):
@@ -493,8 +503,69 @@ def capa_vlog(L, tg):
     else: subtitulo(L, tg)
 
 
+# ---------------- allure: ganadores de los premios Allure 2026 ----------------
+# (recorte, nombre, tienda con la que se compara, precio ahí o None = no se vende en México, precio de Mae)
+# precios: carruseles/precios-sephora-mx.csv y el catálogo de la preventa. Charlotte Tilbury no tiene precio en
+# Sephora México: se compara con Sephora USA (regla de Mae). El sello de Allure se quitó de la foto de Tower 28.
+ALLURE = {1: ("ct-spray", "Charlotte Tilbury Airbrush Flawless Setting Spray", "Sephora USA", 617, "desde $493"),
+          2: ("dior-lipoil", "Dior Lip Glow Oil", "Sephora México", 970, "$829"),
+          3: ("dior-forever", "Dior Forever Skin Glow", "Sephora México", 1550, "$1,184"),
+          4: ("tower-sos-solo", "Tower 28 SOS Daily Rescue Spray", None, None, "desde $237")}
+AHORRO = {1: 124, 2: 141, 3: 366}
+
+
+@lru_cache(None)
+def recorte(nombre, alto):
+    im = Image.open(os.path.join(RAIZ, "carruseles", "recortes", nombre + ".png")).convert("RGBA")
+    im.thumbnail((620, alto), Image.LANCZOS)
+    return _sombra(im, 24, 120)
+
+
+def numero(n, total=4):
+    im = b.pastilla(f"{n}/{total}", "ExtraBold", 64, ROSA, WHITE, padx=34, pady=12)
+    return im
+
+
+def capa_allure(L, tg):
+    L.paste(L.filter(ImageFilter.GaussianBlur(18)))
+    L.alpha_composite(Image.new("RGBA", L.size, (24, 10, 18, 120)))
+    e = next(i for i in range(len(T)) if tg < INI[i + 1] or i == len(T) - 1)
+    if e == 0:
+        f = ImageFont.truetype(os.path.join(FUENTES, "BagelFatOne-Regular.ttf"), 120)
+        for k, (txt, y, col) in enumerate([("Premios", 330, WHITE), ("Allure 2026", 470, ROSA)]):
+            im = Image.new("RGBA", (int(f.getlength(txt)) + 40, 180)); ImageDraw.Draw(im).text((20, 90), txt, font=f, fill=col, anchor="lm")
+            b.pon(L, _sombra(im, 12, 170), W / 2, y, *b.entra(tg, 0.1 + 0.2 * k, 0.4))
+        b.pon(L, _sombra(b.linea("¿cuánto cuestan en México vs. conmigo?", "Bold", 44, WHITE)), W / 2, 600, *b.entra(tg, marca(0, 1) - 0.3, 0.35))
+        for k, rec in enumerate(["ct-spray", "dior-lipoil", "dior-forever", "tower-sos-solo"]):  # entran flotando
+            t0 = 0.6 + 0.35 * k; p = recorte(rec, 520)
+            if tg >= t0:
+                dy = 260 * (1 - b.ease((tg - t0) / 0.5)); fl = 10 * math.sin(2 * (tg + k))
+                b.pon(L, p, 150 + 260 * k, 1080 + dy + fl, 0.85, min(1, (tg - t0) / 0.2))
+        subtitulo(L, tg, 1560)
+    elif e in ALLURE:
+        rec, nom, tienda, pt, mio = ALLURE[e]; t0 = INI[e]
+        b.pon(L, numero(e), W - 150, 150, *b.entra(tg, t0, 0.3))
+        pas(L, "🏆 Ganador Allure 2026", 300, "ExtraBold", 50, WHITE, NEGRO, tg, t0 + 0.1)
+        fl = 14 * math.sin(2.2 * tg)
+        s_, a_ = b.entra(tg, t0 + 0.15, 0.5)
+        b.pon(L, recorte(rec, 640), W / 2, 760 + fl, s_, a_)
+        pas(L, nom, 1150, "Bold", 44, WHITE, NEGRO, tg, marca(e, 0))
+        if tienda:
+            if tg >= marca(e, 1): b.pon(L, etiqueta(f"En {tienda}", f"${pt:,}", NEGRO), W / 2, 1330, *b.entra(tg, marca(e, 1), 0.35))
+        elif tg >= marca(e, 1):
+            pas(L, "🇲🇽 No se vende en México", 1330, "ExtraBold", 56, (196, 40, 60), WHITE, tg, marca(e, 1))
+        if tg >= marca(e, 2):
+            pas(L, f"Conmigo: {mio}", 1510, sz=74, t=tg, t0=marca(e, 2))
+            if e in AHORRO: pas(L, f"Ahorras ${AHORRO[e]:,} 💸", 1640, "ExtraBold", 52, VERDE, WHITE, tg, marca(e, 2) + 0.5)
+        subtitulo(L, tg, 160)  # arriba: abajo van los precios y los botones de TikTok
+    else:
+        pas(L, "¿Cuál te llevas? 👇", 400, sz=64, bg=NEGRO, t=tg, t0=INI[5])
+        cta_comenta(L, tg, 5, 1)
+        if tg >= marca(5, 2): pas(L, "¿Parte 2? Dímelo en comentarios 💬", 1400, "Bold", 46, WHITE, NEGRO, tg, marca(5, 2))
+
+
 CAPA = {"lista": capa_lista, "juego": capa_juego, "cierre": capa_cierre,
-        "dior": capa_dior, "noche": capa_noche, "amiga": capa_amiga, "vlog": capa_vlog}[VAR]
+        "dior": capa_dior, "noche": capa_noche, "amiga": capa_amiga, "vlog": capa_vlog, "allure": capa_allure}[VAR]
 SFX = []
 
 

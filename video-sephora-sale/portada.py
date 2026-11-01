@@ -92,3 +92,17 @@ if os.path.exists(os.path.join(CRUDO, "est_v111.mp4")):
     b.pon(L, b.linea("las wish lists de mis clientas", "Bold", 62, B.WHITE, stroke=6, sfill=(30, 20, 26)), B.W / 2, 560)
     b.pon(L, b.linea("acompáñame", "ExtraBold", 96, B.WHITE, stroke=10, sfill=B.ROSA), B.W / 2, 1450)
     guarda(L, "portada-vlog.jpg")
+if os.path.exists(os.path.join(CRUDO, "est_v62.mp4")):
+    # 8. allure: los 4 ganadores flotando sobre la tienda difuminada
+    B = motor("allure"); b = B.b
+    L = cuadro(B, "v111", 16)
+    L.paste(L.filter(B.ImageFilter.GaussianBlur(18))); L.alpha_composite(B.Image.new("RGBA", L.size, (24, 10, 18, 120)))
+    f = B.ImageFont.truetype(os.path.join(B.FUENTES, "BagelFatOne-Regular.ttf"), 130)
+    for txt, y, col in [("Premios", 400, B.WHITE), ("Allure 2026", 550, B.ROSA)]:
+        im = B.Image.new("RGBA", (int(f.getlength(txt)) + 40, 190)); B.ImageDraw.Draw(im).text((20, 95), txt, font=f, fill=col, anchor="lm")
+        b.pon(L, B._sombra(im, 12, 170), B.W / 2, y)
+    b.pon(L, B._sombra(b.linea("¿cuánto cuestan en México vs. conmigo?", "Bold", 46, B.WHITE)), B.W / 2, 690)
+    for k, rec in enumerate(["ct-spray", "dior-lipoil", "dior-forever", "tower-sos-solo"]):
+        b.pon(L, B.recorte(rec, 560), 150 + 260 * k, 1120, 0.9)
+    B.pas(L, "Sephora Sale · 20% OFF", 1500, sz=56)
+    guarda(L, "portada-allure.jpg")
