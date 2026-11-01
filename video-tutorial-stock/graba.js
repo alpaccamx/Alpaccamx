@@ -22,6 +22,38 @@ const K = Number(process.env.K) || 12;  // con 12 salen ~50 cuadros por segundo 
     const st = window.setTimeout, si = window.setInterval;
     window.setTimeout = (f, ms, ...a) => st(f, (ms || 0) * k, ...a);
     window.setInterval = (f, ms, ...a) => si(f, (ms || 0) * k, ...a);
+    // el desplazamiento suave de la página (scrollIntoView/scrollTo con behavior 'smooth') lo hace el navegador en
+    // tiempo real y en el video se vería como un brinco; aquí se hace con temporizadores (que ya van K veces lentos)
+    const ease = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    const anima = (pares, ms = 450) => {
+      const ini = performance.now();
+      const paso = () => {
+        const u = Math.min(1, (performance.now() - ini) / (ms * k)), e = ease(u);
+        for (const [el, a, b] of pares) { if (el === window) window.__scrollTo(0, a + (b - a) * e); else el.scrollTop = a + (b - a) * e; }
+        if (u < 1) st(paso, 8);
+      };
+      paso();
+    };
+    const pos = el => el === window ? window.scrollY : el.scrollTop;
+    const contenedores = el => { const r = [window]; for (let c = el.parentElement; c; c = c.parentElement) if (c.scrollHeight > c.clientHeight) r.push(c); return r; };
+    window.__scrollTo = window.scrollTo.bind(window);
+    const sIV = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (o) {
+      if (!o || typeof o !== 'object' || o.behavior !== 'smooth') return sIV.call(this, o);
+      const cs = contenedores(this), antes = cs.map(pos);
+      sIV.call(this, { ...o, behavior: 'instant' });
+      const despues = cs.map(pos);
+      cs.forEach((c, i) => { if (c === window) window.__scrollTo(0, antes[i]); else c.scrollTop = antes[i]; });
+      anima(cs.map((c, i) => [c, antes[i], despues[i]]).filter(([, a, b]) => a !== b));
+    };
+    const suaveWin = (orig, rel) => function (a, b) {
+      const o = (a && typeof a === 'object') ? a : null;
+      if (!o || o.behavior !== 'smooth') return orig.apply(this, arguments);
+      const y0 = window.scrollY, y1 = rel ? y0 + (o.top || 0) : (o.top ?? y0);
+      anima([[window, y0, Math.max(0, Math.min(y1, document.documentElement.scrollHeight - innerHeight))]]);
+    };
+    window.scrollTo = suaveWin(window.scrollTo.bind(window), false);
+    window.scrollBy = suaveWin(window.scrollBy.bind(window), true);
   }, K);
   const p = await ctx.newPage();
   await p.route('**/.netlify/functions/create-order**', r => r.abort());
@@ -65,11 +97,17 @@ const K = Number(process.env.K) || 12;  // con 12 salen ~50 cuadros por segundo 
     await circulo(bb.x + bb.width / 2, bb.y + bb.height / 2); await w(250);
     if (click) await loc.click({ force: true }).catch(() => {});
   };
-  // deslizar la página o un panel de a poquito
-  // deslizar con arranque y frenado suaves, en pasos de ~1/60 s de video
-  const suave = (n) => { const e = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; return Array.from({ length: n }, (_, i) => e((i + 1) / n) - e(i / n)); };
-  const desliza = async (dy, n = 12, ms = 40) => { const m = Math.max(2, Math.round(n * ms / 16)); for (const f of suave(m)) { await p.evaluate(d => window.scrollBy(0, d), dy * f); await w(16); } };
-  const deslizaEn = async (sel, dy, n = 14) => { const m = Math.max(2, Math.round(n * 45 / 16)); for (const f of suave(m)) { await p.evaluate(([s, d]) => document.querySelector(s).scrollBy(0, d), [sel, dy * f]); await w(16); } };
+  // deslizar la página o un panel con arranque y frenado suaves
+  // la posición sale del tiempo del video (no de contar pasos), así cada captura muestra justo dónde va el
+  // deslizado y no hay saltos ni cuadros repetidos
+  const deslizaT = async (leer, poner, sel, dy, dur) => {
+    const e = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+    const y0 = await p.evaluate(leer, sel), t0_ = ahora();
+    for (;;) { const u = Math.min(1, (ahora() - t0_) / dur); await p.evaluate(poner, [sel, y0 + dy * e(u)]); if (u >= 1) break; await p.waitForTimeout(15); }
+  };
+  const desliza = (dy, n = 12, ms = 40) => deslizaT(() => window.scrollY, ([, y]) => window.__scrollTo(0, y), null, dy, n * ms / 1000);
+  const deslizaEn = (sel, dy, n = 14) => deslizaT(s => document.querySelector(s).scrollTop,
+    ([s, y]) => { document.querySelector(s).scrollTop = y; }, sel, dy, n * 45 / 1000);
   // llevar un elemento a la vista deslizando (sin brincar)
   const llevaA = async (sel, donde = 'center', n = 16) => {
     const dy = await p.evaluate(([s, dn]) => {
