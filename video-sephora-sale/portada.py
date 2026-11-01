@@ -69,7 +69,7 @@ if os.path.exists(os.path.join(CRUDO, "est_v5364.mp4")):
 if os.path.exists(os.path.join(CRUDO, "est_v111.mp4")):
     # 5. noche: Sephora de noche
     B = motor("noche"); b = B.b
-    L = cuadro(B, "v111", 1.0)
+    L = cuadro(B, "v111", 3.5)
     b.pon(L, b.pastilla("🕗 8:00 pm", "ExtraBold", 110, B.NEGRO + (230,), B.WHITE, padx=56, pady=26), B.W / 2, 420)
     B.pas(L, "…y sigo en Sephora por sus pedidos 🛍️", 590, "Bold", 50, B.WHITE, B.NEGRO)
     B.pas(L, "La parte que nadie ve 👀", 1450, sz=66)
