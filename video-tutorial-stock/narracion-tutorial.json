@@ -1,0 +1,12 @@
+[
+ {"texto": "Te enseño cómo comprar lo que tengo en stock en mi página, paso a paso.", "marcas": ["stock", "paso a paso"]},
+ {"texto": "Entra a alpacca punto eme equis y toca Stock en México.", "marcas": ["alpacca", "Stock en México"]},
+ {"texto": "Aquí está todo lo que ya tengo en México, listo para enviarse. Puedes filtrar por categoría.", "marcas": ["listo", "filtrar"]},
+ {"texto": "Elige tu producto y toca Agregar. Luego, toca Ver carrito.", "marcas": ["Agregar", "Ver carrito"]},
+ {"texto": "En tu carrito ves el total, y si lo vas a revender, cuánto ganas por pieza.", "marcas": ["total", "revender"]},
+ {"texto": "Para seguir, inicia sesión o crea tu cuenta gratis.", "marcas": ["inicia", "crea"]},
+ {"texto": "Llena tus datos y tu dirección. El envío se calcula con tu código postal.", "marcas": ["datos", "código postal"]},
+ {"texto": "Elige cómo pagar: por transferencia te ahorras un poquito, o con tarjeta por Mercado Pago.", "marcas": ["cómo pagar", "transferencia", "tarjeta"]},
+ {"texto": "Si pagas por transferencia, sube tu comprobante y toca Enviar pedido. ¡Y listo!", "marcas": ["comprobante", "Enviar pedido", "listo"]},
+ {"texto": "Como ya está en México, te lo mando de inmediato. ¿Dudas? Comenta GRUPO y te ayudo.", "marcas": ["inmediato", "GRUPO"]}
+]
