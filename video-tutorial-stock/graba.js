@@ -13,7 +13,7 @@ const DUR = JSON.parse(fs.readFileSync('tiempos-tutorial.json')).map(e => e.dur)
 const K = 12;  // con 12 salen ~50 cuadros por segundo de video y ninguno se repite al pasar a 30 (con 4 eran ~15 y se veía trabado)
 
 (async () => {
-  fs.rmSync('grabacion', { recursive: true, force: true });
+  fs.rmSync('grabacion/cuadros', { recursive: true, force: true });  // deja grabacion/.gitignore
   fs.mkdirSync('grabacion/cuadros', { recursive: true });
   const b = await chromium.launch();
   const ctx = await b.newContext({ ...devices['iPhone 13'], deviceScaleFactor: 2, locale: 'es-MX' });
