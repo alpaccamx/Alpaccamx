@@ -8,6 +8,7 @@ import json, math, os, subprocess, sys
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, os.path.join(RAIZ, "video-envio"))
+ARGS = sys.argv[1:]  # "python3 build.py portada" hace solo la portada
 sys.argv = [sys.argv[0], "/dev/null"]
 import build as b
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -158,9 +159,24 @@ def cuadro(tg):
     return L
 
 
+def portada():
+    """la página dentro de un iPhone, con «Cómo comprar / Stock en México» arriba; todo dentro de la zona 3:4 que se
+    ve en el perfil (y 240-1680)"""
+    tc = Iphone(1000); im = Image.open(os.path.join(AQUI, "pantallas", "02.png")).convert("RGB")
+    tel = tc.con(im); cuerpo = tc.y0 - tc.bez - tc.tit
+    L = FONDO.copy(); L.alpha_composite(tel, (int(W / 2 - tel.width / 2), 638 - cuerpo))
+    b.pon(L, b.pastilla("Cómo comprar", "ExtraBold", 84, ROSA, WHITE, padx=46, pady=18), W / 2, 322)
+    b.pon(L, b.pastilla("Stock en México 🇲🇽", "ExtraBold", 84, ROSA, WHITE, padx=46, pady=18), W / 2, 440)
+    b.pon(L, b.pastilla("en alpacca.mx · paso a paso 👆", "Bold", 48, NEGRO, WHITE, padx=34, pady=14), W / 2, 553)
+    L.convert("RGB").save(os.path.join(AQUI, "portada-tutorial.jpg"), quality=92)
+    return 638 + tc.bh
+
+
 SFX = []
 
-if __name__ == "__main__":
+if __name__ == "__main__" and ARGS[:1] == ["portada"]:
+    print("portada, abajo del iPhone en y =", portada())
+elif __name__ == "__main__":
     total = int(round(INI[-1] * FPS))
     if GRAB: GRABADOR = Grabacion()
     for e, (_, ps) in enumerate(PASOS):
@@ -182,11 +198,5 @@ if __name__ == "__main__":
     fil.append("[v]" + "".join(f"[s{j}]" for j in range(len(SFX))) + f"amix=inputs={len(SFX) + 1}:normalize=0:duration=first,loudnorm=I=-14:TP=-1:LRA=11[a]")
     subprocess.run(["ffmpeg", "-v", "error", "-y", *ins, "-filter_complex", ";".join(fil), "-map", "0:v", "-map", "[a]",
                     "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-ar", "48000", "-shortest", "-movflags", "+faststart", final_], check=True)
-    # portada: la página dentro de un iPhone más chico, todo dentro de la zona 3:4 que se ve en el perfil (y 240-1680)
-    tc = Iphone(1090); im = Image.open(os.path.join(AQUI, "pantallas", "02.png")).convert("RGB")
-    tel = tc.con(im); cuerpo = tc.y0 - tc.bez - tc.tit
-    L = FONDO.copy(); L.alpha_composite(tel, (int(W / 2 - tel.width / 2), 535 - cuerpo))
-    b.pon(L, b.pastilla("Cómo comprar stock", "ExtraBold", 84, ROSA, WHITE, padx=46, pady=22), W / 2, 315)
-    b.pon(L, b.pastilla("en alpacca.mx · paso a paso 👆", "Bold", 52, NEGRO, WHITE, padx=36, pady=16), W / 2, 445)
-    L.convert("RGB").save(os.path.join(AQUI, "portada-tutorial.jpg"), quality=92)
+    portada()
     print("ok", final_, f"{total / FPS:.1f}s")
