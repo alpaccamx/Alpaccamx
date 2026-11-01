@@ -188,3 +188,65 @@ Fuente: Allure Best of Beauty 2026 (lista vía therealchiclife.com, 22 sep 2026;
 > 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. ¿Quieres la parte 2? Dímelo en comentarios.
 >
 > #allure #bestofbeauty #sephorasale #sephora #dior #charlottetilbury #tower28 #maquillajeoriginal
+
+---
+
+# Serie: Premios Allure por categoría (3 capítulos)
+Por qué: una serie (Cap. 1, 2, 3) hace que esperen el siguiente y te sigan. Cada producto: premio, beneficios y luego el precio. Al final de cada capítulo se anuncia el siguiente.
+Publica uno por día, en orden. Fuente: Allure Best of Beauty 2026 (therealchiclife.com, 22 sep 2026); Glass Balm = Allure 2025 (sello en la foto oficial de Glow Recipe). Beneficios: los de cada marca.
+
+## Cap. 1 · Cara (Sale-allure-rostro-voz.mp4, portada-allure-rostro.jpg)
+**TikTok**
+> Premios Allure 2026, cap. 1: lo mejor para tu cara 🏆 para qué sirven y cuánto cuestan en México vs. conmigo
+> ¿Cuál te llevas? Comenta GRUPO 👇 · Mañana: cap. 2, labios 💋
+> #allure #bestofbeauty #dior #charlottetilbury #sephorasale
+
+**Instagram**
+> Premios Allure 2026 · Cap. 1: Cara 🏆
+>
+> ✨ Dior Forever Skin Glow · mejor base líquida luminosa
+> Piel con glow y dura hasta 24 horas. Sephora México $1,550 → conmigo $1,184
+>
+> 💧 Charlotte Tilbury Airbrush Flawless Setting Spray · mejor fijador luminoso
+> A prueba de agua e hidrata mientras fija. Sephora USA $617 → conmigo desde $493
+>
+> Preventa del Sephora Sale: 20% OFF, apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre.
+> 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. Mañana: cap. 2, labios 💋
+>
+> #allure #bestofbeauty #sephorasale #dior #charlottetilbury #maquillajeoriginal
+
+## Cap. 2 · Labios (Sale-allure-labios-voz.mp4, portada-allure-labios.jpg)
+**TikTok**
+> Premios Allure, cap. 2: lo mejor para tus labios 💋 para qué sirven y cuánto cuestan
+> ¿Cuál te llevas? Comenta GRUPO 👇 · Mañana: cap. 3, piel 🌿
+> #allure #bestofbeauty #dior #lipglowoil #glowrecipe #glassbalm
+
+**Instagram**
+> Premios Allure · Cap. 2: Labios 💋
+>
+> 🍒 Dior Lip Glow Oil · Allure 2026, mejor aceite de labios con color
+> Con aceite de cereza, hidrata sin ser pegajoso y realza tu color natural. Sephora México $970 → conmigo $829
+>
+> 💧 Glow Recipe Glass Balm · ganador Allure 2025
+> Con ácido hialurónico, hidrata hasta 12 horas y deja los labios como de cristal. Sephora USA $543 → conmigo $434
+>
+> Preventa del Sephora Sale: cierra el 8 de noviembre.
+> 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. Mañana: cap. 3, piel 🌿
+>
+> #allure #bestofbeauty #sephorasale #dior #glowrecipe #glassbalm #labios
+
+## Cap. 3 · Piel (Sale-allure-piel-voz.mp4, portada-allure-piel.jpg)
+**TikTok**
+> Premios Allure 2026, cap. 3: piel 🌿 y este ni siquiera se vende en México
+> Comenta GRUPO y te mando el link 👇
+> #allure #bestofbeauty #tower28 #sos #granitos #skincare
+
+**Instagram**
+> Premios Allure 2026 · Cap. 3: Piel 🌿
+>
+> Tower 28 SOS Daily Rescue Spray: spray con ácido hipocloroso, aprobado por dermatólogos. Calma los granitos, baja las rojeces e ideal después del gym.
+> No se vende en México → conmigo desde $237
+>
+> 💬 ¿Lo quieres? Comenta GRUPO y te mando el link.
+>
+> #allure #bestofbeauty #sephorasale #tower28 #skincare #granitos #pielsensible

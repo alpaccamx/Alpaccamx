@@ -12,6 +12,8 @@ estrategia de estrategia/estrategia-redes.md (gancho en el segundo 0, 20-25 s, C
   dior   = prueba de precio: ¿cuánto cuesta esta paleta Dior en México?
   noche  = detrás de cámaras: 8 de la noche y sigo en Sephora por sus pedidos
   amiga  = para compartir: mándale esto a la amiga que siempre te pide algo de Sephora
+  allure-rostro / allure-labios / allure-piel = la misma serie dividida por categoría (cap. 1, 2 y 3), con premio y
+           beneficios de cada producto antes del precio
   allure = ganadores de los premios Allure 2026: ¿cuánto cuestan en México vs. conmigo? (lista numerada, producto
            flotando, prueba de precio; fondo de la tienda difuminado)
   vlog   = estilo del video de inspiración de @itsmaafer: voz de amiga con opinión, el producto en la mano, casi sin
@@ -97,7 +99,8 @@ TOMAS = {
                ("v62", 65.0, 1.5, 1.0), ("v111", 39.5, 2.7, 1.0), ("v111", 9.6, 2.0, 1.0), ("v111", 23.0, 2.8, 1.0),
                ("v111", 29.0, 2.8, 1.0), ("v111", 32.0, 2.8, 1.0), ("v111", 34.9, 2.9, 1.0),  # v111 27-28 s: espejo
                ("v111", 38, 2.6, 1.0), ("v5362", 12.6, 2.6, 1.0), ("v111", 2.0, 2.5, 1.0)],
-}[VAR]
+}
+TOMAS = TOMAS.get(VAR) or TOMAS["allure"]  # allure-*: las mismas tomas ya revisadas sin espejos
 
 
 def video(fuente, ini, n, vel, recorte=None):
@@ -523,7 +526,8 @@ BENEFICIOS = {1: ["💧 A prueba de agua", "✨ Hidrata mientras fija"],
 
 
 # fotos oficiales sin recortar (en una tarjeta blanca se ven limpias; recortadas quedaban con orillas o sombras)
-FOTO_OFICIAL = {"dior-lipoil": os.path.join(AQUI, "fotos", "dior-lipglow-oficial.jpg")}
+FOTO_OFICIAL = {"dior-lipoil": os.path.join(AQUI, "fotos", "dior-lipglow-oficial.jpg"),
+                "glassbalm": os.path.join(AQUI, "fotos", "glassbalm-oficial.jpg")}  # glowrecipe.com
 
 
 @lru_cache(None)
@@ -594,8 +598,84 @@ def capa_allure(L, tg):
         if tg >= marca(5, 2): pas(L, "¿Parte 2? Dímelo en comentarios 💬", 1400, "Bold", 46, WHITE, NEGRO, tg, marca(5, 2))
 
 
+# ---------------- serie Allure por categoría (cap. 1 cara, cap. 2 labios, cap. 3 piel) ----------------
+# cada producto: foto, nombre, premio, beneficios [((escena, marca), texto)], precio de comparación ((e, m), tienda o
+# None = no se vende en México, precio), el de Mae ((e, m), texto), ahorro y las escenas que dura
+CATEGORIAS = {
+    "allure-rostro": dict(cap=1, nombre="Cara", siguiente="Cap. 2: Labios 💋", productos=[
+        dict(rec="dior-forever", nom="Dior Forever Skin Glow", premio="Allure 2026: Mejor base líquida luminosa", esc=(1, 1),
+             benef=[((1, 1), "✨ Piel con glow"), ((1, 2), "⏱️ Dura hasta 24 horas")],
+             cmp=((1, 3), "Sephora México", 1550), mio=((1, 4), "$1,184"), ahorro=366),
+        dict(rec="ct-spray", nom="Charlotte Tilbury Airbrush Flawless Setting Spray", premio="Allure 2026: Mejor fijador luminoso", esc=(2, 2),
+             benef=[((2, 1), "💧 A prueba de agua"), ((2, 2), "✨ Hidrata mientras fija")],
+             cmp=((2, 3), "Sephora USA", 617), mio=((2, 4), "desde $493"), ahorro=124)]),
+    "allure-labios": dict(cap=2, nombre="Labios", siguiente="Cap. 3: Piel 🌿", productos=[
+        dict(rec="dior-lipoil", nom="Dior Lip Glow Oil", premio="Allure 2026: Mejor aceite de labios con color", esc=(1, 1),
+             benef=[((1, 1), "🍒 Con aceite de cereza"), ((1, 2), "💋 Hidrata sin ser pegajoso"), ((1, 3), "🌸 Realza tu color natural")],
+             cmp=((1, 4), "Sephora México", 970), mio=((1, 5), "$829"), ahorro=141),
+        dict(rec="glassbalm", nom="Glow Recipe Glass Balm", premio="Ganador Allure 2025", esc=(2, 2),
+             benef=[((2, 1), "💧 Con ácido hialurónico"), ((2, 2), "⏱️ Hidrata hasta 12 horas"), ((2, 3), "✨ Labios como de cristal")],
+             cmp=((2, 4), "Sephora USA", 543), mio=((2, 5), "$434"), ahorro=109)]),
+    "allure-piel": dict(cap=3, nombre="Piel", siguiente=None, productos=[
+        dict(rec="tower-sos-solo", nom="Tower 28 SOS Daily Rescue Spray", premio="Ganador Allure 2026", esc=(1, 2),
+             benef=[((1, 1), "🩺 Aprobado por dermatólogos"), ((1, 2), "🌿 Calma los granitos"), ((1, 3), "🌸 Baja las rojeces"),
+                    ((2, 0), "💪 Ideal después del gym")],
+             cmp=((2, 1), None, None), mio=((2, 2), "desde $237"), ahorro=None)]),
+}
+CAT = CATEGORIAS.get(VAR)
+
+
+def _bagel(txt, sz, col):
+    f = ImageFont.truetype(os.path.join(FUENTES, "BagelFatOne-Regular.ttf"), sz)
+    im = Image.new("RGBA", (int(f.getlength(txt)) + 40, int(sz * 1.45))); ImageDraw.Draw(im).text((20, im.height // 2), txt, font=f, fill=col, anchor="lm")
+    return _sombra(im, 12, 170)
+
+
+def capa_allure_cat(L, tg):
+    L.paste(L.filter(ImageFilter.GaussianBlur(18)))
+    L.alpha_composite(Image.new("RGBA", L.size, (24, 10, 18, 120)))
+    e = next(i for i in range(len(T)) if tg < INI[i + 1] or i == len(T) - 1)
+    prods = CAT["productos"]; m = lambda em: marca(*em)
+    if e == 0:  # portada del capítulo y los productos entrando
+        b.pon(L, _bagel("Premios Allure", 110, WHITE), W / 2, 300, *b.entra(tg, 0.1, 0.4))
+        b.pon(L, b.pastilla(f"Cap. {CAT['cap']} · {CAT['nombre']}", "ExtraBold", 70, ROSA, WHITE, padx=44, pady=18), W / 2, 450, *b.entra(tg, 0.4, 0.4))
+        n = len(prods)
+        for k, p in enumerate(prods):
+            t0 = 0.9 + 0.4 * k
+            if tg >= t0:
+                x = W / 2 + (k - (n - 1) / 2) * 470; dy = 260 * (1 - b.ease((tg - t0) / 0.5))
+                b.pon(L, recorte(p["rec"], 560 if n > 1 else 700), x, 1050 + dy + 10 * math.sin(2 * (tg + k)), 1, min(1, (tg - t0) / 0.2))
+        subtitulo(L, tg, 1640)
+        return
+    p = next((p for p in prods if p["esc"][0] <= e <= p["esc"][1]), None)
+    if p is None:  # cierre
+        pas(L, "¿Cuál te llevas? 👇" if len(prods) > 1 else "¿Lo quieres? 👇", 400, sz=64, bg=NEGRO, t=tg, t0=INI[e])
+        cta_comenta(L, tg, e, 1)
+        if CAT["siguiente"] and len(T[e]["marcas"]) > 2:
+            pas(L, CAT["siguiente"] + " 👉", 1400, "ExtraBold", 52, ROSA, WHITE, tg, marca(e, 2))
+        return
+    t0 = INI[p["esc"][0]]; k = prods.index(p) + 1
+    if len(prods) > 1: b.pon(L, numero(k, len(prods)), W - 150, 150, *b.entra(tg, t0, 0.3))
+    pas(L, "🏆 " + p["premio"], 300, "ExtraBold", 42, WHITE, NEGRO, tg, t0 + 0.1)
+    b.pon(L, recorte(p["rec"], 640), W / 2, 760 + 14 * math.sin(2.2 * tg), *b.entra(tg, t0 + 0.15, 0.5))
+    pas(L, p["nom"], 1150, "Bold", 44, WHITE, NEGRO, tg, t0 + 0.3)
+    tc = m(p["cmp"][0])
+    if tg < tc:  # primero los beneficios
+        for j, (em, txt) in enumerate(p["benef"]):
+            pas(L, txt, 1290 + 112 * j, "ExtraBold", 48, ROSA, WHITE, tg, m(em) - 0.15)
+    else:  # luego el precio
+        _, tienda, precio = p["cmp"]
+        if tienda: b.pon(L, etiqueta(f"En {tienda}", f"${precio:,}", NEGRO), W / 2, 1330, *b.entra(tg, tc, 0.35))
+        else: pas(L, "🇲🇽 No se vende en México", 1330, "ExtraBold", 56, (196, 40, 60), WHITE, tg, tc)
+        tm = m(p["mio"][0])
+        if tg >= tm:
+            pas(L, f"Conmigo: {p['mio'][1]}", 1510, sz=74, t=tg, t0=tm)
+            if p["ahorro"]: pas(L, f"Ahorras ${p['ahorro']:,} 💸", 1640, "ExtraBold", 52, VERDE, WHITE, tg, tm + 0.5)
+    subtitulo(L, tg, 160)
+
+
 CAPA = {"lista": capa_lista, "juego": capa_juego, "cierre": capa_cierre,
-        "dior": capa_dior, "noche": capa_noche, "amiga": capa_amiga, "vlog": capa_vlog, "allure": capa_allure}[VAR]
+        "dior": capa_dior, "noche": capa_noche, "amiga": capa_amiga, "vlog": capa_vlog, "allure": capa_allure}.get(VAR, capa_allure_cat)
 SFX = []
 
 
@@ -603,7 +683,7 @@ def cuadros():
     total = int(round(INI[-1] * FPS))
     raw = [int(tm[2] * FPS) for tm in TOMAS]
     k = total / sum(raw); ns = [int(r * k) for r in raw]; ns[-1] += total - sum(ns)
-    lento = k if VAR == "allure" else 1.0  # allure: misma porción de cada toma (revisada sin espejos), en cámara lenta
+    lento = k if VAR.startswith("allure") else 1.0  # allure: misma porción de cada toma (revisada sin espejos), en cámara lenta
     f = 0
     for tm, n in zip(TOMAS, ns):
         for j, L in zip(range(n), video(tm[0], tm[1], n, tm[3] / lento, *tm[4:])):

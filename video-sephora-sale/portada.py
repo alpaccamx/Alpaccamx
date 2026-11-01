@@ -106,3 +106,16 @@ if os.path.exists(os.path.join(CRUDO, "est_v62.mp4")):
         b.pon(L, B.recorte(rec, 380), [290, 790][k % 2], [960, 1380][k // 2])
     B.pas(L, "Sephora Sale · 20% OFF", 1500, sz=56)
     guarda(L, "portada-allure.jpg")
+# 9-11. serie Allure por categoría
+for var in ["allure-rostro", "allure-labios", "allure-piel"]:
+    if not os.path.exists(os.path.join(CRUDO, "est_v111.mp4")): break
+    B = motor(var); b = B.b; C = B.CAT
+    L = cuadro(B, "v111", 16)
+    L.paste(L.filter(B.ImageFilter.GaussianBlur(18))); L.alpha_composite(B.Image.new("RGBA", L.size, (24, 10, 18, 120)))
+    b.pon(L, B._bagel("Premios Allure", 120, B.WHITE), B.W / 2, 420)
+    b.pon(L, b.pastilla(f"Cap. {C['cap']} · {C['nombre']}", "ExtraBold", 80, B.ROSA, B.WHITE, padx=50, pady=20), B.W / 2, 580)
+    n = len(C["productos"])
+    for k, p in enumerate(C["productos"]):
+        b.pon(L, B.recorte(p["rec"], 560 if n > 1 else 720), B.W / 2 + (k - (n - 1) / 2) * 470, 1080)
+    B.pas(L, "para qué sirven y cuánto cuestan 💸" if n > 1 else "para qué sirve y cuánto cuesta 💸", 1480, "Bold", 48, B.WHITE, B.NEGRO)
+    guarda(L, f"portada-{var}.jpg")
