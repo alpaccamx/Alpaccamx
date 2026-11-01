@@ -513,6 +513,13 @@ ALLURE = {1: ("ct-spray", "Charlotte Tilbury Airbrush Flawless Setting Spray", "
           3: ("dior-forever", "Dior Forever Skin Glow", "Sephora México", 1550, "$1,184"),
           4: ("tower-sos-solo", "Tower 28 SOS Daily Rescue Spray", None, None, "desde $237")}
 AHORRO = {1: 124, 2: 141, 3: 366}
+# premio de Allure 2026 (therealchiclife.com, 22 sep 2026) y beneficios que dice la marca; cada beneficio sale en la
+# marca de la voz que le toca (marcas 1..n-3; la penúltima es el precio de comparación y la última "Conmigo")
+PREMIO = {1: "Mejor fijador luminoso", 2: "Mejor aceite de labios con color", 3: "Mejor base líquida luminosa", 4: "Ganador Allure 2026"}
+BENEFICIOS = {1: ["💧 A prueba de agua", "✨ Hidrata mientras fija"],
+              2: ["🍒 Con aceite de cereza", "💋 Hidrata sin ser pegajoso", "🌸 Realza tu color natural"],
+              3: ["✨ Piel con glow", "⏱️ Dura hasta 24 horas"],
+              4: ["🌿 Calma los granitos", "🌸 Baja las rojeces"]}
 
 
 # fotos oficiales sin recortar (en una tarjeta blanca se ven limpias; recortadas quedaban con orillas o sombras)
@@ -562,20 +569,24 @@ def capa_allure(L, tg):
                 b.pon(L, p, [290, 790][k % 2], [930, 1410][k // 2] + dy + fl, 1.0, min(1, (tg - t0) / 0.2))
         subtitulo(L, tg, 1730)
     elif e in ALLURE:
-        rec, nom, tienda, pt, mio = ALLURE[e]; t0 = INI[e]
+        rec, nom, tienda, pt, mio = ALLURE[e]; t0 = INI[e]; n = len(T[e]["marcas"])
+        t_cmp, t_mio = marca(e, n - 2), marca(e, n - 1)
         b.pon(L, numero(e), W - 150, 150, *b.entra(tg, t0, 0.3))
-        pas(L, "🏆 Ganador Allure 2026", 300, "ExtraBold", 50, WHITE, NEGRO, tg, t0 + 0.1)
+        pas(L, ("🏆 Allure 2026: " + PREMIO[e]) if e != 4 else "🏆 " + PREMIO[e], 300, "ExtraBold", 44, WHITE, NEGRO, tg, t0 + 0.1)
         fl = 14 * math.sin(2.2 * tg)
         s_, a_ = b.entra(tg, t0 + 0.15, 0.5)
         b.pon(L, recorte(rec, 640), W / 2, 760 + fl, s_, a_)
         pas(L, nom, 1150, "Bold", 44, WHITE, NEGRO, tg, marca(e, 0))
-        if tienda:
-            if tg >= marca(e, 1): b.pon(L, etiqueta(f"En {tienda}", f"${pt:,}", NEGRO), W / 2, 1330, *b.entra(tg, marca(e, 1), 0.35))
-        elif tg >= marca(e, 1):
-            pas(L, "🇲🇽 No se vende en México", 1330, "ExtraBold", 56, (196, 40, 60), WHITE, tg, marca(e, 1))
-        if tg >= marca(e, 2):
-            pas(L, f"Conmigo: {mio}", 1510, sz=74, t=tg, t0=marca(e, 2))
-            if e in AHORRO: pas(L, f"Ahorras ${AHORRO[e]:,} 💸", 1640, "ExtraBold", 52, VERDE, WHITE, tg, marca(e, 2) + 0.5)
+        if tg < t_cmp:  # primero los beneficios
+            for k, txt in enumerate(BENEFICIOS[e]):
+                tb = marca(e, 1 + k) if 1 + k < n - 2 else marca(e, n - 3)
+                pas(L, txt, 1290 + 120 * k, "ExtraBold", 50, ROSA, WHITE, tg, tb - 0.15)
+        else:  # luego el precio
+            if tienda: b.pon(L, etiqueta(f"En {tienda}", f"${pt:,}", NEGRO), W / 2, 1330, *b.entra(tg, t_cmp, 0.35))
+            else: pas(L, "🇲🇽 No se vende en México", 1330, "ExtraBold", 56, (196, 40, 60), WHITE, tg, t_cmp)
+            if tg >= t_mio:
+                pas(L, f"Conmigo: {mio}", 1510, sz=74, t=tg, t0=t_mio)
+                if e in AHORRO: pas(L, f"Ahorras ${AHORRO[e]:,} 💸", 1640, "ExtraBold", 52, VERDE, WHITE, tg, t_mio + 0.5)
         subtitulo(L, tg, 160)  # arriba: abajo van los precios y los botones de TikTok
     else:
         pas(L, "¿Cuál te llevas? 👇", 400, sz=64, bg=NEGRO, t=tg, t0=INI[5])
@@ -592,9 +603,10 @@ def cuadros():
     total = int(round(INI[-1] * FPS))
     raw = [int(tm[2] * FPS) for tm in TOMAS]
     k = total / sum(raw); ns = [int(r * k) for r in raw]; ns[-1] += total - sum(ns)
+    lento = k if VAR == "allure" else 1.0  # allure: misma porción de cada toma (revisada sin espejos), en cámara lenta
     f = 0
     for tm, n in zip(TOMAS, ns):
-        for j, L in zip(range(n), video(tm[0], tm[1], n, *tm[3:])):
+        for j, L in zip(range(n), video(tm[0], tm[1], n, tm[3] / lento, *tm[4:])):
             CAPA(L, (f + j) / FPS)
             yield L
         f += n
