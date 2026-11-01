@@ -34,7 +34,8 @@ ESPEJO = (180, 306, 640, 1138)
 # cada renglón es una frase de la voz. fuente "bolsa" = la foto de la bolsa (con un zoom lento)
 TOMAS = {
     "lista": [("v45", 62, 1.0, 3.0), ("v45", 262, 1.0, 2.0), ("v62", 65.5, 1.8, 1.0),  # sin el espejo ni la toma movida de v45 286
-              ("v69", 0.8, 1.7, 1.0), ("v69", 41.5, 1.7, 1.0),          # amika (y Tower 28 con su tarjeta)
+              ("v69", 41.8, 1.7, 1.0), ("v69", 81.5, 1.7, 1.0),         # amika (muro HAIR), Tower 28 (pasillo)
+              # NO usar v69 0-3 s: el espejo redondo junto a amika refleja la cara de Mae
               ("v69", 15, 1.6, 1.0), ("v69", 26, 1.3, 1.0),             # Saie, Too Faced
               ("v62", 66, 1.5, 1.0), ("v69", 198, 1.4, 1.0),            # Mane, Dior (tomas de la tienda)
               ("bolsa", 0, 3.2, 1.0),
