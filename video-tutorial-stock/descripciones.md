@@ -7,7 +7,7 @@ Hecho con una grabación de pantalla real de la página en un celular (toques, d
 **TikTok**
 > Cómo comprar en mi página paso a paso 🛍️ Lo que está en Stock en México te lo mando de inmediato 📦 y en Juárez te lo entrego en persona 📍
 > Guárdalo para cuando lo necesites 📌 ¿Qué producto quieres que tenga en stock? 👇
-> #tutorial #comprasenlinea #skincarecoreano #bathandbodyworks #personalshopper #ciudadjuarez
+> #tutorial #comprasenlinea #skincarecoreano #bathandbodyworks #personalshopper
 
 **Instagram**
 > Cómo comprar lo que tengo en stock en alpacca.mx, paso a paso 🛍️
@@ -26,4 +26,4 @@ Hecho con una grabación de pantalla real de la página en un celular (toques, d
 > 📌 Guárdalo para cuando lo necesites.
 > ¿Qué producto te gustaría que tuviera en stock? Te leo 👇
 >
-> #tutorial #alpacca #comprasenlinea #skincarecoreano #bathandbodyworks #personalshopper #envioatodomexico #ciudadjuarez
+> #tutorial #alpacca #comprasenlinea #skincarecoreano #bathandbodyworks

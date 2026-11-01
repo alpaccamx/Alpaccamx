@@ -16,7 +16,7 @@ Datos de stock y precios: tu página (1 de noviembre). Si cambian las piezas, av
 **TikTok**
 > ¿Tu body mist se te va en una hora? 😩 No es el mist, es cómo te lo pones 👇
 > Tip 3 es el que casi nadie hace 👀 ¿Cuál es el que nunca te dura?
-> #bathandbodyworks #bodymist #tipsdebelleza #perfumes #bathandbodyworksmexico #alpacca
+> #bathandbodyworks #bodymist #tipsdebelleza #perfumes #alpacca
 
 **Instagram**
 > ¿Tu body mist se te quita en una hora? 😩 Casi siempre es por cómo te lo pones:
@@ -32,7 +32,7 @@ Datos de stock y precios: tu página (1 de noviembre). Si cambian las piezas, av
 >
 > 📌 Guárdalo para tu próximo mist. ¿Cuál es el que nunca te dura? 👇
 >
-> #bathandbodyworks #bodymist #tipsdebelleza #perfumes #bathandbodyworksmexico #fragancias #alpacca
+> #bathandbodyworks #bodymist #tipsdebelleza #perfumes #alpacca
 
 ---
 
@@ -46,7 +46,7 @@ Datos de stock y precios: tu página (1 de noviembre). Si cambian las piezas, av
 **TikTok**
 > ¿Cómo escoges un mist si no lo puedes oler? 🤔 Fíjate en las notas, no en el nombre 👃
 > ¿Tú eres dulce 🍰, floral 🌸 o frutal 🍓? Te digo cuál te va 👇
-> #bathandbodyworks #bodymist #perfumes #notasolfativas #bathandbodyworksmexico #alpacca
+> #bathandbodyworks #bodymist #perfumes #notasolfativas #alpacca
 
 **Instagram**
 > Comprar un mist sin olerlo da miedo, ¿verdad? 🤔 El truco: fíjate en sus notas.
@@ -59,7 +59,7 @@ Datos de stock y precios: tu página (1 de noviembre). Si cambian las piezas, av
 >
 > Coméntame: ¿eres dulce, floral o frutal? Y te digo cuál te va 👇
 >
-> #bathandbodyworks #bodymist #perfumes #fragancias #bathandbodyworksmexico #tipsdebelleza #alpacca
+> #bathandbodyworks #bodymist #perfumes #fragancias #alpacca
 
 ---
 
@@ -74,7 +74,7 @@ Datos de stock y precios: tu página (1 de noviembre). Si cambian las piezas, av
 **TikTok**
 > ¿Te tocó intercambio y no sabes qué dar? 🎁 3 ideas de menos de $200 que sí se usan
 > ¿De cuánto es el tuyo? 👇
-> #intercambionavideño #regalosnavidad #bathandbodyworks #ideasderegalo #navidad2026 #alpacca
+> #intercambionavideño #regalosnavidad #bathandbodyworks #ideasderegalo #alpacca
 
 **Instagram**
 > ¿Te tocó intercambio y no sabes qué dar? 🎁 Te paso 3 ideas de Bath & Body Works de menos de $200:
@@ -87,7 +87,7 @@ Datos de stock y precios: tu página (1 de noviembre). Si cambian las piezas, av
 >
 > 📌 Guárdalo para cuando compres tu intercambio. ¿De cuánto es el tuyo? 👇
 >
-> #intercambionavideño #regalosnavidad #bathandbodyworks #ideasderegalo #navidad #bathandbodyworksmexico #alpacca
+> #intercambionavideño #regalosnavidad #bathandbodyworks #ideasderegalo #alpacca
 
 ---
 

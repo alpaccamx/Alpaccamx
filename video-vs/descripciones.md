@@ -21,7 +21,7 @@ Carrusel: carruseles/mists-vs/01.jpg a 05.jpg
 > ⏰ Es solo por hoy, apártalos ya.
 > 📲 Escanea el QR al final del video para entrar a mi grupo de WhatsApp, o comenta "QUIERO" y te mando el link.
 >
-> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #mistsvictoriassecret #ofertasmexico #personalshopper
+> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #mistsvictoriassecret
 
 ---
 
@@ -44,7 +44,7 @@ Carrusel: carruseles/mists-vs/01.jpg a 05.jpg
 > Hoy los mists están a $155 c/u (Fragrance Mist de 250 ml, originales).
 > 📲 ¿Quieres el tuyo? Escanea el QR al final del video para entrar a mi grupo de WhatsApp.
 >
-> #victoriassecret #acompañame #personalshopper #compraseneeuu #bodymist #perfumesoriginales #vlog
+> #victoriassecret #acompañame #personalshopper #compraseneeuu #bodymist
 
 ---
 
@@ -65,7 +65,7 @@ Carrusel: carruseles/mists-vs/01.jpg a 05.jpg
 >
 > 📲 Escanea el QR al final del video para entrar a mi grupo de WhatsApp, o comenta "GRUPO" y te mando el link.
 >
-> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #mayoreo #emprendedorasmexicanas #personalshopper
+> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #mayoreo
 
 ---
 
@@ -82,7 +82,7 @@ Carrusel: carruseles/mists-vs/01.jpg a 05.jpg
 > ¿Cuál es tu favorito? Te leo en comentarios 👇
 > 📲 En la última foto está el QR de mi grupo de WhatsApp.
 >
-> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #mistsvictoriassecret #ofertasmexico
+> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #mistsvictoriassecret
 
 **TikTok (modo foto)**
 > SOLO HOY: mists de Victoria's Secret a $155 c/u 🚨 ¿Cuál es tu favorito? 👇
@@ -101,7 +101,7 @@ Carrusel: carruseles/mists-vs/01.jpg a 05.jpg
 >
 > ⏰ Apártalos hoy por WhatsApp. El QR de mi grupo está en la última foto 📲
 >
-> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #mistsvictoriassecret #personalshopper
+> #victoriassecret #bodymist #fragrancemist #perfumesoriginales #mistsvictoriassecret
 
 **TikTok (modo foto)**
 > Mists Victoria's Secret a $155 c/u, solo hoy 🚨 ¿Cuál te llevas? 👇

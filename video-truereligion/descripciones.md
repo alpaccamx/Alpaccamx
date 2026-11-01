@@ -26,7 +26,7 @@ Cortos: TR-corto1-voz.mp4 (Un día más en la oficina), TR-corto2-voz.mp4 (Lo qu
 >
 > 💬 Mándame WhatsApp con lo que te gustó y armamos tu pedido.
 >
-> #truereligion #truereligionmexico #ropaoriginal #personalshopper #ropadeusa #modamujer #outfitmexico
+> #truereligion #truereligionmexico #ropaoriginal #personalshopper #ropadeusa
 
 ---
 
@@ -38,7 +38,7 @@ Cortos: TR-corto1-voz.mp4 (Un día más en la oficina), TR-corto2-voz.mp4 (Lo qu
 > Mayoreo desde 1 pieza ✨ Original, con etiqueta 🇺🇸
 > 📲 Escanea el QR del final para entrar a mi grupo de WhatsApp (o comenta "GRUPO" y te mando el link)
 > *Según a cuánto lo vendas. Envío aparte.
-> #emprendedorasmexicanas #truereligion #reventa #emprendimiento #negociodesdecasa #mayoreo
+> #emprendedorasmexicanas #truereligion #reventa #emprendimiento #negociodesdecasa
 
 **Instagram**
 > ¿Cuánto ganas revendiendo True Religion? Haz las cuentas conmigo 🧾💸
@@ -60,7 +60,7 @@ Cortos: TR-corto1-voz.mp4 (Un día más en la oficina), TR-corto2-voz.mp4 (Lo qu
 >
 > *La ganancia depende de a cuánto lo vendas.
 >
-> #emprendedorasmexicanas #truereligion #reventa #emprendimiento #negociodesdecasa #ropaoriginal #mayoreo #truereligionmexico
+> #emprendedorasmexicanas #truereligion #reventa #emprendimiento #negociodesdecasa
 
 ---
 

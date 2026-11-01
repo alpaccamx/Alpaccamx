@@ -19,7 +19,7 @@ Hay un buen de aromas, pero se acaban rápido. Si quieres alguno, pídelo en alp
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR al final del video 📲
 
-#bathandbodyworks #bathandbodyworksmexico #mistsbathandbodyworks #bodymist #perfumesmexico #emprendedorasmexicanas #mayoreo #alpacca
+#bathandbodyworks #bathandbodyworksmexico #mistsbathandbodyworks #bodymist #alpacca
 ```
 
 **TikTok**
@@ -41,7 +41,7 @@ Nos vemos en alpacca.mx 🔗 (link en mi perfil)
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR al final del video 📲
 
-#pov #bathandbodyworks #bathandbodyworksmexico #mists #bodymist #shoppingtime #perfumesoriginales #alpacca
+#pov #bathandbodyworks #bathandbodyworksmexico #mists #alpacca
 ```
 
 **TikTok**
@@ -61,7 +61,7 @@ Tengo mists de Bath & Body Works originales a $150 cada uno.
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR al final del video 📲
 
-#emprendedorasmexicanas #reventa #negociopropio #mayoreo #bathandbodyworks #perfumesoriginales #emprender #alpacca
+#emprendedorasmexicanas #reventa #negociopropio #mayoreo #alpacca
 ```
 
 **TikTok**
@@ -82,7 +82,7 @@ Todos a $150 c/u, mayoreo desde 1 pieza, en alpacca.mx 🔗
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR al final del video 📲
 
-#bathandbodyworks #ginghamgorgeous #strawberrypoundcake #intothenight #bodymist #perfumes #alpacca
+#bathandbodyworks #ginghamgorgeous #strawberrypoundcake #intothenight #alpacca
 ```
 
 **TikTok**
@@ -110,12 +110,12 @@ Guárdalo para tu próxima compra 📌
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR al final del video 📲
 
-#dupes #perfumedupes #bathandbodyworks #dupesdeperfumes #valentino #ysl #kayali #perfumesmexico #alpacca
+#dupes #perfumedupes #bathandbodyworks #dupesdeperfumes #alpacca
 ```
 
 **TikTok**
 ```
-Dupes de perfumes de lujo en Bath & Body Works 💎 Todos a $150 c/u en alpacca.mx 🛍️ ¿Cuál probarías? 👇 Únete a mi grupo de WhatsApp (QR al final) 💬 #dupes #perfumedupes #bathandbodyworks #perfumetok #valentino #ysl
+Dupes de perfumes de lujo en Bath & Body Works 💎 Todos a $150 c/u en alpacca.mx 🛍️ ¿Cuál probarías? 👇 Únete a mi grupo de WhatsApp (QR al final) 💬 #dupes #perfumedupes #bathandbodyworks #perfumetok #valentino
 ```
 
 ---

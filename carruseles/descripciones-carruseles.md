@@ -28,7 +28,7 @@ Laneige, Rhode, Rare Beauty, Fenty, Patrick Ta, Huda, Glow Recipe, Sol de Janeir
 
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#sephorasale #sephoramexico #maquillaje #skincare #preventa #rarebeauty #laneige #soldejaneiro #summerfridays #maquillajeoriginal
+#sephorasale #sephoramexico #maquillaje #skincare #preventa
 
 ---
 
@@ -66,7 +66,7 @@ Guarda este post para tu lista de regalos 📌 y etiqueta a quien te tiene que r
 
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#sephorasale #sephoramexico #regalosdenavidad #kitsdemaquillaje #rarebeauty #laneige #summerfridays #fentybeauty #patrickta
+#sephorasale #sephoramexico #regalosdenavidad #kitsdemaquillaje #rarebeauty
 
 ---
 
@@ -101,7 +101,7 @@ Todos con 20% OFF en mi preventa del Sephora Sale ✨
 
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#blush #rubor #sephorasale #sephoramexico #maquillaje #tipsdemaquillaje #rarebeauty #rhode #patrickta #maquillajeoriginal
+#blush #rubor #sephorasale #sephoramexico #maquillaje
 
 ---
 
@@ -134,7 +134,7 @@ Calendarios de adviento 2026 con 20% OFF 🎄 Desliza para ver los 5 👉
 
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#calendariodeadviento #adventcalendar #sephorasale #sephoramexico #regalosdenavidad #laneige #glowrecipe #charlottetilbury #oliveyoung
+#calendariodeadviento #adventcalendar #sephorasale #sephoramexico #regalosdenavidad
 
 ---
 
@@ -169,7 +169,7 @@ Todos con 20% OFF en mi preventa ✨
 ¿Vainilla, pistache o floral? Cuéntame cuál es tu aroma 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#perfumes #perfumesoriginales #kayali #soldejaneiro #rarebeauty #hudabeauty #sephorasale #sephoramexico
+#perfumes #perfumesoriginales #kayali #soldejaneiro #rarebeauty
 
 ---
 
@@ -203,7 +203,7 @@ Todos con 20% OFF en mi preventa ✨
 Guarda este post para armar tu rutina 📌 ¿Cuál ya usas? 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#skincarecoreano #kbeauty #laneige #glowrecipe #glassskin #skincare #sephorasale #sephoramexico
+#skincarecoreano #kbeauty #laneige #glowrecipe #glassskin
 
 ---
 
@@ -238,7 +238,7 @@ Todos con 20% OFF en mi preventa ✨
 ¿Tu cabello es seco, maltratado o con frizz? Cuéntame y te digo cuál 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#cabello #haircare #olaplex #gisou #ouai #amika #sephorasale #sephoramexico
+#cabello #haircare #olaplex #gisou #ouai
 
 ---
 
@@ -273,7 +273,7 @@ Todos con 20% OFF en mi preventa ✨
 Guarda este post para cuando te toque intercambio 📌 y etiqueta a quien te tocó 👀
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#intercambio #regalosdenavidad #regalos #sephorasale #sephoramexico #rarebeauty #laneige #touchland
+#intercambio #regalosdenavidad #regalos #sephorasale #sephoramexico
 
 ---
 
@@ -307,7 +307,7 @@ Todos con 20% OFF en mi preventa del Sephora Sale ✨
 ¿Cuál es tu favorito para los labios? Cuéntame 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#gloss #labios #lipcare #sephorasale #sephoramexico #fentybeauty #laneige #rhode
+#gloss #labios #lipcare #sephorasale #sephoramexico
 
 ---
 
@@ -341,7 +341,7 @@ Todos con 20% OFF en mi preventa del Sephora Sale ✨
 ¿Tu piel es seca, grasa o mixta? Cuéntame 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#fijador #settingspray #maquillaje #tipsdemaquillaje #sephorasale #sephoramexico #hudabeauty #milkmakeup
+#fijador #settingspray #maquillaje #tipsdemaquillaje #sephorasale
 
 ---
 
@@ -379,7 +379,7 @@ Todos con 20% OFF en mi preventa ✨
 ¿Cuáles me faltaron? Díganme sus favs para hacer parte 2 👀
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#sephorasale #sephoramexico #valelapena #maquillaje #rarebeauty #rhode #hudabeauty #fentybeauty
+#sephorasale #sephoramexico #valelapena #maquillaje #rarebeauty
 
 ---
 
@@ -412,7 +412,7 @@ Este año, todos con 20% OFF en mi preventa ✨
 ¿Cuáles me faltaron? Díganme sus favs para la parte 3 👀
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#sephorasale #sephoramexico #valelapena #maquillaje #patrickta #rarebeauty #hudabeauty #urbandecay
+#sephorasale #sephoramexico #valelapena #maquillaje #patrickta
 
 ---
 
@@ -449,7 +449,7 @@ Todos con 20% OFF en mi preventa ✨
 ¿Cuántos ya tienes? Cuéntame 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#sephorasale #sephoramexico #losmasvendidos #summerfridays #laneige #kayali #rhode #patrickta #touchland
+#sephorasale #sephoramexico #losmasvendidos #summerfridays #laneige
 
 ---
 
@@ -486,7 +486,7 @@ Todos con 20% OFF en mi preventa ✨
 ¿Cuántos ya tienes y cuál te falta? 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#sephora #sephorasale #sephoramexico #losmasvendidos #summerfridays #laneige #rhode #kayali #patrickta
+#sephora #sephorasale #sephoramexico #losmasvendidos #summerfridays
 
 ---
 
@@ -521,7 +521,7 @@ Todos con 20% OFF en mi preventa ✨
 ¿De qué marca quieres la parte 2? Cuéntame 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#sephora #sephorasale #sephoramexico #charlottetilbury #hudabeauty #summerfridays #laneige #rhode #kayali
+#sephora #sephorasale #sephoramexico #charlottetilbury #hudabeauty
 
 ---
 
@@ -556,7 +556,7 @@ Todos con 20% OFF en mi preventa ✨
 ¿Qué marca de lujo quieres que te traiga? Cuéntame 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#dior #missdior #chanel #cocomademoiselle #fentybeauty #hudabeauty #kayali #sephorasale #sephoramexico
+#dior #missdior #chanel #cocomademoiselle #fentybeauty
 
 ---
 
@@ -589,7 +589,7 @@ Todos con 20% OFF en mi preventa ✨
 ¿Cuál tienes en tu lista de deseos? 👇
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#sephora #sephorasale #sephoramexico #hudabeauty #ysl #rhode #dior #tower28 #patrickta
+#sephora #sephorasale #sephoramexico #hudabeauty #ysl
 
 ---
 
@@ -620,4 +620,4 @@ Todos con 20% OFF en mi preventa ✨
 ¿Cuál pedirías para Navidad? Etiqueta a quien te lo tiene que regalar 👀
 
 💬 Únete a mi grupo de WhatsApp: escanea el QR de la última foto 📲
-#navidad #regalosdenavidad #sephorasale #sephoramexico #rhode #patrickta #onesize #edicionlimitada
+#navidad #regalosdenavidad #sephorasale #sephoramexico #rhode

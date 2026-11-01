@@ -25,7 +25,7 @@ Preventa: 20% OFF · aparta con el 50% · liquidas antes de que te lo envíe · 
 > ¿Quieres que te traiga algo? Mi preventa tiene 20% OFF y cierra el 8 de noviembre: apartas con el 50% y liquidas antes de que te lo envíe.
 > 📲 Escanea el QR al final del video para entrar a mi grupo de WhatsApp.
 >
-> #sephorasale #sephora #personalshopper #compraseneeuu #amika #tower28 #saie #dior
+> #sephorasale #sephora #personalshopper #compraseneeuu #amika
 
 ---
 
@@ -47,7 +47,7 @@ Preventa: 20% OFF · aparta con el 50% · liquidas antes de que te lo envíe · 
 > Es mi preventa del Sephora Sale: aparta con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre.
 > 📲 Escanea el QR al final del video para entrar a mi grupo de WhatsApp.
 >
-> #sephorasale #sephora #rhode #rarebeauty #hudabeauty #maquillajeoriginal #personalshopper
+> #sephorasale #sephora #rhode #rarebeauty #hudabeauty
 
 ---
 
@@ -69,7 +69,7 @@ Preventa: 20% OFF · aparta con el 50% · liquidas antes de que te lo envíe · 
 >
 > 📲 Escanea el QR al final del video para entrar a mi grupo de WhatsApp, o comenta "PREVENTA" y te mando el link.
 >
-> #sephorasale #sephora #preventa #personalshopper #compraseneeuu #maquillajeoriginal
+> #sephorasale #sephora #preventa #personalshopper #compraseneeuu
 
 ---
 
@@ -95,7 +95,7 @@ Por qué: el juego de adivinar hace que comenten su respuesta, y los comentarios
 > Es mi preventa del Sephora Sale: 20% OFF, apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre.
 > 💬 Comenta GRUPO y te mando el link de mi grupo de WhatsApp (o entra desde el link de mi perfil).
 >
-> #dior #diorbackstage #sephorasale #sephora #maquillajeoriginal #personalshopper #compraseneeuu
+> #dior #diorbackstage #sephorasale #sephora #maquillajeoriginal
 
 ## Video 5: 8 de la noche y sigo en Sephora (detrás de cámaras)
 Por qué: enseñar el trabajo que nadie ve genera confianza ("sí existe, sí va a la tienda") y es lo que convierte a una seguidora en clienta.
@@ -113,7 +113,7 @@ Por qué: enseñar el trabajo que nadie ve genera confianza ("sí existe, sí va
 >
 > ¿La próxima vez vengo por lo tuyo? 💬 Comenta GRUPO y te mando el link de mi grupo de WhatsApp.
 >
-> #sephora #personalshopper #detrasdecamaras #sephorasale #emprendedoramexicana #compraseneeuu
+> #sephora #personalshopper #detrasdecamaras #sephorasale #emprendedoramexicana
 
 ## Video 6: mándale esto a tu amiga (para compartir)
 Por qué: un video hecho para mandárselo a alguien llega a gente que no te sigue. Compartir es lo que más alcance da en una cuenta que empieza.
@@ -132,7 +132,7 @@ Por qué: un video hecho para mandárselo a alguien llega a gente que no te sigu
 >
 > 📲 Mándaselo ahorita y comenta GRUPO para que te pase el link.
 >
-> #sephora #sephorasale #amigas #personalshopper #compraseneeuu #maquillajeoriginal
+> #sephora #sephorasale #amigas #personalshopper #compraseneeuu
 
 ---
 
@@ -144,7 +144,7 @@ Productos que no salen en los otros videos: ONE/SIZE, Gisou, Tarte y Charlotte T
 > Holi, acompáñame al Sephora Sale a cumplir las wish lists de mis clientas 🛍️💗
 > ONE/SIZE, Gisou, Tarte Shape Tape y Charlotte Tilbury con 20% OFF ✨
 > Mi preventa cierra el 8 de noviembre · comenta GRUPO 👇
-> #sephorasale #sephora #acompañame #personalshopper #onesize #gisou #tarte
+> #sephorasale #sephora #acompañame #personalshopper #onesize
 
 **Instagram**
 > Holi, acompáñame al Sephora Sale a cumplir las wish lists de mis clientas 🛍️💗
@@ -156,7 +156,7 @@ Productos que no salen en los otros videos: ONE/SIZE, Gisou, Tarte y Charlotte T
 > Si quieres algo, mi preventa cierra el 8 de noviembre: apartas con el 50% y liquidas antes de que te lo envíe.
 > 💬 Comenta GRUPO y te paso el link de mi grupo de WhatsApp.
 >
-> #sephorasale #sephora #acompañame #personalshopper #compraseneeuu #onesize #gisou #tarte #charlottetilbury
+> #sephorasale #sephora #acompañame #personalshopper #compraseneeuu
 
 ---
 
@@ -167,7 +167,7 @@ Fuente: Allure Best of Beauty 2026 (lista vía therealchiclife.com, 22 sep 2026;
 **TikTok**
 > Los ganadores de los premios Allure 2026: para qué sirven y cuánto cuestan en México vs. conmigo 🏆✨
 > ¿Cuál te llevas? Comenta GRUPO 👇 · ¿Parte 2? Dímelo en comentarios
-> #allure #bestofbeauty #sephorasale #dior #charlottetilbury #tower28
+> #allure #bestofbeauty #sephorasale #dior #charlottetilbury
 
 **Instagram**
 > Los ganadores de los premios Allure 2026 🏆 para qué sirven y cuánto cuestan en México vs. conmigo
@@ -187,7 +187,7 @@ Fuente: Allure Best of Beauty 2026 (lista vía therealchiclife.com, 22 sep 2026;
 > Es mi preventa del Sephora Sale: 20% OFF, apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre.
 > 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. ¿Quieres la parte 2? Dímelo en comentarios.
 >
-> #allure #bestofbeauty #sephorasale #sephora #dior #charlottetilbury #tower28 #maquillajeoriginal
+> #allure #bestofbeauty #sephorasale #sephora #dior
 
 ---
 
@@ -199,7 +199,7 @@ Publica uno por día, en orden. Premios: Allure Best of Beauty 2026 (therealchic
 **TikTok**
 > Premios Allure, cap. 1: base y piel 🏆 para qué sirven y cuánto cuestan en México vs. conmigo
 > ¿Cuál te llevas? Comenta GRUPO 👇 · Mañana: cap. 2, mejillas 🌸
-> #allure #bestofbeauty #dior #patrickta #charlottetilbury #tower28
+> #allure #bestofbeauty #dior #patrickta #charlottetilbury
 
 **Instagram**
 > Premios Allure · Cap. 1: Base y piel 🏆
@@ -219,7 +219,7 @@ Publica uno por día, en orden. Premios: Allure Best of Beauty 2026 (therealchic
 > Preventa del Sephora Sale: 20% OFF, apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre.
 > 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. Mañana: cap. 2, mejillas 🌸
 >
-> #allure #bestofbeauty #sephorasale #dior #patrickta #charlottetilbury #tower28
+> #allure #bestofbeauty #sephorasale #dior #patrickta
 
 ## Cap. 2 · Mejillas (Sale-allure-mejillas-voz.mp4, portada-allure-mejillas.jpg)
 **TikTok**
@@ -242,7 +242,7 @@ Publica uno por día, en orden. Premios: Allure Best of Beauty 2026 (therealchic
 > Preventa del Sephora Sale: cierra el 8 de noviembre.
 > 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link. Mañana: cap. 3, labios y cejas 💋
 >
-> #allure #bestofbeauty #sephorasale #rarebeauty #softpinch #rubor #iluminador
+> #allure #bestofbeauty #sephorasale #rarebeauty #softpinch
 
 ## Cap. 3 · Labios y cejas (Sale-allure-labios-voz.mp4, portada-allure-labios.jpg)
 **TikTok**
@@ -265,4 +265,4 @@ Publica uno por día, en orden. Premios: Allure Best of Beauty 2026 (therealchic
 > Preventa del Sephora Sale: cierra el 8 de noviembre.
 > 💬 ¿Cuál te llevas? Comenta GRUPO y te mando el link.
 >
-> #allure #bestofbeauty #sephorasale #dior #glowrecipe #rarebeauty #labios #cejas
+> #allure #bestofbeauty #sephorasale #dior #glowrecipe
