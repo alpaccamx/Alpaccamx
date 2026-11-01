@@ -7,6 +7,11 @@ Formatos que no se repiten con los de BBW, Victoria's Secret ni los de Sephora a
   lista  = la lista de pedidos de sus clientas que se va palomeando (con lo que de verdad compró: ver LISTA)
   juego  = ¿adivinas cuánto cuesta en México? (precio de México y luego el de Mae)
   cierre = la preventa cierra el 8 de noviembre: línea de tiempo de cómo funciona
+Del 31 de octubre (v5364 = Dior Backstage, v111 = Sephora de noche, v5362 = Mae caminando con la bolsa), con la
+estrategia de estrategia/estrategia-redes.md (gancho en el segundo 0, 20-25 s, CTA de comentar "GRUPO"):
+  dior   = prueba de precio: ¿cuánto cuesta esta paleta Dior en México?
+  noche  = detrás de cámaras: 8 de la noche y sigo en Sephora por sus pedidos
+  amiga  = para compartir: mándale esto a la amiga que siempre te pide algo de Sephora
 Uso: python3 build.py VARIANTE CARPETA_CON_est_vNN.mp4   (antes: python3 voz.py VARIANTE) -> Sale-VARIANTE-voz.mp4"""
 import json, os, subprocess, sys
 
@@ -51,6 +56,22 @@ TOMAS = {
                ("v45", 286, 2.7, 1.2),
                ("bolsa", 0, 2.3, 1.0), ("v62", 112, 2.0, 1.0),
                ("v69", 220, 2.9, 1.2), ("v62", 72, 2.8, 1.0)],
+    # las tomas de los clips nuevos se ajustan en cuanto se revisan estabilizados (ver hojas)
+    "dior": [("v5364", 3.0, 3.7, 1.0),
+             ("v5364", 7.0, 3.6, 1.0),
+             ("v5364", 13.0, 4.0, 1.0),
+             ("v5364", 9.5, 2.6, 1.0), ("v5364", 27.0, 2.8, 1.0),
+             ("v111", 14.0, 2.5, 1.0), ("v5362", 1.0, 2.5, 1.0), ("v62", 112, 2.5, 1.0)],
+    "noche": [("v111", 0.3, 2.6, 1.0), ("v111", 6.5, 1.6, 1.3),
+              ("v111", 16, 1.8, 1.2), ("v111", 26, 1.8, 1.2), ("v5364", 34, 1.8, 1.2),
+              ("v5364", 4.0, 1.9, 1.0), ("v111", 36, 1.9, 1.2),
+              ("v5362", 0.8, 2.2, 1.0), ("bolsa", 0, 2.2, 1.0),
+              ("v5362", 2.5, 3.2, 1.0), ("v111", 2.0, 3.2, 1.0)],
+    "amiga": [("v5362", 0.5, 2.5, 1.0), ("v111", 0.5, 2.5, 1.0),
+              ("v5362", 6.0, 3.0, 1.0),
+              ("v5364", 3.5, 2.5, 1.0), ("v111", 18, 2.6, 1.2),
+              ("v111", 30, 3.0, 1.2),
+              ("v5362", 2.5, 2.6, 1.0), ("bolsa", 0, 2.7, 1.0)],
 }[VAR]
 
 
@@ -265,7 +286,113 @@ def capa_cierre(L, tg):
         cta(L, tg, 5)
 
 
-CAPA = {"lista": capa_lista, "juego": capa_juego, "cierre": capa_cierre}[VAR]
+# ---------------- CTA de comentar (estrategia: comentar sube el video y te da a la clienta por mensaje) ----------------
+def comentario(texto):
+    """un comentario como los de TikTok/IG: avatar, usuario y el texto"""
+    im = Image.new("RGBA", (760, 170)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle((0, 0, 759, 169), 40, fill=(255, 255, 255, 245))
+    d.ellipse((30, 35, 130, 135), fill=ROSA + (255,))
+    em = b.linea("🙋‍♀️", "Bold", 50, WHITE); im.alpha_composite(em, (int(80 - em.width / 2), int(85 - em.height / 2)))
+    d.text((160, 52), "tu_amiga · ahora", font=b.F("SemiBold", 30), fill=GRIS, anchor="lm")
+    t = b.linea(texto, "ExtraBold", 54, NEGRO); im.alpha_composite(t, (158, 78))
+    return im
+
+
+def cta_comenta(L, tg, e, m_grupo):
+    """«Comenta GRUPO»: un comentario que aparece + la indicación; el QR va chiquito como apoyo"""
+    t0 = marca(e, m_grupo) - 0.2
+    if tg < t0: return
+    b.pon(L, comentario("GRUPO"), W / 2, 640, *b.entra(tg, t0, 0.4))
+    pas(L, "Comenta GRUPO y te mando el link 👇", 820, sz=54, t=tg, t0=t0 + 0.3)
+    q = qr(); q = q.resize((300, 300), Image.LANCZOS)
+    b.pon(L, q, W / 2, 1060, *b.entra(tg, t0 + 0.8, 0.4))
+    pas(L, "o escanéalo desde otro celular", 1240, "Bold", 34, WHITE, NEGRO, tg, t0 + 0.8)
+
+
+def vlog(L, s, cy, t, t0):
+    """renglón tipo vlog: caja negra a la izquierda que entra deslizándose"""
+    if t < t0: return
+    c = b.pastilla(s, "SemiBold", 48, NEGRO + (225,), WHITE, padx=34, pady=18)
+    if c.width > 1000: c = c.resize((1000, int(c.height * 1000 / c.width)), Image.LANCZOS)
+    k = b.ease((t - t0) / 0.35)
+    b.pon(L, c, 40 + c.width / 2 - 120 * (1 - k), cy, 1, min(1, (t - t0) / 0.2))
+
+
+# ---------------- dior: ¿cuánto cuesta esta paleta Dior en México? ----------------
+def capa_dior(L, tg):
+    e = next(i for i in range(len(T)) if tg < INI[i + 1] or i == len(T) - 1)
+    if e < 4:
+        pas(L, "¿Cuánto cuesta esta paleta", 250, sz=62, bg=NEGRO, t=tg, t0=0.0)
+        pas(L, "Dior en México? 🤔", 360, sz=62, bg=NEGRO, t=tg, t0=0.15)
+        b.pon(L, producto("sep-dior-palette", 400), W / 2, 650, *b.entra(tg, 0.3, 0.4))
+        if tg >= INI[1]: pas(L, "Dior Backstage Glow Face Palette", 900, "ExtraBold", 46, WHITE, NEGRO, tg, marca(1, 0))
+        if tg < marca(2, 0):
+            if tg >= INI[1]: b.pon(L, etiqueta("En Sephora México", "$ ???", ROSA), W / 2, 1100, 1 + 0.06 * abs(((tg * 2) % 2) - 1))
+        else:
+            b.pon(L, etiqueta("En Sephora México", "$1,330", NEGRO), W / 2, 1100, *b.entra(tg, marca(2, 0), 0.35))
+        if tg >= marca(3, 0): pas(L, "Conmigo: $1,085", 1290, sz=82, t=tg, t0=marca(3, 0))
+        if tg >= marca(3, 1): pas(L, "Ahorras $245 💸", 1420, "ExtraBold", 58, VERDE, WHITE, tg, marca(3, 1))
+    else:
+        pas(L, "¿Cuánto creías que costaba? 👇", 400, sz=56, bg=NEGRO, t=tg, t0=marca(4, 0))
+        cta_comenta(L, tg, 4, 1)
+
+
+# ---------------- noche: detrás de cámaras ----------------
+def capa_noche(L, tg):
+    e = next(i for i in range(len(T)) if tg < INI[i + 1] or i == len(T) - 1)
+    if e == 0:
+        b.pon(L, b.pastilla("🕗 8:00 pm", "ExtraBold", 90, NEGRO + (230,), WHITE, padx=50, pady=24), W / 2, 330, *b.entra(tg, 0.0, 0.35))
+        vlog(L, "…y sigo en Sephora por sus pedidos 🛍️", 470, tg, 0.4)
+    elif e == 1:
+        vlog(L, "👀 La parte que nadie ve", 330, tg, INI[1])
+        vlog(L, "🔎 Busco producto por producto", 450, tg, marca(1, 1))
+    elif e == 2:
+        vlog(L, "⏳ Lo que está en oferta se acaba rápido", 330, tg, INI[2])
+        vlog(L, "…por eso vengo yo 💪", 450, tg, marca(2, 0))
+    elif e == 3:
+        vlog(L, "🛍️ Bolsa llena", 330, tg, marca(3, 0))
+        vlog(L, "✈️ Lista para mandarla a México 🇲🇽", 450, tg, marca(3, 1))
+    else:
+        pas(L, "¿La próxima vez vengo por lo tuyo? 💗", 400, sz=52, bg=NEGRO, t=tg, t0=marca(4, 0))
+        cta_comenta(L, tg, 4, 1)
+
+
+# ---------------- amiga: para compartir ----------------
+def burbuja(texto):
+    """burbuja de mensaje (como iMessage) de la amiga"""
+    t = b.linea(texto, "SemiBold", 56, NEGRO)
+    im = Image.new("RGBA", (t.width + 80, t.height + 50)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle((0, 0, im.width - 1, im.height - 1), 46, fill=(235, 235, 240, 250))
+    im.alpha_composite(t, (40, 25))
+    return im
+
+
+def capa_amiga(L, tg):
+    e = next(i for i in range(len(T)) if tg < INI[i + 1] or i == len(T) - 1)
+    if e == 0:
+        pas(L, "Mándale esto a la amiga", 300, sz=62, bg=NEGRO, t=tg, t0=0.0)
+        pas(L, "que siempre te dice:", 410, sz=62, bg=NEGRO, t=tg, t0=0.15)
+        bb = burbuja("¿me traes algo de Sephora? 🥺")
+        b.pon(L, bb, 60 + bb.width / 2, 620, *b.entra(tg, 1.2, 0.4))
+        if tg >= 2.6:
+            bb2 = burbuja("porfa 🙏🙏")
+            b.pon(L, bb2, 60 + bb2.width / 2, 770, *b.entra(tg, 2.6, 0.35))
+    elif e == 1:
+        pas(L, "🧳 Ya no cargues sus pedidos", 420, sz=58, bg=NEGRO, t=tg, t0=INI[1])
+        pas(L, "en tu maleta", 530, sz=58, bg=NEGRO, t=tg, t0=INI[1] + 0.2)
+    elif e == 2:
+        pas(L, "Yo se lo traigo ✈️", 380, sz=74, t=tg, t0=INI[2])
+        pas(L, "20% OFF 💸", 540, "ExtraBold", 66, VERDE, WHITE, tg, marca(2, 0))
+        pas(L, "Aparta con el 50%", 680, "Bold", 54, WHITE, NEGRO, tg, marca(2, 1))
+    elif e == 3:
+        b.pon(L, calendario(), W / 2, 600, *b.entra(tg, INI[3], 0.4))
+    else:
+        pas(L, "📲 Mándaselo ahorita", 400, sz=60, bg=NEGRO, t=tg, t0=marca(4, 0))
+        cta_comenta(L, tg, 4, 1)
+
+
+CAPA = {"lista": capa_lista, "juego": capa_juego, "cierre": capa_cierre,
+        "dior": capa_dior, "noche": capa_noche, "amiga": capa_amiga}[VAR]
 SFX = []
 
 

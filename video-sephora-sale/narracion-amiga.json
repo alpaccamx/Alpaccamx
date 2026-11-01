@@ -1,0 +1,7 @@
+[
+ {"texto": "Mándale esto a la amiga que siempre te dice: ¿me traes algo de Sephora?", "marcas": ["Mándale"]},
+ {"texto": "Ya no tienes que cargar sus pedidos en la maleta.", "marcas": ["maleta"]},
+ {"texto": "Yo se lo traigo, con veinte por ciento de descuento, y lo aparta con la mitad.", "marcas": ["veinte", "mitad"]},
+ {"texto": "Mi preventa cierra el ocho de noviembre.", "marcas": ["ocho de noviembre"]},
+ {"texto": "Mándaselo ahorita, y comenta GRUPO para que te pase el link.", "marcas": ["Mándaselo", "GRUPO"]}
+]

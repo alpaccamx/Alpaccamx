@@ -53,3 +53,34 @@ b.pon(L, B.calendario(), B.W / 2, 780)
 B.pas(L, "Así funciona 👇", 1150, sz=66, bg=B.NEGRO)
 B.pas(L, "Aparta con el 50% · 20% OFF", 1290, "Bold", 50, B.WHITE, B.NEGRO)
 guarda(L, "portada-cierre.jpg")
+
+
+# ---- videos del 31 de octubre (necesitan est_v5364, est_v111 y est_v5362) ----
+if os.path.exists(os.path.join(CRUDO, "est_v5364.mp4")):
+    # 4. dior: la paleta con el precio escondido
+    B = motor("dior"); b = B.b
+    L = cuadro(B, "v5364", 7.0)
+    B.pas(L, "¿Cuánto cuesta esta paleta", 330, sz=64, bg=B.NEGRO)
+    B.pas(L, "Dior en México? 🤔", 450, sz=64, bg=B.NEGRO)
+    b.pon(L, B.producto("sep-dior-palette", 440), B.W / 2, 800)
+    b.pon(L, B.etiqueta("En Sephora México", "$ ???", B.ROSA), B.W / 2, 1150)
+    B.pas(L, "Sephora Sale · 20% OFF", 1520, sz=56)
+    guarda(L, "portada-dior.jpg")
+if os.path.exists(os.path.join(CRUDO, "est_v111.mp4")):
+    # 5. noche: Sephora de noche
+    B = motor("noche"); b = B.b
+    L = cuadro(B, "v111", 1.0)
+    b.pon(L, b.pastilla("🕗 8:00 pm", "ExtraBold", 110, B.NEGRO + (230,), B.WHITE, padx=56, pady=26), B.W / 2, 420)
+    B.pas(L, "…y sigo en Sephora por sus pedidos 🛍️", 590, "Bold", 50, B.WHITE, B.NEGRO)
+    B.pas(L, "La parte que nadie ve 👀", 1450, sz=66)
+    guarda(L, "portada-noche.jpg")
+if os.path.exists(os.path.join(CRUDO, "est_v5362.mp4")):
+    # 6. amiga: la burbuja de mensaje
+    B = motor("amiga"); b = B.b
+    L = cuadro(B, "v5362", 1.5)
+    B.pas(L, "Mándale esto a la amiga", 360, sz=66, bg=B.NEGRO)
+    B.pas(L, "que siempre te dice:", 480, sz=66, bg=B.NEGRO)
+    bb = B.burbuja("¿me traes algo de Sephora? 🥺"); b.pon(L, bb, 60 + bb.width / 2, 720)
+    bb = B.burbuja("porfa 🙏🙏"); b.pon(L, bb, 60 + bb.width / 2, 880)
+    B.pas(L, "20% OFF · cierra el 8 de noviembre", 1480, "Bold", 50, B.WHITE, B.NEGRO)
+    guarda(L, "portada-amiga.jpg")

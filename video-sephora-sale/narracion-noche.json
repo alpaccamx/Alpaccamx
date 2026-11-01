@@ -1,0 +1,7 @@
+[
+ {"texto": "Ocho de la noche, y sigo en Sephora por sus pedidos.", "marcas": ["Ocho"]},
+ {"texto": "Nadie ve esta parte: recorro la tienda buscando producto por producto.", "marcas": ["Nadie ve", "producto"]},
+ {"texto": "Lo que está en oferta se acaba rápido, por eso vengo yo.", "marcas": ["se acaba"]},
+ {"texto": "Y salgo con la bolsa llena, lista para mandarla a México.", "marcas": ["bolsa llena", "México"]},
+ {"texto": "¿Quieres que la próxima vez venga por lo tuyo? Comenta GRUPO y te mando el link.", "marcas": ["próxima vez", "GRUPO"]}
+]
