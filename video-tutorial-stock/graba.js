@@ -204,7 +204,6 @@ const K = Number(process.env.K) || 12;  // con 12 salen ~50 cuadros por segundo 
   fs.writeFileSync('grabacion/cuadros.txt', lista);
   const off = cuadros[0];  // el video empieza en el primer cuadro
   fs.writeFileSync('grabacion/pasos.json', JSON.stringify(pasos.map(x => x - off)));
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', 'grabacion/cuadros.txt',
-    '-vf', 'fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p', '-c:v', 'libx264', '-crf', '16', '-preset', 'medium', 'grabacion/pantalla.mp4']);
+  execFileSync('python3', ['juntar.py'], { stdio: 'inherit' });  // 30 fps exactos, sin cuadros repetidos
   console.log('cuadros', cuadros.length, 'fps', (cuadros.length / (fin - off)).toFixed(1), 'pasos', pasos.map(x => (x - off).toFixed(2)).join(' '));
 })();
