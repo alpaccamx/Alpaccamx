@@ -288,23 +288,21 @@ def capa_cierre(L, tg):
 
 
 # ---------------- CTA de comentar (estrategia: comentar sube el video y te da a la clienta por mensaje) ----------------
-def comentario(texto):
-    """un comentario como los de TikTok/IG: avatar, usuario y el texto"""
-    im = Image.new("RGBA", (760, 170)); d = ImageDraw.Draw(im)
-    d.rounded_rectangle((0, 0, 759, 169), 40, fill=(255, 255, 255, 245))
-    d.ellipse((30, 35, 130, 135), fill=ROSA + (255,))
-    em = b.linea("🙋‍♀️", "Bold", 50, WHITE); im.alpha_composite(em, (int(80 - em.width / 2), int(85 - em.height / 2)))
-    d.text((160, 52), "tu_amiga · ahora", font=b.F("SemiBold", 30), fill=GRIS, anchor="lm")
-    t = b.linea(texto, "ExtraBold", 54, NEGRO); im.alpha_composite(t, (158, 78))
+def tarjeta_grupo():
+    """tarjeta limpia: «Comenta GRUPO y te mando el link» (sin usuario ni foto inventados)"""
+    im = Image.new("RGBA", (820, 330)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle((0, 0, 819, 329), 50, fill=(255, 255, 255, 245))
+    t = b.linea("💬 Comenta", "Bold", 52, GRIS); im.alpha_composite(t, ((820 - t.width) // 2, 28))
+    d.text((410, 175), "GRUPO", font=b.F("ExtraBold", 130), fill=ROSA, anchor="mm")
+    t = b.linea("y te mando el link 👇", "Bold", 46, NEGRO); im.alpha_composite(t, ((820 - t.width) // 2, 248))
     return im
 
 
 def cta_comenta(L, tg, e, m_grupo):
-    """«Comenta GRUPO»: un comentario que aparece + la indicación; el QR va chiquito como apoyo"""
+    """«Comenta GRUPO» en una tarjeta limpia; el QR va chiquito como apoyo"""
     t0 = marca(e, m_grupo) - 0.2
     if tg < t0: return
-    b.pon(L, comentario("GRUPO"), W / 2, 640, *b.entra(tg, t0, 0.4))
-    pas(L, "Comenta GRUPO y te mando el link 👇", 820, sz=54, t=tg, t0=t0 + 0.3)
+    b.pon(L, tarjeta_grupo(), W / 2, 690, *b.entra(tg, t0, 0.4))
     q = qr(); q = q.resize((300, 300), Image.LANCZOS)
     b.pon(L, q, W / 2, 1060, *b.entra(tg, t0 + 0.8, 0.4))
     pas(L, "o escanéalo desde otro celular", 1240, "Bold", 34, WHITE, NEGRO, tg, t0 + 0.8)
