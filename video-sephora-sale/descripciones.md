@@ -70,3 +70,66 @@ Preventa: 20% OFF · aparta con el 50% · liquidas antes de que te lo envíe · 
 > 📲 Escanea el QR al final del video para entrar a mi grupo de WhatsApp, o comenta "PREVENTA" y te mando el link.
 >
 > #sephorasale #sephora #preventa #personalshopper #compraseneeuu #maquillajeoriginal
+
+---
+
+# Videos del 31 de octubre (estrategia: gancho en el segundo 0, 20-25 s, CTA de comentar "GRUPO")
+
+Videos: Sale-dior-voz.mp4 (portada-dior.jpg), Sale-noche-voz.mp4 (portada-noche.jpg), Sale-amiga-voz.mp4 (portada-amiga.jpg)
+Al publicar: responde cada comentario "GRUPO" con el link del grupo por mensaje (en TikTok todavía no puedes poner link en tu perfil).
+
+## Video 4: ¿cuánto cuesta esta paleta Dior en México? (prueba de precio)
+Por qué: el juego de adivinar hace que comenten su respuesta, y los comentarios le dicen a la app que muestre el video a más gente.
+
+**TikTok**
+> ¿Cuánto crees que cuesta esta paleta Dior en México? 🤔 Comenta tu respuesta antes de ver el final 👇
+> #dior #diorbackstage #sephorasale #maquillajeoriginal #personalshopper
+
+**Instagram**
+> ¿Cuánto crees que cuesta esta paleta Dior en México? 🤔 Comenta tu respuesta antes de ver el final 👇
+>
+> Dior Backstage Glow Face Palette
+> En Sephora México: $1,330
+> Conmigo: $1,085 → te ahorras $245 💸
+>
+> Es mi preventa del Sephora Sale: 20% OFF, apartas con el 50% y liquidas antes de que te lo envíe. Cierra el 8 de noviembre.
+> 💬 Comenta GRUPO y te mando el link de mi grupo de WhatsApp (o entra desde el link de mi perfil).
+>
+> #dior #diorbackstage #sephorasale #sephora #maquillajeoriginal #personalshopper #compraseneeuu
+
+## Video 5: 8 de la noche y sigo en Sephora (detrás de cámaras)
+Por qué: enseñar el trabajo que nadie ve genera confianza ("sí existe, sí va a la tienda") y es lo que convierte a una seguidora en clienta.
+
+**TikTok**
+> 8 de la noche y sigo en Sephora por sus pedidos 🕗🛍️ La parte que nadie ve.
+> ¿La próxima vez vengo por lo tuyo? Comenta GRUPO 👇
+> #sephora #personalshopper #detrasdecamaras #sephorasale #emprendedora
+
+**Instagram**
+> 8 de la noche y sigo en Sephora por sus pedidos 🕗🛍️
+>
+> Esta es la parte que nadie ve: recorro la tienda buscando producto por producto, porque lo que está en oferta se acaba rápido.
+> Y salgo con la bolsa llena, lista para mandarla a México 🇲🇽
+>
+> ¿La próxima vez vengo por lo tuyo? 💬 Comenta GRUPO y te mando el link de mi grupo de WhatsApp.
+>
+> #sephora #personalshopper #detrasdecamaras #sephorasale #emprendedoramexicana #compraseneeuu
+
+## Video 6: mándale esto a tu amiga (para compartir)
+Por qué: un video hecho para mandárselo a alguien llega a gente que no te sigue. Compartir es lo que más alcance da en una cuenta que empieza.
+
+**TikTok**
+> Mándale esto a la amiga que siempre te dice "¿me traes algo de Sephora?" 🥺🙏
+> Yo se lo traigo con 20% OFF · cierra el 8 de noviembre · comenta GRUPO 👇
+> #sephora #sephorasale #amigas #personalshopper #compraseneeuu
+
+**Instagram**
+> Mándale esto a la amiga que siempre te dice: "¿me traes algo de Sephora?" 🥺🙏
+>
+> Ya no tienes que cargar sus pedidos en tu maleta 🧳
+> Yo se lo traigo con 20% de descuento, y lo aparta con el 50%.
+> Mi preventa del Sephora Sale cierra el 8 de noviembre 🗓️
+>
+> 📲 Mándaselo ahorita y comenta GRUPO para que te pase el link.
+>
+> #sephora #sephorasale #amigas #personalshopper #compraseneeuu #maquillajeoriginal
