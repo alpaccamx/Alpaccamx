@@ -58,6 +58,12 @@ const CONFIG = {
 
   // Mensaje de la barra superior.
   SHIPPING_MESSAGE: "📦 Stock sin mínimo de compra con 50% de descuento ✨",
+  // Mensajes que van rotando en la barra superior (cada pocos segundos).
+  // Con "href", el mensaje se puede tocar (se abre en otra pestaña).
+  TOP_BAR_MESSAGES: [
+    { text: "📦 Stock sin mínimo de compra con 50% de descuento ✨" },
+    { text: "💬 Únete a nuestro grupo de WhatsApp 👉", href: "https://chat.whatsapp.com/Jx4rYqxZvES93A4y4zvfXu" },
+  ],
 
   // Pedido mínimo para poder enviar la cotización, en pesos mexicanos (monto fijo).
   MIN_ORDER_MXN: 6000,
@@ -1869,8 +1875,40 @@ async function loadAmericanoProducts() {
 /* ======================================================================
    Barra superior: redes sociales + mensaje de envíos
    ====================================================================== */
+/* Mensajes de la barra superior: van rotando con un deslizado suave (sin
+   animación si la persona pidió movimiento reducido). */
+let topBarTimer = null;
+function renderTopBarMessages() {
+  const el = document.getElementById("shipping-message");
+  const msgs = (CONFIG.TOP_BAR_MESSAGES || []).filter((m) => m && m.text);
+  if (!msgs.length) msgs.push({ text: CONFIG.SHIPPING_MESSAGE || "" });
+  const html = (m) => (m.href
+    ? `<a href="${escapeAttr(m.href)}" target="_blank" rel="noopener" class="underline decoration-dotted underline-offset-2 hover:text-ink">${escapeHtml(m.text)}</a>`
+    : escapeHtml(m.text));
+  let i = 0;
+  el.innerHTML = html(msgs[0]);
+  clearInterval(topBarTimer);
+  if (msgs.length < 2) return;
+  el.style.transition = "opacity .35s ease, transform .35s ease";
+  topBarTimer = setInterval(() => {
+    i = (i + 1) % msgs.length;
+    if (prefersReducedMotion.matches) { el.innerHTML = html(msgs[i]); return; }
+    el.style.opacity = "0";
+    el.style.transform = "translateY(-60%)";
+    setTimeout(() => {
+      el.innerHTML = html(msgs[i]);
+      el.style.transition = "none";
+      el.style.transform = "translateY(60%)";
+      void el.offsetHeight;
+      el.style.transition = "opacity .35s ease, transform .35s ease";
+      el.style.opacity = "1";
+      el.style.transform = "translateY(0)";
+    }, 350);
+  }, 4500);
+}
+
 function renderTopBar() {
-  document.getElementById("shipping-message").textContent = CONFIG.SHIPPING_MESSAGE || "";
+  renderTopBarMessages();
 
   const links = (CONFIG.SOCIAL_LINKS || []).filter((s) => s.href);
   const linksHTML = links
