@@ -10,13 +10,19 @@ const { chromium, devices } = require('playwright');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
 const DUR = JSON.parse(fs.readFileSync('tiempos-tutorial.json')).map(e => e.dur);
-const K = 4;
+const K = 12;  // con 12 salen ~50 cuadros por segundo de video y ninguno se repite al pasar a 30 (con 4 eran ~15 y se veía trabado)
 
 (async () => {
   fs.rmSync('grabacion', { recursive: true, force: true });
   fs.mkdirSync('grabacion/cuadros', { recursive: true });
   const b = await chromium.launch();
   const ctx = await b.newContext({ ...devices['iPhone 13'], deviceScaleFactor: 2, locale: 'es-MX' });
+  // los temporizadores de la página (carrusel, avisos) también K veces más lentos, para que en el video vayan a su ritmo
+  await ctx.addInitScript((k) => {
+    const st = window.setTimeout, si = window.setInterval;
+    window.setTimeout = (f, ms, ...a) => st(f, (ms || 0) * k, ...a);
+    window.setInterval = (f, ms, ...a) => si(f, (ms || 0) * k, ...a);
+  }, K);
   const p = await ctx.newPage();
   await p.route('**/.netlify/functions/create-order**', r => r.abort());
   await p.route('**/.netlify/functions/mp-**', r => r.abort());
@@ -52,7 +58,7 @@ const K = 4;
   const pasos = [];
   const marca = async () => { pasos.push(ahora()); };
   const espera = async (i) => { const falta = pasos[i] + DUR[i] - ahora(); if (falta > 0) await w(falta * 1000); };
-  const circulo = (x, y) => p.evaluate(([x, y, k]) => { const d = document.createElement('div'); d.className = 'toque-mae'; d.style.left = x + 'px'; d.style.top = y + 'px'; document.body.appendChild(d); setTimeout(() => d.remove(), 800 * k); }, [x, y, K]);
+  const circulo = (x, y) => p.evaluate(([x, y, k]) => { const d = document.createElement('div'); d.className = 'toque-mae'; d.style.left = x + 'px'; d.style.top = y + 'px'; document.body.appendChild(d); setTimeout(() => d.remove(), 800); }, [x, y, K]);
   const toca = async (loc, { click = true } = {}) => {
     await loc.scrollIntoViewIfNeeded().catch(() => {});
     const bb = await loc.boundingBox(); if (!bb) return;
@@ -60,8 +66,10 @@ const K = 4;
     if (click) await loc.click({ force: true }).catch(() => {});
   };
   // deslizar la página o un panel de a poquito
-  const desliza = async (dy, n = 12, ms = 40) => { for (let i = 0; i < n; i++) { await p.evaluate(d => window.scrollBy(0, d), dy / n); await w(ms); } };
-  const deslizaEn = async (sel, dy, n = 14) => { for (let i = 0; i < n; i++) { await p.evaluate(([s, d]) => document.querySelector(s).scrollBy(0, d), [sel, dy / n]); await w(45); } };
+  // deslizar con arranque y frenado suaves, en pasos de ~1/60 s de video
+  const suave = (n) => { const e = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; return Array.from({ length: n }, (_, i) => e((i + 1) / n) - e(i / n)); };
+  const desliza = async (dy, n = 12, ms = 40) => { const m = Math.max(2, Math.round(n * ms / 16)); for (const f of suave(m)) { await p.evaluate(d => window.scrollBy(0, d), dy * f); await w(16); } };
+  const deslizaEn = async (sel, dy, n = 14) => { const m = Math.max(2, Math.round(n * 45 / 16)); for (const f of suave(m)) { await p.evaluate(([s, d]) => document.querySelector(s).scrollBy(0, d), [sel, dy * f]); await w(16); } };
   // llevar un elemento a la vista deslizando (sin brincar)
   const llevaA = async (sel, donde = 'center', n = 16) => {
     const dy = await p.evaluate(([s, dn]) => {
@@ -92,7 +100,12 @@ const K = 4;
   // toca "Ver carrito" en tiempo real; si ya no está, se abre desde el ícono del carrito
   await p.waitForTimeout(1600);
   const ver = p.getByRole('button', { name: /Ver carrito/i });
-  if (await ver.isVisible().catch(() => false)) await toca(ver); else await toca(p.locator('#cart-toggle'));
+  // se marca el toque sobre «Ver carrito» y el carrito se abre con su botón (el aviso puede quitarse mientras tanto
+  // y el toque caería en otro producto)
+  const bb = (await ver.isVisible().catch(() => false)) ? await ver.boundingBox() : null;
+  if (bb) await circulo(bb.x + bb.width / 2, bb.y + bb.height / 2); else await toca(p.locator('#cart-toggle'), { click: false });
+  await p.waitForTimeout(250);
+  await p.evaluate(() => document.getElementById('cart-toggle').click());
   await espera(3);
   // 4: el carrito, total y ganancia
   await marca(); await w(1800);
