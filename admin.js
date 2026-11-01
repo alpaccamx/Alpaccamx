@@ -4994,8 +4994,8 @@ ${itemLines}
         <div class="grid"><label>Paquetería<input data-env-paq type="text" value="Estafeta" list="swm-paqs"></label><label>Número de guía<input data-env-guia type="text" placeholder="Ej. 1234567890"></label></div>
         <datalist id="swm-paqs"><option>Estafeta</option><option>DHL</option><option>FedEx</option><option>Paquetexpress</option><option>J&T</option><option>99minutos</option><option>Redpack</option><option>Entrega en persona</option></datalist>
         <label class="swm-check"><input type="checkbox" data-env-avisar checked> Mandarle correo con su guía</label>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-env-save>🚚 Marcar como enviado</button><button type="button" class="btn-secondary" data-env-toggle="">Cancelar</button></div>
-        <div class="meta">Pasan a la pestaña "Enviados" con su guía. Ahí los marcas entregados o corriges la guía.</div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-env-save>🚚 Marcar como enviado</button><button type="button" class="btn-secondary" data-env-personal>📍 Se lo entregué en persona</button><button type="button" class="btn-secondary" data-env-toggle="">Cancelar</button></div>
+        <div class="meta">Con guía pasan a "Enviados"; ahí los marcas entregados o corriges la guía. Si se los entregaste en persona (Juárez), no necesitas guía: pasan directo a "Entregados".</div>
       </div>` : "";
     const cas = swmData.casilleros && swmData.casilleros[email];
     const key = `mexico|${email}`;
@@ -5172,6 +5172,15 @@ ${itemLines}
     }
     const envToggle = t.closest("[data-env-toggle]");
     if (envToggle) { swmEnviarEmail = envToggle.dataset.envToggle; renderSwmAdmin(); return; }
+    if (t.closest("[data-env-personal]")) {
+      const box = t.closest("[data-swm-enviar]");
+      const paqueteIds = [...box.querySelectorAll("[data-env-pick]:checked")].map((c) => c.dataset.envPick);
+      if (!paqueteIds.length) { alert("Elige al menos un paquete."); return; }
+      if (!confirm(`¿Marcar ${paqueteIds.length === 1 ? "este paquete" : `estos ${paqueteIds.length} paquetes`} como entregados en persona?`)) return;
+      const ok = await swmAct({ accion: "enviar_directo", personal: true, email: box.dataset.swmEnviar, paqueteIds, avisar: box.querySelector("[data-env-avisar]").checked }, t.closest("button"));
+      if (ok) { swmEnviarEmail = ""; swmTab = "entregados"; renderSwmAdmin(); }
+      return;
+    }
     if (t.closest("[data-env-save]")) {
       const box = t.closest("[data-swm-enviar]");
       const paqueteIds = [...box.querySelectorAll("[data-env-pick]:checked")].map((c) => c.dataset.envPick);

@@ -471,10 +471,12 @@ exports.handler = async (event) => {
       case "enviar_directo": {
         const email = clip(b.email, 200).toLowerCase();
         const ids = [...new Set((Array.isArray(b.paqueteIds) ? b.paqueteIds : []).map(String))].slice(0, 40);
-        const paqueteria = clip(b.paqueteria, 40) || "Estafeta";
-        const guia = clip(b.guia, 80);
+        // Entrega personal (Juárez): sin guía y directo a "entregado".
+        const personal = !!b.personal;
+        const paqueteria = personal ? "Entrega en persona" : clip(b.paqueteria, 40) || "Estafeta";
+        const guia = personal ? "" : clip(b.guia, 80);
         if (!email || !ids.length) return json(400, { error: "Elige al menos un paquete." });
-        if (!guia) return json(400, { error: "Pon el número de guía." });
+        if (!personal && !guia) return json(400, { error: "Pon el número de guía." });
         const paquetes = await Promise.all(ids.map((x) => getRecord("paquete", x)));
         if (paquetes.some((p) => !p || p.email !== email || !["recibido", "en_envio"].includes(p.status))) {
           return json(409, { error: "Solo se pueden marcar paquetes de la misma clienta que sigan en el almacén o en México." });
@@ -483,6 +485,7 @@ exports.handler = async (event) => {
         const sueltos = paquetes.filter((p) => p.status === "recibido");
         const marcar = (e) => {
           e.paqueteria = paqueteria; e.guia = guia;
+          if (personal) { e.entrega = "personal"; e.status = "entregado"; e.entregadoAt = now(); push(e, "entregado", { por: "mae", enPersona: true }); return e; }
           e.status = "enviado"; e.enviadoAt = now(); push(e, "enviado", { por: "mae", aMano: true }); return e;
         };
         const envios = [];
@@ -504,9 +507,13 @@ exports.handler = async (event) => {
         const todos = envios.flatMap((e) => e.paqueteIds || []);
         await Promise.all(todos.map((x) => mutateRecord("paquete", x, (p) => {
           const e = envios.find((en) => (en.paqueteIds || []).includes(p.id));
-          p.status = "enviado"; if (e) p.envioId = e.id; push(p, "enviado"); return p;
+          p.status = personal ? "entregado" : "enviado"; if (e) p.envioId = e.id; push(p, p.status); return p;
         })));
-        if (b.avisar !== false) {
+        if (b.avisar !== false && personal) {
+          for (const rec of envios) {
+            await avisar(rec, `tu envío ${rec.folio} fue entregado 🎁`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Te entregamos tus paquetes!</h2><p style="font-size:14px;">Gracias por recogerlos en persona 💗 Si algo llegó mal, escríbenos por WhatsApp.</p>`);
+          }
+        } else if (b.avisar !== false) {
           for (const rec of envios) {
             await avisar(rec, `tu envío ${rec.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${esc(rec.paqueteria)}</b><br>Guía: <b>${esc(rec.guia)}</b></p>`);
           }
