@@ -1587,6 +1587,9 @@ ${itemLines}
     const extra = [bucketChipHTML(o)];
     if (isEntregaPersonal(o)) extra.push(`<span class="badge" style="background:#fde7ee;color:#9b2c4f;">📍 Entrega personal</span>`);
     if (o.pedidoCompartido) extra.push(`<span class="badge" style="background:#ede7fb;color:#5b3fa0;">👯 Compartido ${escapeHtml(o.cupon || "")}</span>`);
+    const junto = pedidosJuntos(o);
+    if (junto.length) extra.push(`<span class="badge" style="background:#e2f0fb;color:#0b5a99;">🔗 Envío junto con ${junto.map((x) => "#" + orderNumber(x)).join(", ")}</span>`);
+    else if (otrosAbiertos(o).length) extra.push(`<span class="badge" style="background:#fff1d8;color:#8a5a00;">⚠️ Tiene otro pedido abierto</span>`);
     return `
       <button type="button" class="card-summary" data-card-toggle="${o.id}" aria-expanded="${expanded ? "true" : "false"}" aria-controls="card-body-${o.id}">
         <span>
@@ -1633,6 +1636,7 @@ ${itemLines}
           ${customerHTML(o)}
           ${proofLinkHTML(o)}
           ${nextStepHTML(o)}
+          ${linkBlockHTML(o)}
           ${trackingBlockHTML(o)}
           ${guideBlockHTML(o)}
           ${editBlock}
@@ -1659,6 +1663,7 @@ ${itemLines}
           ${customerHTML(o)}
           ${proofLinkHTML(o)}
           ${profitHTML(o)}
+          ${linkBlockHTML(o)}
           <div class="actions primary-actions">
             <button class="btn-primary" data-confirm="${o.id}" title="Esto resta las piezas vendidas del stock automáticamente">✅ Ya me pagó</button>
             <button class="btn-danger" data-cancel="${o.id}">✕ No pagó / Cancelar</button>
@@ -3071,6 +3076,85 @@ ${itemLines}
   // "compartido": solo los pedidos del pedido compartido de Corea (los que
   // usaron un cupón sin mínimo), para pedirlos juntos en un solo carrito.
   let abwFiltro = "todos";
+
+  /* ---------- Pedidos ligados: varios pedidos de la misma clienta en un
+     solo envío (campo envioJunto; ver admin-link-orders.js). ---------- */
+  const telDigits = (o) => String((o.customer && o.customer.phone) || "").replace(/\D/g, "").slice(-10);
+  const mismaClienta = (a, b) => (telDigits(a) && telDigits(a) === telDigits(b)) || (a.customerEmail && b.customerEmail && a.customerEmail.toLowerCase() === b.customerEmail.toLowerCase());
+  // Abierto = todavía no sale: pendiente de pago, o pagado sin guía y sin entregar.
+  const pedidoAbierto = (x) => x.status === "pending" || (x.status === "paid" && !x.trackingNumber && !["enviado", "entregado"].includes(orderStage(x)));
+  function pedidosJuntos(o) {
+    return o.envioJunto ? allOrders.filter((x) => x.id !== o.id && x.envioJunto === o.envioJunto && x.status !== "cancelled") : [];
+  }
+  function otrosAbiertos(o) {
+    if (!pedidoAbierto(o)) return [];
+    return allOrders.filter((x) => x.id !== o.id && pedidoAbierto(x) && mismaClienta(o, x) && !(o.envioJunto && x.envioJunto === o.envioJunto));
+  }
+  const estadoCorto = (x) => (x.status === "pending" ? "💳 Por confirmar pago" : BUCKETS[orderBucket(x)] || (x.trackingNumber ? "🚚 Enviado" : ""));
+
+  function linkBlockHTML(o) {
+    if (o.status === "cancelled") return "";
+    const junto = pedidosJuntos(o);
+    const otros = otrosAbiertos(o);
+    const fila = (x) => `<li><b>#${orderNumber(x)}</b> · ${escapeHtml(estadoCorto(x))} · ${formatPrice(x.grandTotal)}</li>`;
+    let html = "";
+    if (junto.length) {
+      const noListos = junto.filter((x) => x.status === "pending" || ["por_abw", "esperando_abw"].includes(orderBucket(x)));
+      const sinGuia = junto.filter((x) => x.status === "paid" && !x.trackingNumber);
+      html += `<div class="link-box" style="background:#eef6fd;border:1px solid #cfe3f6;border-radius:12px;padding:10px 12px;margin:10px 0;">
+        <div style="font-weight:700;font-size:14px;">🔗 Va en el mismo envío que:</div>
+        <ul style="margin:6px 0 0;padding-left:18px;font-size:14px;">${junto.map(fila).join("")}</ul>
+        ${noListos.length && orderBucket(o) === "por_enviar" ? `<div class="meta" style="color:#8a5a00;margin-top:6px;">⏳ Espera antes de mandarlo: ${noListos.map((x) => `#${orderNumber(x)} (${escapeHtml(estadoCorto(x))})`).join(", ")} todavía no está listo.</div>` : ""}
+        ${o.trackingNumber && sinGuia.length ? `<button type="button" class="btn-secondary" data-link-guia="${o.id}" style="margin-top:8px;">📋 Poner esta misma guía a ${sinGuia.map((x) => "#" + orderNumber(x)).join(", ")}</button>` : ""}
+        <button type="button" class="btn-link" data-link-quitar="${o.id}" style="margin-top:6px;font-size:13px;background:none;border:none;color:#8a828f;text-decoration:underline;cursor:pointer;">Sacar este pedido del envío junto</button>
+      </div>`;
+    }
+    if (otros.length) {
+      html += `<div style="background:#fff8ea;border:1px solid #f6dcbd;border-radius:12px;padding:10px 12px;margin:10px 0;">
+        <div style="font-weight:700;font-size:14px;">⚠️ Esta clienta tiene otro${otros.length > 1 ? "s" : ""} pedido${otros.length > 1 ? "s" : ""} abierto${otros.length > 1 ? "s" : ""}:</div>
+        ${otros.map((x) => `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:6px;font-size:14px;"><span><b>#${orderNumber(x)}</b> · ${escapeHtml(estadoCorto(x))} · ${formatPrice(x.grandTotal)}</span><button type="button" class="btn-secondary" data-link-con="${o.id}:${x.id}" style="padding:6px 12px;font-size:13px;">🔗 Mandar junto</button></div>`).join("")}
+      </div>`;
+    }
+    html += `<details style="margin:6px 0;"><summary style="cursor:pointer;font-size:13px;color:#6b6370;">🔗 Ligar con otro pedido (por número)</summary>
+      <div style="display:flex;gap:8px;margin-top:6px;"><input type="text" data-link-input="${o.id}" placeholder="Ej. #94FB5B85" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:8px;"><button type="button" class="btn-secondary" data-link-add="${o.id}">Ligar</button></div>
+      <div class="meta">Así no se te olvida nada: los pedidos ligados se marcan en todas sus tarjetas y te avisa si alguno todavía no está listo para mandar.</div></details>`;
+    return html;
+  }
+
+  async function linkAct(body, btn) {
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch("/.netlify/functions/admin-link-orders", {
+        method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
+      (data.orders || []).forEach((u) => { const i = allOrders.findIndex((x) => x.id === u.id); if (i >= 0) allOrders[i] = u; });
+      showToast("Guardado ✅");
+      applyFilters();
+    } catch (err) {
+      alert(err.message);
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    const con = t.closest("[data-link-con]");
+    if (con) { const [a, b] = con.dataset.linkCon.split(":"); linkAct({ orderIds: [a, b] }, con); return; }
+    const add = t.closest("[data-link-add]");
+    if (add) {
+      const inp = document.querySelector(`[data-link-input="${CSS.escape(add.dataset.linkAdd)}"]`);
+      const ref = (inp && inp.value || "").trim();
+      if (!ref) { alert("Escribe el número del otro pedido (ej. #94FB5B85)."); return; }
+      linkAct({ orderIds: [add.dataset.linkAdd, ref] }, add);
+      return;
+    }
+    const quitar = t.closest("[data-link-quitar]");
+    if (quitar) { if (confirm("¿Sacar este pedido del envío junto?")) linkAct({ orderId: quitar.dataset.linkQuitar, quitar: true }, quitar); return; }
+    const guia = t.closest("[data-link-guia]");
+    if (guia) linkAct({ orderId: guia.dataset.linkGuia, copiarGuia: true }, guia);
+  });
 
   function orderStage(o) {
     let rank = STAGE_ORDER.indexOf(o.stage);
