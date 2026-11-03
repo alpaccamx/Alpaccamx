@@ -93,7 +93,21 @@ async function envioEstimado(cp, pesoKg) {
       if (!res.ok) throw new Error("HTTP " + res.status);
       tarifas = { at: Date.now(), nacional: csvToNacionalRates(await res.text()) };
     }
-    return nacionalShippingMXN({ nacional: tarifas.nacional, settings: {} }, cp, pesoKg);
+    const st = { nacional: tarifas.nacional, settings: {} };
+    const directo = nacionalShippingMXN(st, cp, pesoKg);
+    if (directo != null) return directo;
+    // Más pesado que el último renglón de la tabla (15 kg): se sigue con lo
+    // mismo que sube el último kilo de la tabla por cada kilo extra.
+    const cpNum = parseInt(cp, 10);
+    const pesos = tarifas.nacional.filter((r) => cpNum >= r.cpMin && cpNum <= r.cpMax).map((r) => r.pesoKg);
+    if (!pesos.length) return null;
+    const max = Math.max(...pesos);
+    if (pesoKg <= max) return null;
+    const ultimo = nacionalShippingMXN(st, cp, max);
+    const anterior = nacionalShippingMXN(st, cp, max - 1);
+    if (ultimo == null) return null;
+    const porKilo = anterior != null && ultimo > anterior ? ultimo - anterior : 0;
+    return ultimo + Math.ceil(pesoKg - max) * porKilo;
   } catch (err) {
     console.error("preventa: tarifas de envío", err);
     return null;
