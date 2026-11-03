@@ -85,6 +85,7 @@ function pesosEnvio(items) {
 /* Envío nacional estimado (misma tabla de Estafeta que la tienda). Solo es
    una referencia: se cobra con el resto, y Mae lo puede cambiar. */
 let tarifas = null;
+const TABLA_MAX_KG = 30;
 async function envioEstimado(cp, pesoKg) {
   if (!/^\d{5}$/.test(String(cp || "")) || !(pesoKg > 0)) return null;
   try {
@@ -97,12 +98,13 @@ async function envioEstimado(cp, pesoKg) {
     const directo = nacionalShippingMXN(st, cp, pesoKg);
     if (directo != null) return directo;
     // Más pesado que el último renglón de la tabla (15 kg): se sigue con lo
-    // mismo que sube el último kilo de la tabla por cada kilo extra.
+    // mismo que sube el último kilo de la tabla por cada kilo extra, hasta
+    // 30 kg. Más de eso se cobra como CP fuera de tabla.
     const cpNum = parseInt(cp, 10);
     const pesos = tarifas.nacional.filter((r) => cpNum >= r.cpMin && cpNum <= r.cpMax).map((r) => r.pesoKg);
     if (!pesos.length) return null;
     const max = Math.max(...pesos);
-    if (pesoKg <= max) return null;
+    if (pesoKg <= max || pesoKg > TABLA_MAX_KG) return null;
     const ultimo = nacionalShippingMXN(st, cp, max);
     const anterior = nacionalShippingMXN(st, cp, max - 1);
     if (ultimo == null) return null;

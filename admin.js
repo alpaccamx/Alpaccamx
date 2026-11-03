@@ -4727,7 +4727,7 @@ ${itemLines}
         if (!res.ok || !(data.rates || []).length) { ratesEl.textContent = ""; errEl.textContent = data.error || "No hay opciones de envío para esos datos."; return; }
         swmGuiaState[id] = { rates: data.rates, selected: null, tabla: data.tabla != null ? Number(data.tabla) : null };
         const nota = card.querySelector("[data-guia-tabla]");
-        if (nota) nota.innerHTML = data.tabla != null ? `🧾 Envío que le cobras según tu tabla (${weight} kg a CP ${escapeHtml(g("cp"))}): <b>${formatPrice(data.tabla)}</b>. La paquetería que elijas es lo que te cuesta a ti la guía.` : "⚠️ No encontré su código postal en tu tabla (revisa que el CP esté bien): se le cobra el precio de la paquetería que elijas.";
+        if (nota) nota.innerHTML = data.tabla != null ? `🧾 Envío que le cobras según tu tabla (${weight} kg a CP ${escapeHtml(g("cp"))}): <b>${formatPrice(data.tabla)}</b>. La paquetería que elijas es lo que te cuesta a ti la guía.` : "⚠️ Su código postal no está en tu tabla (o pesa más de 30 kg): se le cobra lo que cueste la paquetería que elijas <b>+ $100</b>. Ella solo ve el total del envío, sin desglose.";
         const badge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
         ratesEl.innerHTML = data.rates.map((r, i) => `<label class="rate-option" data-guia-rate="${i}"><input type="radio" name="guia-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}</span></label>`).join("");
       } catch (err) { ratesEl.textContent = ""; errEl.textContent = "No se pudo conectar con el servidor."; }
