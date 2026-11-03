@@ -3067,7 +3067,7 @@ ${itemLines}
     por_abw: "🛍️ Por pedir a ABW",
     esperando_abw: "⏳ Esperando ABW",
     por_enviar: "📦 Por enviar",
-    guardado: "🧺 Guardado (junta envío)",
+    guardado: "🧺 No mandar todavía",
     enviado: "🚚 Enviado",
     entregado: "🎁 Entregado",
   };
@@ -3130,13 +3130,13 @@ ${itemLines}
       const desde = o.enEspera.desde ? new Date(o.enEspera.desde) : null;
       const dias = desde ? Math.floor((Date.now() - desde) / 86400000) : null;
       return `<div style="background:#f3eefc;border:1px solid #ddd0f5;border-radius:12px;padding:10px 12px;margin:10px 0;">
-        <div style="font-weight:700;font-size:14px;">🧺 Guardado: la clienta va a juntar su envío</div>
-        <div class="meta">No se lo mandes todavía. ${desde ? `Guardado desde el ${desde.toLocaleDateString("es-MX", { day: "numeric", month: "short" })} (${dias === 0 ? "hoy" : dias === 1 ? "hace 1 día" : `hace ${dias} días`}).` : ""}</div>
+        <div style="font-weight:700;font-size:14px;">🧺 No mandar todavía: la clienta va a pedir más y quiere un solo envío</div>
+        <div class="meta">${desde ? `Desde el ${desde.toLocaleDateString("es-MX", { day: "numeric", month: "short" })} (${dias === 0 ? "hoy" : dias === 1 ? "hace 1 día" : `hace ${dias} días`}).` : ""}</div>
         ${o.enEspera.nota ? `<div style="font-size:14px;margin-top:4px;">📝 ${escapeHtml(o.enEspera.nota)}</div>` : ""}
         <button type="button" class="btn-secondary" data-espera="${o.id}" data-espera-to="0" style="margin-top:8px;">▶️ Ya me dijo que se lo mande</button>
       </div>`;
     }
-    return `<button type="button" class="btn-secondary" data-espera="${o.id}" data-espera-to="1" style="margin:6px 0;font-size:13px;">🧺 Guardar pedido (la clienta quiere juntar su envío)</button>`;
+    return `<button type="button" class="btn-secondary" data-espera="${o.id}" data-espera-to="1" style="margin:6px 0;font-size:13px;">🧺 No mandar todavía (la clienta va a pedir más)</button>`;
   }
 
   async function linkAct(body, btn) {
@@ -3175,7 +3175,7 @@ ${itemLines}
     const esp = t.closest("[data-espera]");
     if (esp) {
       if (esp.dataset.esperaTo === "1") {
-        const nota = prompt("🧺 Guardar pedido para juntar envío.\n\nNota opcional (ej. \"espera la preventa\" o \"hasta el 15 de nov\"):", "");
+        const nota = prompt("🧺 No mandar todavía: la clienta va a pedir más.\n\nNota opcional (ej. \"espera la preventa\" o \"hasta el 15 de nov\"):", "");
         if (nota === null) return;
         linkAct({ orderId: esp.dataset.espera, espera: true, nota }, esp);
       } else {
@@ -3379,7 +3379,7 @@ ${itemLines}
       { n: count("por_abw"), label: "Por pedir a ABW", hint: "Ver lista de compra", go: "abw", cls: "pink" },
       { n: count("esperando_abw"), label: "Esperando ABW", hint: "Ya pedidos, en camino", go: "esperando_abw" },
       { n: count("por_enviar"), label: "Por enviar", hint: "Generar guía", go: "por_enviar", cls: "hot" },
-      { n: count("guardado"), label: "Guardados", hint: "Clientas juntando envío", go: "guardado" },
+      { n: count("guardado"), label: "No mandar todavía", hint: "La clienta va a pedir más", go: "guardado" },
       { n: swmLoaded ? swmNewCount : "…", label: "Dirección americana", hint: "Cotizar, comprar o enviar", go: "swm", cls: "blue" },
       { n: restockCount == null ? "…" : restockCount, label: "Avisos de restock", hint: "Clientas esperando", go: "restock" },
       { n: pvApartadosLigeros ? pvResumen().activos : "…", label: "Apartados de preventa", hint: pvApartadosLigeros && pvResumen().revisar ? `${pvResumen().revisar} comprobante(s) por revisar` : "Sephora Sale", go: "preventa", cls: "hot" },
