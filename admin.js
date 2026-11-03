@@ -3067,6 +3067,7 @@ ${itemLines}
     por_abw: "🛍️ Por pedir a ABW",
     esperando_abw: "⏳ Esperando ABW",
     por_enviar: "📦 Por enviar",
+    guardado: "🧺 Guardado (junta envío)",
     enviado: "🚚 Enviado",
     entregado: "🎁 Entregado",
   };
@@ -3115,10 +3116,27 @@ ${itemLines}
         ${otros.map((x) => `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:6px;font-size:14px;"><span><b>#${orderNumber(x)}</b> · ${escapeHtml(estadoCorto(x))} · ${formatPrice(x.grandTotal)}</span><button type="button" class="btn-secondary" data-link-con="${o.id}:${x.id}" style="padding:6px 12px;font-size:13px;">🔗 Mandar junto</button></div>`).join("")}
       </div>`;
     }
+    html += guardadoBlockHTML(o);
     html += `<details style="margin:6px 0;"><summary style="cursor:pointer;font-size:13px;color:#6b6370;">🔗 Ligar con otro pedido (por número)</summary>
       <div style="display:flex;gap:8px;margin-top:6px;"><input type="text" data-link-input="${o.id}" placeholder="Ej. #94FB5B85" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:8px;"><button type="button" class="btn-secondary" data-link-add="${o.id}">Ligar</button></div>
       <div class="meta">Así no se te olvida nada: los pedidos ligados se marcan en todas sus tarjetas y te avisa si alguno todavía no está listo para mandar.</div></details>`;
     return html;
+  }
+
+  // 🧺 Guardado: la clienta pidió que no se lo mande todavía.
+  function guardadoBlockHTML(o) {
+    if (o.status !== "paid" || o.trackingNumber || ["enviado", "entregado"].includes(orderStage(o))) return "";
+    if (o.enEspera) {
+      const desde = o.enEspera.desde ? new Date(o.enEspera.desde) : null;
+      const dias = desde ? Math.floor((Date.now() - desde) / 86400000) : null;
+      return `<div style="background:#f3eefc;border:1px solid #ddd0f5;border-radius:12px;padding:10px 12px;margin:10px 0;">
+        <div style="font-weight:700;font-size:14px;">🧺 Guardado: la clienta va a juntar su envío</div>
+        <div class="meta">No se lo mandes todavía. ${desde ? `Guardado desde el ${desde.toLocaleDateString("es-MX", { day: "numeric", month: "short" })} (${dias === 0 ? "hoy" : dias === 1 ? "hace 1 día" : `hace ${dias} días`}).` : ""}</div>
+        ${o.enEspera.nota ? `<div style="font-size:14px;margin-top:4px;">📝 ${escapeHtml(o.enEspera.nota)}</div>` : ""}
+        <button type="button" class="btn-secondary" data-espera="${o.id}" data-espera-to="0" style="margin-top:8px;">▶️ Ya me dijo que se lo mande</button>
+      </div>`;
+    }
+    return `<button type="button" class="btn-secondary" data-espera="${o.id}" data-espera-to="1" style="margin:6px 0;font-size:13px;">🧺 Guardar pedido (la clienta quiere juntar su envío)</button>`;
   }
 
   async function linkAct(body, btn) {
@@ -3153,7 +3171,17 @@ ${itemLines}
     const quitar = t.closest("[data-link-quitar]");
     if (quitar) { if (confirm("¿Sacar este pedido del envío junto?")) linkAct({ orderId: quitar.dataset.linkQuitar, quitar: true }, quitar); return; }
     const guia = t.closest("[data-link-guia]");
-    if (guia) linkAct({ orderId: guia.dataset.linkGuia, copiarGuia: true }, guia);
+    if (guia) { linkAct({ orderId: guia.dataset.linkGuia, copiarGuia: true }, guia); return; }
+    const esp = t.closest("[data-espera]");
+    if (esp) {
+      if (esp.dataset.esperaTo === "1") {
+        const nota = prompt("🧺 Guardar pedido para juntar envío.\n\nNota opcional (ej. \"espera la preventa\" o \"hasta el 15 de nov\"):", "");
+        if (nota === null) return;
+        linkAct({ orderId: esp.dataset.espera, espera: true, nota }, esp);
+      } else {
+        linkAct({ orderId: esp.dataset.espera, espera: false }, esp);
+      }
+    }
   });
 
   function orderStage(o) {
@@ -3166,6 +3194,14 @@ ${itemLines}
 
   // En qué "pendiente" está un pedido pagado (null si no está pagado).
   function orderBucket(o) {
+    const b = orderBucketBase(o);
+    return b === "por_enviar" && enEsperaActiva(o) ? "guardado" : b;
+  }
+  // "Guardado": la clienta pidió que se lo guarde para juntar su envío con
+  // algo que pida después. Ya está listo, pero NO cuenta como "Por enviar"
+  // (esos son los que hay que mandar ya).
+  const enEsperaActiva = (o) => !!o.enEspera && o.status === "paid" && !o.trackingNumber && !["enviado", "entregado"].includes(orderStage(o));
+  function orderBucketBase(o) {
     if (o.status !== "paid") return null;
     const st = orderStage(o);
     if (st === "pagado") return supplierSourceableItems(o).length ? "por_abw" : "por_enviar";
@@ -3205,6 +3241,7 @@ ${itemLines}
     if (o.status === "paid") msgs.push(["Recibí tu pago", `${hola} ¡Recibí tu pago del pedido ${num}! Muchas gracias por tu compra en Alpacca. Te voy avisando cómo va 🌸`]);
     if (b === "esperando_abw") msgs.push(["Ya lo pedimos", `${hola} Tu pedido ${num} ya está pedido a Corea 🇰🇷. En cuanto llegue a México te aviso para enviártelo.`]);
     if (b === "por_enviar" && orderStage(o) === "llego" && !isEntregaPersonal(o)) msgs.push(["Llegó a México", `${hola} ¡Tu pedido ${num} ya llegó a México! 🇲🇽 Lo preparo y te mando la guía en cuanto salga.`]);
+    if (o.enEspera && ["por_abw", "esperando_abw", "por_enviar", "guardado"].includes(b)) msgs.push(["Te lo guardo", `${hola} ¡Listo! Te guardo tu pedido ${num} para juntarlo con lo que pidas después y que pagues un solo envío 📦. Cuando quieras que te lo mande, solo avísame 🌸`]);
     if (b === "enviado") msgs.push(["¿Ya te llegó?", `${hola} ¿Ya te llegó tu pedido ${num}? Cualquier cosa aquí estoy 🌸`]);
     if (b === "entregado") msgs.push(["Gracias", `${hola} ¡Gracias por tu compra! Si te gustaron tus productos, me ayudaría mucho que dejaras tu reseña en alpacca.mx 💕`]);
     if (!msgs.length) return "";
@@ -3223,8 +3260,9 @@ ${itemLines}
     else if (b === "esperando_abw") action = btn("llego", "📦 Ya llegó a México");
     else if (b === "por_enviar" && isEntregaPersonal(o)) action = `${btn("entregado", "🎁 Ya se lo entregué")}<span class="edit-hint">Entrega personal en Ciudad Juárez: no lleva guía.</span>`;
     else if (b === "por_enviar") action = `${btn("enviado", "🚚 Ya lo envié")}<span class="edit-hint">Para generar la guía con paquetería usa "📦 Generar guía real" más abajo; al guardar la guía se marca como enviado solo.</span>`;
+    else if (b === "guardado") action = `<button type="button" class="btn-primary" data-espera="${o.id}" data-espera-to="0">▶️ Ya me dijo que se lo mande</button><span class="edit-hint">Al tocarlo pasa a "📦 Por enviar".</span>`;
     else if (b === "enviado") action = btn("entregado", "🎁 Ya lo recibió");
-    const personal = isJuarezOrder(o) && ["por_abw", "esperando_abw", "por_enviar"].includes(b)
+    const personal = isJuarezOrder(o) && ["por_abw", "esperando_abw", "por_enviar", "guardado"].includes(b)
       ? `<button type="button" class="btn-secondary" data-personal-toggle="${o.id}" data-personal-to="${isEntregaPersonal(o) ? "0" : "1"}">${isEntregaPersonal(o) ? "Quitar entrega personal" : "📍 Marcar como entrega personal (Juárez)"}</button>`
       : "";
     return `<div class="next-step"><span class="ns-label">Siguiente paso · <b>${BUCKETS[b]}</b></span>${action}${personal}${waTemplatesHTML(o)}</div>`;
@@ -3341,6 +3379,7 @@ ${itemLines}
       { n: count("por_abw"), label: "Por pedir a ABW", hint: "Ver lista de compra", go: "abw", cls: "pink" },
       { n: count("esperando_abw"), label: "Esperando ABW", hint: "Ya pedidos, en camino", go: "esperando_abw" },
       { n: count("por_enviar"), label: "Por enviar", hint: "Generar guía", go: "por_enviar", cls: "hot" },
+      { n: count("guardado"), label: "Guardados", hint: "Clientas juntando envío", go: "guardado" },
       { n: swmLoaded ? swmNewCount : "…", label: "Dirección americana", hint: "Cotizar, comprar o enviar", go: "swm", cls: "blue" },
       { n: restockCount == null ? "…" : restockCount, label: "Avisos de restock", hint: "Clientas esperando", go: "restock" },
       { n: pvApartadosLigeros ? pvResumen().activos : "…", label: "Apartados de preventa", hint: pvApartadosLigeros && pvResumen().revisar ? `${pvResumen().revisar} comprobante(s) por revisar` : "Sephora Sale", go: "preventa", cls: "hot" },

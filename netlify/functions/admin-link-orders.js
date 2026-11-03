@@ -9,6 +9,10 @@
 //   POST { orderId, copiarGuia: true } -> pone la guía de ese pedido a los
 //        demás del grupo que todavía no tienen (sin volver a avisar: van en
 //        la misma caja)
+//   POST { orderId, espera: true, nota? } -> "en espera de envío": la clienta
+//        pidió que no se lo mande todavía (para juntarlo con algo que pida
+//        después y pagar un solo envío). No sale en "Por enviar".
+//   POST { orderId, espera: false }       -> ya se puede enviar
 
 const { getOrder, listOrders, updateOrderFields } = require("./lib/blob-store.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
@@ -38,6 +42,15 @@ exports.handler = async (event) => {
       const resto = todos.filter((x) => grupo && x.envioJunto === grupo && x.id !== o.id);
       if (resto.length === 1) orders.push(await updateOrderFields(resto[0].id, { envioJunto: null }));
       return json(200, { orders });
+    }
+
+    if (typeof b.espera === "boolean") {
+      const o = buscar(b.orderId);
+      if (!o) return json(404, { error: "No encontré ese pedido." });
+      const enEspera = b.espera
+        ? { desde: (o.enEspera && o.enEspera.desde) || new Date().toISOString(), nota: String(b.nota || "").trim().slice(0, 300) }
+        : null;
+      return json(200, { orders: [await updateOrderFields(o.id, { enEspera })] });
     }
 
     if (b.copiarGuia) {
