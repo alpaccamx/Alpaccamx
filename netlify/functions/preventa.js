@@ -117,21 +117,24 @@ exports.handler = async (event) => {
         const total = Math.round(items.reduce((s, it) => s + it.precio * it.qty, 0) * 100) / 100;
         const pesos = pesosEnvio(items);
         const envioEst = entrega === "envio" ? await envioEstimado(direccion.cp, pesos.pesoCobrableKg) : 0;
-        const pct = Math.min(100, Math.max(1, Number(cfg.anticipoPct) || 50));
+        // pagoCompleto: la clienta prefiere pagar todo ahora (al llegar solo
+        // paga el envío, si es a domicilio).
+        const completo = !!b.pagoCompleto;
+        const pct = completo ? 100 : Math.min(100, Math.max(1, Number(cfg.anticipoPct) || 50));
         const anticipo = Math.ceil(total * pct / 100);
         const rec = {
           id: randomUUID(), folio: await nextFolio(), email: me, name: customer.name || direccion.nombre, phone: customer.phone || direccion.telefono,
-          campana: cfg.titulo, items, total, anticipoPct: pct,
+          campana: cfg.titulo, items, total, anticipoPct: pct, ...(completo ? { pagoCompleto: true } : {}),
           anticipo: { monto: anticipo, status: "pendiente" },
           resto: { monto: Math.round((total - anticipo) * 100) / 100, status: "espera" },
           envio: 0, ...pesos, envioEstimado: envioEst, entrega, direccion, nota: clip(b.nota, 500), status: "nuevo",
           history: [{ at: now(), status: "nuevo" }], createdAt: now(), updatedAt: now(),
         };
         await saveApartado(rec);
-        await avisar(rec, `${rec.folio}: aparta pagando tu anticipo`, `
-          <h2 style="margin:0 0 8px;font-size:20px;">¡Ya casi! Paga tu anticipo para apartar</h2>
+        await avisar(rec, completo ? `${rec.folio}: paga tu pedido para apartarlo` : `${rec.folio}: aparta pagando tu anticipo`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">¡Ya casi! ${completo ? "Paga tu pedido para apartarlo" : "Paga tu anticipo para apartar"}</h2>
           ${listaHTML(rec)}
-          <p style="font-size:14px;">Total: <b>${formatPriceMXN(total)}</b>. Para apartar pagas el ${pct}%: <b>${formatPriceMXN(anticipo)}</b>. El resto lo pagas cuando lleguen tus productos.</p>
+          <p style="font-size:14px;">${completo ? `Total: <b>${formatPriceMXN(total)}</b>. Elegiste pagar todo ahora${entrega === "envio" ? "; cuando lleguen tus productos solo pagas el envío" : ""}.` : `Total: <b>${formatPriceMXN(total)}</b>. Para apartar pagas el ${pct}%: <b>${formatPriceMXN(anticipo)}</b>. El resto lo pagas cuando lleguen tus productos.`}</p>
           <p style="font-size:14px;">Tienes ${HORAS_PARA_PAGAR} horas para pagarlo; si no, se libera el lugar.</p>`,
         `${rec.folio}: paga tu anticipo de ${formatPriceMXN(anticipo)} para apartar`);
         return json(200, { apartado: apartadoPublico(rec) });
