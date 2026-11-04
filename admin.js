@@ -149,6 +149,7 @@
     const iTarjeta = headers.indexOf("precio tarjeta");
     const iDisp = headers.indexOf("disponible");
     const iImg = headers.indexOf("imagen");
+    const iImgAny = iImg >= 0 ? iImg : headers.findIndex((h) => h.startsWith("imagen (opcional"));
     const iPres = headers.indexOf("presentacion");
     if (iSku < 0) return;
     rows.slice(1).forEach((r) => {
@@ -167,6 +168,7 @@
         peso: peso || prev.peso || 0,
         costoUSD: prev.costoUSD || num(iUsd),
         costoMXN: prev.costoMXN || num(iCostoMxn),
+        imagen: prev.imagen || (iImgAny >= 0 ? (r[iImgAny] || "").trim() : ""),
       });
       if (!isStock && iNombre >= 0 && (r[iNombre] || "").trim()) {
         catalogRows.push({
@@ -3262,6 +3264,291 @@ ${itemLines}
       .join("")}</div>`;
   }
 
+  /* ---------- 📦 Armar pedido: lista para ir palomeando lo que ya está
+     en la caja (ver admin-pack-order.js). Incluye los pedidos ligados que
+     van en la misma caja. Lo que falte se quita del pedido y se le avisa
+     a la clienta de su reembolso. ---------- */
+  const packArmable = (o) => o.status === "paid" && !o.trackingNumber && !["enviado", "entregado"].includes(orderStage(o));
+  const packPiezas = (o) => (o.items || []).reduce((s, it) => s + (Number(it.qty) || 0), 0);
+  const packEnCaja = (o) => Object.values((o.armado && o.armado.progreso) || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+
+  function armarBtnHTML(o) {
+    if (!packArmable(o) || !["por_enviar", "guardado"].includes(orderBucket(o))) return "";
+    const total = packPiezas(o);
+    const listos = Math.min(total, packEnCaja(o));
+    const label = listos >= total && total ? "✅ Caja completa · ver lista" : listos ? `📦 Seguir armando (${listos} de ${total})` : "📦 Armar pedido (ir palomeando)";
+    return `<button type="button" class="btn-secondary pack-open" data-armar="${o.id}">${label}</button>`;
+  }
+
+  function packWaText(o, lista, monto) {
+    const hola = firstName(o) ? `Hola ${firstName(o)} 💕` : "Hola 💕";
+    const como = o.source === "mercadopago"
+      ? "Te lo regreso a tu tarjeta por Mercado Pago 🙏"
+      : "¿Me pasas tu CLABE o número de tarjeta para hacerte la transferencia? 🙏";
+    return `${hola} Al armar tu pedido #${orderNumber(o)} me di cuenta de que ya no tenía: ${lista.join(", ")}. Perdón por el inconveniente. Te reembolso ${formatPrice(monto)}. ${como}`;
+  }
+
+  function reembolsoHTML(o) {
+    const r = o.reembolso;
+    if (!r || r.status !== "pendiente") return "";
+    const falt = (o.faltantes || []).map((f) => `${f.marca ? `${f.marca} ` : ""}${f.nombre}${f.qty > 1 ? ` ×${f.qty}` : ""}`);
+    const base = waLinkFromPhone(o.customer && o.customer.phone);
+    return `<div style="background:#fff3f3;border:1px solid #f3c9c9;border-radius:12px;padding:10px 12px;margin:10px 0;">
+      <div style="font-weight:700;font-size:14px;">💸 Reembolso pendiente: ${formatPrice(r.monto)}</div>
+      <div class="meta">Faltó al armar: ${escapeHtml(falt.join(", "))}. ${o.source === "mercadopago" ? "Pagó con tarjeta: hazlo desde Mercado Pago." : "Pagó por transferencia."}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+        ${base ? `<a class="btn-secondary" style="text-decoration:none;" target="_blank" rel="noopener" href="${escapeHtml(`${base}?text=${encodeURIComponent(packWaText(o, falt, r.monto))}`)}">💬 Escribirle por WhatsApp</a>` : ""}
+        <button type="button" class="btn-secondary" data-reembolsado="${o.id}">✅ Ya le reembolsé</button>
+      </div>
+    </div>`;
+  }
+
+  let pack = null; // { ids: [...], prog: {id: {i: n}}, timers: {} }
+
+  function packOpen(id) {
+    const o = allOrders.find((x) => x.id === id);
+    if (!o) return;
+    const grupo = [o, ...pedidosJuntos(o).filter((x) => packArmable(x) && !x.enEspera)];
+    pack = { ids: grupo.map((x) => x.id), prog: {}, timers: {}, paso: "lista" };
+    grupo.forEach((x) => { pack.prog[x.id] = { ...((x.armado && x.armado.progreso) || {}) }; });
+    let el = document.getElementById("pack-modal");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "pack-modal";
+      el.className = "pack-modal";
+      el.setAttribute("role", "dialog");
+      el.setAttribute("aria-modal", "true");
+      document.body.appendChild(el);
+    }
+    el.hidden = false;
+    document.body.style.overflow = "hidden";
+    packRender();
+  }
+
+  function packClose() {
+    const el = document.getElementById("pack-modal");
+    if (el) el.hidden = true;
+    document.body.style.overflow = "";
+    pack = null;
+    applyFilters();
+  }
+
+  const packOrders = () => pack.ids.map((id) => allOrders.find((x) => x.id === id)).filter(Boolean);
+  const packImg = (it) => {
+    const src = (skuToInfo.get(it.sku) || {}).imagen;
+    return src ? `<img src="${escapeHtml(catalogImgSrc(src))}" alt="" loading="lazy">` : `<span class="pack-noimg">🛍️</span>`;
+  };
+
+  function packTotals() {
+    let total = 0, listos = 0;
+    packOrders().forEach((o) => (o.items || []).forEach((it, i) => { total += it.qty; listos += Math.min(it.qty, pack.prog[o.id][i] || 0); }));
+    return { total, listos };
+  }
+
+  function packRender() {
+    const el = document.getElementById("pack-modal");
+    if (!el || !pack) return;
+    const orders = packOrders();
+    const { total, listos } = packTotals();
+    const pct = total ? Math.round((listos / total) * 100) : 0;
+    const completo = total > 0 && listos >= total;
+    const quien = orders[0] && orders[0].customer && orders[0].customer.name ? orders[0].customer.name : "";
+
+    if (pack.paso === "faltan") return packRenderFaltan(el, orders);
+
+    el.innerHTML = `<div class="pack-sheet">
+      <div class="pack-head">
+        <div><b>📦 Armando ${orders.map((o) => "#" + orderNumber(o)).join(" + ")}</b><small>${escapeHtml(quien)}</small></div>
+        <button type="button" class="pack-x" data-pack-close aria-label="Cerrar">✕</button>
+      </div>
+      <div class="pack-progress"><i style="width:${pct}%"></i></div>
+      <div class="pack-count">${completo ? "🎉 ¡Todo está en la caja!" : `${listos} de ${total} piezas en la caja · toca cada producto cuando lo eches`}</div>
+      <div class="pack-list">
+        ${orders.map((o) => `${orders.length > 1 ? `<div class="pack-sec">Pedido #${orderNumber(o)}</div>` : ""}
+          ${(o.items || []).map((it, i) => {
+            const n = Math.min(it.qty, pack.prog[o.id][i] || 0);
+            const ok = n >= it.qty;
+            return `<div class="pack-row${ok ? " ok" : n ? " half" : ""}" data-pack-row="${o.id}:${i}" role="button" tabindex="0">
+              ${packImg(it)}
+              <span class="pack-name"><b>${escapeHtml(itemMarca(it))}</b>${escapeHtml(it.nombre)}${it.qty > 1 ? `<em>${n} de ${it.qty} piezas</em>` : ""}</span>
+              ${it.qty > 1 && n > 0 && !ok ? `<button type="button" class="pack-minus" data-pack-minus="${o.id}:${i}" aria-label="Quitar una">−</button>` : ""}
+              <span class="pack-check">${ok ? "✓" : it.qty > 1 ? `×${it.qty - n}` : ""}</span>
+            </div>`;
+          }).join("")}`).join("")}
+      </div>
+      <div class="pack-foot">
+        ${completo
+          ? `<button type="button" class="btn-primary" data-pack-close>✅ Listo, ya está todo</button>`
+          : `<button type="button" class="btn-secondary pack-falta" data-pack-faltan>⚠️ No encontré algo / me falta</button>`}
+        <span class="meta">Se guarda solo: puedes cerrar y seguir después.</span>
+      </div>
+    </div>`;
+  }
+
+  function packRenderFaltan(el, orders) {
+    if (!pack.faltan) {
+      pack.faltan = {};
+      orders.forEach((o) => (o.items || []).forEach((it, i) => {
+        const falta = it.qty - Math.min(it.qty, pack.prog[o.id][i] || 0);
+        if (falta > 0) pack.faltan[`${o.id}:${i}`] = falta;
+      }));
+    }
+    const filas = [];
+    let totalReembolso = 0;
+    orders.forEach((o) => (o.items || []).forEach((it, i) => {
+      const key = `${o.id}:${i}`;
+      const pendientes = it.qty - Math.min(it.qty, pack.prog[o.id][i] || 0);
+      if (pendientes <= 0) return;
+      const q = pack.faltan[key] || 0;
+      totalReembolso += q * (Number(it.precio) || 0);
+      filas.push(`<div class="pack-row falt${q ? " sel" : ""}">
+        ${packImg(it)}
+        <span class="pack-name"><b>${escapeHtml(itemMarca(it))}</b>${escapeHtml(it.nombre)}<em>${orders.length > 1 ? `#${orderNumber(o)} · ` : ""}${formatPrice(it.precio)} c/u</em></span>
+        <span class="pack-step">
+          <button type="button" data-falt="${key}" data-falt-d="-1" aria-label="Menos">−</button>
+          <b>${q}</b>
+          <button type="button" data-falt="${key}" data-falt-d="1" data-falt-max="${pendientes}" aria-label="Más">+</button>
+        </span>
+      </div>`);
+    }));
+    el.innerHTML = `<div class="pack-sheet">
+      <div class="pack-head">
+        <div><b>⚠️ ¿Qué no encontraste?</b><small>Pon cuántas piezas te faltan de cada uno</small></div>
+        <button type="button" class="pack-x" data-pack-close aria-label="Cerrar">✕</button>
+      </div>
+      <div class="pack-list">${filas.join("") || `<p class="meta">Todo está palomeado: no falta nada.</p>`}</div>
+      <label class="pack-cero"><input type="checkbox" id="pack-cero" checked> Restar también esas piezas del stock de la tienda (para que nadie más compre lo que ya no tienes)</label>
+      <div class="pack-foot">
+        <div style="font-size:15px;">Se le reembolsa: <b>${formatPrice(totalReembolso)}</b></div>
+        <button type="button" class="btn-primary" data-pack-avisar ${totalReembolso > 0 ? "" : "disabled"}>Quitar del pedido y avisarle a la clienta</button>
+        <button type="button" class="btn-link pack-back" data-pack-back>← Regresar a la lista</button>
+        <span class="meta">Le llega un aviso por correo y WhatsApp de que se agotó y que se le reembolsa. El reembolso lo haces tú.</span>
+      </div>
+    </div>`;
+  }
+
+  function packSave(id) {
+    clearTimeout(pack.timers[id]);
+    const prog = { ...pack.prog[id] };
+    pack.timers[id] = setTimeout(async () => {
+      try {
+        const res = await fetch("/.netlify/functions/admin-pack-order", {
+          method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ orderId: id, progreso: prog }),
+        });
+        const data = await res.json().catch(() => ({}));
+        (data.orders || []).forEach((u) => { const k = allOrders.findIndex((x) => x.id === u.id); if (k >= 0) allOrders[k] = u; });
+      } catch (err) { /* se reintenta con el siguiente toque */ }
+    }, 700);
+  }
+
+  async function packAvisar(btn) {
+    const orders = packOrders();
+    const cero = (document.getElementById("pack-cero") || {}).checked;
+    const porPedido = {};
+    Object.entries(pack.faltan || {}).forEach(([key, q]) => {
+      if (!q) return;
+      const [id, i] = key.split(":");
+      (porPedido[id] = porPedido[id] || []).push({ i: Number(i), qty: q });
+    });
+    if (!Object.keys(porPedido).length) return;
+    if (!confirm("¿Quitar esos productos del pedido y avisarle a la clienta que se le reembolsa?")) return;
+    btn.disabled = true;
+    btn.textContent = "Avisando…";
+    const hechos = [];
+    try {
+      for (const o of orders) {
+        if (!porPedido[o.id]) continue;
+        const res = await fetch("/.netlify/functions/admin-pack-order", {
+          method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ orderId: o.id, faltantes: porPedido[o.id], restarStock: !!cero }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
+        (data.orders || []).forEach((u) => { const k = allOrders.findIndex((x) => x.id === u.id); if (k >= 0) allOrders[k] = u; });
+        hechos.push({ o: data.orders[0], lista: data.lista || [], monto: data.reembolso });
+        pack.prog[o.id] = { ...((data.orders[0].armado && data.orders[0].armado.progreso) || {}) };
+      }
+    } catch (err) {
+      alert(err.message);
+      btn.disabled = false;
+      btn.textContent = "Quitar del pedido y avisarle a la clienta";
+      if (!hechos.length) return;
+    }
+    const el = document.getElementById("pack-modal");
+    el.innerHTML = `<div class="pack-sheet">
+      <div class="pack-head"><div><b>✅ Listo, ya se le avisó</b><small>Se quitó del pedido y quedó apuntado el reembolso pendiente</small></div>
+        <button type="button" class="pack-x" data-pack-close aria-label="Cerrar">✕</button></div>
+      ${hechos.map(({ o, lista, monto }) => {
+        const base = waLinkFromPhone(o.customer && o.customer.phone);
+        return `<div class="pack-done">
+          <div><b>#${orderNumber(o)}</b> · Reembolso: <b>${formatPrice(monto)}</b></div>
+          <div class="meta">${escapeHtml(lista.join(", "))}</div>
+          ${base ? `<a class="btn-primary" style="text-decoration:none;display:inline-block;margin-top:8px;" target="_blank" rel="noopener" href="${escapeHtml(`${base}?text=${encodeURIComponent(packWaText(o, lista, monto))}`)}">💬 Escribirle también por WhatsApp</a>` : ""}
+        </div>`;
+      }).join("")}
+      <div class="pack-foot">
+        <button type="button" class="btn-secondary" data-pack-back>📦 Seguir armando</button>
+        <span class="meta">En el pedido te queda un aviso rojo "💸 Reembolso pendiente" hasta que toques "Ya le reembolsé".</span>
+      </div>
+    </div>`;
+    pack.paso = "lista";
+    pack.faltan = null;
+  }
+
+  document.addEventListener("click", async (e) => {
+    const t = e.target;
+    const open = t.closest("[data-armar]");
+    if (open) { packOpen(open.dataset.armar); return; }
+    const reemb = t.closest("[data-reembolsado]");
+    if (reemb) {
+      if (!confirm("¿Ya le hiciste su reembolso?")) return;
+      reemb.disabled = true;
+      try {
+        const res = await fetch("/.netlify/functions/admin-pack-order", {
+          method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ orderId: reemb.dataset.reembolsado, reembolsado: true }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
+        (data.orders || []).forEach((u) => { const k = allOrders.findIndex((x) => x.id === u.id); if (k >= 0) allOrders[k] = u; });
+        showToast("Reembolso marcado como hecho ✅");
+        applyFilters();
+      } catch (err) { alert(err.message); reemb.disabled = false; }
+      return;
+    }
+    if (!pack || !t.closest("#pack-modal")) return;
+    if (t.closest("[data-pack-close]")) { packClose(); return; }
+    if (t.closest("[data-pack-faltan]")) { pack.paso = "faltan"; pack.faltan = null; packRender(); return; }
+    if (t.closest("[data-pack-back]")) { pack.paso = "lista"; packRender(); return; }
+    const av = t.closest("[data-pack-avisar]");
+    if (av) { packAvisar(av); return; }
+    const f = t.closest("[data-falt]");
+    if (f) {
+      const key = f.dataset.falt;
+      const max = Number(f.dataset.faltMax) || Infinity;
+      pack.faltan[key] = Math.max(0, Math.min(max, (pack.faltan[key] || 0) + Number(f.dataset.faltD)));
+      packRender();
+      return;
+    }
+    const minus = t.closest("[data-pack-minus]");
+    const row = t.closest("[data-pack-row]");
+    if (!minus && !row) return;
+    const [id, i] = (minus ? minus.dataset.packMinus : row.dataset.packRow).split(":");
+    const o = allOrders.find((x) => x.id === id);
+    const it = o && o.items[Number(i)];
+    if (!it) return;
+    const cur = Math.min(it.qty, pack.prog[id][i] || 0);
+    const next = minus ? cur - 1 : cur >= it.qty ? 0 : cur + 1;
+    if (next > 0) pack.prog[id][i] = next; else delete pack.prog[id][i];
+    if (navigator.vibrate) try { navigator.vibrate(15); } catch (err) { /* nada */ }
+    packRender();
+    packSave(id);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (!pack) return;
+    if (e.key === "Escape") packClose();
+    if ((e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest("[data-pack-row]")) { e.preventDefault(); e.target.click(); }
+  });
+
   // El botón grande del siguiente paso, según la etapa.
   function nextStepHTML(o) {
     const b = orderBucket(o);
@@ -3277,7 +3564,7 @@ ${itemLines}
     const personal = isJuarezOrder(o) && ["por_abw", "esperando_abw", "por_enviar", "guardado"].includes(b)
       ? `<button type="button" class="btn-secondary" data-personal-toggle="${o.id}" data-personal-to="${isEntregaPersonal(o) ? "0" : "1"}">${isEntregaPersonal(o) ? "Quitar entrega personal" : "📍 Marcar como entrega personal (Juárez)"}</button>`
       : "";
-    return `<div class="next-step"><span class="ns-label">Siguiente paso · <b>${BUCKETS[b]}</b></span>${action}${personal}${waTemplatesHTML(o)}</div>`;
+    return `<div class="next-step"><span class="ns-label">Siguiente paso · <b>${BUCKETS[b]}</b></span>${armarBtnHTML(o)}${action}${personal}${waTemplatesHTML(o)}</div>${reembolsoHTML(o)}`;
   }
 
   function stageSelectHTML(o) {
