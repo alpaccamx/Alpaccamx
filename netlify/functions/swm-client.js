@@ -17,6 +17,7 @@
 //   completar_paquete { id, articulos[], valorTotal, moneda, facturas?, cobro }  (paquete que llegó sin registrar)
 //   editar_paquete    { id, tienda?, paqueteria?, rastreo?, articulos[], valorTotal, moneda, facturas?, quitarArchivos?, cobro }
 //                     (mientras va en camino, o cuando Mae le pidió corregir sus datos)
+//   cambiar_rastreo   { id, rastreo, paqueteria? }  (solo mientras el paquete no ha llegado con Mae)
 //   cancelar          { kind, id }
 //   pedir_revision    { id }  (abrir el paquete y mandar fotos del contenido; cargo REVISION_FOTOS)
 //   aplicar_cupon     { kind, id, code }  (descuento sobre una cotización sin pagar)
@@ -197,6 +198,25 @@ exports.handler = async (event) => {
         const conCruce = await mutateRecord("paquete", rec.id, (p) => ponerCruceAnticipado(p, rates)) || updated;
         await envioAutomatico(rec.id).catch((err) => console.error("swm envío automático:", err));
         return json(200, { paquete: publico(conCruce) });
+      }
+
+      case "cambiar_rastreo": {
+        const rec = await getRecord("paquete", String(b.id || ""));
+        if (!rec || rec.email !== me) return json(404, { error: "No encontramos ese paquete." });
+        if (rec.status !== "registrado") return json(409, { error: "Tu paquete ya llegó con Mae, así que el rastreo ya no se puede cambiar desde aquí. Escríbele por WhatsApp." });
+        const rastreo = clip(b.rastreo, 80);
+        if (!rastreo) return json(400, { error: "Pon el número de rastreo (guía) de tu paquete." });
+        const repetida = await guiaRepetida(rastreo, me, rec.id);
+        if (repetida) return json(409, { error: repetida });
+        const updated = await mutateRecord("paquete", rec.id, (p) => {
+          if (p.status !== "registrado") return null;
+          p.history = [...(p.history || []), { at: now(), status: "rastreo_cambiado", antes: p.rastreo || "", ahora: rastreo }];
+          p.rastreo = rastreo;
+          if (b.paqueteria) p.paqueteria = clip(b.paqueteria, 40);
+          return p;
+        });
+        if (!updated || updated.status !== "registrado" || updated.rastreo !== rastreo) return json(409, { error: "Tu paquete ya llegó con Mae, así que el rastreo ya no se puede cambiar desde aquí. Escríbele por WhatsApp." });
+        return json(200, { paquete: publico(updated) });
       }
 
       case "editar_paquete": {

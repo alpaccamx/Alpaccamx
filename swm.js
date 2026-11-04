@@ -506,6 +506,18 @@ function swmPaqueteCardHTML(p) {
     ${p.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(p.notaClienta)}</p>` : ""}
     ${swmExtrasHTML(p)}
     ${p.correccion && p.correccion.estado === "pedida" ? `<div class="mt-3 rounded-xl bg-sale/[0.06] border border-sale/30 p-3 text-sm"><b>✏️ Mae te pidió corregir tus datos:</b><p class="mt-1">${escapeHtml(p.correccion.motivo || "")}</p><p class="mt-1 text-xs text-ink/65">Hasta que lo corrijas no puedes pedir el envío de este paquete.</p></div>` : ""}
+    ${p.status === "registrado" && p.origen !== "compra" ? (swm.cambiaRastreo === p.id
+      ? `<form data-swm-rastreo="${escapeHtml(p.id)}" class="mt-3 rounded-xl border border-ink/15 p-3 space-y-3" novalidate>
+          <p class="text-xs text-ink/70">Puedes cambiarlo mientras tu paquete no haya llegado con Mae.</p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            ${swmPaqueteriaSelect('data-r="paqueteria"', p.paqueteria || "")}
+            <label class="flex flex-col gap-1 text-xs font-semibold">Número de rastreo correcto *<input data-r="rastreo" maxlength="80" value="${escapeHtml(p.rastreo || "")}" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" autocomplete="off" /></label>
+          </div>
+          <p data-r-err class="hidden text-xs text-sale"></p>
+          <div class="flex gap-2"><button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Guardar rastreo</button>
+          <button type="button" data-swm-rastreo-toggle="${escapeHtml(p.id)}" class="rounded-full px-4 py-2 text-xs font-semibold text-ink/70">Cancelar</button></div>
+        </form>`
+      : `<button type="button" data-swm-rastreo-toggle="${escapeHtml(p.id)}" class="mt-2 mr-3 text-xs font-semibold text-rose-ink underline">🔁 Cambiar número de rastreo</button>`) : ""}
     ${swmPuedeEditar(p) ? (swm.editando === p.id || (p.correccion && p.correccion.estado === "pedida")
       ? swmEditarFormHTML(p)
       : `<button type="button" data-swm-editar-toggle="${escapeHtml(p.id)}" class="mt-2 mr-3 text-xs font-semibold text-rose-ink underline">✏️ Editar mis datos</button>`) : ""}
@@ -1244,6 +1256,14 @@ function initSwm() {
       if (swm.dirMxOpen && box) box.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
+    const rasToggle = e.target.closest("[data-swm-rastreo-toggle]");
+    if (rasToggle) {
+      swm.cambiaRastreo = swm.cambiaRastreo === rasToggle.dataset.swmRastreoToggle ? "" : rasToggle.dataset.swmRastreoToggle;
+      renderSwmCasillero();
+      const form = document.querySelector(`[data-swm-rastreo="${CSS.escape(swm.cambiaRastreo)}"]`);
+      if (form) { form.scrollIntoView({ behavior: "smooth", block: "nearest" }); const i = form.querySelector('[data-r="rastreo"]'); if (i) i.select(); }
+      return;
+    }
     const editToggle = e.target.closest("[data-swm-editar-toggle]");
     if (editToggle) {
       swm.editando = swm.editando === editToggle.dataset.swmEditarToggle ? "" : editToggle.dataset.swmEditarToggle;
@@ -1395,6 +1415,20 @@ function initSwm() {
       const btn = sep.querySelector('button[type="submit"]');
       btn.disabled = true;
       swmPost({ accion: "pedir_separar", id: sep.dataset.swmSeparar, nota }).then(loadSwm, (ex) => { err.textContent = ex.message; err.classList.remove("hidden"); btn.disabled = false; });
+      return;
+    }
+    const ras = e.target.closest("[data-swm-rastreo]");
+    if (ras) {
+      e.preventDefault();
+      const err = ras.querySelector("[data-r-err]");
+      const rastreo = ras.querySelector('[data-r="rastreo"]').value.trim();
+      const paqueteria = ras.querySelector('[data-r="paqueteria"]').value;
+      const fail = (m) => { err.textContent = m; err.classList.remove("hidden"); };
+      if (!rastreo) return fail("Pon el número de rastreo (guía) de tu paquete.");
+      if (!paqueteria) return fail("Elige con qué paquetería viene tu paquete.");
+      const btn = ras.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      swmPost({ accion: "cambiar_rastreo", id: ras.dataset.swmRastreo, rastreo, paqueteria }).then(() => { swm.cambiaRastreo = ""; return loadSwm(); }, (ex) => { fail(ex.message); btn.disabled = false; });
       return;
     }
     const edit = e.target.closest("[data-swm-editar]");
