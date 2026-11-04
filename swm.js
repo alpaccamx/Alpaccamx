@@ -30,7 +30,7 @@ const SWM_ADDRESS = {
 const SWM_PKG_STATUS = {
   sin_registro: ["⚠️ Llegó sin registrar", "bg-sale/10 text-sale"],
   registrado: ["⏳ En camino al almacén", "bg-[#fff6e5] text-[#8a5a00]"],
-  recibido: ["📥 En el almacén", "bg-[#eef8f2] text-green-800"],
+  recibido: ["🇺🇸 En la dirección americana", "bg-[#eef8f2] text-green-800"],
   en_envio: ["📦 En un envío", "bg-lilac/15 text-lilac-ink"],
   en_mexico: ["🇲🇽 En México", "bg-[#eef8f2] text-green-800"],
   enviado: ["🚚 Enviado a México", "bg-lilac/15 text-lilac-ink"],
@@ -332,7 +332,7 @@ function renderSwmCasillero() {
   el.innerHTML = `${h}
     <div class="rounded-3xl bg-gradient-to-br from-blush/60 via-blush/25 to-lilac/25 p-4">
       ${swmPendientesHTML()}
-      <p class="mt-3 px-1 text-xs text-ink/70">📦 ${P.filter((p) => p.status === "registrado").length} por llegar · ${P.filter((p) => p.status === "recibido" && !p.enMexicoAt).length} en almacén · ${P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length} en México · ${P.filter((p) => ["enviado", "entregado"].includes(p.status)).length} enviados</p>
+      <p class="mt-3 px-1 text-xs text-ink/70">📦 ${P.filter((p) => p.status === "registrado").length} por llegar · ${P.filter((p) => p.status === "recibido" && !p.enMexicoAt).length} en EE.UU. · ${P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length} en México · ${P.filter((p) => ["enviado", "entregado"].includes(p.status)).length} enviados</p>
       <div class="mt-3 grid gap-2 sm:grid-cols-2">
         ${[["paquete", "📦", "Registrar un paquete", "Ya compraste y lo mandaste a la dirección", "bg-[#fff4e0]"], ["compra", "🛍️", "Que Mae compre por mí", "Personal shopper: compras en línea", "bg-[#fde8f0]"]]
           // Sin pendientes, el botón grande de arriba ya es "Registrar paquete".
@@ -472,7 +472,7 @@ function swmPkgSiguiente(p) {
   if (p.datosPendientes) return ["⚠️ Dime qué trae para poder mandártelo", true];
   if (p.correccion && p.correccion.estado === "pedida") return ["✏️ Mae te pidió corregir tus datos", true];
   if (p.status === "en_envio") return [p.enMexicoAt ? "Ya cruzó · va en tu envío a casa" : "Va en tu envío a México", false];
-  if (p.status === "recibido") return [p.enMexicoAt ? "Ya cruzó a México · pide tu envío a casa" : "Ya llegó a la bodega · te avisamos cuando cruce a México", false];
+  if (p.status === "recibido") return [p.enMexicoAt ? "Ya cruzó a México · pide tu envío a casa" : "Ya llegó a la dirección americana · te avisamos cuando cruce a México", false];
   return [{ registrado: "Te aviso cuando llegue a la bodega", enviado: "Va en camino a tu casa", entregado: "¡Entregado! 💗" }[p.status] || "", false];
 }
 function swmCotSiguiente(r, cotizando, pagado) {

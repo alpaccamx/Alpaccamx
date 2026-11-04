@@ -5,7 +5,9 @@
 // GET ?archivo=<key>  → el archivo (foto de paquete, comprobante o factura de un paquete)
 // GET ?buscarClienta=<texto> → { clientas: [{ email, name, phone, casillero }] }  (acepta "ALP-ANA L")
 // POST { accion, ... }:
-//   recibir_paquete   { id, kg, alto, ancho, largo, fotos?: [{ dataBase64, contentType }], notaClienta? }
+//   recibir_paquete   { id, kg, alto, ancho, largo, fotos?: [{ dataBase64, contentType }], notaClienta?, enUSA? }
+//                     (enUSA: llegó a la dirección americana pero todavía no cruza;
+//                      después se marca con paquete_en_mexico y ahí se arma su envío)
 //   sin_registrar     { email?, etiqueta, tienda?, rastreo?, kg, alto, ancho, largo, fotos?, notaClienta? }
 //                     (llegó un paquete que nadie registró; sin email queda "sin dueña")
 //   asignar_paquete   { id, email }   (un paquete sin dueña ya tiene dueña)
@@ -55,17 +57,18 @@ const push = (r, status, extra) => { r.history = [...(r.history || []), { at: no
 /* Correos de un paquete: llegó al almacén y ya cruzó a México (aquí empieza
    a contar el almacenaje gratis). Regresan [asunto, html]. */
 function correoLlego(rec, yaEstaba, nFotos, envio) {
-  return [yaEstaba ? `actualicé tu paquete ${rec.folio} (peso, fotos o nota)` : `llegó tu paquete ${rec.folio} 📦`, `
-    <h2 style="margin:0 0 8px;font-size:20px;">${yaEstaba ? "Actualicé tu paquete" : "¡Tu paquete llegó a nuestro almacén!"}</h2>
+  const usa = !yaEstaba && !rec.enMexicoAt;
+  return [yaEstaba ? `actualicé tu paquete ${rec.folio} (peso, fotos o nota)` : usa ? `tu paquete ${rec.folio} llegó a la dirección americana 🇺🇸` : `llegó tu paquete ${rec.folio} 📦`, `
+    <h2 style="margin:0 0 8px;font-size:20px;">${yaEstaba ? "Actualicé tu paquete" : usa ? "¡Tu paquete llegó a la dirección americana! 🇺🇸" : "¡Tu paquete llegó a nuestro almacén!"}</h2>
     <p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · "))}${rec.cobrable ? ` · ${rec.cobrable} kg` : ""}.${nFotos ? ` Te adjuntamos ${nFotos === 1 ? "la foto" : `las ${nFotos} fotos`} de tu paquete (también las ves en tu casillero).` : ""}</p>
     ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
-    <p style="font-size:14px;">${yaEstaba ? "" : envio ? "Ya está en México 🇲🇽 y ya estoy preparando tu envío a casa. En cuanto tenga tu guía te llega lo que tienes que pagar." : "Ya está en México 🇲🇽. Para mandártelo, pon tu dirección de envío en tu casillero."}</p>`];
+    <p style="font-size:14px;">${yaEstaba ? "" : usa ? "Ya lo tenemos en Estados Unidos. Te aviso en cuanto cruce a México 🇲🇽." : envio ? "Ya está en México 🇲🇽 y ya estoy preparando tu envío a casa. En cuanto tenga tu guía te llega lo que tienes que pagar." : "Ya está en México 🇲🇽. Para mandártelo, pon tu dirección de envío en tu casillero."}</p>`];
 }
 
-function correoEnMexico(rec) {
+function correoEnMexico(rec, envio) {
   const hasta = new Date(new Date(rec.enMexicoAt).getTime() + ALMACENAJE_DIAS * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
   return [`tu paquete ${rec.folio} ya está en México 🇲🇽`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu paquete ya cruzó a México!</h2><p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · ") || rec.folio)}</p>
-    <p style="font-size:14px;">Lo guardamos gratis hasta el <b>${hasta}</b>. Entra a tu casillero y pide tu envío a casa (puedes juntarlo con otros paquetes).</p>`];
+    <p style="font-size:14px;">${envio ? "Ya estoy preparando tu envío a casa. En cuanto tenga tu guía te llega lo que tienes que pagar." : `Lo guardamos gratis hasta el <b>${hasta}</b>. Entra a tu casillero y pide tu envío a casa (puedes juntarlo con otros paquetes).`}</p>`];
 }
 
 exports.handler = async (event) => {
@@ -124,13 +127,18 @@ exports.handler = async (event) => {
           p.cobrable = pesoCobrable(p.kg, p.alto, p.ancho, p.largo);
           p.fotos = [...(p.fotos || []), ...fotos];
           if (b.notaClienta != null) p.notaClienta = clip(b.notaClienta, 1000);
-          // Recibir = cruzar: en cuanto lo recibes ya cuenta como en México.
-          if (p.status === "registrado") { p.status = "recibido"; p.receivedAt = now(); p.enMexicoAt = p.enMexicoAt || now(); push(p, "recibido"); }
+          // Recibir = cruzar (ya cuenta como en México), salvo que Mae diga
+          // que apenas llegó a la dirección americana.
+          if (p.status === "registrado") {
+            p.status = "recibido"; p.receivedAt = now();
+            if (b.enUSA) push(p, "recibido_usa");
+            else { p.enMexicoAt = p.enMexicoAt || now(); push(p, "recibido"); }
+          }
           return p;
         });
         if (!rec) return json(404, { error: "No existe ese paquete." });
         // Y su envío a casa se arma solo (si ya tiene su dirección guardada).
-        const envio = yaEstaba ? null : await envioAutomatico(rec.id).catch((err) => { console.error("swm envío automático:", err); return null; });
+        const envio = yaEstaba || !rec.enMexicoAt ? null : await envioAutomatico(rec.id).catch((err) => { console.error("swm envío automático:", err); return null; });
         await avisar(rec, ...correoLlego(rec, yaEstaba, fotos.length, envio), fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
         return json(200, { paquete: rec, envio });
       }
@@ -450,8 +458,10 @@ exports.handler = async (event) => {
           p.enMexicoAt = now(); push(p, "en_mexico"); return p;
         });
         if (!rec) return json(409, { error: "Ese paquete no está en el almacén o ya estaba en México." });
-        await avisar(rec, ...correoEnMexico(rec));
-        return json(200, { paquete: rec });
+        // Y su envío a casa se arma solo (si ya tiene su dirección guardada).
+        const envio = await envioAutomatico(rec.id).catch((err) => { console.error("swm envío automático:", err); return null; });
+        await avisar(rec, ...correoEnMexico(rec, envio));
+        return json(200, { paquete: rec, envio });
       }
 
       case "marcar_enviado": {
