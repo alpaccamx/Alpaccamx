@@ -28,6 +28,8 @@ const clip = (v, n) => String(v ?? "").trim().slice(0, n);
 const now = () => new Date().toISOString();
 const num = (v) => Math.max(0, Math.round((parseFloat(v) || 0) * 100) / 100);
 
+const buscarTexto = (a) => [a.folio, a.name, a.phone, a.email, ...Object.values(a.direccion || {}), ...(a.items || []).map((it) => `${it.marca || ""} ${it.nombre || ""} ${it.variante || ""}`)].filter(Boolean).join(" ").slice(0, 1500);
+
 exports.handler = async (event) => {
   const auth = checkAdminKey(event);
   if (!auth.configured) return json(500, { error: "Falta configurar ADMIN_KEY en Netlify." });
@@ -44,7 +46,9 @@ exports.handler = async (event) => {
     if ((event.queryStringParameters || {}).solo === "apartados") {
       try {
         const apartados = await listApartados();
-        return json(200, { apartados: apartados.map((a) => ({ id: a.id, folio: a.folio, status: a.status, anticipo: a.anticipo && { status: a.anticipo.status }, resto: a.resto && { status: a.resto.status }, cuenta: cuenta(a) })) });
+        return json(200, { apartados: apartados.map((a) => ({ id: a.id, folio: a.folio, status: a.status, anticipo: a.anticipo && { status: a.anticipo.status }, resto: a.resto && { status: a.resto.status }, cuenta: cuenta(a),
+          // Para el buscador global del admin (nombre, teléfono, dirección, productos).
+          buscar: buscarTexto(a), name: a.name || (a.direccion && a.direccion.nombre) || "" })) });
       } catch (err) {
         console.error("admin-preventa GET apartados:", err);
         return json(500, { error: "No se pudieron cargar los apartados." });

@@ -300,6 +300,89 @@
     return null;
   }
 
+  /* ---------- Buscador global: si lo que buscas está en otra sección
+     (pedidos, Dirección americana, preventa), te avisa y te lleva. ---------- */
+  const pvBuscarTexto = (a) => a.buscar || [a.folio, a.name, a.phone, a.email, ...Object.values(a.direccion || {}), ...(a.items || []).map((it) => `${it.marca || ""} ${it.nombre || ""} ${it.variante || ""}`)].filter(Boolean).join(" ");
+  function globalHits(q, desde) {
+    q = String(q || "").trim();
+    if (q.length < 3) return [];
+    const out = [];
+    if (desde !== "pedidos") {
+      const ps = allOrders.filter((o) => matchesSearch(o, q));
+      if (ps.length) out.push({ go: "pedidos", label: "🧾 Pedidos", items: ps.slice(0, 5).map((o) => `#${orderNumber(o)} · ${(o.customer && o.customer.name) || ""}`), n: ps.length });
+    }
+    if (desde !== "swm" && swmLoaded) {
+      const hits = [
+        ...swmData.envios.filter((r) => swmMatches(r, q)).map((r) => `${r.folio} · envío de ${r.name || r.email || ""}${r.direccion && r.direccion.nombre && r.direccion.nombre !== r.name ? ` para ${r.direccion.nombre}` : ""}`),
+        ...swmData.paquetes.filter((r) => swmMatches(r, q)).map((r) => `${r.folio} · paquete de ${r.name || r.etiqueta || "?"}`),
+        ...swmData.compras.filter((r) => swmMatches(r, q)).map((r) => `${r.folio} · compra de ${r.name || ""}`),
+      ];
+      if (hits.length) out.push({ go: "swm", label: "🇺🇸 Dirección americana", items: hits.slice(0, 5), n: hits.length });
+    }
+    if (desde !== "preventa" && pvApartadosLigeros) {
+      const aps = pvApartadosLigeros.filter((a) => buscaEnTodo([pvBuscarTexto(a)], q));
+      if (aps.length) out.push({ go: "preventa", label: "🛍️ Preventa", items: aps.slice(0, 5).map((a) => `${a.folio} · ${a.name || (a.direccion && a.direccion.nombre) || ""}`), n: aps.length, first: aps[0].id });
+    }
+    return out;
+  }
+
+  function globalHitsHTML(q, desde) {
+    const hits = globalHits(q, desde);
+    if (!hits.length) return "";
+    return `<div class="global-hits" style="background:#eef6fd;border:1px solid #cfe3f6;border-radius:12px;padding:10px 12px;margin:10px 0;">
+      <div style="font-weight:700;font-size:14px;">🔎 "${escapeHtml(q)}" también está en otra sección:</div>
+      ${hits.map((h) => `<div style="margin-top:8px;"><b>${h.label}</b> (${h.n}): <span style="font-size:14px;">${h.items.map(escapeHtml).join(" · ")}${h.n > h.items.length ? " …" : ""}</span>
+        <br><button type="button" class="btn-secondary" data-global-go="${h.go}" data-global-q="${escapeHtml(q)}"${h.first ? ` data-global-first="${escapeHtml(h.first)}"` : ""} style="margin-top:6px;padding:6px 12px;font-size:13px;">Ir a ${h.label} →</button></div>`).join("")}
+    </div>`;
+  }
+
+  let globalSwmPedido = false;
+  function renderGlobalHitsPedidos(search) {
+    let box = document.getElementById("global-hits-pedidos");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "global-hits-pedidos";
+      filtersEl.insertAdjacentElement("afterend", box);
+    }
+    box.innerHTML = search ? globalHitsHTML(search, "pedidos") : "";
+    // La Dirección americana se carga hasta que la abres: si buscas aquí, se carga sola.
+    if (search && search.length >= 3 && !swmLoaded && !globalSwmPedido) {
+      globalSwmPedido = true;
+      loadSwm({ quiet: true }).then(() => { const q = filterSearchEl.value.trim(); if (q) renderGlobalHitsPedidos(q); });
+    }
+  }
+
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-global-go]");
+    if (!b) return;
+    const q = b.dataset.globalQ || "";
+    const go = b.dataset.globalGo;
+    if (go === "pedidos") {
+      showView("pedidos");
+      resetTabs();
+      syncFilterTabs();
+      filterSearchEl.value = q;
+      applyFilters();
+    } else if (go === "swm") {
+      swmSearch = q;
+      showView("swm");
+    } else if (go === "preventa") {
+      showView("preventa");
+      const id = b.dataset.globalFirst;
+      const irA = () => {
+        if (!pvData) return false;
+        const a = pvData.apartados.find((x) => x.id === id);
+        if (a) { const f = PV_FILTROS.find(([, , fn]) => fn(a)); if (f) pvFiltro = f[0]; renderPreventaAdmin(); }
+        const el = document.getElementById(`pv-ap-${id}`);
+        if (el) { el.scrollIntoView({ behavior: "smooth", block: "start" }); el.style.outline = "3px solid #e07a8f"; setTimeout(() => { el.style.outline = ""; }, 2500); }
+        return true;
+      };
+      if (!irA()) { let n = 0; const t = setInterval(() => { if (irA() || ++n > 20) clearInterval(t); }, 300); }
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
   function applyFilters() {
     const search = filterSearchEl.value.trim().toLowerCase();
     currentSearchTerm = search;
@@ -332,6 +415,7 @@
       filteredOrders.filter((o) => o.status !== "pending"),
       filteredOrders.some((o) => o.status === "pending")
     );
+    renderGlobalHitsPedidos(search);
     const total = allOrders.length;
     filterCountEl.textContent = filteredOrders.length === total
       ? `${total} pedido${total === 1 ? "" : "s"}`
@@ -5079,8 +5163,8 @@ ${itemLines}
     }
   }
 
-  function swmMatches(r) {
-    const q = swmSearch.trim();
+  function swmMatches(r, q) {
+    if (typeof q !== "string") q = swmSearch.trim();
     if (!q) return true;
     const cas = r.email && swmData.casilleros ? swmData.casilleros[r.email] : "";
     const d = r.direccion || {};
@@ -5115,8 +5199,8 @@ ${itemLines}
     const sec = (title, items, fn) => (items.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">${title} (${items.length})</h4>${swmPorClienta(items, fn, title)}` : "");
     const lista = (items, fn, vacio) => (items.length ? swmPorClienta(items, fn, swmTab) : `<p style="color:#5f5866;font-size:14px;">${vacio}</p>`);
     if (swmSearch.trim()) {
-      html = sec("Paquetes", P.filter(swmMatches), swmPaqueteCard) + sec("Compras", swmData.compras.filter(swmMatches), swmCompraCard) + sec("Envíos", swmData.envios.filter(swmMatches), swmEnvioCard)
-        || `<p style="color:#5f5866;font-size:14px;">No encontré nada con "${escapeHtml(swmSearch)}".</p>`;
+      html = globalHitsHTML(swmSearch.trim(), "swm") + (sec("Paquetes", P.filter((r) => swmMatches(r)), swmPaqueteCard) + sec("Compras", swmData.compras.filter((r) => swmMatches(r)), swmCompraCard) + sec("Envíos", swmData.envios.filter((r) => swmMatches(r)), swmEnvioCard)
+        || `<p style="color:#5f5866;font-size:14px;">No encontré nada con "${escapeHtml(swmSearch)}" en Dirección americana.</p>`);
     } else if (swmTab === "acciones") {
       html = sec("🔎 Pagos por revisar", pend.pagos.filter(([, r]) => swmMatches(r)), ([k, r]) => (k === "compra" ? swmCompraCard(r) : k === "paquete" ? swmPaqueteCard(r) : swmEnvioCard(r)))
         + sec("🛍️ Compras por cotizar", pend.cotizarCompra.filter(swmMatches), swmCompraCard)
@@ -6160,7 +6244,7 @@ ${itemLines}
     }
     if (a.status === "enviado") acciones.push(`<button type="button" class="btn-secondary" data-pv-entregado="${id}">🎁 Marcar entregado</button>`);
     if (a.status !== "cancelado" && a.status !== "entregado") acciones.push(`<button type="button" class="btn-ghost" data-pv-cancelar="${id}" style="margin-left:0;padding:8px 10px;">Cancelar</button>`);
-    return `<div class="swm-card">
+    return `<div class="swm-card" id="pv-ap-${id}">
       <h4><span>${escapeHtml(a.folio)} · ${escapeHtml(a.name || a.email)}</span><span class="badge" style="background:${bg};color:${fg};">${txt}</span></h4>
       <div class="meta">${escapeHtml(a.email)}${tel ? ` · <a href="https://wa.me/52${tel}" target="_blank" rel="noopener">📱 ${tel}</a>` : ""} · ${formatFecha(a.createdAt)}</div>
       <ul style="margin:8px 0;padding-left:20px;font-size:14px;">${(a.items || []).map((it) => `<li>${it.qty} × ${escapeHtml(it.marca ? `${it.marca} · ` : "")}${escapeHtml(it.nombre)}${it.variante ? ` · <b>${escapeHtml(it.variante)}</b>` : ""}${it.tamano ? ` (${escapeHtml(it.tamano)})` : ""} <span style="color:#6b6b6b;">(${formatPrice(it.precio)} c/u)</span></li>`).join("")}</ul>
