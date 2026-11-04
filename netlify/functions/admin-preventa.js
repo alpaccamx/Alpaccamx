@@ -199,11 +199,18 @@ exports.handler = async (event) => {
         if (!rec) return json(404, { error: "No existe ese apartado." });
         if (!ok) return json(409, { error: "Solo se marcan los apartados con anticipo pagado." });
         if (rec.status === "llego") {
-          await avisar(rec, `${rec.folio}: ¡ya llegaron tus productos! Paga el resto`, `
+          await avisar(rec, `${rec.folio}: ¡ya llegaron tus productos! Paga ${rec.pagoCompleto ? "el envío" : "el resto"}`, `
             <h2 style="margin:0 0 8px;font-size:20px;">¡Ya llegó tu preventa! 🎉</h2>
             ${listaHTML(rec)}
-            <p style="font-size:14px;">Te falta pagar <b>${formatPriceMXN(rec.resto.monto)}</b>${rec.envio ? ` (resto ${formatPriceMXN(rec.total - rec.anticipo.monto)} + envío ${formatPriceMXN(rec.envio)})` : ""}. En cuanto lo pagues ${rec.entrega === "personal" ? "quedamos para la entrega" : "te lo mando"}.</p>`,
-          `${rec.folio}: ya llegaron tus productos, paga el resto de ${formatPriceMXN(rec.resto.monto)}`);
+            <p style="font-size:14px;">Te falta pagar <b>${formatPriceMXN(rec.resto.monto)}</b>${rec.pagoCompleto ? " de envío (tus productos ya están pagados)" : rec.envio ? ` (resto ${formatPriceMXN(rec.total - rec.anticipo.monto)} + envío ${formatPriceMXN(rec.envio)})` : ""}. En cuanto lo pagues ${rec.entrega === "personal" ? "quedamos para la entrega" : "te lo mando"}.</p>`,
+          `${rec.folio}: ya llegaron tus productos, paga ${rec.pagoCompleto ? "el envío" : "el resto"} de ${formatPriceMXN(rec.resto.monto)}`);
+        }
+        if (rec.status === "liquidado" && rec.pagoCompleto) {
+          await avisar(rec, `${rec.folio}: ¡ya llegaron tus productos! 🎉`, `
+            <h2 style="margin:0 0 8px;font-size:20px;">¡Ya llegó tu preventa! 🎉</h2>
+            ${listaHTML(rec)}
+            <p style="font-size:14px;">Ya está todo pagado. ${rec.entrega === "personal" ? "Te escribo para quedar en la entrega." : "Ya preparo tu envío; te mando la guía en cuanto salga."}</p>`,
+          `${rec.folio}: ya llegaron tus productos, ${rec.entrega === "personal" ? "te escribo para la entrega" : "ya preparo tu envío"}`);
         }
         return json(200, { apartado: rec });
       }

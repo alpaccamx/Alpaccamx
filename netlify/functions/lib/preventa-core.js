@@ -162,7 +162,7 @@ async function crearPreferenciaMP(a, etapa, event) {
   const token = process.env.MP_ACCESS_TOKEN;
   if (!token) throw new Error("Mercado Pago no está configurado todavía en el sitio.");
   const site = siteUrlFrom(event);
-  const titulo = etapa === "anticipo" ? `Sephora Sale ${a.folio}: anticipo para apartar` : `Sephora Sale ${a.folio}: resto${a.envio ? " y envío" : ""}`;
+  const titulo = etapa === "anticipo" ? `Sephora Sale ${a.folio}: ${a.pagoCompleto ? "pago completo" : "anticipo para apartar"}` : `Sephora Sale ${a.folio}: ${a.pagoCompleto ? "envío" : `resto${a.envio ? " y envío" : ""}`}`;
   const body = {
     items: [{ title: titulo, quantity: 1, unit_price: round2(a[etapa].monto), currency_id: "MXN" }],
     external_reference: `pv|${a.id}|${etapa}`,
@@ -229,10 +229,12 @@ async function aplicarPago(id, etapa, { metodo, paymentId, monto } = {}) {
     if (etapa === "anticipo") {
       await avisar(rec, `${rec.folio}: ¡quedó apartado! 💗`, `
         <h2 style="margin:0 0 8px;font-size:20px;">¡Tu apartado está confirmado!</h2>
-        <p style="font-size:14px;">Recibimos tu anticipo de ${formatPriceMXN(rec.anticipo.monto)}. Esto es lo que apartaste:</p>
+        <p style="font-size:14px;">Recibimos tu ${rec.pagoCompleto ? "pago completo" : "anticipo"} de ${formatPriceMXN(rec.anticipo.monto)}. Esto es lo que apartaste:</p>
         ${listaHTML(rec)}
-        <p style="font-size:14px;">Cuando lleguen tus productos te aviso para que pagues el resto (${formatPriceMXN(rec.total - rec.anticipo.monto)}${rec.entrega === "envio" ? " más el envío" : ""}).</p>`,
-      `${rec.folio}: recibimos tu anticipo, tus productos quedaron apartados`);
+        <p style="font-size:14px;">${rec.pagoCompleto
+          ? `Ya está todo pagado. Cuando lleguen tus productos te aviso${rec.entrega === "envio" ? " para que pagues solo el envío" : " para quedar en la entrega"}.`
+          : `Cuando lleguen tus productos te aviso para que pagues el resto (${formatPriceMXN(rec.total - rec.anticipo.monto)}${rec.entrega === "envio" ? " más el envío" : ""}).`}</p>`,
+      `${rec.folio}: recibimos tu ${rec.pagoCompleto ? "pago completo" : "anticipo"}, tus productos quedaron apartados`);
     } else {
       await avisar(rec, `${rec.folio}: pagaste el resto ✅`, `
         <h2 style="margin:0 0 8px;font-size:20px;">¡Liquidado!</h2>

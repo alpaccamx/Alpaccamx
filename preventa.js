@@ -126,7 +126,7 @@ const PV_STATUS = {
   vencido: ["⌛ Venció (no se pagó a tiempo)", "bg-pill text-ink/50"],
 };
 const pvEstado = (a) => (a.vencido ? "vencido" : a.status);
-const pvPill = (a) => { const [t, c] = PV_STATUS[pvEstado(a)] || [a.status, "bg-pill"]; return `<span class="inline-block rounded-full px-2.5 py-1 text-[11px] font-bold ${c}">${t}</span>`; };
+const pvPill = (a) => { let [t, c] = PV_STATUS[pvEstado(a)] || [a.status, "bg-pill"]; if (a.pagoCompleto) { if (a.status === "nuevo" && !a.vencido) t = "💳 Paga tu pedido para apartarlo"; if (a.status === "llego") t = "📦 ¡Llegó! Paga el envío"; } return `<span class="inline-block rounded-full px-2.5 py-1 text-[11px] font-bold ${c}">${t}</span>`; };
 const pvAnticipoDe = (total) => Math.ceil(total * ((pv.config && pv.config.anticipoPct) || 50) / 100);
 const pvTipoVar = (p) => (/size/i.test(p.variacion || "") ? "tamaño" : "tono");
 
@@ -522,8 +522,10 @@ function pvCheckoutHTML() {
       <button type="button" data-pv-cerrar class="mt-3 ml-2 text-xs underline text-ink/70">Seguir viendo</button>
     </div>`;
   }
-  const { items, total, anticipo } = pvTotales();
+  const { items, total, anticipo: anticipoPct } = pvTotales();
   if (!items.length) return "";
+  const completo = pv.pago === "completo";
+  const anticipo = completo ? total : anticipoPct;
   const d = (typeof direccionPrincipal === "function" && direccionPrincipal()) || {};
   const cuenta = typeof myAccountCache !== "undefined" && myAccountCache ? myAccountCache : {};
   const pct = (pv.config && pv.config.anticipoPct) || 50;
@@ -542,12 +544,18 @@ function pvCheckoutHTML() {
       </div></li>`).join("")}</ul>
     <div class="rounded-2xl bg-pill p-3 text-sm space-y-1">
       <div class="flex justify-between"><span>Total de productos</span><b>${pvMXN(total)}</b></div>
-      <div class="flex justify-between text-rose-ink"><span>Hoy pagas (${pct}%) para apartar</span><b>${pvMXN(anticipo)}</b></div>
-      <div class="flex justify-between text-ink/70"><span>Cuando llegue pagas</span><span>${pvMXN(total - anticipo)}${pv.entrega === "envio" ? " + envío" : ""}</span></div>
+      <div class="flex justify-between text-rose-ink"><span>${completo ? "Hoy pagas todo" : `Hoy pagas (${pct}%) para apartar`}</span><b>${pvMXN(anticipo)}</b></div>
+      <div class="flex justify-between text-ink/70"><span>Cuando llegue pagas</span><span data-pv-al-llegar>${completo ? (pv.entrega === "envio" ? "solo el envío" : "nada 🎉") : `${pvMXN(total - anticipo)}${pv.entrega === "envio" ? " + envío" : ""}`}</span></div>
       <p data-pv-envio-est class="text-xs text-ink/70 pt-1 ${pv.entrega === "envio" ? "" : "hidden"}">${pvEnvioTexto(d.cp)}</p>
     </div>
+    <fieldset class="space-y-2"><legend class="text-sm font-semibold mb-1">¿Cómo quieres pagar?</legend>
+      <label class="flex items-center gap-3 rounded-xl border-2 border-ink/15 bg-white px-3 py-2.5 cursor-pointer has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20">
+        <input type="radio" name="pv-pago" value="anticipo" ${completo ? "" : "checked"} data-pv-pago class="accent-[#c4466e] w-5 h-5 shrink-0"><span><b class="block text-sm">💗 Apartar con el ${pct}%: ${pvMXN(anticipoPct)}</b><span class="block text-xs text-ink/70">El resto (${pvMXN(total - anticipoPct)}) lo pagas cuando llegue.</span></span></label>
+      <label class="flex items-center gap-3 rounded-xl border-2 border-ink/15 bg-white px-3 py-2.5 cursor-pointer has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20">
+        <input type="radio" name="pv-pago" value="completo" ${completo ? "checked" : ""} data-pv-pago class="accent-[#c4466e] w-5 h-5 shrink-0"><span><b class="block text-sm">💳 Pagar todo ahora: ${pvMXN(total)}</b><span class="block text-xs text-ink/70">Te olvidas de pagos después${pv.entrega === "envio" ? "; al llegar solo pagas el envío" : ""}.</span></span></label>
+    </fieldset>
     <fieldset class="space-y-2"><legend class="text-sm font-semibold mb-1">¿Cómo te lo entrego?</legend>
-      ${opt("envio", "📦 Envío a mi domicilio", "El envío depende del peso y lo pagas al liquidar, junto con el resto.")}
+      ${opt("envio", "📦 Envío a mi domicilio", completo ? "El envío depende del peso y lo pagas cuando lleguen tus productos." : "El envío depende del peso y lo pagas al liquidar, junto con el resto.")}
       ${opt("personal", "📍 Entrega personal en Ciudad Juárez", "Sin costo de envío.")}
     </fieldset>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -564,9 +572,9 @@ function pvCheckoutHTML() {
     </div>
     <label class="flex flex-col gap-1 text-xs font-semibold">Nota para Mae (opcional)<textarea data-pv-nota rows="2" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal" placeholder="Ej. si se agota mi tono, cámbialo por el más parecido"></textarea></label>
     <p data-pv-err class="hidden text-sm text-sale"></p>
-    <button type="submit" class="w-full rounded-full bg-rose-deep px-5 py-3 text-sm font-semibold text-cream hover:bg-rose-ink transition">💗 Apartar y pagar anticipo de ${pvMXN(anticipo)}</button>
-    <p class="text-xs text-ink/70 text-center">Tienes ${(pv.config && pv.config.horasParaPagar) || 24} horas para pagar el anticipo; si no, se libera el lugar.</p>
-    <p class="text-xs text-ink/70 text-center">Una vez pagado, el anticipo no es reembolsable y la fecha de llegada es aproximada (puede cambiar por logística y aduanas). <a href="./reembolsos.html#preventas" target="_blank" rel="noopener" class="underline">Ver política</a></p>
+    <button type="submit" class="w-full rounded-full bg-rose-deep px-5 py-3 text-sm font-semibold text-cream hover:bg-rose-ink transition">${completo ? `💳 Apartar y pagar todo: ${pvMXN(anticipo)}` : `💗 Apartar y pagar anticipo de ${pvMXN(anticipo)}`}</button>
+    <p class="text-xs text-ink/70 text-center">Tienes ${(pv.config && pv.config.horasParaPagar) || 24} horas para pagar${completo ? "" : " el anticipo"}; si no, se libera el lugar.</p>
+    <p class="text-xs text-ink/70 text-center">${completo ? "La fecha de llegada es aproximada (puede cambiar por logística y aduanas)." : "Una vez pagado, el anticipo no es reembolsable y la fecha de llegada es aproximada (puede cambiar por logística y aduanas)."} <a href="./reembolsos.html#preventas" target="_blank" rel="noopener" class="underline">Ver política</a></p>
   </form>`;
 }
 
@@ -576,7 +584,7 @@ function pvPagoHTML(a) {
   const p = a[etapa];
   const total = p.monto;
   const fmt = (n) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
-  const titulo = etapa === "anticipo" ? `Paga tu anticipo: ${fmt(total)}` : `Paga el resto: ${fmt(total)}${a.envio ? ` (incluye envío ${fmt(a.envio)})` : ""}`;
+  const titulo = etapa === "anticipo" ? `${a.pagoCompleto ? "Paga tu pedido" : "Paga tu anticipo"}: ${fmt(total)}` : a.pagoCompleto ? `Paga el envío: ${fmt(total)}` : `Paga el resto: ${fmt(total)}${a.envio ? ` (incluye envío ${fmt(a.envio)})` : ""}`;
   if (p.status === "revision") {
     return `<div class="mt-3 rounded-xl bg-[#fff6e5] p-3 text-sm"><b>🔎 Estamos revisando tu comprobante</b><p class="text-xs mt-1">Te avisamos por correo en cuanto se confirme.</p></div>`;
   }
@@ -614,8 +622,8 @@ function pvApartadoHTML(a) {
   const fmt = (n) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
   const filas = [
     ["Total de productos", fmt(a.total)],
-    [`Anticipo (${a.anticipoPct}%)`, `${fmt(a.anticipo.monto)} ${a.anticipo.status === "pagado" ? "✅" : ""}`],
-    [a.status === "llego" || a.resto.status === "pagado" ? `Resto${a.envio ? " + envío" : ""}` : "Resto al llegar", `${fmt(a.status === "llego" || a.resto.status === "pagado" ? a.resto.monto : restoBase)}${a.entrega === "envio" && !["llego", "liquidado", "enviado", "entregado"].includes(a.status) ? " + envío" : ""} ${a.resto.status === "pagado" ? "✅" : ""}`],
+    [a.pagoCompleto ? "Pago completo" : `Anticipo (${a.anticipoPct}%)`, `${fmt(a.anticipo.monto)} ${a.anticipo.status === "pagado" ? "✅" : ""}`],
+    ...(a.pagoCompleto ? (a.entrega === "envio" ? [["Envío al llegar", `${a.envio || a.resto.status === "pagado" || a.status === "llego" ? fmt(a.resto.monto) : "según peso"} ${a.resto.status === "pagado" ? "✅" : ""}`]] : []) : [[a.status === "llego" || a.resto.status === "pagado" ? `Resto${a.envio ? " + envío" : ""}` : "Resto al llegar", `${fmt(a.status === "llego" || a.resto.status === "pagado" ? a.resto.monto : restoBase)}${a.entrega === "envio" && !["llego", "liquidado", "enviado", "entregado"].includes(a.status) ? " + envío" : ""} ${a.resto.status === "pagado" ? "✅" : ""}`]]),
   ];
   return `<article data-pv-ap="${escapeHtml(a.id)}" class="min-w-0 rounded-2xl border ${a.id === pv.nuevo ? "border-rose-deep" : "border-ink/10"} bg-white p-4">
     <div class="flex flex-wrap items-center justify-between gap-2"><b class="text-sm">${escapeHtml(a.folio)} <span class="font-normal text-ink/60">· ${fecha}</span></b>${pvPill(a)}</div>
@@ -664,7 +672,7 @@ async function pvApartar(form) {
   const label = btn.textContent;
   btn.textContent = "Apartando...";
   try {
-    const data = await pvPost({ accion: "apartar", items, entrega: pv.entrega, direccion, nota: form.querySelector("[data-pv-nota]").value });
+    const data = await pvPost({ accion: "apartar", items, entrega: pv.entrega, direccion, nota: form.querySelector("[data-pv-nota]").value, pagoCompleto: pv.pago === "completo" });
     if (pv.entrega === "envio" && typeof guardarDireccionUsada === "function") guardarDireccionUsada(direccion);
     pv.bag = {};
     pvGuardarBolsa();
@@ -825,11 +833,28 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   box.addEventListener("change", (e) => {
     const t = e.target;
+    if (t.matches("[data-pv-pago]")) {
+      pv.pago = t.value;
+      // Guarda lo escrito antes de redibujar el formulario.
+      const form = t.closest("form");
+      const vals = Object.fromEntries([...form.querySelectorAll("[data-pv-dir]")].map((i) => [i.dataset.pvDir, i.value]));
+      const nota = (form.querySelector("[data-pv-nota]") || {}).value || "";
+      renderPreventa();
+      const nf = box.querySelector("[data-pv-form]");
+      if (nf) {
+        nf.querySelectorAll("[data-pv-dir]").forEach((i) => { if (vals[i.dataset.pvDir] != null) i.value = vals[i.dataset.pvDir]; });
+        const n = nf.querySelector("[data-pv-nota]"); if (n) n.value = nota;
+      }
+      return;
+    }
     if (t.matches("[data-pv-entrega]")) {
       pv.entrega = t.value;
       const form = t.closest("form");
       form.querySelector("[data-pv-dir-envio]").classList.toggle("hidden", pv.entrega !== "envio");
       form.querySelector("[data-pv-envio-est]").classList.toggle("hidden", pv.entrega !== "envio");
+      const llega = form.querySelector("[data-pv-al-llegar]");
+      if (llega && pv.pago === "completo") llega.textContent = pv.entrega === "envio" ? "solo el envío" : "nada 🎉";
+      else if (llega) { const { total, anticipo } = pvTotales(); llega.textContent = `${pvMXN(total - anticipo)}${pv.entrega === "envio" ? " + envío" : ""}`; }
       return;
     }
     if (t.matches("[data-pv-pm]")) {
