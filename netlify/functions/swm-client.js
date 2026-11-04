@@ -4,7 +4,11 @@
 //
 // GET  → { paquetes, compras, envios, name, almacenajeDias, casillero }
 // POST { accion, ... }:
-//   registrar_paquete { tienda, paqueteria, rastreo, articulos[], valorTotal, moneda, facturas?, cobro, aceptaRestricciones }
+//   registrar_paquete { tienda, paqueteria, rastreo, rastreosExtra?: [{ rastreo, paqueteria? }], articulos[], valorTotal, moneda, facturas?, cobro, aceptaRestricciones }
+//                     rastreosExtra = la tienda dividió la orden en varias cajas: cada
+//                     guía extra es un paquete "parte" (parteDe = el principal), sin
+//                     declaración propia; la declaración y el valor van en el principal.
+//   agregar_rastreo   { id, rastreo, paqueteria? }  (otra caja de la misma orden, ya registrada)
 //                     facturas = hasta 10 { filename, contentType, dataBase64 } (capturas o PDF)
 //                     y/o articulos = [{ desc, cant, costo }] (obligatorio si no sube nada);
 //                     valorTotal/moneda = lo que costaron los artículos con tax, sin envío
@@ -111,8 +115,60 @@ async function guiaRepetida(rastreo, me, exceptId) {
     : "Esta guía ya está registrada en otro casillero. Revisa el número; si es tuya, escríbele a Mae.";
 }
 
+/* Otra caja de la misma orden (la tienda la dividió). No trae declaración:
+   el valor y lo que trae están en el paquete principal. Con cobro "comision"
+   el 15% del principal ya cubre toda la orden (valor 0 = cruce 0); por peso
+   o "auto" cada caja paga su peso. */
+async function crearParte(principal, rastreo, paqueteria, base, caja) {
+  const id = randomUUID();
+  const facturas = caja ? await guardarFacturas(id, caja.facturas) : [];
+  const n = facturas.length;
+  const rec = {
+    id, folio: await nextFolio("paquete"), ...base, origen: "propio",
+    tienda: principal.tienda || "", paqueteria: paqueteria || principal.paqueteria || "Otra", rastreo,
+    parteDe: principal.id, parteDeFolio: principal.folio,
+    articulos: [], valorTotal: 0, valorUSD: 0, moneda: principal.moneda || "",
+    contenido: clip(`${(caja && caja.texto) || `Ver ${n === 1 ? "captura" : `${n} capturas`}`} · otra caja de la orden ${principal.folio}`, 300),
+    facturas, cobro: principal.cobro === "comision" ? "comision" : principal.cobro || "peso", status: "registrado",
+    kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0, fotos: [], notaClienta: "", notaPrivada: "",
+    history: [{ at: now(), status: "registrado", parteDe: principal.folio }], createdAt: now(), updatedAt: now(),
+  };
+  await saveRecord("paquete", rec);
+  return rec;
+}
+
+/* Qué trae una caja de una orden dividida: texto y/o capturas (al menos
+   uno). Usa la misma lectura de archivos que la declaración. */
+function leerCaja(x, etiqueta) {
+  const queTrae = clip(x && x.queTrae, 300);
+  const files = Array.isArray(x && x.facturas) ? x.facturas : [];
+  if (queTrae.length < 3 && !files.some((f) => f && f.dataBase64)) return { error: `Escribe o sube una captura de lo que trae ${etiqueta}.` };
+  const dec = leerDeclaracion({ queTrae, facturas: files, valorTotal: 1, moneda: "USD" }, "peso");
+  if (dec.error) return { error: dec.error };
+  return { texto: queTrae, facturas: dec.facturas };
+}
+
+/* Lee y valida las guías extra (sin repetir entre ellas ni con otras). */
+async function leerRastreosExtra(lista, principal, me) {
+  const vistos = new Set([normGuia(principal)]);
+  const out = [];
+  for (const x of (Array.isArray(lista) ? lista : []).slice(0, 9)) {
+    const rastreo = clip(x && x.rastreo, 80);
+    if (!rastreo) continue;
+    const g = normGuia(rastreo);
+    if (vistos.has(g)) return { error: `Pusiste dos veces el rastreo ${rastreo}.` };
+    vistos.add(g);
+    const repetida = await guiaRepetida(rastreo, me);
+    if (repetida) return { error: repetida };
+    const caja = leerCaja(x, `la caja con rastreo ${rastreo}`);
+    if (caja.error) return { error: caja.error };
+    out.push({ rastreo, paqueteria: clip(x && x.paqueteria, 40), caja });
+  }
+  return { lista: out };
+}
+
 // Puede editar mientras va en camino, o si Mae le pidió corregir.
-const puedeEditar = (p) => p.origen !== "compra" && !p.datosPendientes
+const puedeEditar = (p) => p.origen !== "compra" && !p.datosPendientes && !p.parteDe
   && (p.status === "registrado" || (p.correccion && p.correccion.estado === "pedida" && p.status === "recibido"));
 
 exports.handler = async (event) => {
@@ -164,18 +220,39 @@ exports.handler = async (event) => {
         if (dec.error) return json(400, { error: dec.error });
         const repetida = await guiaRepetida(rastreo, me);
         if (repetida) return json(409, { error: repetida });
+        const extra = await leerRastreosExtra(b.rastreosExtra, rastreo, me);
+        if (extra.error) return json(409, { error: extra.error });
+        const cajaPrincipal = extra.lista.length ? leerCaja(b.cajaPrincipal, `la caja con rastreo ${rastreo}`) : null;
+        if (cajaPrincipal && cajaPrincipal.error) return json(400, { error: cajaPrincipal.error });
         const id = randomUUID();
         const facturas = await guardarFacturas(id, dec.facturas);
+        if (cajaPrincipal) facturas.push(...(await guardarFacturas(id, cajaPrincipal.facturas, facturas.length)).map((f) => ({ ...f, caja: true })));
         const rec = {
           id, folio: await nextFolio("paquete"), ...base, origen: "propio",
           tienda, paqueteria, rastreo, ...dec.datos, facturas,
+          ...(cajaPrincipal ? { ordenDividida: true, contenidoCaja: cajaPrincipal.texto || "Ver capturas de esta caja" } : {}),
           cobro, status: "registrado",
           kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0, fotos: [], notaClienta: "", notaPrivada: "",
           history: [{ at: now(), status: "registrado" }], createdAt: now(), updatedAt: now(),
         };
         ponerCruceAnticipado(rec, await tiposDeCambio());
         await saveRecord("paquete", rec);
-        return json(200, { paquete: publico(rec) });
+        const partes = [];
+        for (const x of extra.lista) partes.push(await crearParte(rec, x.rastreo, x.paqueteria, base, x.caja));
+        return json(200, { paquete: publico(rec), partes: partes.map(publico) });
+      }
+
+      case "agregar_rastreo": {
+        const rec = await getRecord("paquete", String(b.id || ""));
+        if (!rec || rec.email !== me) return json(404, { error: "No encontramos ese paquete." });
+        if (rec.parteDe || rec.origen === "compra" || ["cancelado", "enviado", "entregado"].includes(rec.status)) return json(409, { error: "A este paquete ya no se le pueden agregar cajas; escríbele a Mae." });
+        const rastreo = clip(b.rastreo, 80);
+        if (!rastreo) return json(400, { error: "Pon el número de rastreo de la otra caja." });
+        const extra = await leerRastreosExtra([{ rastreo, paqueteria: b.paqueteria, queTrae: b.queTrae, facturas: b.facturas }], rec.rastreo || "", me);
+        if (extra.error) return json(409, { error: extra.error });
+        const parte = await crearParte(rec, extra.lista[0].rastreo, extra.lista[0].paqueteria, base, extra.lista[0].caja);
+        if (!rec.ordenDividida) await mutateRecord("paquete", rec.id, (p) => { p.ordenDividida = true; return p; });
+        return json(200, { paquete: publico(parte) });
       }
 
       case "completar_paquete": {

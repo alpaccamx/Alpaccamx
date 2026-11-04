@@ -498,6 +498,8 @@ function swmPaqueteCardHTML(p) {
     ${p.status === "cancelado" ? "" : swmStepsHTML("paquete", swmPkgEstado(p))}
     <p class="text-sm mt-2">${escapeHtml(desc || "Paquete")}${p.origen === "compra" ? ' <span class="text-xs text-lilac-ink">(compra de Mae)</span>' : ""}</p>
     ${p.contenido ? `<p class="text-xs text-ink/65">${escapeHtml(p.contenido)}</p>` : ""}
+    ${p.parteDe ? `<p class="text-xs text-lilac-ink mt-1">🧩 Otra caja de tu orden ${escapeHtml(p.parteDeFolio || "")} (la tienda la dividió). El valor va en ${escapeHtml(p.parteDeFolio || "esa")}.</p>` : ""}
+    ${p.contenidoCaja ? `<p class="text-xs text-lilac-ink mt-1">🧩 Tu orden viene en varias cajas · esta trae: ${escapeHtml(p.contenidoCaja)}</p>` : ""}
     ${p.valorTotal ? `<p class="text-xs text-ink/65">Valor declarado: ${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}${swmNumArchivos(p) ? ` · 📄 ${swmNumArchivos(p)} archivo${swmNumArchivos(p) === 1 ? "" : "s"} recibido${swmNumArchivos(p) === 1 ? "" : "s"}` : ""}</p>` : ""}
     <p class="text-xs text-ink/65 mt-1">Cruce: ${p.crucePagado ? (p.pago ? "15% ya pagado ✅ (en tu envío solo pagas la guía)" : "ya pagado con tu compra") : p.cobro === "comision" && p.pago ? `15% por adelantado: ${swmMXN(p.pago.monto || 0)}` : p.cobro === "auto" ? "lo más barato (por peso o 15%), al pedir tu envío" : p.cobro === "comision" ? `15% del valor${swmValorPesos(Number(p.valorTotal) || 0, p.moneda) ? ` (≈ ${swmMXN(swmCruceComision(swmValorPesos(Number(p.valorTotal), p.moneda)))})` : ""}` : "por peso"}${p.cobrable ? ` · ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → ${swmMXN(swmCrucePeso(p.cobrable))}` : ""}` : ""}</p>
     ${swmPagoHTML("paquete", p)}
@@ -506,6 +508,15 @@ function swmPaqueteCardHTML(p) {
     ${p.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(p.notaClienta)}</p>` : ""}
     ${swmExtrasHTML(p)}
     ${p.correccion && p.correccion.estado === "pedida" ? `<div class="mt-3 rounded-xl bg-sale/[0.06] border border-sale/30 p-3 text-sm"><b>✏️ Mae te pidió corregir tus datos:</b><p class="mt-1">${escapeHtml(p.correccion.motivo || "")}</p><p class="mt-1 text-xs text-ink/65">Hasta que lo corrijas no puedes pedir el envío de este paquete.</p></div>` : ""}
+    ${!p.parteDe && p.origen !== "compra" && ["registrado", "recibido"].includes(p.status) && !p.enMexicoAt ? (swm.otraCaja === p.id
+      ? `<form data-swm-otra-caja="${escapeHtml(p.id)}" class="mt-3 rounded-xl border border-ink/15 p-3 space-y-3" novalidate>
+          <p class="text-xs text-ink/70">Si la tienda mandó tu pedido en varias cajas, registra aquí cada caja con su número de rastreo y lo que trae.</p>
+          ${swmCajaHTML(2, false).replace('<button type="button" data-swm-quitar-caja class="text-xs text-ink/60 underline">Quitar</button>', "").replace("📦 Caja 2", "📦 Otra caja de esta orden")}
+          <p data-r-err class="hidden text-xs text-sale"></p>
+          <div class="flex gap-2"><button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Agregar caja</button>
+          <button type="button" data-swm-otra-caja-toggle="${escapeHtml(p.id)}" class="rounded-full px-4 py-2 text-xs font-semibold text-ink/70">Cancelar</button></div>
+        </form>`
+      : `<button type="button" data-swm-otra-caja-toggle="${escapeHtml(p.id)}" class="mt-2 mr-3 text-xs font-semibold text-rose-ink underline">➕ La tienda dividió mi pedido: agregar otra caja</button>`) : ""}
     ${p.status === "registrado" && p.origen !== "compra" ? (swm.cambiaRastreo === p.id
       ? `<form data-swm-rastreo="${escapeHtml(p.id)}" class="mt-3 rounded-xl border border-ink/15 p-3 space-y-3" novalidate>
           <p class="text-xs text-ink/70">Puedes cambiarlo mientras tu paquete no haya llegado con Mae.</p>
@@ -796,6 +807,62 @@ function swmValidarDeclaracion(box) {
   return { articulos, files, valorTotal, moneda, queTrae };
 }
 
+/* Orden dividida en varias cajas: cada caja (guía) dice qué trae, escrito
+   y/o con capturas. */
+function swmCajaHTML(n, principal) {
+  return `<div data-swm-caja="${principal ? "principal" : "extra"}" class="rounded-2xl border border-ink/15 bg-cream/40 p-3 space-y-2">
+    <div class="flex items-center justify-between"><b class="text-sm" data-caja-titulo>📦 Caja ${n}${principal ? " (el rastreo de arriba)" : ""}</b>${principal ? "" : '<button type="button" data-swm-quitar-caja class="text-xs text-ink/60 underline">Quitar</button>'}</div>
+    ${principal ? '<p class="text-xs text-ink/65">La declaración y el valor de abajo son de toda tu orden. Aquí solo di qué trae cada caja.</p>' : ""}
+    ${principal ? "" : `<label class="flex flex-col gap-1 text-xs font-semibold">Número de rastreo de esta caja *<input data-caja="rastreo" maxlength="80" autocomplete="off" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal bg-white" /></label>`}
+    <label class="flex flex-col gap-1 text-xs font-semibold">¿Qué trae esta caja? *<textarea data-caja="queTrae" rows="2" maxlength="300" placeholder="Ej. 2 cremas y 1 perfume" class="rounded-xl border border-ink/15 px-3 py-2 text-sm font-normal bg-white"></textarea></label>
+    <label class="flex flex-col gap-1 text-xs font-semibold">Y/o sube capturas de lo que trae<input data-caja="files" type="file" accept="image/*,application/pdf" multiple class="text-xs font-normal" /></label>
+  </div>`;
+}
+
+function swmRenumerarCajas(form) {
+  [...form.querySelectorAll("[data-swm-caja]")].forEach((c, i) => {
+    const t = c.querySelector("[data-caja-titulo]");
+    if (t) t.textContent = `📦 Caja ${i + 1}${c.dataset.swmCaja === "principal" ? " (el rastreo de arriba)" : ""}`;
+  });
+}
+
+async function swmLeerCaja(box, etiqueta) {
+  const queTrae = box.querySelector('[data-caja="queTrae"]').value.trim();
+  const files = [...(box.querySelector('[data-caja="files"]').files || [])].slice(0, SWM_MAX_ARCHIVOS);
+  if (queTrae.length < 3 && !files.length) throw new Error(`Escribe o sube una captura de lo que trae ${etiqueta}.`);
+  const facturas = [];
+  for (const original of files) {
+    const file = await swmShrinkImage(original);
+    if (file.size > SWM_MAX_ARCHIVO) throw new Error(`"${original.name}" pesa mucho (máximo 1.5 MB). Si es PDF, mejor sube una captura.`);
+    facturas.push({ filename: file.name, contentType: file.type, dataBase64: await swmFileToBase64(file) });
+  }
+  return { queTrae, facturas };
+}
+
+/* Lee las cajas extra del formulario de registro (si la tienda dividió la orden). */
+async function swmLeerCajas(form, rastreoPrincipal) {
+  const extras = [...form.querySelectorAll('[data-swm-caja="extra"]')];
+  if (!extras.length) return {};
+  const cajaPrincipal = await swmLeerCaja(form.querySelector('[data-swm-caja="principal"]'), "la caja 1");
+  const rastreosExtra = [];
+  const vistos = new Set([rastreoPrincipal.trim().toUpperCase()]);
+  for (const [i, box] of extras.entries()) {
+    const rastreo = box.querySelector('[data-caja="rastreo"]').value.trim();
+    if (!rastreo) throw new Error(`Pon el número de rastreo de la caja ${i + 2}.`);
+    if (vistos.has(rastreo.toUpperCase())) throw new Error(`Pusiste dos veces el rastreo ${rastreo}.`);
+    vistos.add(rastreo.toUpperCase());
+    const caja = await swmLeerCaja(box, `la caja ${i + 2}`);
+    rastreosExtra.push({ rastreo, paqueteria: swmDetectarPaqueteria(rastreo) || "", ...caja });
+  }
+  return { cajaPrincipal, rastreosExtra };
+}
+
+/* Todas las capturas de una solicitud juntas no deben pasar del límite. */
+function swmPesoTotal(body) {
+  const lista = [...(body.facturas || []), ...((body.cajaPrincipal || {}).facturas || []), ...(body.rastreosExtra || []).flatMap((x) => x.facturas || [])];
+  return lista.reduce((t, f) => t + (f.dataBase64 || "").length * 0.75, 0);
+}
+
 async function swmLeerDeclaracion(root) {
   const { articulos, files, valorTotal, moneda, queTrae } = swmValidarDeclaracion(root.querySelector("[data-decl]"));
   const facturas = [];
@@ -982,6 +1049,8 @@ function swmFormHTML() {
       <p class="text-xs text-ink/65">Regístralo en cuanto la tienda te dé el número de rastreo.</p>
       ${swmInput("swm-f-rastreo", "Número de rastreo (guía) *", 'maxlength="80" required autocomplete="off" placeholder="Ej. 1Z999AA10123456784"')}
       <p data-swm-paq-detectada class="-mt-2 text-xs text-ink/65"></p>
+      <div data-swm-cajas class="space-y-3"></div>
+      <button type="button" data-swm-add-caja class="-mt-1 text-left text-xs font-semibold text-rose-ink underline">➕ ¿La tienda dividió tu pedido en varias cajas? Agrega otro número de rastreo</button>
       ${swmInput("swm-f-tienda", "¿En qué tienda compraste? (opcional)", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}
       ${swmDeclaracionHTML()}
       ${swmCobroElegir()}
@@ -1089,6 +1158,8 @@ async function submitSwmForm(form) {
     if (!body.paqueteria) return fail("Elige con qué paquetería viene tu paquete (UPS, USPS, FedEx, Amazon...).");
     if (!body.rastreo.trim()) return fail("Pon el número de rastreo (guía) de tu paquete: sin él no podemos identificarlo cuando llegue.");
     try { Object.assign(body, await swmLeerDeclaracion(form)); } catch (ex) { return fail(ex.message); }
+    try { Object.assign(body, await swmLeerCajas(form, body.rastreo)); } catch (ex) { return fail(ex.message); }
+    if (swmPesoTotal(body) > SWM_MAX_TOTAL) return fail("Tus capturas juntas pesan mucho (máximo 4 MB entre todas). Sube menos o más ligeras.");
     if (!body.aceptaRestricciones) return fail("Confirma que tu paquete no trae nada ilegal ni artículos de cristal, muebles ni pallets.");
   } else if (swm.form === "envio") {
     const ids = [...form.querySelectorAll("[data-swm-pick]:checked")].map((c) => c.dataset.swmPick);
@@ -1256,6 +1327,32 @@ function initSwm() {
       if (swm.dirMxOpen && box) box.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
+    const addCaja = e.target.closest("[data-swm-add-caja]");
+    if (addCaja) {
+      const form = addCaja.closest("form");
+      const cont = form.querySelector("[data-swm-cajas]");
+      if (!cont.querySelector('[data-swm-caja="principal"]')) cont.insertAdjacentHTML("beforeend", swmCajaHTML(1, true));
+      cont.insertAdjacentHTML("beforeend", swmCajaHTML(cont.children.length + 1, false));
+      const nuevo = cont.lastElementChild.querySelector('[data-caja="rastreo"]');
+      if (nuevo) nuevo.focus();
+      return;
+    }
+    const quitarCaja = e.target.closest("[data-swm-quitar-caja]");
+    if (quitarCaja) {
+      const form = quitarCaja.closest("form");
+      quitarCaja.closest("[data-swm-caja]").remove();
+      if (!form.querySelector('[data-swm-caja="extra"]')) { const pr = form.querySelector('[data-swm-caja="principal"]'); if (pr) pr.remove(); }
+      swmRenumerarCajas(form);
+      return;
+    }
+    const otraToggle = e.target.closest("[data-swm-otra-caja-toggle]");
+    if (otraToggle) {
+      swm.otraCaja = swm.otraCaja === otraToggle.dataset.swmOtraCajaToggle ? "" : otraToggle.dataset.swmOtraCajaToggle;
+      renderSwmCasillero();
+      const form = document.querySelector(`[data-swm-otra-caja="${CSS.escape(swm.otraCaja)}"]`);
+      if (form) form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
     const rasToggle = e.target.closest("[data-swm-rastreo-toggle]");
     if (rasToggle) {
       swm.cambiaRastreo = swm.cambiaRastreo === rasToggle.dataset.swmRastreoToggle ? "" : rasToggle.dataset.swmRastreoToggle;
@@ -1415,6 +1512,26 @@ function initSwm() {
       const btn = sep.querySelector('button[type="submit"]');
       btn.disabled = true;
       swmPost({ accion: "pedir_separar", id: sep.dataset.swmSeparar, nota }).then(loadSwm, (ex) => { err.textContent = ex.message; err.classList.remove("hidden"); btn.disabled = false; });
+      return;
+    }
+    const otra = e.target.closest("[data-swm-otra-caja]");
+    if (otra) {
+      e.preventDefault();
+      const err = otra.querySelector("[data-r-err]");
+      const fail = (m) => { err.textContent = m; err.classList.remove("hidden"); };
+      const rastreo = otra.querySelector('[data-caja="rastreo"]').value.trim();
+      if (!rastreo) return fail("Pon el número de rastreo de la otra caja.");
+      const btn = otra.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      (async () => {
+        try {
+          const caja = await swmLeerCaja(otra.querySelector("[data-swm-caja]"), "esta caja");
+          if (swmPesoTotal(caja) > SWM_MAX_TOTAL) throw new Error("Tus capturas juntas pesan mucho (máximo 4 MB). Sube menos o más ligeras.");
+          await swmPost({ accion: "agregar_rastreo", id: otra.dataset.swmOtraCaja, rastreo, paqueteria: swmDetectarPaqueteria(rastreo) || "", ...caja });
+          swm.otraCaja = "";
+          await loadSwm();
+        } catch (ex) { fail(ex.message); btn.disabled = false; }
+      })();
       return;
     }
     const ras = e.target.closest("[data-swm-rastreo]");
