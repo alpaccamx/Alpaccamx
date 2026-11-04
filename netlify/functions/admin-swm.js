@@ -139,7 +139,9 @@ exports.handler = async (event) => {
         if (!rec) return json(404, { error: "No existe ese paquete." });
         // Y su envío a casa se arma solo (si ya tiene su dirección guardada).
         const envio = yaEstaba || !rec.enMexicoAt ? null : await envioAutomatico(rec.id).catch((err) => { console.error("swm envío automático:", err); return null; });
-        await avisar(rec, ...correoLlego(rec, yaEstaba, fotos.length, envio), fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
+        // sinAviso: Mae guarda el peso justo antes de cruzarlo; el aviso va
+        // con "ya cruzó" (paquete_en_mexico), para no mandarle dos.
+        if (!b.sinAviso) await avisar(rec, ...correoLlego(rec, yaEstaba, fotos.length, envio), fotosAdjuntas(b.fotos, `paquete-${rec.folio}`));
         return json(200, { paquete: rec, envio });
       }
 
