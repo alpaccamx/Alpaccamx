@@ -3345,9 +3345,20 @@ ${itemLines}
     return { total, listos };
   }
 
+  // Redibuja sin perder dónde iba en la lista (si no, en listas largas
+  // cada palomita la regresaba hasta arriba).
   function packRender() {
     const el = document.getElementById("pack-modal");
     if (!el || !pack) return;
+    const prev = el.querySelector(".pack-list");
+    const scroll = prev && pack.vistaPaso === pack.paso ? prev.scrollTop : 0;
+    pack.vistaPaso = pack.paso;
+    packDibujar(el);
+    const list = el.querySelector(".pack-list");
+    if (list) list.scrollTop = scroll;
+  }
+
+  function packDibujar(el) {
     const orders = packOrders();
     const { total, listos } = packTotals();
     const pct = total ? Math.round((listos / total) * 100) : 0;
