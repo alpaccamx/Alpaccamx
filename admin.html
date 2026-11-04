@@ -481,6 +481,46 @@
   .cat-row .pr { text-align: right; font-weight: 800; white-space: nowrap; font-size: 15px; }
   .cat-row .pr small { display: block; font-weight: 700; font-size: 12px; }
   .cat-row .pr .si { color: #1f7a4d; } .cat-row .pr .no { color: #b3372f; }
+  /* 📦 Armar pedido */
+  .pack-modal { position: fixed; inset: 0; z-index: 1100; background: rgba(40, 20, 30, .5); display: flex; align-items: flex-end; justify-content: center; }
+  .pack-modal[hidden] { display: none; }
+  .pack-sheet { background: #fff; width: 100%; max-width: 640px; height: 94vh; display: flex; flex-direction: column; border-radius: 18px 18px 0 0; overflow: hidden; }
+  @media (min-width: 700px) { .pack-modal { align-items: center; } .pack-sheet { border-radius: 18px; height: 88vh; } }
+  .pack-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 16px 16px 10px; }
+  .pack-head b { font-size: 18px; display: block; }
+  .pack-head small { color: #6b6370; font-size: 13px; }
+  .pack-x { border: none; background: #f4eef3; border-radius: 999px; width: 40px; height: 40px; font-size: 18px; cursor: pointer; flex: none; }
+  .pack-progress { height: 10px; background: #f4eef3; margin: 0 16px; border-radius: 999px; overflow: hidden; }
+  .pack-progress i { display: block; height: 100%; background: #2fa866; border-radius: 999px; transition: width .25s; }
+  .pack-count { padding: 8px 16px 4px; font-size: 14px; color: #4f4855; font-weight: 600; }
+  .pack-list { flex: 1; overflow-y: auto; padding: 6px 12px 12px; -webkit-overflow-scrolling: touch; }
+  .pack-sec { font-size: 13px; font-weight: 700; color: #8a828f; text-transform: uppercase; letter-spacing: .3px; margin: 12px 4px 4px; }
+  .pack-row { display: flex; align-items: center; gap: 12px; padding: 10px; margin: 6px 0; border: 2px solid #eee4ea; border-radius: 14px; background: #fff; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; min-height: 64px; transition: background .15s, border-color .15s; }
+  .pack-row:active { transform: scale(.99); }
+  .pack-row img, .pack-noimg { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; background: #f7f2f5; flex: none; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .pack-name { flex: 1; font-size: 15px; line-height: 1.3; min-width: 0; }
+  .pack-name b { display: block; font-size: 13px; color: #8a828f; }
+  .pack-name em { display: block; font-style: normal; font-size: 13px; color: #b0518a; font-weight: 600; margin-top: 2px; }
+  .pack-check { width: 40px; height: 40px; border-radius: 999px; border: 2px solid #d9cdd5; flex: none; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #8a828f; }
+  .pack-row.half { border-color: #f2c94c; background: #fffbea; }
+  .pack-row.ok { border-color: #2fa866; background: #eaf8f0; }
+  .pack-row.ok .pack-check { background: #2fa866; border-color: #2fa866; color: #fff; font-size: 22px; }
+  .pack-row.ok .pack-name { text-decoration: line-through; color: #6b8a77; }
+  .pack-minus { width: 36px; height: 36px; border-radius: 999px; border: 1px solid #ddd; background: #fff; font-size: 20px; cursor: pointer; flex: none; }
+  .pack-row.falt { cursor: default; }
+  .pack-row.falt.sel { border-color: #e07a8f; background: #fff3f5; }
+  .pack-step { display: flex; align-items: center; gap: 8px; flex: none; }
+  .pack-step button { width: 38px; height: 38px; border-radius: 999px; border: 1px solid #ddd; background: #fff; font-size: 20px; cursor: pointer; }
+  .pack-step b { min-width: 18px; text-align: center; font-size: 17px; }
+  .pack-cero { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; padding: 4px 16px; }
+  .pack-cero input { width: 20px; height: 20px; flex: none; }
+  .pack-foot { border-top: 1px solid #f0e6ec; padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; }
+  .pack-foot .btn-primary, .pack-foot .btn-secondary { width: 100%; padding: 14px; font-size: 16px; }
+  .pack-back { background: none; border: none; color: #6b6370; text-decoration: underline; cursor: pointer; font-size: 14px; }
+  .pack-done { margin: 8px 16px; padding: 12px; border: 1px solid #cfe9d9; background: #f1faf4; border-radius: 12px; }
+  .pack-open { font-weight: 700; }
+  .pack-minus, .pack-step button { line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; font-family: -apple-system, system-ui, sans-serif; color: #4f4855; }
+  .pack-done a { display: block !important; text-align: center; padding: 12px; font-size: 15px; }
   .cat-editor { position: fixed; inset: 0; z-index: 1000; background: rgba(40, 20, 30, .45); display: flex; align-items: flex-end; justify-content: center; }
   .cat-editor .sheet { background: #fff; width: 100%; max-width: 640px; max-height: 92vh; overflow: auto; border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 10px; }
   @media (min-width: 700px) { .cat-editor { align-items: center; } .cat-editor .sheet { border-radius: 18px; } }
