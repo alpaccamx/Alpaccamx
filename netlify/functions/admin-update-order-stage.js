@@ -18,6 +18,7 @@
 const { getOrder, updateOrderFields } = require("./lib/blob-store.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { avisarPedido, numeroPedido } = require("./lib/order-notify.js");
+const { propagarEnvioJunto } = require("./lib/envio-junto.js");
 
 /* Aviso a la clienta por etapa (null = no se avisa). */
 function avisoEtapa(order, stage) {
@@ -111,6 +112,10 @@ exports.handler = async (event) => {
       const saved = await updateOrderFields(id, patch);
       updated.push(saved);
       if (aviso) await avisarPedido(saved, aviso);
+      // Los pedidos ligados que ya estaban listos van en la misma caja.
+      if (stage === "enviado" || stage === "entregado") {
+        for (const l of await propagarEnvioJunto(saved, stage)) if (!updated.some((u) => u.id === l.id) && !ids.includes(l.id)) updated.push(l);
+      }
     }
     return jsonResponse(200, { orders: updated, skipped });
   } catch (err) {

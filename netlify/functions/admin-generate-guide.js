@@ -19,6 +19,7 @@
 // que no venía en el pedido).
 
 const { getOrder, updateOrderFields } = require("./lib/blob-store.js");
+const { propagarEnvioJunto } = require("./lib/envio-junto.js");
 const enviosPerros = require("./lib/enviosperros.js");
 const skydropx = require("./lib/skydropx.js");
 const { notifyCustomerOrderShipped } = require("./lib/whatsapp.js");
@@ -150,6 +151,7 @@ exports.handler = async (event) => {
       carrier: carrierLabel,
       shippedAt: new Date().toISOString(),
     });
+    const ligados = await propagarEnvioJunto(order, "enviado");
 
     // Igual que en admin-add-tracking.js: solo se manda si la clienta
     // tiene cuenta con ese teléfono (se usa el correo de la cuenta con la que compró).
@@ -163,7 +165,7 @@ exports.handler = async (event) => {
     }
     const whatsappSent = await notifyCustomerOrderShipped(order);
 
-    return jsonResponse(200, { order, whatsappSent });
+    return jsonResponse(200, { order, whatsappSent, ligados });
   } catch (err) {
     console.error(`Error generando guía con ${provider}:`, err.status, JSON.stringify(err.body || err.message));
     // Se muestra lo que respondió la paquetería (antes solo salía "No se
