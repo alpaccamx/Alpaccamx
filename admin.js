@@ -340,20 +340,28 @@
     if (currentView === "compras") renderAbw();
   }
 
+  /* Busca en todo: cada palabra que escribas tiene que aparecer en algún
+     lado (nombre de quien recibe, teléfono, correo, calle y número,
+     colonia, ciudad, estado, CP, referencias, guía, productos...), sin
+     importar acentos ni mayúsculas. Ej. "villa camila 327 la paz". */
+  function buscaEnTodo(campos, query) {
+    const hay = normalizeForSearch(campos.filter(Boolean).join(" ")).replace(/[.,#]/g, " ");
+    const hayDigits = hay.replace(/\D/g, "");
+    return normalizeForSearch(query).replace(/[.,#]/g, " ").split(/\s+/).filter(Boolean)
+      .every((w) => hay.includes(w) || (/^\d{4,}$/.test(w.replace(/\D/g, "")) && hayDigits.includes(w.replace(/\D/g, ""))));
+  }
+
   function matchesSearch(o, query) {
-    const haystack = [
-      o.customer?.name,
-      o.customer?.phone,
-      o.customer?.cp,
-      o.customer?.colonia,
-      o.customer?.municipio,
-      orderNumber(o),
+    const c = o.customer || {};
+    return buscaEnTodo([
+      c.name, c.phone, c.cp, c.colonia, c.municipio, c.estado, c.street, c.referencias, o.notes, c.notes,
+      o.customerEmail, o.trackingNumber, o.carrier, o.id,
+      orderNumber(o), "#" + orderNumber(o),
       o.supplierOrderNumber,
       o.cupon,
       ...((o.items || []).map((it) => it.nombre)),
       ...((o.items || []).map((it) => itemMarca(it))),
-    ].filter(Boolean).join(" ").toLowerCase();
-    return haystack.includes(query);
+    ], query);
   }
 
   function renderPending(orders, hiddenBySearch) {
@@ -5072,10 +5080,12 @@ ${itemLines}
   }
 
   function swmMatches(r) {
-    const q = swmSearch.trim().toLowerCase();
+    const q = swmSearch.trim();
     if (!q) return true;
     const cas = r.email && swmData.casilleros ? swmData.casilleros[r.email] : "";
-    return [r.folio, r.name, r.email, r.phone, r.tienda, r.paqueteria, r.rastreo, r.contenido, r.links, cas, r.etiqueta].some((v) => String(v || "").toLowerCase().includes(q));
+    const d = r.direccion || {};
+    return buscaEnTodo([r.folio, r.name, r.email, r.phone, r.tienda, r.paqueteria, r.rastreo, r.guia, r.contenido, r.contenidoCaja, r.links, cas, r.etiqueta, r.ordenTienda,
+      d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp, d.referencias], q);
   }
 
   function renderSwmAdmin() {
@@ -5094,7 +5104,7 @@ ${itemLines}
       ["historial", "🗂️ Historial"],
     ];
     document.getElementById("swm-filters").innerHTML = `${tabs.map(([k, l]) => `<button type="button" class="btn-secondary ${swmTab === k ? "on" : ""}" data-swm-tab="${k}">${l}</button>`).join("")}
-      <input type="search" id="swm-search" placeholder="🔍 Buscar por folio, nombre, tienda o rastreo" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
+      <input type="search" id="swm-search" placeholder="🔍 Busca por nombre, folio, rastreo, calle, ciudad, estado, CP…" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
       <button type="button" class="btn-primary" data-swm-nc-toggle>🛍️ Nueva cotización (WhatsApp)</button>
       <button type="button" class="btn-primary" data-swm-sinreg-toggle>📦 Llegó un paquete sin registrar</button>
       <div id="swm-nc-box" style="width:100%;">${swmNuevaCompraOpen ? swmNuevaCompraForm() : ""}</div>
