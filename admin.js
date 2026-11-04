@@ -3369,10 +3369,10 @@ ${itemLines}
             const n = Math.min(it.qty, pack.prog[o.id][i] || 0);
             const ok = n >= it.qty;
             return `<div class="pack-row${ok ? " ok" : n ? " half" : ""}" data-pack-row="${o.id}:${i}" role="button" tabindex="0">
-              ${packImg(it)}
-              <span class="pack-name"><b>${escapeHtml(itemMarca(it))}</b>${escapeHtml(it.nombre)}${it.qty > 1 ? `<em>${n} de ${it.qty} piezas</em>` : ""}</span>
+              <span class="pack-pic">${packImg(it)}<span class="pack-qty${it.qty > 1 ? " multi" : ""}">×${it.qty}</span></span>
+              <span class="pack-name"><b>${escapeHtml(itemMarca(it))}</b>${escapeHtml(it.nombre)}<em class="pack-cant">${it.qty > 1 ? `${it.qty} piezas · llevas ${n}` : "1 pieza"}</em></span>
               ${it.qty > 1 && n > 0 && !ok ? `<button type="button" class="pack-minus" data-pack-minus="${o.id}:${i}" aria-label="Quitar una">−</button>` : ""}
-              <span class="pack-check">${ok ? "✓" : it.qty > 1 ? `×${it.qty - n}` : ""}</span>
+              <span class="pack-check">${ok ? "✓" : it.qty > 1 ? `${n}/${it.qty}` : ""}</span>
             </div>`;
           }).join("")}`).join("")}
       </div>
