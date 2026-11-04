@@ -5084,7 +5084,9 @@ ${itemLines}
     if (!q) return true;
     const cas = r.email && swmData.casilleros ? swmData.casilleros[r.email] : "";
     const d = r.direccion || {};
-    return buscaEnTodo([r.folio, r.name, r.email, r.phone, r.tienda, r.paqueteria, r.rastreo, r.guia, r.contenido, r.contenidoCaja, r.links, cas, r.etiqueta, r.ordenTienda,
+    // Un envío también se encuentra por el rastreo original o folio de sus paquetes.
+    const suyos = (r.paqueteIds || []).map((id) => swmData.paquetes.find((x) => x.id === id)).filter(Boolean);
+    return buscaEnTodo([...suyos.flatMap((x) => [x.folio, x.rastreo, x.tienda]), r.folio, r.name, r.email, r.phone, r.tienda, r.paqueteria, r.rastreo, r.guia, r.contenido, r.contenidoCaja, r.links, cas, r.etiqueta, r.ordenTienda,
       d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp, d.referencias], q);
   }
 
@@ -5591,7 +5593,7 @@ ${itemLines}
     return `<div class="swm-card" data-swm-id="${escapeHtml(e.id)}" data-kind="envio">
       <h4><span>${escapeHtml(e.folio)} · Envío a México</span>${swmPillA(st, ["solicitado", "pagado", "en_mexico"].includes(e.status) ? "new" : "")}</h4>
       <div class="meta">${swmWho(e)} · ${swmFecha(e.createdAt)}${e.consolidar ? " · <b>consolidar</b>" : ""}</div>
-      <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${pk.map((p) => `<li>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "")} · ${p.cobrable || "?"} kg · cruce ${p.crucePagado ? "ya pagado" : p.cobro === "auto" ? "lo más barato" : p.cobro === "comision" ? "15%" : "por peso"}</li>`).join("")}</ul>
+      <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${pk.map((p) => `<li>${escapeHtml([p.folio, p.tienda].filter(Boolean).join(" · "))}${p.rastreo ? ` · 🔎 rastreo original: <b>${escapeHtml(p.paqueteria ? `${p.paqueteria} ` : "")}${escapeHtml(p.rastreo)}</b>` : ""} · ${p.cobrable || "?"} kg · cruce ${p.crucePagado ? "ya pagado" : p.cobro === "auto" ? "lo más barato" : p.cobro === "comision" ? "15%" : "por peso"}</li>`).join("")}</ul>
       <div class="meta">${e.entrega === "personal" ? `<b>📍 Entrega personal en Ciudad Juárez</b> · ${escapeHtml([d.nombre, d.telefono].filter(Boolean).join(", "))}` : `📍 ${escapeHtml([d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}`}</div>
       <div class="meta">Sugerido: cruce ${formatPrice(sug.cruce || 0)}${sug.consolidacion ? ` + consolidación ${formatPrice(sug.consolidacion)}` : ""}${sug.sinRegistro ? ` + sin registrar ${formatPrice(sug.sinRegistro)}` : ""}${sug.extras ? ` + extras ${formatPrice(sug.extras)}` : ""} · ${sug.kg || 0} kg en total</div>
       ${q ? `<div class="meta">Cotización: cruce ${formatPrice(q.cruce)}${q.consolidacion ? ` + consolidación ${formatPrice(q.consolidacion)}` : ""}${q.sinRegistro ? ` + sin registrar ${formatPrice(q.sinRegistro)}` : ""}${q.extras ? ` + extras ${formatPrice(q.extras)}` : ""} + envío ${formatPrice(q.envio)} = <b>${formatPrice(q.total)}</b></div>` : ""}
