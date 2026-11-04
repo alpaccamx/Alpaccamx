@@ -20,7 +20,8 @@
 //   comprobante       { kind, id, filename, contentType, dataBase64 }
 //   completar_paquete { id, articulos[], valorTotal, moneda, facturas?, cobro }  (paquete que llegó sin registrar)
 //   editar_paquete    { id, tienda?, paqueteria?, rastreo?, articulos[], valorTotal, moneda, facturas?, quitarArchivos?, cobro }
-//                     (mientras va en camino, o cuando Mae le pidió corregir sus datos)
+//                     (mientras va en camino, o cuando Mae le pidió corregir sus datos;
+//                      "cobro" se ignora: lo que eligió al registrar ya no cambia)
 //   cambiar_rastreo   { id, rastreo, paqueteria? }  (solo mientras el paquete no ha llegado con Mae)
 //   cancelar          { kind, id }
 //   pedir_revision    { id }  (abrir el paquete y mandar fotos del contenido; cargo REVISION_FOTOS)
@@ -300,7 +301,9 @@ exports.handler = async (event) => {
         const rec = await getRecord("paquete", String(b.id || ""));
         if (!rec || rec.email !== me) return json(404, { error: "No encontramos ese paquete." });
         if (!puedeEditar(rec)) return json(409, { error: "Este paquete ya no se puede editar desde aquí; escríbele a Mae." });
-        const cobro = rec.crucePagado ? rec.cobro : COBROS.includes(b.cobro) ? b.cobro : rec.cobro;
+        // Cómo paga el cruce (por peso o 15%) se elige al registrar y ya no
+        // se cambia desde aquí (solo Mae, desde el admin).
+        const cobro = rec.cobro;
         const anteriores = b.quitarArchivos ? [] : (rec.facturas || []);
         const dec = leerDeclaracion(b, cobro, anteriores.length + (!b.quitarArchivos && rec.factura ? 1 : 0));
         if (dec.error) return json(400, { error: dec.error });

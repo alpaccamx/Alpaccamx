@@ -782,7 +782,7 @@ function swmEditarFormHTML(p) {
       </div>` : ""}
       ${swmDeclaracionHTML(p)}
       ${n ? `<label class="flex items-center gap-2 text-xs"><input type="checkbox" data-e="quitar" class="accent-[#c4466e]" /> Quitar mis ${n} archivo${n === 1 ? "" : "s"} anterior${n === 1 ? "" : "es"} (si no, se suman los nuevos)</label>` : ""}
-      ${p.crucePagado || (p.pago && p.pago.status !== "pendiente") ? "" : swmCobroElegir(p.cobro)}
+      <p class="text-xs text-ink/65">Cruce: <b>${p.cobro === "comision" ? "15% de lo que costó" : p.cobro === "auto" ? "lo más barato (peso o 15%)" : "por peso"}</b> · lo elegiste al registrar y ya no se puede cambiar.<input type="radio" name="swm-cobro" value="${escapeHtml(p.cobro || "peso")}" checked hidden></p>
       <p data-c-err class="hidden text-xs text-sale"></p>
       <div class="flex gap-2"><button type="submit" class="rounded-full bg-rose-deep px-4 py-2 text-xs font-semibold text-cream">Guardar cambios</button>
       ${p.correccion && p.correccion.estado === "pedida" ? "" : `<button type="button" data-swm-editar-toggle="${escapeHtml(p.id)}" class="rounded-full px-4 py-2 text-xs font-semibold text-ink/70">Cancelar</button>`}</div>
@@ -1054,6 +1054,7 @@ function swmFormHTML() {
       ${swmInput("swm-f-tienda", "¿En qué tienda compraste? (opcional)", 'maxlength="80" placeholder="Sephora, Ulta, Amazon..."')}
       ${swmDeclaracionHTML()}
       ${swmCobroElegir()}
+      <p class="-mt-2 text-xs font-semibold text-sale">⚠️ Elige bien: una vez registrado tu paquete, la forma de pagar el cruce ya no se puede cambiar.</p>
       ${swmAcepta()}
       <details class="text-xs"><summary class="cursor-pointer text-ink/60">¿La paquetería no es la correcta? Elígela</summary><div class="mt-2">${swmPaqueteriaSelect('id="swm-f-paqueteria"')}</div></details>
       <p data-swm-err class="hidden rounded-xl bg-sale/10 px-3 py-2 text-sm text-sale" role="alert"></p>
