@@ -5169,6 +5169,8 @@ ${itemLines}
     const vence = hasta ? Math.ceil((hasta - Date.now()) / 864e5) : null;
     const fotos = (p.fotos || []).map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:4px 10px;font-size:12px;">📷 Foto</button>`).join(" ");
     const editable = ["registrado", "recibido"].includes(p.status);
+    // Paso 2: ya está en la dirección americana y falta cruzarlo.
+    const enUSA = p.status === "recibido" && !p.enMexicoAt && !p.datosPendientes;
     const sinDuena = p.status === "sin_dueña";
     const diasAqui = p.receivedAt ? Math.floor((Date.now() - new Date(p.receivedAt)) / 864e5) : 0;
     const limite = swmData.diasSinDuena || 7;
@@ -5189,8 +5191,8 @@ ${itemLines}
       ${p.status === "recibido" && p.phone ? `<div style="margin-top:8px;"><a class="btn-primary" href="${escapeHtml(swmPaqueteWa(p))}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;padding:8px 16px;font-size:13px;background:#25D366;border-radius:999px;color:#fff;font-weight:600;">💬 Avisar por WhatsApp (y mandarle las fotos)</a></div>` : ""}
       ${swmCorreccionAdmin(p)}
       ${swmExtrasAdmin(p)}`}
-      ${editable ? `<details class="swm-peso"${p.status === "recibido" && !p.cobrable ? " open" : ""}>
-        <summary>${p.status === "registrado" ? "📥 Ya llegó: registrar y avisarle" : `⚖️ Peso, medidas y fotos${p.cobrable ? ` · ${p.cobrable} kg` : ""}`}</summary>
+      ${editable ? `<details class="swm-peso"${(p.status === "recibido" && !p.cobrable) || enUSA ? " open" : ""}>
+        <summary>${p.status === "registrado" ? "🇺🇸 Ya llegó a la dirección americana: avisarle" : enUSA ? "🇲🇽 Siguiente paso: cruzarlo a México" : `⚖️ Peso, medidas y fotos${p.cobrable ? ` · ${p.cobrable} kg` : ""}`}</summary>
       <div class="grid">
         <label>Peso (kg)<input data-f="kg" type="number" step="0.01" min="0" value="${p.kg || ""}"></label>
         <label>Alto (cm)<input data-f="alto" type="number" min="0" value="${p.alto || ""}"></label>
@@ -5203,10 +5205,11 @@ ${itemLines}
         <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(p.notaClienta || "")}"></label>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-        ${p.status === "registrado" ? `<button type="button" class="btn-secondary" data-swm-recibir data-usa="1">🇺🇸 Llegó a la dirección americana (todavía no cruza)</button><button type="button" class="btn-primary" data-swm-recibir>📥 Recibido en México (y armar su envío)</button>` : `<button type="button" class="btn-primary" data-swm-recibir>Guardar peso / fotos</button>`}
+        ${p.status === "registrado" ? `<button type="button" class="btn-primary" data-swm-recibir data-usa="1">🇺🇸 Ya llegó a la dirección americana</button>`
+          : enUSA ? `<button type="button" class="btn-primary" data-swm-cruzar>🇲🇽 Ya cruzó a México (y armar su envío)</button><button type="button" class="btn-secondary" data-swm-recibir>Solo guardar peso / fotos</button>`
+          : `<button type="button" class="btn-primary" data-swm-recibir>Guardar peso / fotos</button>`}
       </div></details>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-        ${p.status === "recibido" && !p.enMexicoAt && !p.datosPendientes ? `<button type="button" class="btn-secondary" data-swm-pkg-mx>🇲🇽 Cruzado a México</button>` : ""}
         ${swmCancelBtn("paquete", p)}
       </div>` : p.status === "en_envio" && !p.enMexicoAt ? `<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-secondary" data-swm-pkg-mx>🇲🇽 Cruzado a México</button></div>` : ""}
     ${sinDuena ? "" : "</div>"}`;
@@ -5802,6 +5805,15 @@ ${itemLines}
       const data = await swmAct({ accion: "recibir_paquete", id, kg: v("kg"), alto: v("alto"), ancho: v("ancho"), largo: v("largo"), notaClienta: v("notaClienta"), fotos, enUSA }, btn);
       if (data && enUSA) showToast("🇺🇸 Listo: quedó en la dirección americana y ya le avisé. Cuando lo cruces toca \"🇲🇽 Cruzado a México\" y su envío se arma solo.");
       if (data && nuevo) showToast(data.envio ? `✅ Recibido. Su envío ${data.envio.folio} ya está en "Envíos por cotizar": haz la guía y cóbrale.` : "✅ Recibido. Todavía no tiene su dirección guardada; le pedí que la ponga y su envío se arma solo.");
+    } else if (t.closest("[data-swm-cruzar]")) {
+      if (!(parseFloat(v("kg")) > 0)) { alert("Pon el peso del paquete para poder armar su envío."); return; }
+      if (!confirm("¿Ya lo cruzaste a México? Le aviso a la clienta y se arma su envío a casa.")) return;
+      const input = card.querySelector('[data-f="fotos"]');
+      const fotos = (await Promise.all([...(input.files || [])].slice(0, 6).map(swmResize))).filter(Boolean);
+      const ok = await swmAct({ accion: "recibir_paquete", id, kg: v("kg"), alto: v("alto"), ancho: v("ancho"), largo: v("largo"), notaClienta: v("notaClienta"), fotos, sinAviso: true }, btn);
+      if (!ok) return;
+      const data = await swmAct({ accion: "paquete_en_mexico", id }, null);
+      if (data) showToast(data.envio ? `🇲🇽 Cruzado. Su envío ${data.envio.folio} ya está en "Envíos por cotizar": haz la guía y cóbrale.` : "🇲🇽 Cruzado y ya le avisé. Todavía no tiene su dirección guardada; le pedí que la ponga.");
     } else if (t.closest("[data-swm-cotizar-compra]")) {
       if (!(parseFloat(v("productos")) > 0)) { alert("Pon el costo de los productos."); return; }
       swmAct({ accion: "cotizar_compra", id, productos: v("productos"), cruce: v("cruce"), notaClienta: v("notaClienta") }, btn);
