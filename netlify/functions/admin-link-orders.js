@@ -13,6 +13,9 @@
 //        pidió que no se lo mande todavía (para juntarlo con algo que pida
 //        después y pagar un solo envío). No sale en "Por enviar".
 //   POST { orderId, espera: false }       -> ya se puede enviar
+//   POST { orderId, enviadoJunto: true }  -> lo marca enviado porque se fue
+//        en la caja de otro pedido del grupo (copia su guía si tiene; sin
+//        volver a avisar a la clienta)
 
 const { getOrder, listOrders, updateOrderFields } = require("./lib/blob-store.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
@@ -51,6 +54,21 @@ exports.handler = async (event) => {
         ? { desde: (o.enEspera && o.enEspera.desde) || new Date().toISOString(), nota: String(b.nota || "").trim().slice(0, 300) }
         : null;
       return json(200, { orders: [await updateOrderFields(o.id, { enEspera })] });
+    }
+
+    if (b.enviadoJunto) {
+      const o = buscar(b.orderId);
+      if (!o || o.status !== "paid") return json(400, { error: "Ese pedido no está pagado." });
+      const RANK = ["pagado", "pedido_abw", "llego", "enviado", "entregado"];
+      const salio = (x) => x.trackingNumber || RANK.indexOf(x.stage) >= 3;
+      const madre = todos.find((x) => o.envioJunto && x.envioJunto === o.envioJunto && x.id !== o.id && x.status === "paid" && salio(x));
+      if (!madre) return json(400, { error: "Ningún pedido de este envío junto se ha mandado todavía." });
+      const at = new Date().toISOString();
+      const stage = madre.stage === "entregado" ? "entregado" : "enviado";
+      const patch = { stage, stageUpdatedAt: at, enEspera: null, stageHistory: [...(Array.isArray(o.stageHistory) ? o.stageHistory.slice(-30) : []), { stage, at, junto: madre.id }] };
+      if (madre.trackingNumber) Object.assign(patch, { trackingNumber: madre.trackingNumber, carrier: madre.carrier || "", shippedAt: madre.shippedAt || at });
+      if (stage === "entregado") patch.deliveredAt = madre.deliveredAt || at;
+      return json(200, { orders: [await updateOrderFields(o.id, patch)] });
     }
 
     if (b.copiarGuia) {

@@ -3106,6 +3106,7 @@ ${itemLines}
         <div style="font-weight:700;font-size:14px;">🔗 Va en el mismo envío que:</div>
         <ul style="margin:6px 0 0;padding-left:18px;font-size:14px;">${junto.map(fila).join("")}</ul>
         ${noListos.length && orderBucket(o) === "por_enviar" ? `<div class="meta" style="color:#8a5a00;margin-top:6px;">⏳ Espera antes de mandarlo: ${noListos.map((x) => `#${orderNumber(x)} (${escapeHtml(estadoCorto(x))})`).join(", ")} todavía no está listo.</div>` : ""}
+        ${enviadoJuntoBtn(o, junto)}
         ${o.trackingNumber && sinGuia.length ? `<button type="button" class="btn-secondary" data-link-guia="${o.id}" style="margin-top:8px;">📋 Poner esta misma guía a ${sinGuia.map((x) => "#" + orderNumber(x)).join(", ")}</button>` : ""}
         <button type="button" class="btn-link" data-link-quitar="${o.id}" style="margin-top:6px;font-size:13px;background:none;border:none;color:#8a828f;text-decoration:underline;cursor:pointer;">Sacar este pedido del envío junto</button>
       </div>`;
@@ -3121,6 +3122,15 @@ ${itemLines}
       <div style="display:flex;gap:8px;margin-top:6px;"><input type="text" data-link-input="${o.id}" placeholder="Ej. #94FB5B85" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:8px;"><button type="button" class="btn-secondary" data-link-add="${o.id}">Ligar</button></div>
       <div class="meta">Así no se te olvida nada: los pedidos ligados se marcan en todas sus tarjetas y te avisa si alguno todavía no está listo para mandar.</div></details>`;
     return html;
+  }
+
+  // Otro pedido del grupo ya salió y este no: se fue en la misma caja.
+  function enviadoJuntoBtn(o, junto) {
+    if (o.status !== "paid" || o.trackingNumber || ["enviado", "entregado"].includes(orderStage(o))) return "";
+    const madre = junto.find((x) => x.status === "paid" && (x.trackingNumber || ["enviado", "entregado"].includes(orderStage(x))));
+    if (!madre) return "";
+    return `<div class="meta" style="margin-top:6px;">🚚 #${orderNumber(madre)} ya se mandó${madre.trackingNumber ? ` (guía ${escapeHtml(madre.trackingNumber)})` : ""}.</div>
+      <button type="button" class="btn-primary" data-link-enviado="${o.id}" style="margin-top:6px;">🚚 Se fue en la misma caja: marcar enviado</button>`;
   }
 
   // 🧺 Guardado: la clienta pidió que no se lo mande todavía.
@@ -3172,6 +3182,8 @@ ${itemLines}
     if (quitar) { if (confirm("¿Sacar este pedido del envío junto?")) linkAct({ orderId: quitar.dataset.linkQuitar, quitar: true }, quitar); return; }
     const guia = t.closest("[data-link-guia]");
     if (guia) { linkAct({ orderId: guia.dataset.linkGuia, copiarGuia: true }, guia); return; }
+    const envJ = t.closest("[data-link-enviado]");
+    if (envJ) { linkAct({ orderId: envJ.dataset.linkEnviado, enviadoJunto: true }, envJ); return; }
     const esp = t.closest("[data-espera]");
     if (esp) {
       if (esp.dataset.esperaTo === "1") {

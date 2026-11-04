@@ -7,6 +7,7 @@
 // Body esperado (JSON): { orderId, trackingNumber, carrier }
 
 const { getOrder, updateOrderFields } = require("./lib/blob-store.js");
+const { propagarEnvioJunto } = require("./lib/envio-junto.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
@@ -47,6 +48,7 @@ exports.handler = async (event) => {
       carrier: String(carrier || "").trim(),
       shippedAt: new Date().toISOString(),
     });
+    const ligados = await propagarEnvioJunto(order, "enviado");
 
     // Solo se manda si la clienta tiene cuenta con ese teléfono (los
     // pedidos no guardan correo) -- si no, Mae le avisa a mano por el
@@ -61,7 +63,7 @@ exports.handler = async (event) => {
     }
     const whatsappSent = await notifyCustomerOrderShipped(order);
 
-    return jsonResponse(200, { order, whatsappSent });
+    return jsonResponse(200, { order, whatsappSent, ligados });
   } catch (err) {
     console.error("Error guardando la guía del pedido:", err);
     return jsonResponse(500, { error: "No se pudo guardar la guía." });
