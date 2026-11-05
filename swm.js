@@ -626,11 +626,12 @@ function swmCompraCardHTML(c) {
     <p class="text-xs text-ink/65 mt-2">${swmDate(c.createdAt)} · Cruce ${c.cobro === "comision" ? "15% (se paga con la compra)" : "por peso (se paga al enviar)"}</p>
     ${c.tienda ? `<p class="mt-1 text-sm font-semibold">${escapeHtml(c.tienda)}</p>` : ""}
     ${c.links ? `<p class="mt-2 text-xs whitespace-pre-wrap break-all rounded-xl bg-pill/70 px-3 py-2">${escapeHtml(c.links)}</p>` : ""}
-    ${q && q.items ? `<ul class="mt-2 text-sm divide-y divide-ink/5 rounded-xl bg-pill/60 px-3 py-1">${q.items.map((x) => `<li class="flex justify-between gap-3 py-1"><span>${x.cantidad} × ${escapeHtml(x.nombre)}${x.tono ? ` <span class="text-ink/65">· ${escapeHtml(x.tono)}</span>` : ""}</span><span class="tabular-nums shrink-0">${swmMXN(x.precio * x.cantidad)}</span></li>`).join("")}</ul>` : ""}
+    ${q && q.items && !(c.facturaFotos || []).length ? `<ul class="mt-2 text-sm divide-y divide-ink/5 rounded-xl bg-pill/60 px-3 py-1">${q.items.map((x) => `<li class="flex justify-between gap-3 py-1"><span>${x.cantidad} × ${escapeHtml(x.nombre)}${x.tono ? ` <span class="text-ink/65">· ${escapeHtml(x.tono)}</span>` : ""}</span><span class="tabular-nums shrink-0">${swmMXN(x.precio * x.cantidad)}</span></li>`).join("")}</ul>` : ""}
+    ${(c.facturaFotos || []).length ? `<p class="mt-2 text-xs font-semibold">🧾 Tu factura (tócala para verla grande)</p><div class="mt-1 flex flex-wrap gap-2">${c.facturaFotos.map((f) => `<button type="button" data-swm-ver-foto="/.netlify/functions/swm-foto?id=${escapeHtml(f)}"><img src="/.netlify/functions/swm-foto?id=${escapeHtml(f)}" alt="Foto de tu factura" loading="lazy" class="w-28 h-36 rounded-xl object-cover bg-pill border border-ink/10"></button>`).join("")}</div>` : ""}
     ${c.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(c.notaClienta)}</p>` : ""}
     ${lines}${swmPagoHTML("compra", c)}
-    ${c.status === "pagado" ? `<p class="mt-2 text-xs text-ink/70">Pagado el ${swmDate(c.pago && c.pago.paidAt)}. Te aviso cuando haga tu compra.</p>` : ""}
-    ${c.status === "comprado" ? `<p class="mt-2 text-xs text-ink/70">Tus productos ya van al almacén; los ves en "Mis paquetes".</p>` : ""}
+    ${c.status === "pagado" ? `<p class="mt-2 text-xs text-ink/70">Pagado el ${swmDate(c.pago && c.pago.paidAt)}. ${c.yaComprado ? "Ya tengo tus productos; te aviso cuando crucen a México." : "Te aviso cuando haga tu compra."}</p>` : ""}
+    ${c.status === "comprado" ? `<p class="mt-2 text-xs text-ink/70">${c.yaComprado ? "Ya tengo tus productos; los ves en \"Mis paquetes\". Pon tu dirección de envío para que te los mande." : "Tus productos ya van al almacén; los ves en \"Mis paquetes\"."}</p>` : ""}
     ${["solicitud", "cotizado"].includes(c.status) && (!c.pago || c.pago.status === "pendiente") ? `<button type="button" data-swm-cancel="compra:${escapeHtml(c.id)}" class="mt-2 text-xs text-ink/60 underline">Cancelar</button>` : ""}` });
 }
 

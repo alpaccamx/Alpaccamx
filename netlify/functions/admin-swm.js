@@ -25,6 +25,11 @@
 //                     (corrige una cotización que todavía no se paga; si tenía cupón,
 //                      se recalcula el descuento)
 //   compra_comprada   { id, paquetes: [{ tienda, orden?, rastreo?, contenido }] }  (orden = número de orden de la tienda, solo para Mae)
+//   compra_en_mano    { id }  (Personal shopper en tienda: Mae ya tiene los productos en EE.UU.;
+//                     se crea su paquete ya recibido, sin cruzar, y se le avisa a la clienta)
+//   crear_compra/editar_compra aceptan además { ps: true, yaComprado?, fechaCompra?, totalMXN?, facturaFotos? }
+//                     (factura de Personal shopper: Mae sube la foto de su factura, que sí ve la clienta,
+//                      y el total a cobrar en pesos, que ya trae su comisión y el cruce)
 //   cotizar_envio     { id, envio, cruce?, consolidacion?, sinRegistro?, extras?, notaClienta? }
 //   revision_hecha    { id, fotos: [{ dataBase64, contentType }], nota? }  (fotos del contenido)
 //   separar_paquete   { id, nuevo: { contenido, valorUSD?, kg, alto, ancho, largo }, resto: { contenido?, valorUSD?, kg, alto, ancho, largo }, fotos? }
@@ -45,7 +50,7 @@ const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, g
 const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, SEPARAR, COMISION_PCT, LEALTAD_PCT } = require("./lib/swm-pricing.js");
 const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
 const { getCoupon, discountFor } = require("./lib/coupons.js");
-const { ALMACENAJE_DIAS, round2, cotizacionSugerida, cotizarEnvio, despacharConGuia, envioAutomatico, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
+const { ALMACENAJE_DIAS, round2, compraEnMano, cotizacionSugerida, cotizarEnvio, despacharConGuia, envioAutomatico, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
 
 const num = (v) => Math.max(0, parseFloat(v) || 0);
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
@@ -204,6 +209,11 @@ exports.handler = async (event) => {
       case "crear_compra":
       case "editar_compra": {
         const editar = b.accion === "editar_compra";
+        const psFoto = !!b.ps && num(b.totalMXN) > 0;
+        if (psFoto) {
+          b.items = [{ nombre: "Compra de personal shopper (ver tu factura)", cantidad: 1, precio: round2(num(b.totalMXN)) }];
+          b.envioUSD = 0; b.cobro = "comision"; b.cruce = 0;
+        }
         const enUSD = (Array.isArray(b.items) ? b.items : []).some((x) => num(x.precioUSD) > 0) || num(b.envioUSD) > 0;
         const tc = enUSD ? (await tiposDeCambio()).USD : 0;
         if (enUSD && !tc) return json(500, { error: "No pude leer el tipo de cambio (Config → Tipo de cambio)." });
@@ -220,6 +230,7 @@ exports.handler = async (event) => {
           if (!actual) return json(404, { error: "No existe esa compra." });
           const cup = actual.cotizacion && actual.cotizacion.cupon ? await getCoupon(actual.cotizacion.cupon) : null;
           const fotos = await guardarFotos(b.fotos);
+          const facturaFotos = await guardarFotos(b.facturaFotos);
           let error = "";
           const rec = await mutateRecord("compra", id, (c) => {
             if (c.status !== "cotizado" || (c.pago && c.pago.status !== "pendiente")) { error = "Ya no se puede editar: ya mandó su pago o la compra cambió de estado."; return null; }
@@ -231,7 +242,10 @@ exports.handler = async (event) => {
             c.cobro = cobro;
             if (b.tienda != null) c.tienda = clip(b.tienda, 80);
             if (b.notaClienta != null) c.notaClienta = clip(b.notaClienta, 1000);
+            if (b.yaComprado != null) c.yaComprado = !!b.yaComprado;
+            if (b.fechaCompra != null) c.fechaCompra = clip(b.fechaCompra, 20);
             c.capturas = [...(c.capturas || []), ...fotos];
+            if (facturaFotos.length) c.facturaFotos = [...(b.quitarFactura ? [] : c.facturaFotos || []), ...facturaFotos];
             c.pago = { status: "pendiente", monto: c.cotizacion.total };
             push(c, "editado");
             return c;
@@ -248,22 +262,29 @@ exports.handler = async (event) => {
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(400, { error: "Pon el correo de la clienta (el de su cuenta)." });
         const cuenta = await getCustomerByEmail(email);
         const fotos = await guardarFotos(b.fotos);
+        const facturaFotos = await guardarFotos(b.facturaFotos);
+        if (b.ps && psFoto && !facturaFotos.length) return json(400, { error: "Sube la foto de la factura." });
         const rec = {
           id: randomUUID(), folio: await nextFolio("compra"), email,
           name: (cuenta && cuenta.name) || clip(b.name, 120), phone: (cuenta && cuenta.phone) || clip(b.phone, 30),
           origen: "whatsapp", tienda: clip(b.tienda, 80), links: "", notas: "", capturas: fotos, cobro, status: "cotizado",
+          ...(b.ps ? { ps: true, yaComprado: true } : b.yaComprado ? { yaComprado: true } : {}), ...(b.fechaCompra ? { fechaCompra: clip(b.fechaCompra, 20) } : {}),
+          ...(facturaFotos.length ? { facturaFotos } : {}),
           cotizacion: { items, productos, cruce, total: round2(productos + cruce), at: now(), ...extraUSD },
           pago: { status: "pendiente", monto: round2(productos + cruce) }, paqueteIds: [],
           notaClienta: clip(b.notaClienta, 1000), notaPrivada: "",
           history: [{ at: now(), status: "cotizado", por: "whatsapp" }], createdAt: now(), updatedAt: now(),
         };
         await saveRecord("compra", rec);
-        await avisar(rec, `tu cotización ${rec.folio} está lista`, `
+        await avisar(rec, psFoto ? `tu factura ${rec.folio} de personal shopper` : `tu cotización ${rec.folio} está lista`, psFoto ? `
+          <h2 style="margin:0 0 8px;font-size:20px;">Tu factura de personal shopper 🛍️</h2>
+          <p style="font-size:14px;">${rec.tienda ? `${esc(rec.tienda)} · ` : ""}Te adjunto la foto de tu factura (también la ves en tu casillero).</p>
+          <p style="font-size:14px;">Total a pagar: <b>${formatPriceMXN(rec.cotizacion.total)}</b></p>` : `
           <h2 style="margin:0 0 8px;font-size:20px;">Tu cotización está lista</h2>
           <p style="font-size:14px;">${rec.tienda ? `${esc(rec.tienda)} · ` : ""}${items.length} artículo${items.length > 1 ? "s" : ""}</p>
           <p style="font-size:14px;">Productos: <b>${formatPriceMXN(productos)}</b>${cruce ? `<br>Cruce a México (15%): <b>${formatPriceMXN(cruce)}</b>` : ""}<br>Total a pagar: <b>${formatPriceMXN(rec.cotizacion.total)}</b></p>
           ${rec.notaClienta ? `<p style="font-size:14px;background:#fdf2f6;border-radius:10px;padding:10px 12px;">${esc(rec.notaClienta)}</p>` : ""}
-          <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=direccion-americana&compra=${rec.id}">Ver y pagar mi cotización</a></p>`).catch(() => {});
+          <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=direccion-americana&compra=${rec.id}">Ver y pagar mi ${psFoto ? "factura" : "cotización"}</a></p>`, psFoto ? fotosAdjuntas(b.facturaFotos, `factura-${rec.folio}`) : undefined).catch(() => {});
         return json(200, { compra: rec, tieneCuenta: Boolean(cuenta) });
       }
 
@@ -312,6 +333,13 @@ exports.handler = async (event) => {
           <h2 style="margin:0 0 8px;font-size:20px;">¡Compra hecha!</h2>
           <p style="font-size:14px;">Ya compré tus productos. Va${lista.length > 1 ? "n" : ""} en camino a nuestro almacén ${lista.length} paquete${lista.length > 1 ? "s" : ""}; te aviso cuando llegue${lista.length > 1 ? "n" : ""}.</p>`);
         return json(200, { compra: rec });
+      }
+
+      case "compra_en_mano": {
+        // (Ya casi no se usa: al pagarse una factura de Personal shopper esto pasa solo.)
+        const r = await compraEnMano(id);
+        if (!r) return json(409, { error: "Esa compra no está pagada o ya estaba marcada." });
+        return json(200, r);
       }
 
       case "cotizar_envio": {
