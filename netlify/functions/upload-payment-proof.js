@@ -82,6 +82,20 @@ exports.handler = async (event) => {
     if (!order || String(order.customerEmail || "") !== String(customerEmail).toLowerCase()) {
       return jsonResponse(404, { error: "Pedido no encontrado." });
     }
+    // Pedido ya pagado al que Mae le agregó cosas: la clienta debe una
+    // diferencia y sube el comprobante de ese pago extra (se guarda aparte
+    // del comprobante original y Mae lo aprueba en el admin).
+    const pagado = order.montoPagado != null ? Number(order.montoPagado) : Number(order.grandTotal) || 0;
+    const debe = Math.round(((Number(order.grandTotal) || 0) - pagado) * 100) / 100;
+    if (order.status === "paid") {
+      if (!(debe > 0.5)) return jsonResponse(409, { error: "Este pedido no tiene nada pendiente de pagar." });
+      const n = (order.proofsExtra || []).length;
+      await savePaymentProof(`${orderId}/extra/${n}`, buffer, { contentType: safeContentType, filename: String(filename || "comprobante") });
+      await updateOrderFields(orderId, {
+        proofsExtra: [...(order.proofsExtra || []), { n, filename: String(filename || "comprobante"), contentType: safeContentType, at: new Date().toISOString(), monto: debe, status: "revision" }],
+      });
+      return jsonResponse(200, { ok: true, extra: n });
+    }
     if (order.status !== "pending") {
       return jsonResponse(409, { error: "Este pedido ya no acepta comprobantes." });
     }
