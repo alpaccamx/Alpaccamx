@@ -894,11 +894,12 @@
     <p class="abw-intro">Claude revisa tu catálogo contra Asian Beauty Wholesale marca por marca, y aquí aparece lo que cambió. Al aplicar se actualizan <b>Precio USD</b> y <b>Disponible</b> en tu Sheet; el precio en pesos se recalcula solo. Lo que no quieras cambiar, ignóralo.</p>
     <div id="revision-summary"></div>
     <div class="tabs" id="revision-tabs"></div>
-    <div id="revision-list"></div>
-    <div class="abw-actions" id="revision-actions" style="display:none;">
+    <!-- Los botones van arriba (antes estaban hasta el final de la lista). -->
+    <div class="abw-actions" id="revision-actions" style="display:none;flex-direction:row;flex-wrap:wrap;margin:10px 0;position:sticky;top:0;z-index:5;background:#fff;padding:8px 0;">
       <button type="button" class="btn-primary" id="revision-apply">✅ Aplicar seleccionados</button>
       <button type="button" class="btn-secondary" id="revision-ignore">Ignorar seleccionados</button>
     </div>
+    <div id="revision-list"></div>
   </div>
 
   <div id="trash-view" class="filters" style="display:none;">
