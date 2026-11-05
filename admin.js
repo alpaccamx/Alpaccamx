@@ -1320,9 +1320,44 @@
   }
 
   function proofLinkHTML(o) {
-    if (!o.hasPaymentProof) return "";
-    return `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeHtml(o.id)}" style="font-size: 14px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>`;
+    let html = o.hasPaymentProof ? `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeHtml(o.id)}" style="font-size: 14px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>` : "";
+    // Diferencia de un pedido editado (le agregaste cosas ya pagado).
+    const pagado = o.montoPagado != null ? Number(o.montoPagado) : null;
+    const debe = o.status === "paid" && pagado != null ? Math.round(((Number(o.grandTotal) || 0) - pagado) * 100) / 100 : 0;
+    const extras = o.proofsExtra || [];
+    if (debe > 0.5 || extras.length) {
+      const fila = (p) => `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;font-size:14px;"><button type="button" data-view-proof="${escapeHtml(o.id)}" data-view-proof-extra="${p.n}" style="font-weight:700;color:#0b6bc2;background:none;border:none;padding:0;cursor:pointer;">📎 Comprobante de la diferencia${extras.length > 1 ? ` ${p.n + 1}` : ""}</button><span class="meta">${formatPrice(p.monto)} · ${new Date(p.at).toLocaleDateString("es-MX", { day: "numeric", month: "short" })} · ${{ revision: "🔎 por revisar", aprobado: "✅ aprobado", rechazado: "❌ rechazado" }[p.status] || p.status}</span></div>`;
+      html += `<div style="background:${debe > 0.5 ? "#fff8ea" : "#f1faf4"};border:1px solid ${debe > 0.5 ? "#f6dcbd" : "#cfe9d9"};border-radius:12px;padding:10px 12px;margin:10px 0;">
+        <div style="font-weight:700;font-size:14px;">${debe > 0.5 ? `💳 Le falta pagar ${formatPrice(debe)} de diferencia` : "✅ Diferencia pagada"}</div>
+        ${debe > 0.5 ? `<div class="meta">Pagó ${formatPrice(pagado)} y el total nuevo es ${formatPrice(o.grandTotal)}. Ella puede subir su comprobante en Mis pedidos.</div>` : ""}
+        ${extras.map(fila).join("")}
+        ${debe > 0.5 ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          <button type="button" class="btn-primary" data-diff-pagado="${o.id}" style="padding:6px 12px;font-size:13px;">✅ Ya me pagó la diferencia</button>
+          ${extras.some((p) => p.status === "revision") ? `<button type="button" class="btn-secondary" data-diff-rechazar="${o.id}" style="padding:6px 12px;font-size:13px;">❌ Rechazar comprobante</button>` : ""}
+        </div>` : ""}
+      </div>`;
+    }
+    return html;
   }
+
+  document.addEventListener("click", async (e) => {
+    const ok = e.target.closest("[data-diff-pagado]");
+    const no = e.target.closest("[data-diff-rechazar]");
+    const btn = ok || no;
+    if (!btn) return;
+    let body;
+    if (ok) { if (!confirm("¿Ya te pagó la diferencia? Le llega el aviso de que quedó todo pagado.")) return; body = { orderId: ok.dataset.diffPagado, pagado: true }; }
+    else { const motivo = prompt("¿Por qué lo rechazas? (se lo mandamos a la clienta)", "No encontramos tu transferencia, revisa el comprobante."); if (motivo == null) return; body = { orderId: no.dataset.diffRechazar, rechazar: true, motivo }; }
+    btn.disabled = true;
+    try {
+      const res = await fetch("/.netlify/functions/admin-order-diff", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify(body) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
+      (data.orders || []).forEach((u) => { const i = allOrders.findIndex((x) => x.id === u.id); if (i >= 0) allOrders[i] = u; });
+      showToast(ok ? "✅ Diferencia marcada como pagada." : "Comprobante rechazado; ya le avisé.");
+      applyFilters();
+    } catch (err) { alert(err.message); btn.disabled = false; }
+  });
 
   const SUPPLIER_URL = "https://www.asianbeautywholesale.com/en/home.html";
 
@@ -1478,7 +1513,7 @@ ${itemLines}
 
   function wireProofLinkButtons(container) {
     container.querySelectorAll("[data-view-proof]").forEach((btn) => {
-      btn.addEventListener("click", () => viewPaymentProof(btn.dataset.viewProof, btn));
+      btn.addEventListener("click", () => viewPaymentProof(btn.dataset.viewProof, btn, btn.dataset.viewProofExtra));
     });
   }
 
@@ -1549,12 +1584,12 @@ ${itemLines}
     }
   }
 
-  async function viewPaymentProof(orderId, btn) {
+  async function viewPaymentProof(orderId, btn, extra) {
     const original = btn.textContent;
     btn.disabled = true;
     btn.textContent = "Cargando...";
     try {
-      const res = await fetch(`/.netlify/functions/admin-payment-proof?orderId=${encodeURIComponent(orderId)}`, {
+      const res = await fetch(`/.netlify/functions/admin-payment-proof?orderId=${encodeURIComponent(orderId)}${extra != null && extra !== "" ? `&extra=${encodeURIComponent(extra)}` : ""}`, {
         headers: { "x-admin-key": adminKey },
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
@@ -5448,6 +5483,16 @@ ${itemLines}
     return `${p.moneda === "MXN" ? "" : ` ≈ <b>${formatPrice(pesos)}</b>`}${swmValorAlto(p) ? ` <b style="color:#b33660">⚠️ Valor alto: revísalo bien antes de cruzarlo</b>` : ""}${p.cobro === "comision" && !p.crucePagado ? ` → cruce (${swmData.comisionPct || 15}%): <b>${formatPrice(cruce)}</b>` : ""}`;
   }
 
+  /* Qué significa el peso para el cobro: si el cruce ya está pagado (15%
+     o de una compra de Mae) o es por comisión, el peso NO se cobra, solo
+     sirve para la guía de envío. */
+  function swmPesoTexto(p, kg) {
+    if (p.crucePagado) return `${kg} kg · cruce ya pagado (15%): el peso no se cobra, solo es para la guía de envío`;
+    if (p.cobro === "comision") return `${kg} kg · cruce por porcentaje (15% del valor): el peso no se cobra, solo es para la guía`;
+    if (p.cobro === "auto") return `${kg} kg · se cobra lo más barato entre por peso (${formatPrice(swmCrucePeso(kg))}) y el 15% del valor`;
+    return `Se cobran ${kg} kg → cruce ${formatPrice(swmCrucePeso(kg))}`;
+  }
+
   function swmPaqueteCard(p) {
     const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : p.enMexicoAt ? "🇲🇽 En México" : "🇺🇸 En dirección americana", en_envio: "📦 En un envío", en_mexico: "🇲🇽 En México", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
     // El almacenaje gratis corre desde que el paquete llega a México.
@@ -5488,7 +5533,7 @@ ${itemLines}
         <label>Ancho (cm)<input data-f="ancho" type="number" min="0" value="${p.ancho || ""}"></label>
         <label>Largo (cm)<input data-f="largo" type="number" min="0" value="${p.largo || ""}"></label>
       </div>
-      <div class="meta" data-swm-calc>${p.cobrable ? `Peso cobrado: ${p.cobrable} kg${p.cobro === "peso" && !p.crucePagado ? ` → cruce ${formatPrice(swmCrucePeso(p.cobrable))}` : ""}` : ""}</div>
+      <div class="meta" data-swm-calc>${p.cobrable ? swmPesoTexto(p, p.cobrable) : ""}</div>
       <div class="grid" style="grid-template-columns:1fr 1fr;">
         <label>Fotos (opcional)<input data-f="fotos" type="file" accept="image/*" multiple></label>
         <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(p.notaClienta || "")}"></label>
@@ -6302,7 +6347,7 @@ ${itemLines}
     const n = (k) => parseFloat(card.querySelector(`[data-f="${k}"]`).value) || 0;
     const kg = swmCobrable(n("kg"), n("alto"), n("ancho"), n("largo"));
     const p = swmData.paquetes.find((x) => x.id === card.dataset.swmId) || {};
-    card.querySelector("[data-swm-calc]").textContent = kg ? `Se cobran ${kg} kg${p.cobro === "peso" && !p.crucePagado ? ` → cruce ${formatPrice(swmCrucePeso(kg))}` : ""}` : "";
+    card.querySelector("[data-swm-calc]").textContent = kg ? swmPesoTexto(p, kg) : "";
   });
 
   /* ===== Preventa (ej. Sephora Sale): campaña, productos con cupo y

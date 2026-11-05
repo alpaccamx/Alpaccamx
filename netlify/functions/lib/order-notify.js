@@ -194,7 +194,7 @@ function avisoCambioPedido(order, items, nuevoTotal, pagado, envio = 0) {
     ];
   const sigue = reembolso
     ? "Escríbenos por WhatsApp para hacerte tu reembolso."
-    : debe ? "Escríbenos por WhatsApp para pagar la diferencia."
+    : debe ? "Paga la diferencia por transferencia y sube tu comprobante en Mis pedidos (o escríbenos por WhatsApp)."
       : pagado == null ? "Paga el total nuevo para que confirmemos tu pedido." : "";
 
   const asunto = reembolso ? `Cambiamos tu pedido ${n}: te reembolsaremos ${fmtMXN(dif)}`
@@ -229,7 +229,8 @@ function avisoCambioPedido(order, items, nuevoTotal, pagado, envio = 0) {
     ${grupos.map(([t, l, items2]) => seccion(t, items2)).join("")}
     ${pagado == null ? "" : `<p style="font-size:16px;font-weight:700;margin:22px 0 8px;">🧾 Tus cuentas</p>${tablaCuentas(cuentas)}`}
     ${sigue ? `<p style="font-size:16px;font-weight:700;margin:22px 0 8px;">👉 ¿Qué sigue?</p>
-      ${reembolso || debe ? `<p style="margin:0;"><a href="https://wa.me/${WHATSAPP_MAE}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-weight:700;padding:11px 20px;border-radius:999px;">💬 ${esc(sigue.replace(/\.$/, ""))}</a></p>` : `<p style="margin:0;">${esc(sigue)}</p>`}` : ""}
+      ${debe ? `<p style="margin:0;"><a href="${SITE}/?ver=mis-pedidos" style="display:inline-block;background:#c4466e;color:#fff;text-decoration:none;font-weight:700;padding:11px 20px;border-radius:999px;">📤 Subir mi comprobante en Mis pedidos</a></p><p style="margin:10px 0 0;font-size:14px;">O escríbenos por <a href="https://wa.me/${WHATSAPP_MAE}">WhatsApp</a>.</p>`
+        : reembolso ? `<p style="margin:0;"><a href="https://wa.me/${WHATSAPP_MAE}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-weight:700;padding:11px 20px;border-radius:999px;">💬 ${esc(sigue.replace(/\.$/, ""))}</a></p>` : `<p style="margin:0;">${esc(sigue)}</p>`}` : ""}
     <p style="font-size:16px;font-weight:700;margin:22px 0 8px;">📦 Así quedó tu pedido</p>
     ${tablaProductos(items, !tarjeta)}
     ${(!tarjeta && Number(envio) > 0) ? filaSimple("🚚 Envío", fmtMXN(envio)) : ""}

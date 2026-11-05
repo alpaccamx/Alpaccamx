@@ -7137,6 +7137,7 @@ const MY_STAGE_TEXT = {
 
 function myOrderChip(o) {
   if (o.status === "pending") return { label: "Esperando pago", cls: "bg-[#fff1d8] text-[#8a5a00]" };
+  if (o.status === "paid" && o.montoPagado != null && (Number(o.grandTotal) || 0) - Number(o.montoPagado) > 0.5) return { label: "Falta pagar diferencia", cls: "bg-[#fff1d8] text-[#8a5a00]" };
   if (o.status === "cancelled") return { label: "Cancelado", cls: "bg-ink/10 text-ink/70" };
   if (o.status === "failed") return { label: "No se procesó", cls: "bg-red-100 text-red-700" };
   const st = myOrderStage(o);
@@ -7423,6 +7424,22 @@ function myOrderCardHTML(o) {
         <p data-my-proof-status="${escapeAttr(o.id)}" class="text-xs"></p>
       </div>`
     : "";
+  // Pedido pagado al que Mae le agregó cosas: falta pagar la diferencia.
+  const pagadoMXN = o.montoPagado != null ? Number(o.montoPagado) : Number(o.grandTotal) || 0;
+  const debe = o.status === "paid" ? Math.round(((Number(o.grandTotal) || 0) - pagadoMXN) * 100) / 100 : 0;
+  const enRevision = (o.proofsExtra || []).some((p) => p.status === "revision");
+  const rechazado = !enRevision && (o.proofsExtra || []).slice(-1)[0] && (o.proofsExtra || []).slice(-1)[0].status === "rechazado" ? (o.proofsExtra || []).slice(-1)[0] : null;
+  const debeBlock = debe > 0.5
+    ? `<div class="pt-2 border-t border-ink/10 space-y-2 rounded-xl bg-[#fff1d8]/60 p-3 -mx-1">
+        <p class="text-sm font-bold text-[#8a5a00]">⚠️ Te falta pagar ${formatPrice(debe)}</p>
+        <p class="text-xs text-ink/75">Cambiamos tu pedido: ya pagaste ${formatPrice(pagadoMXN)} y el total nuevo es ${formatPrice(o.grandTotal)}. ${enRevision ? "Ya recibimos tu comprobante; lo estamos revisando." : "Paga la diferencia por transferencia y sube aquí tu comprobante."}</p>
+        ${rechazado ? `<p class="text-xs text-rose-ink">No pudimos validar tu comprobante: ${escapeHtml(rechazado.motivo || "")}. Súbelo de nuevo.</p>` : ""}
+        ${!enRevision && typeof hasBankDetails === "function" && hasBankDetails() ? `<div class="text-xs text-ink/80 space-y-0.5">${bankDetailsHTML()}</div>` : ""}
+        ${enRevision ? "" : `<input type="file" accept="image/*,application/pdf" data-my-proof-file="${escapeAttr(o.id)}" aria-label="Comprobante de la diferencia" class="text-xs w-full" />
+        <button type="button" data-my-proof-btn="${escapeAttr(o.id)}" class="tap w-full rounded-full bg-rose-deep text-cream text-xs font-semibold py-2 hover:bg-rose-ink transition">📤 Subir comprobante de la diferencia</button>
+        <p data-my-proof-status="${escapeAttr(o.id)}" class="text-xs"></p>`}
+      </div>`
+    : "";
   const chip = myOrderChip(o);
   const pcs = (o.items || []).reduce((t, it) => t + (it.qty || 0), 0);
   return `
@@ -7456,7 +7473,7 @@ function myOrderCardHTML(o) {
             </button>` : ""}
           ${orderWhatsAppButtonHTML(o)}
         </div>
-        ${proofBlock}
+        ${proofBlock}${debeBlock}
       </div>
     </details>`;
 }
@@ -7601,10 +7618,12 @@ async function uploadMyOrderProof(orderId) {
   btn.textContent = "Subiendo…";
   try {
     await uploadProofFile(orderId, file);
-    show("✅ ¡Comprobante recibido! Te confirmaremos tu pedido pronto.", true);
-    btn.textContent = "✅ Comprobante enviado";
     const order = myOrdersCache.find((o) => o.id === orderId);
-    if (order) order.hasPaymentProof = true;
+    const esDiferencia = order && order.status === "paid";
+    show(esDiferencia ? "✅ ¡Comprobante recibido! Mae lo revisa y te avisa." : "✅ ¡Comprobante recibido! Te confirmaremos tu pedido pronto.", true);
+    btn.textContent = "✅ Comprobante enviado";
+    if (order && esDiferencia) order.proofsExtra = [...(order.proofsExtra || []), { status: "revision", at: new Date().toISOString() }];
+    else if (order) order.hasPaymentProof = true;
   } catch (err) {
     show(friendlyError(err, "No pudimos subir tu comprobante. Intenta de nuevo en un momento."), false);
     btn.disabled = false;
