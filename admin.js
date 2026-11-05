@@ -5895,6 +5895,29 @@ ${itemLines}
       fotosFallidas = [];
     }, 300);
   }
+  /* El botón "Hacer guía y cobrarle $X" se recalcula al elegir paquetería,
+     al escribir en "Cóbrale de envío" o al marcar la lealtad. */
+  function swmGuiaBoton(card, id) {
+    const st = swmGuiaState[id];
+    const genBtn = card.querySelector("[data-guia-generar]");
+    const cobro = card.querySelector("[data-cobro-base]");
+    if (!st || st.selected == null || !cobro || !genBtn) return;
+    const r = st.rates[st.selected];
+    const lealtad = card.querySelector("[data-g-lealtad]");
+    const cruce = Number(cobro.dataset.cruce) || 0;
+    const aMano = (card.querySelector('[data-g="cobrar"]') || {}).value;
+    // A la clienta se le cobra lo que Mae puso a mano; si no, el envío de su
+    // tabla; si su CP no está, la paquetería + $100.
+    const envioCobro = aMano !== "" && aMano != null && Number(aMano) >= 0 ? Number(aMano) : st.tabla != null ? st.tabla : (Number(r.total) || 0) + 100;
+    const total = (Number(cobro.dataset.cobroBase) || 0) - (lealtad && lealtad.checked ? cruce / 2 : 0) + envioCobro;
+    genBtn.textContent = `2️⃣ Hacer guía y cobrarle ${formatPrice(total)}`;
+  }
+  document.getElementById("swm-panel").addEventListener("input", (e) => {
+    if (!e.target.matches('[data-g="cobrar"], [data-g-lealtad]')) return;
+    const card = e.target.closest("[data-swm-id]");
+    if (card) swmGuiaBoton(card, card.dataset.swmId);
+  });
+
   async function swmResize(file) {
     if (swmEsHeic(file)) {
       if (file.size > 4.3 * 1024 * 1024) { swmFotoFallida(file); return null; }
