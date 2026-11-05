@@ -5053,11 +5053,14 @@ ${itemLines}
       const badge = document.getElementById("swm-badge");
       badge.textContent = swmNewCount ? String(swmNewCount) : "";
       badge.style.display = swmNewCount ? "inline-flex" : "none";
+      const psN = swmData.compras.filter((c) => c.status === "pagado" || (c.pago && c.pago.status === "revision")).length;
+      const psBadge = document.getElementById("ps-nav-badge");
+      if (psBadge) { psBadge.textContent = psN ? String(psN) : ""; psBadge.style.display = psN ? "inline-flex" : "none"; }
       const navBadge = document.getElementById("swm-nav-badge");
       navBadge.textContent = badge.textContent;
       navBadge.style.display = badge.style.display;
       updateMoreBadge();
-      if (currentView === "swm") renderSwmAdmin();
+      if (currentView === "swm" || currentView === "ps") renderSwmAdmin();
       if (currentView === "inicio") renderHome();
     } catch (err) {
       if (!quiet) setStatus("No se pudo conectar con el servidor.");
@@ -5174,7 +5177,150 @@ ${itemLines}
       d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp, d.referencias], q);
   }
 
+  /* ---------- 🛍️ Personal shopper: las compras que Mae hace por sus
+     clientas, en un solo lugar: factura → cobro → compra → cruce →
+     dirección y envío. Usa la misma información y los mismos botones que
+     Dirección americana (comparten el panel swm-panel). ---------- */
+  let swmModo = ""; // "ps" = vista de Personal shopper
+  const PS_AYUDA = "1) Toca “🧾 Nueva factura”: busca a la clienta, pega o escribe lo que compraste (de los tickets, en dólares) y el tax; el tipo de cambio y tu 15% se ponen solos. 2) Mándale el link por WhatsApp y su factura (📄): ahí paga con tarjeta o transferencia. Si te paga por fuera, toca “Ya me pagó por fuera”. 3) Ya pagada, toca “📦 Ya tengo sus productos” (le aviso y le pido su dirección). 4) Cuando la cruces, toca “🇲🇽 Ya cruzó a México” con el peso: su envío se arma solo con la dirección que puso. 5) Genera la guía: a ella le llega el cobro del envío y en cuanto paga, le llega su guía. Si no tiene dirección, toca “📍 Pedirle su dirección por WhatsApp”.";
+  let psTab = "cobrar";
+  const psPaquetes = (c) => (c.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
+  const psEnvios = (c) => { const ids = new Set(c.paqueteIds || []); return swmData.envios.filter((e) => e.status !== "cancelado" && (e.paqueteIds || []).some((x) => ids.has(x))); };
+  function psEtapa(c) {
+    if (c.status === "cancelado") return "terminadas";
+    if (["solicitud", "cotizado"].includes(c.status)) return "cobrar";
+    if (c.status === "pagado") return "pagadas";
+    const ps = psPaquetes(c).filter((p) => p.status !== "cancelado");
+    return ps.length && ps.every((p) => ["enviado", "entregado"].includes(p.status)) ? "terminadas" : "envio";
+  }
+  const PS_TABS = [
+    ["cobrar", "💳 Por cobrar"],
+    ["pagadas", "✅ Pagadas · por comprar"],
+    ["envio", "🚚 Por mandar"],
+    ["terminadas", "🎁 Terminadas"],
+  ];
+  const psCasilleroLink = () => `${location.origin}/?ver=direccion-americana`;
+  function psDireccionWa(c, cruzo) {
+    const wa = waLinkFromPhone(c.phone);
+    const nombre = String(c.name || "").split(/\s+/)[0];
+    const txt = `Hola${nombre ? ` ${nombre}` : ""} 💕 ${cruzo ? `Tu compra ${c.folio} ya está en México 🇲🇽` : `Ya tengo tu compra ${c.folio} 🛍️`}. Para mandártela necesito tu dirección: ponla aquí en "Tu dirección de envío en México" (entra con tu correo ${c.email}) y en cuanto la tenga te llega el cobro del envío.\n${psCasilleroLink()}`;
+    return wa ? `${wa}?text=${encodeURIComponent(txt)}` : `https://wa.me/?text=${encodeURIComponent(txt)}`;
+  }
+  // Le avisa a la clienta lo que sigue según cómo va su compra.
+  function psSiguienteHTML(c) {
+    const pk = psPaquetes(c).filter((p) => p.status !== "cancelado");
+    const envs = psEnvios(c);
+    const out = [];
+    if (c.status === "cotizado" && c.pago && c.pago.status === "pendiente") {
+      out.push(`<button type="button" class="btn-secondary" data-swm-aprobar="compra:${escapeHtml(c.id)}" style="padding:6px 12px;font-size:13px;">✅ Ya me pagó por fuera</button>`);
+    }
+    if (c.status === "pagado") {
+      out.push(c.yaComprado
+        ? `<button type="button" class="btn-primary" data-ps-en-mano="${escapeHtml(c.id)}">📦 Ya tengo sus productos (en EE.UU.)</button><span class="meta">Le aviso que ya los tienes y le pido su dirección.</span>`
+        : `<span class="meta">Cuando la compres, llena abajo "Ya compré" con su número de orden.</span>`);
+    }
+    if (c.status === "comprado") {
+      const cruzo = pk.some((p) => p.enMexicoAt);
+      const sinEnvio = cruzo && !envs.length;
+      if (sinEnvio) out.push(`<div class="meta" style="color:#b33660;font-weight:700;">⚠️ Ya cruzó pero todavía no tiene su dirección de envío guardada: pídesela.</div>`);
+      if (!envs.length) out.push(`<a class="btn-secondary" style="text-decoration:none;padding:6px 12px;font-size:13px;" target="_blank" rel="noopener" href="${escapeHtml(psDireccionWa(c, cruzo))}">📍 Pedirle su dirección por WhatsApp</a>`);
+    }
+    return out.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;">${out.join("")}</div>` : "";
+  }
+  function psCard(c) {
+    const pk = psPaquetes(c).filter((p) => !["enviado", "entregado", "cancelado"].includes(p.status) || psEtapa(c) === "terminadas");
+    const envs = psEnvios(c);
+    const enEnvio = new Set(envs.flatMap((e) => e.paqueteIds || []));
+    return `<div class="ps-wrap" style="border:2px solid #f6dfe7;border-radius:18px;padding:10px;margin:12px 0;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
+        <button type="button" class="btn-secondary" data-ps-factura="${escapeHtml(c.id)}" style="padding:6px 12px;font-size:13px;">📄 Ver / descargar factura</button>
+        ${c.yaComprado ? `<span class="meta">🛒 Comprado en tienda${c.fechaCompra ? ` el ${escapeHtml(new Date(`${c.fechaCompra}T12:00:00`).toLocaleDateString("es-MX", { day: "numeric", month: "long" }))}` : ""}</span>` : ""}
+      </div>
+      ${swmCompraCard(c)}
+      ${psSiguienteHTML(c)}
+      ${pk.filter((p) => !enEnvio.has(p.id)).map(swmPaqueteCard).join("")}
+      ${envs.map(swmEnvioCard).join("")}
+    </div>`;
+  }
+
+  function renderPsAdmin() {
+    const label = document.querySelector("#swm-panel .filters-label");
+    if (label) label.textContent = "🛍️ Personal shopper";
+    const ayuda = document.querySelector("#swm-panel details.help p");
+    if (ayuda) ayuda.textContent = PS_AYUDA;
+    const compras = swmData.compras;
+    const cuenta = (k) => compras.filter((c) => psEtapa(c) === k).length;
+    document.getElementById("swm-filters").innerHTML = `${PS_TABS.map(([k, l]) => `<button type="button" class="btn-secondary ${psTab === k ? "on" : ""}" data-ps-tab="${k}">${l} (${cuenta(k)})</button>`).join("")}
+      <input type="search" id="swm-search" placeholder="🔍 Busca por clienta, folio, tienda, producto…" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
+      <button type="button" class="btn-primary" data-swm-nc-toggle>🧾 Nueva factura</button>
+      <div id="swm-nc-box" style="width:100%;">${swmNuevaCompraOpen ? swmNuevaCompraForm(null, { ps: true }) : ""}</div>`;
+    const q = swmSearch.trim();
+    const match = (c) => !q || swmMatches(c, q) || buscaEnTodo((c.cotizacion && c.cotizacion.items || []).map((x) => x.nombre), q);
+    const lista = q ? compras.filter(match) : compras.filter((c) => psEtapa(c) === psTab);
+    lista.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    const vacio = { cobrar: "No hay facturas por cobrar. Toca “🧾 Nueva factura” para hacer una.", pagadas: "No hay compras pagadas pendientes de comprar.", envio: "No hay compras por mandar.", terminadas: "Todavía no hay compras terminadas." }[psTab];
+    document.getElementById("swm-empty").style.display = "none";
+    document.getElementById("swm-list").innerHTML = (q ? globalHitsHTML(q, "swm") : "")
+      + (lista.map(psCard).join("") || `<p style="color:#5f5866;font-size:14px;">${q ? `No encontré nada con "${escapeHtml(q)}".` : vacio}</p>`);
+  }
+
+  /* Factura para mandarle a la clienta (se abre en otra pestaña; de ahí se
+     imprime o se guarda en PDF). */
+  function psFacturaHTML(c) {
+    const q = c.cotizacion || {};
+    const items = (q.items || []).filter((x) => !x.envio);
+    const envioTienda = (q.items || []).find((x) => x.envio);
+    const usd = (n) => `US$${(Number(n) || 0).toFixed(2)}`;
+    const conUSD = items.some((x) => x.precioUSD > 0);
+    const subUSD = items.reduce((t, x) => t + (x.precioUSD || 0) * x.cantidad, 0);
+    const tax = q.taxPct != null ? q.taxPct : 0;
+    const taxUSD = Math.round(subUSD * tax) / 100;
+    const totUSD = subUSD + taxUSD + (envioTienda ? envioTienda.precioUSD || 0 : 0);
+    const fecha = new Date(c.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+    const pagada = c.pago && c.pago.status === "pagado";
+    const fila = (a, b, strong) => `<tr${strong ? ' class="strong"' : ""}><td>${a}</td><td class="r">${b}</td></tr>`;
+    return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Factura ${escapeHtml(c.folio)} · Alpacca</title>
+<style>
+  body{font-family:Inter,system-ui,sans-serif;color:#2b1f25;background:#fdf2f6;margin:0;padding:24px 12px;}
+  .hoja{max-width:720px;margin:0 auto;background:#fff;border-radius:18px;padding:28px 24px;box-shadow:0 2px 20px rgba(196,70,110,.08);}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;border-bottom:2px solid #f6dfe7;padding-bottom:16px;}
+  .top img{height:56px} h1{font-size:20px;margin:0 0 4px;color:#c4466e} .muted{color:#7d6570;font-size:13px;line-height:1.5}
+  table{width:100%;border-collapse:collapse;margin-top:16px;font-size:14px} th{text-align:left;font-size:12px;color:#7d6570;border-bottom:1px solid #f6dfe7;padding:8px 6px}
+  td{padding:8px 6px;border-bottom:1px solid #f9edf2;vertical-align:top} .r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .tot{margin-top:14px;margin-left:auto;max-width:360px;font-size:14px} .tot td{border:none;padding:4px 6px} .tot .strong td{font-size:18px;font-weight:800;color:#c4466e;border-top:2px solid #f6dfe7;padding-top:10px}
+  .pill{display:inline-block;border-radius:999px;padding:4px 12px;font-weight:700;font-size:13px} .ok{background:#eaf8f0;color:#17803d} .pend{background:#fff1d8;color:#8a5a00}
+  .pagar{margin-top:18px;background:#fdf2f6;border-radius:12px;padding:12px 14px;font-size:14px;word-break:break-all}
+  .acc{max-width:720px;margin:14px auto 0;display:flex;gap:8px;justify-content:center} .acc button{border:1.5px solid #f4b8cc;background:#fde8f0;color:#b33660;border-radius:999px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer}
+  @media print{body{background:#fff;padding:0}.hoja{box-shadow:none}.acc{display:none}}
+</style></head><body>
+<div class="hoja">
+  <div class="top">
+    <div><img src="${location.origin}/assets/logo-wordmark.png" alt="Alpacca"><div class="muted">Personal shopper · alpacca.mx</div></div>
+    <div style="text-align:right"><h1>Factura ${escapeHtml(c.folio)}</h1><div class="muted">${fecha}${c.fechaCompra ? `<br>Compra en tienda: ${escapeHtml(new Date(`${c.fechaCompra}T12:00:00`).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }))}` : ""}${c.tienda ? `<br>Tienda: ${escapeHtml(c.tienda)}` : ""}</div>
+      <div style="margin-top:6px;"><span class="pill ${pagada ? "ok" : "pend"}">${pagada ? "✅ Pagada" : "⏳ Pendiente de pago"}</span></div></div>
+  </div>
+  <div class="muted" style="margin-top:12px;">Para: <b style="color:#2b1f25">${escapeHtml(c.name || "")}</b>${c.phone ? ` · ${escapeHtml(c.phone)}` : ""}</div>
+  <table><thead><tr><th>Cant.</th><th>Artículo</th>${conUSD ? '<th class="r">Precio c/u</th><th class="r">Importe</th>' : '<th class="r">Importe</th>'}</tr></thead><tbody>
+    ${items.map((x) => `<tr><td>${x.cantidad}</td><td>${escapeHtml(x.nombre)}${x.tono ? `<div class="muted">${escapeHtml(x.tono)}</div>` : ""}</td>${conUSD ? `<td class="r">${usd(x.precioUSD)}</td><td class="r">${usd(x.precioUSD * x.cantidad)}</td>` : `<td class="r">${formatPrice(x.precio * x.cantidad)}</td>`}</tr>`).join("")}
+  </tbody></table>
+  <table class="tot"><tbody>
+    ${conUSD ? fila("Subtotal", usd(subUSD)) + (tax ? fila(`Tax (${tax}%)`, usd(taxUSD)) : "") + (envioTienda ? fila("Envío de la tienda", usd(envioTienda.precioUSD)) : "") + fila("Total en dólares", usd(totUSD)) + (q.tipoCambio ? fila(`Tipo de cambio`, `$${Number(q.tipoCambio).toFixed(2)} MXN`) : "") : ""}
+    ${fila("Productos en pesos", formatPrice(q.productos))}
+    ${q.cruce ? fila("Comisión y cruce a México (15%)", formatPrice(q.cruce)) : ""}
+    ${q.descuento ? fila(`Descuento${q.cupon ? ` (${escapeHtml(q.cupon)})` : ""}`, `−${formatPrice(q.descuento)}`) : ""}
+    ${fila("Total a pagar", formatPrice(q.total), true)}
+  </tbody></table>
+  ${pagada ? "" : `<div class="pagar">💳 Págala con tarjeta o transferencia aquí: <b>${escapeHtml(swmCompraLink(c))}</b></div>`}
+  <p class="muted" style="margin-top:14px;">${c.cobro === "comision" ? "El cruce a México ya va incluido. " : "El cruce a México se cobra por peso cuando se envíe. "}El envío dentro de México se cobra aparte cuando tu compra cruce, según tu dirección.</p>
+</div>
+<div class="acc"><button onclick="window.print()">🖨️ Imprimir o guardar PDF</button></div>
+</body></html>`;
+  }
+
   function renderSwmAdmin() {
+    if (swmModo === "ps") { renderPsAdmin(); return; }
+    { const label = document.querySelector("#swm-panel .filters-label"); if (label) label.textContent = "🇺🇸 Dirección americana";
+      const ayuda = document.querySelector("#swm-panel details.help p"); if (ayuda) { if (!ayuda.dataset.swm) ayuda.dataset.swm = ayuda.textContent; ayuda.textContent = ayuda.dataset.swm; } }
     const pend = swmPendientes();
     const P = swmData.paquetes;
     const tabs = [
@@ -5404,12 +5550,19 @@ ${itemLines}
     }).filter(Boolean);
   }
   /* Sin "c": nueva cotización. Con "c": editar esa cotización (misma clienta). */
-  function swmNuevaCompraForm(c = null) {
+  function swmNuevaCompraForm(c = null, opts = {}) {
     const q = (c && c.cotizacion) || {};
-    const cobro = c ? c.cobro : "peso";
-    return `<div class="${c ? "" : "swm-card"}" data-swm-nc ${c ? `data-edit-id="${escapeHtml(c.id)}" style="margin-top:10px;border-top:2px dashed #f0d5e0;padding-top:10px;"` : ""}>
-      <h4><span>${c ? `✏️ Editar cotización ${escapeHtml(c.folio)}` : "🛍️ Nueva cotización (WhatsApp)"}</span></h4>
-      ${c ? `<div class="meta">Al guardar le llega un correo con la cotización corregida; el link que ya le mandaste sigue sirviendo.${q.cupon ? ` Tiene el cupón ${escapeHtml(q.cupon)}: el descuento se recalcula.` : ""}</div>
+    const ps = !!(opts.ps || (c && c.ps));
+    const cobro = c ? c.cobro : ps ? "comision" : "peso";
+    return `<div class="${c ? "" : "swm-card"}" data-swm-nc ${ps ? "data-ps=\"1\"" : ""} ${c ? `data-edit-id="${escapeHtml(c.id)}" style="margin-top:10px;border-top:2px dashed #f0d5e0;padding-top:10px;"` : ""}>
+      <h4><span>${c ? `✏️ Editar ${ps ? "factura" : "cotización"} ${escapeHtml(c.folio)}` : ps ? "🧾 Nueva factura · Personal shopper" : "🛍️ Nueva cotización (WhatsApp)"}</span></h4>
+      ${ps ? `<div class="grid">
+        <label class="swm-check" style="align-self:end;"><input type="checkbox" data-n="yaComprado" ${!c || c.yaComprado ? "checked" : ""}> 🛒 Ya lo compré en la tienda (tengo los tickets)</label>
+        <label>Fecha de la compra<input data-n="fechaCompra" type="date" value="${escapeHtml((c && c.fechaCompra) || new Date().toISOString().slice(0, 10))}"></label>
+      </div>` : ""}
+      ${!c && ps ? `<div class="meta">Pon lo que compraste (de los tickets, con el precio en dólares). Al guardarla le llega un correo y te doy el link y la factura para mandárselos por WhatsApp; ahí la paga (tarjeta o transferencia).</div>
+      <div class="grid"><label>Buscar a la clienta (código ALP-…, nombre, correo o teléfono)<input data-swm-buscar type="search"></label></div>
+      <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>` : c ? `<div class="meta">Al guardar le llega un correo con la cotización corregida; el link que ya le mandaste sigue sirviendo.${q.cupon ? ` Tiene el cupón ${escapeHtml(q.cupon)}: el descuento se recalcula.` : ""}</div>
       <input data-n="email" type="hidden" value="${escapeHtml(c.email)}">` : `<div class="meta">Arma la cotización con las capturas que te mandó. Al guardarla le llega un correo y te doy el link para mandárselo por WhatsApp; ahí la ve y la paga (tarjeta o transferencia).</div>
       <div class="grid"><label>Buscar a la clienta (código ALP-…, nombre, correo o teléfono)<input data-swm-buscar type="search"></label></div>
       <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>`}
@@ -5434,10 +5587,10 @@ ${itemLines}
         <label>Cruce<select data-n="cobro"><option value="peso" ${cobro === "peso" ? "selected" : ""}>Por peso (se cobra al enviar)</option><option value="comision" ${cobro === "comision" ? "selected" : ""}>15% del valor (se cobra ahora)</option></select></label>
         <label>Cruce 15% (vacío = automático)<input data-n="cruce" type="number" min="0" step="0.01"></label>
         <label>Nota para la clienta<input data-n="notaClienta" type="text" value="${escapeHtml((c && c.notaClienta) || "")}"></label>
-        <label>${c ? "Agregar capturas" : "Capturas"} (solo para ti)<input data-n="fotos" type="file" accept="image/*" multiple></label>
+        <label>${c ? "Agregar " : ""}${ps ? "Fotos de los tickets" : "Capturas"} (solo para ti)<input data-n="fotos" type="file" accept="image/*" multiple></label>
       </div>
       <div class="meta" data-swm-nc-total style="font-size:15px;"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-nc-save>${c ? "Guardar cambios" : "Guardar y sacar link"}</button><button type="button" class="btn-secondary" ${c ? "data-swm-nc-edit-cancel" : "data-swm-nc-toggle"}>Cancelar</button></div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-nc-save>${c ? "Guardar cambios" : ps ? "Guardar factura y sacar link" : "Guardar y sacar link"}</button><button type="button" class="btn-secondary" ${c ? "data-swm-nc-edit-cancel" : "data-swm-nc-toggle"}>Cancelar</button></div>
     </div>`;
   }
   function swmNcLeer(box) {
@@ -5726,6 +5879,23 @@ ${itemLines}
     const t = e.target;
     const tab = t.closest("[data-swm-tab]");
     if (tab) { swmTab = tab.dataset.swmTab; renderSwmAdmin(); return; }
+    const psT = t.closest("[data-ps-tab]");
+    if (psT) { psTab = psT.dataset.psTab; swmSearch = ""; renderSwmAdmin(); return; }
+    const psF = t.closest("[data-ps-factura]");
+    if (psF) {
+      const c = swmData.compras.find((x) => x.id === psF.dataset.psFactura);
+      const w = c && window.open("", "_blank");
+      if (w) { w.document.open(); w.document.write(psFacturaHTML(c)); w.document.close(); }
+      else if (c) alert("Tu navegador bloqueó la ventana nueva. Permite ventanas emergentes para alpacca.mx.");
+      return;
+    }
+    const psM = t.closest("[data-ps-en-mano]");
+    if (psM) {
+      if (!confirm("¿Ya tienes sus productos contigo en EE.UU.? Le aviso y le pido su dirección.")) return;
+      const data = await swmAct({ accion: "compra_en_mano", id: psM.dataset.psEnMano }, psM);
+      if (data) { psTab = "envio"; renderSwmAdmin(); showToast("📦 Listo. Cuando la cruces toca “🇲🇽 Ya cruzó a México” y su envío se arma solo."); }
+      return;
+    }
     const consToggle = t.closest("[data-cons-toggle]");
     if (consToggle) { swmConsolidarEmail = consToggle.dataset.consToggle; renderSwmAdmin(); return; }
     if (t.closest("[data-cons-save]")) {
@@ -5774,7 +5944,7 @@ ${itemLines}
     }
     if (t.closest("[data-swm-nc-toggle]")) {
       swmNuevaCompraOpen = !swmNuevaCompraOpen;
-      document.getElementById("swm-nc-box").innerHTML = swmNuevaCompraOpen ? swmNuevaCompraForm() : "";
+      document.getElementById("swm-nc-box").innerHTML = swmNuevaCompraOpen ? swmNuevaCompraForm(null, { ps: swmModo === "ps" }) : "";
       return;
     }
     if (t.closest("[data-swm-nc-edit]")) {
@@ -5824,16 +5994,19 @@ ${itemLines}
       if (!n("email").trim()) { alert("Busca a la clienta o pon su correo."); return; }
       if (!items.length || items.some((x) => !x.nombre || !(x.precioUSD > 0))) { alert("Cada artículo necesita nombre y precio en dólares."); return; }
       const fotos = (await Promise.all([...(box.querySelector('[data-n="fotos"]').files || [])].slice(0, 8).map(swmResize))).filter(Boolean);
+      const psExtra = box.dataset.ps ? { ps: true, yaComprado: !!(box.querySelector('[data-n="yaComprado"]') || {}).checked, fechaCompra: n("fechaCompra") } : {};
       if (box.dataset.editId) {
         const id = box.dataset.editId;
         swmEditCompraId = "";
-        const ok = await swmAct({ accion: "editar_compra", id, tienda: n("tienda"), items, taxPct: n("taxPct"), envioUSD: n("envioUSD"), cobro: n("cobro"), cruce: n("cruce"), notaClienta: n("notaClienta"), fotos }, ncSave);
+        const ok = await swmAct({ accion: "editar_compra", id, tienda: n("tienda"), items, taxPct: n("taxPct"), envioUSD: n("envioUSD"), cobro: n("cobro"), cruce: n("cruce"), notaClienta: n("notaClienta"), fotos, ...psExtra }, ncSave);
         if (!ok) swmEditCompraId = id;
         return;
       }
-      const data = await swmAct({ accion: "crear_compra", email: n("email"), name: n("name"), phone: n("phone"), tienda: n("tienda"), items, taxPct: n("taxPct"), envioUSD: n("envioUSD"), cobro: n("cobro"), cruce: n("cruce"), notaClienta: n("notaClienta"), fotos }, ncSave);
+      const data = await swmAct({ accion: "crear_compra", email: n("email"), name: n("name"), phone: n("phone"), tienda: n("tienda"), items, taxPct: n("taxPct"), envioUSD: n("envioUSD"), cobro: n("cobro"), cruce: n("cruce"), notaClienta: n("notaClienta"), fotos, ...psExtra }, ncSave);
       if (data && data.compra) {
-        swmNuevaCompraOpen = false; swmTab = "compras"; swmSearch = ""; renderSwmAdmin();
+        swmNuevaCompraOpen = false; swmSearch = "";
+        if (swmModo === "ps") psTab = "cobrar"; else swmTab = "compras";
+        renderSwmAdmin();
         if (!data.tieneCuenta) alert(`Ese correo todavía no tiene cuenta. Cuando ${data.compra.name || "la clienta"} la cree con ${data.compra.email}, verá su cotización.`);
         const card = document.querySelector(`[data-swm-id="${CSS.escape(data.compra.id)}"]`);
         if (card) { card.scrollIntoView({ behavior: "smooth", block: "start" }); card.style.outline = "3px solid #c4466e"; }
@@ -6445,6 +6618,7 @@ ${itemLines}
     resenas: { el: "reviews-panel", title: "⭐ Reseñas", nav: "mas" },
     usa: { el: "usa-orders-panel", title: "🛍️ Encargos USA", nav: "mas" },
     swm: { el: "swm-panel", title: "🇺🇸 Dirección americana" },
+    ps: { el: "swm-panel", title: "🛍️ Personal shopper" },
     ajustes: { el: "settings-view", title: "⚙️ Ajustes", nav: "mas" },
     papelera: { el: "trash-view", title: "🗑️ Papelera", nav: "mas" },
     revision: { el: "revision-view", title: "🔄 Revisión ABW", nav: "mas" },
@@ -6460,7 +6634,9 @@ ${itemLines}
       closeUsaClientDetailView();
     }
     currentView = view;
+    // Dos vistas pueden compartir el mismo panel (Personal shopper usa el de Dirección americana).
     Object.entries(VIEWS).forEach(([key, v]) => {
+      if (v.el === VIEWS[view].el && key !== view) return;
       const el = document.getElementById(v.el);
       el.style.display = key === view ? (v.display || "flex") : "none";
     });
@@ -6486,7 +6662,11 @@ ${itemLines}
     if (view === "restock" && !restockRequestsLoaded) loadRestockRequests();
     if (view === "resenas" && !reviewsLoaded) loadReviews();
     if (view === "usa" && !usaClientsLoaded) loadUsaClients();
-    if (view === "swm") { renderSwmAdmin(); loadSwm(); }
+    if (view === "swm" || view === "ps") {
+      if (swmModo !== (view === "ps" ? "ps" : "")) { swmSearch = ""; swmNuevaCompraOpen = false; }
+      swmModo = view === "ps" ? "ps" : "";
+      renderSwmAdmin(); loadSwm();
+    }
     window.scrollTo({ top: 0 });
   }
 

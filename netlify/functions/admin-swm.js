@@ -25,6 +25,9 @@
 //                     (corrige una cotización que todavía no se paga; si tenía cupón,
 //                      se recalcula el descuento)
 //   compra_comprada   { id, paquetes: [{ tienda, orden?, rastreo?, contenido }] }  (orden = número de orden de la tienda, solo para Mae)
+//   compra_en_mano    { id }  (Personal shopper en tienda: Mae ya tiene los productos en EE.UU.;
+//                     se crea su paquete ya recibido, sin cruzar, y se le avisa a la clienta)
+//   crear_compra/editar_compra aceptan además { ps: true, yaComprado?, fechaCompra? } (factura de Personal shopper)
 //   cotizar_envio     { id, envio, cruce?, consolidacion?, sinRegistro?, extras?, notaClienta? }
 //   revision_hecha    { id, fotos: [{ dataBase64, contentType }], nota? }  (fotos del contenido)
 //   separar_paquete   { id, nuevo: { contenido, valorUSD?, kg, alto, ancho, largo }, resto: { contenido?, valorUSD?, kg, alto, ancho, largo }, fotos? }
@@ -231,6 +234,8 @@ exports.handler = async (event) => {
             c.cobro = cobro;
             if (b.tienda != null) c.tienda = clip(b.tienda, 80);
             if (b.notaClienta != null) c.notaClienta = clip(b.notaClienta, 1000);
+            if (b.yaComprado != null) c.yaComprado = !!b.yaComprado;
+            if (b.fechaCompra != null) c.fechaCompra = clip(b.fechaCompra, 20);
             c.capturas = [...(c.capturas || []), ...fotos];
             c.pago = { status: "pendiente", monto: c.cotizacion.total };
             push(c, "editado");
@@ -252,6 +257,7 @@ exports.handler = async (event) => {
           id: randomUUID(), folio: await nextFolio("compra"), email,
           name: (cuenta && cuenta.name) || clip(b.name, 120), phone: (cuenta && cuenta.phone) || clip(b.phone, 30),
           origen: "whatsapp", tienda: clip(b.tienda, 80), links: "", notas: "", capturas: fotos, cobro, status: "cotizado",
+          ...(b.ps ? { ps: true } : {}), ...(b.yaComprado ? { yaComprado: true } : {}), ...(b.fechaCompra ? { fechaCompra: clip(b.fechaCompra, 20) } : {}),
           cotizacion: { items, productos, cruce, total: round2(productos + cruce), at: now(), ...extraUSD },
           pago: { status: "pendiente", monto: round2(productos + cruce) }, paqueteIds: [],
           notaClienta: clip(b.notaClienta, 1000), notaPrivada: "",
@@ -312,6 +318,26 @@ exports.handler = async (event) => {
           <h2 style="margin:0 0 8px;font-size:20px;">¡Compra hecha!</h2>
           <p style="font-size:14px;">Ya compré tus productos. Va${lista.length > 1 ? "n" : ""} en camino a nuestro almacén ${lista.length} paquete${lista.length > 1 ? "s" : ""}; te aviso cuando llegue${lista.length > 1 ? "n" : ""}.</p>`);
         return json(200, { compra: rec });
+      }
+
+      case "compra_en_mano": {
+        const compra = await getRecord("compra", id);
+        if (!compra) return json(404, { error: "No existe esa compra." });
+        if (compra.status !== "pagado") return json(409, { error: compra.status === "comprado" ? "Ya la habías marcado." : "Primero tiene que estar pagada." });
+        const resumen = clip(((compra.cotizacion && compra.cotizacion.items) || []).filter((i) => !i.envio).map((i) => `${i.cantidad > 1 ? `${i.cantidad}× ` : ""}${i.nombre}`).join(", "), 300);
+        const p = {
+          id: randomUUID(), folio: await nextFolio("paquete"), email: compra.email, name: compra.name, phone: compra.phone,
+          origen: "compra", compraId: compra.id, tienda: compra.tienda || "Personal shopper", rastreo: "", contenido: resumen, valorUSD: 0, cobro: compra.cobro,
+          crucePagado: compra.cobro === "comision", status: "recibido", receivedAt: now(), kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0, fotos: [],
+          notaClienta: "", notaPrivada: "", history: [{ at: now(), status: "recibido_usa", por: "personal_shopper" }], createdAt: now(), updatedAt: now(),
+        };
+        await saveRecord("paquete", p);
+        const rec = await mutateRecord("compra", id, (c) => { c.paqueteIds = [...(c.paqueteIds || []), p.id]; c.status = "comprado"; push(c, "comprado"); return c; });
+        await avisar(rec, `ya tengo tus productos ${rec.folio} 🛍️`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">¡Ya tengo tus productos!</h2>
+          <p style="font-size:14px;">Tu compra ${esc(rec.folio)} ya está conmigo en Estados Unidos 🇺🇸. Te aviso en cuanto cruce a México para mandártela.</p>
+          <p style="font-size:14px;">Para mandártela necesito tu dirección: si todavía no la pones, entra a tu casillero (alpacca.mx/?ver=direccion-americana) y ponla en "Tu dirección de envío en México".</p>`);
+        return json(200, { compra: rec, paquete: p });
       }
 
       case "cotizar_envio": {
