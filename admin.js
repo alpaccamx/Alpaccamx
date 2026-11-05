@@ -5182,7 +5182,7 @@ ${itemLines}
      dirección y envío. Usa la misma información y los mismos botones que
      Dirección americana (comparten el panel swm-panel). ---------- */
   let swmModo = ""; // "ps" = vista de Personal shopper
-  const PS_AYUDA = "1) Toca “🧾 Nueva factura”: busca a la clienta, sube la foto de tu factura y pon el total en pesos. 2) Mándale el link por WhatsApp: ahí ve la foto de su factura y paga con tarjeta o transferencia. Si te paga por fuera, toca “✅ Ya me pagó (por fuera)”. 3) Ya pagada, toca “📦 Ya tengo sus productos” (le aviso y le pido su dirección). 4) Cuando la cruces, toca “🇲🇽 Ya cruzó a México” con el peso: su envío se arma solo con la dirección que puso. 5) Genera la guía: a ella le llega el cobro del envío y en cuanto paga, le llega su guía. Si no tiene dirección, toca “📍 Pedirle su dirección por WhatsApp”.";
+  const PS_AYUDA = "1) Toca “🧾 Nueva factura”: busca a la clienta, sube la foto de tu factura y pon el total en pesos. 2) Mándale el link por WhatsApp: ahí ve la foto de su factura y paga con tarjeta o transferencia. Si te paga por fuera, toca “✅ Ya me pagó (por fuera)”. 3) En cuanto paga, pasa sola a “🚚 Por mandar” y le pido su dirección de envío. 4) Cuando la cruces, toca “🇲🇽 Ya cruzó a México” con el peso: su envío se arma solo con la dirección que puso. 5) Genera la guía: a ella le llega el cobro del envío y en cuanto paga, le llega su guía. Si no tiene dirección, toca “📍 Pedirle su dirección por WhatsApp”.";
   let psTab = "cobrar";
   const psPaquetes = (c) => (c.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
   const psEnvios = (c) => { const ids = new Set(c.paqueteIds || []); return swmData.envios.filter((e) => e.status !== "cancelado" && (e.paqueteIds || []).some((x) => ids.has(x))); };
@@ -5195,7 +5195,7 @@ ${itemLines}
   }
   const PS_TABS = [
     ["cobrar", "💳 Por cobrar"],
-    ["pagadas", "✅ Pagadas · por comprar"],
+    ["pagadas", "✅ Pagadas"],
     ["envio", "🚚 Por mandar"],
     ["terminadas", "🎁 Terminadas"],
   ];
@@ -5213,7 +5213,7 @@ ${itemLines}
     const out = [];
     if (c.status === "pagado") {
       out.push(c.yaComprado
-        ? `<button type="button" class="btn-primary" data-ps-en-mano="${escapeHtml(c.id)}">📦 Ya tengo sus productos (en EE.UU.)</button><span class="meta">Le aviso que ya los tienes y le pido su dirección.</span>`
+        ? `<button type="button" class="btn-secondary" data-ps-en-mano="${escapeHtml(c.id)}">📦 Pasar a “Por mandar”</button><span class="meta">Normalmente pasa solo al pagarse.</span>`
         : `<span class="meta">Cuando la compres, llena abajo "Ya compré" con su número de orden.</span>`);
     }
     if (c.status === "comprado") {
@@ -5249,7 +5249,7 @@ ${itemLines}
     if (ayuda) ayuda.textContent = PS_AYUDA;
     const compras = swmData.compras;
     const cuenta = (k) => compras.filter((c) => psEtapa(c) === k).length;
-    document.getElementById("swm-filters").innerHTML = `${PS_TABS.map(([k, l]) => `<button type="button" class="btn-secondary ${psTab === k ? "on" : ""}" data-ps-tab="${k}">${l} (${cuenta(k)})</button>`).join("")}
+    document.getElementById("swm-filters").innerHTML = `${PS_TABS.filter(([k]) => k !== "pagadas" || cuenta(k) || psTab === k).map(([k, l]) => `<button type="button" class="btn-secondary ${psTab === k ? "on" : ""}" data-ps-tab="${k}">${l} (${cuenta(k)})</button>`).join("")}
       <input type="search" id="swm-search" placeholder="🔍 Busca por clienta, folio, tienda, producto…" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
       <button type="button" class="btn-primary" data-swm-nc-toggle>🧾 Nueva factura</button>
       <div id="swm-nc-box" style="width:100%;">${swmNuevaCompraOpen ? swmNuevaCompraForm(null, { ps: true }) : ""}</div>`;
@@ -5556,8 +5556,7 @@ ${itemLines}
     return `<div class="${c ? "" : "swm-card"}" data-swm-nc ${ps ? "data-ps=\"1\"" : ""} ${c ? `data-edit-id="${escapeHtml(c.id)}" style="margin-top:10px;border-top:2px dashed #f0d5e0;padding-top:10px;"` : ""}>
       <h4><span>${c ? `✏️ Editar ${ps ? "factura" : "cotización"} ${escapeHtml(c.folio)}` : ps ? "🧾 Nueva factura · Personal shopper" : "🛍️ Nueva cotización (WhatsApp)"}</span></h4>
       ${ps ? `<div class="grid">
-        <label class="swm-check" style="align-self:end;"><input type="checkbox" data-n="yaComprado" ${!c || c.yaComprado ? "checked" : ""}> 🛒 Ya lo compré en la tienda (tengo los tickets)</label>
-        <label>Fecha de la compra<input data-n="fechaCompra" type="date" value="${escapeHtml((c && c.fechaCompra) || new Date().toISOString().slice(0, 10))}"></label>
+        <label>Fecha de la compra en tienda<input data-n="fechaCompra" type="date" value="${escapeHtml((c && c.fechaCompra) || new Date().toISOString().slice(0, 10))}"></label>
       </div>` : ""}
       ${!c && ps ? `<div class="meta">Sube la foto de tu factura y pon el total. Al guardarla le llega un correo con la foto y te doy el link para mandárselo por WhatsApp; ahí ve su factura y la paga (tarjeta o transferencia). Si te paga por fuera, toca “✅ Ya me pagó (por fuera)”.</div>
       <div class="grid"><label>Buscar a la clienta (código ALP-…, nombre, correo o teléfono)<input data-swm-buscar type="search"></label></div>
@@ -5898,7 +5897,7 @@ ${itemLines}
     }
     const psM = t.closest("[data-ps-en-mano]");
     if (psM) {
-      if (!confirm("¿Ya tienes sus productos contigo en EE.UU.? Le aviso y le pido su dirección.")) return;
+      if (!confirm("¿Pasarla a “Por mandar”?")) return;
       const data = await swmAct({ accion: "compra_en_mano", id: psM.dataset.psEnMano }, psM);
       if (data) { psTab = "envio"; renderSwmAdmin(); showToast("📦 Listo. Cuando la cruces toca “🇲🇽 Ya cruzó a México” y su envío se arma solo."); }
       return;
@@ -6006,7 +6005,7 @@ ${itemLines}
         if (!box.dataset.editId && !files.length) { alert("Sube la foto de la factura."); return; }
         const facturaFotos = (await Promise.all(files.map(swmResize))).filter(Boolean);
         const body = { ps: true, totalMXN: total, facturaFotos, tienda: n("tienda"), notaClienta: n("notaClienta"),
-          yaComprado: !!(box.querySelector('[data-n="yaComprado"]') || {}).checked, fechaCompra: n("fechaCompra") };
+          yaComprado: true, fechaCompra: n("fechaCompra") };
         if (box.dataset.editId) {
           const id = box.dataset.editId;
           swmEditCompraId = "";
@@ -6028,7 +6027,7 @@ ${itemLines}
       if (!n("email").trim()) { alert("Busca a la clienta o pon su correo."); return; }
       if (!items.length || items.some((x) => !x.nombre || !(x.precioUSD > 0))) { alert("Cada artículo necesita nombre y precio en dólares."); return; }
       const fotos = (await Promise.all([...(box.querySelector('[data-n="fotos"]').files || [])].slice(0, 8).map(swmResize))).filter(Boolean);
-      const psExtra = box.dataset.ps ? { ps: true, yaComprado: !!(box.querySelector('[data-n="yaComprado"]') || {}).checked, fechaCompra: n("fechaCompra") } : {};
+      const psExtra = box.dataset.ps ? { ps: true, yaComprado: true, fechaCompra: n("fechaCompra") } : {};
       if (box.dataset.editId) {
         const id = box.dataset.editId;
         swmEditCompraId = "";

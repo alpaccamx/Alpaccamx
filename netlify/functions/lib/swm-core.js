@@ -258,6 +258,28 @@ async function crearPreferenciaMP(kind, rec, event) {
 
 /* Marca pagada una compra o un envío (desde el webhook o cuando Mae
    aprueba el comprobante). Idempotente. */
+/* Personal shopper en tienda: Mae ya tiene los productos en EE.UU. Se crea
+   su paquete ya recibido (sin cruzar) y la compra queda "comprado".
+   Idempotente: si ya tiene paquetes, no hace nada. */
+async function compraEnMano(id) {
+  const compra = await getRecord("compra", id);
+  if (!compra || compra.status !== "pagado" || (compra.paqueteIds || []).length) return null;
+  const now = new Date().toISOString();
+  const resumen = ((compra.cotizacion && compra.cotizacion.items) || []).filter((i) => !i.envio).map((i) => `${i.cantidad > 1 ? `${i.cantidad}× ` : ""}${i.nombre}`).join(", ").slice(0, 300);
+  const p = {
+    id: randomUUID(), folio: await nextFolio("paquete"), email: compra.email, name: compra.name, phone: compra.phone,
+    origen: "compra", compraId: compra.id, tienda: compra.tienda || "Personal shopper", rastreo: "", contenido: resumen, valorUSD: 0, cobro: compra.cobro,
+    crucePagado: compra.cobro === "comision", status: "recibido", receivedAt: now, kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0, fotos: [],
+    notaClienta: "", notaPrivada: "", history: [{ at: now, status: "recibido_usa", por: "personal_shopper" }], createdAt: now, updatedAt: now,
+  };
+  await saveRecord("paquete", p);
+  const rec = await mutateRecord("compra", id, (c) => {
+    c.paqueteIds = [...(c.paqueteIds || []), p.id]; c.status = "comprado";
+    c.history = [...(c.history || []), { at: now, status: "comprado" }]; return c;
+  });
+  return { compra: rec, paquete: p };
+}
+
 async function aplicarPago(kind, id, { metodo, paymentId, monto } = {}) {
   let changed = false;
   const rec = await mutateRecord(kind, id, (r) => {
@@ -281,6 +303,11 @@ async function aplicarPago(kind, id, { metodo, paymentId, monto } = {}) {
       ${kind === "compra" ? (rec.yaComprado ? "Ya tengo tus productos; te aviso cuando crucen a México. Si todavía no pones tu dirección de envío, ponla en tu casillero." : "Ya voy a hacer tu compra; te aviso cuando la registre.") : kind === "paquete" ? "Tu cruce ya quedó pagado; cuando pidas tu envío, solo pagas la guía." : rec.guia ? "Tu envío sale con esta guía; ahorita te la mando." : "Ya preparo tu envío; te mando la guía en cuanto salga."}</p>`);
     if (kind !== "paquete") await premiarReferido(kind, rec).catch((err) => console.error("swm premio referido:", err));
     if (kind === "envio" && rec.guia) return despacharConGuia(rec);
+    // Personal shopper: la compra ya está hecha; al pagarse pasa sola a "por mandar".
+    if (kind === "compra" && rec.yaComprado) {
+      const r = await compraEnMano(rec.id).catch((err) => { console.error("swm compra en mano:", err); return null; });
+      if (r) return r.compra;
+    }
   }
   return rec;
 }
@@ -380,6 +407,6 @@ async function todoDe(email) {
 
 module.exports = {
   lealtadDe, codigoReferido, premiosDe,
-  ALMACENAJE_DIAS, round2, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, cotizarEnvio, despacharConGuia, ponerCruceAnticipado, porPagar, envioAutomatico, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
+  ALMACENAJE_DIAS, round2, compraEnMano, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, cotizarEnvio, despacharConGuia, ponerCruceAnticipado, porPagar, envioAutomatico, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
   formatPriceMXN,
 };

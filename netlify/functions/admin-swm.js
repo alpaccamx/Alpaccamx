@@ -50,7 +50,7 @@ const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, g
 const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, SEPARAR, COMISION_PCT, LEALTAD_PCT } = require("./lib/swm-pricing.js");
 const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
 const { getCoupon, discountFor } = require("./lib/coupons.js");
-const { ALMACENAJE_DIAS, round2, cotizacionSugerida, cotizarEnvio, despacharConGuia, envioAutomatico, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
+const { ALMACENAJE_DIAS, round2, compraEnMano, cotizacionSugerida, cotizarEnvio, despacharConGuia, envioAutomatico, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
 
 const num = (v) => Math.max(0, parseFloat(v) || 0);
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
@@ -268,7 +268,7 @@ exports.handler = async (event) => {
           id: randomUUID(), folio: await nextFolio("compra"), email,
           name: (cuenta && cuenta.name) || clip(b.name, 120), phone: (cuenta && cuenta.phone) || clip(b.phone, 30),
           origen: "whatsapp", tienda: clip(b.tienda, 80), links: "", notas: "", capturas: fotos, cobro, status: "cotizado",
-          ...(b.ps ? { ps: true } : {}), ...(b.yaComprado ? { yaComprado: true } : {}), ...(b.fechaCompra ? { fechaCompra: clip(b.fechaCompra, 20) } : {}),
+          ...(b.ps ? { ps: true, yaComprado: true } : b.yaComprado ? { yaComprado: true } : {}), ...(b.fechaCompra ? { fechaCompra: clip(b.fechaCompra, 20) } : {}),
           ...(facturaFotos.length ? { facturaFotos } : {}),
           cotizacion: { items, productos, cruce, total: round2(productos + cruce), at: now(), ...extraUSD },
           pago: { status: "pendiente", monto: round2(productos + cruce) }, paqueteIds: [],
@@ -336,23 +336,10 @@ exports.handler = async (event) => {
       }
 
       case "compra_en_mano": {
-        const compra = await getRecord("compra", id);
-        if (!compra) return json(404, { error: "No existe esa compra." });
-        if (compra.status !== "pagado") return json(409, { error: compra.status === "comprado" ? "Ya la habías marcado." : "Primero tiene que estar pagada." });
-        const resumen = clip(((compra.cotizacion && compra.cotizacion.items) || []).filter((i) => !i.envio).map((i) => `${i.cantidad > 1 ? `${i.cantidad}× ` : ""}${i.nombre}`).join(", "), 300);
-        const p = {
-          id: randomUUID(), folio: await nextFolio("paquete"), email: compra.email, name: compra.name, phone: compra.phone,
-          origen: "compra", compraId: compra.id, tienda: compra.tienda || "Personal shopper", rastreo: "", contenido: resumen, valorUSD: 0, cobro: compra.cobro,
-          crucePagado: compra.cobro === "comision", status: "recibido", receivedAt: now(), kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0, fotos: [],
-          notaClienta: "", notaPrivada: "", history: [{ at: now(), status: "recibido_usa", por: "personal_shopper" }], createdAt: now(), updatedAt: now(),
-        };
-        await saveRecord("paquete", p);
-        const rec = await mutateRecord("compra", id, (c) => { c.paqueteIds = [...(c.paqueteIds || []), p.id]; c.status = "comprado"; push(c, "comprado"); return c; });
-        await avisar(rec, `ya tengo tus productos ${rec.folio} 🛍️`, `
-          <h2 style="margin:0 0 8px;font-size:20px;">¡Ya tengo tus productos!</h2>
-          <p style="font-size:14px;">Tu compra ${esc(rec.folio)} ya está conmigo en Estados Unidos 🇺🇸. Te aviso en cuanto cruce a México para mandártela.</p>
-          <p style="font-size:14px;">Para mandártela necesito tu dirección: si todavía no la pones, entra a tu casillero (alpacca.mx/?ver=direccion-americana) y ponla en "Tu dirección de envío en México".</p>`);
-        return json(200, { compra: rec, paquete: p });
+        // (Ya casi no se usa: al pagarse una factura de Personal shopper esto pasa solo.)
+        const r = await compraEnMano(id);
+        if (!r) return json(409, { error: "Esa compra no está pagada o ya estaba marcada." });
+        return json(200, r);
       }
 
       case "cotizar_envio": {
