@@ -5890,7 +5890,37 @@ ${itemLines}
   }
 
   /* Achica fotos del celular antes de subirlas (máx. 1600 px, JPEG). */
-  function swmResize(file) {
+  /* Fotos HEIC (las del iPhone): Chrome no las sabe leer, así que se
+     pasan a JPG en el servidor (admin-heic.js). Si una foto no se puede
+     leer, se avisa (antes se perdía sin decir nada). */
+  const swmEsHeic = (f) => /hei[cf]/i.test(f.type || "") || /\.(heic|heif)$/i.test(f.name || "");
+  const fileToBase64 = (f) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(f); });
+  let fotosFallidas = [];
+  let fotosFallidasTimer = null;
+  function swmFotoFallida(file) {
+    fotosFallidas.push(file.name || "foto");
+    clearTimeout(fotosFallidasTimer);
+    fotosFallidasTimer = setTimeout(() => {
+      alert(`⚠️ No pude leer ${fotosFallidas.length === 1 ? "esta foto" : `estas ${fotosFallidas.length} fotos`}: ${fotosFallidas.join(", ")}.\nNo se guardó${fotosFallidas.length === 1 ? "" : "ron"}. Prueba con una captura de pantalla o guárdala como JPG.`);
+      fotosFallidas = [];
+    }, 300);
+  }
+  async function swmResize(file) {
+    if (swmEsHeic(file)) {
+      if (file.size > 4.3 * 1024 * 1024) { swmFotoFallida(file); return null; }
+      try {
+        const res = await fetch("/.netlify/functions/admin-heic", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ dataBase64: await fileToBase64(file) }) });
+        const d = await res.json().catch(() => ({}));
+        if (res.ok && d.dataBase64) return { contentType: "image/jpeg", dataBase64: d.dataBase64 };
+      } catch (err) { /* abajo se avisa */ }
+      swmFotoFallida(file);
+      return null;
+    }
+    const r = await swmResizeImg(file);
+    if (!r) swmFotoFallida(file);
+    return r;
+  }
+  function swmResizeImg(file) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
