@@ -311,13 +311,24 @@
       const ps = allOrders.filter((o) => matchesSearch(o, q));
       if (ps.length) out.push({ go: "pedidos", label: "🧾 Pedidos", items: ps.slice(0, 5).map((o) => `#${orderNumber(o)} · ${(o.customer && o.customer.name) || ""}`), n: ps.length });
     }
-    if (desde !== "swm" && swmLoaded) {
-      const hits = [
-        ...swmData.envios.filter((r) => swmMatches(r, q)).map((r) => `${r.folio} · envío de ${r.name || r.email || ""}${r.direccion && r.direccion.nombre && r.direccion.nombre !== r.name ? ` para ${r.direccion.nombre}` : ""}`),
-        ...swmData.paquetes.filter((r) => swmMatches(r, q)).map((r) => `${r.folio} · paquete de ${r.name || r.etiqueta || "?"}`),
-        ...swmData.compras.filter((r) => swmMatches(r, q)).map((r) => `${r.folio} · compra de ${r.name || ""}`),
-      ];
-      if (hits.length) out.push({ go: "swm", label: "🇺🇸 Dirección americana", items: hits.slice(0, 5), n: hits.length });
+    if (swmLoaded) {
+      const D = swmDataFull || swmData;
+      const envLbl = (r) => `${r.folio} · envío de ${r.name || r.email || ""}${r.direccion && r.direccion.nombre && r.direccion.nombre !== r.name ? ` para ${r.direccion.nombre}` : ""}`;
+      if (desde !== "swm") {
+        const hits = [
+          ...D.envios.filter((r) => !envioEsPs(r, D) && swmMatches(r, q)).map(envLbl),
+          ...D.paquetes.filter((r) => !esPsPaquete(r) && swmMatches(r, q)).map((r) => `${r.folio} · paquete de ${r.name || r.etiqueta || "?"}`),
+        ];
+        if (hits.length) out.push({ go: "swm", label: "🇺🇸 Dirección americana", items: hits.slice(0, 5), n: hits.length });
+      }
+      if (desde !== "ps") {
+        const hits = [
+          ...D.compras.filter((r) => swmMatches(r, q) || buscaEnTodo(((r.cotizacion && r.cotizacion.items) || []).map((x) => x.nombre), q)).map((r) => `${r.folio} · compra de ${r.name || ""}`),
+          ...D.envios.filter((r) => envioEsPs(r, D) && swmMatches(r, q)).map(envLbl),
+          ...D.paquetes.filter((r) => esPsPaquete(r) && swmMatches(r, q)).map((r) => `${r.folio} · ${r.tienda || "compra"} de ${r.name || "?"}`),
+        ];
+        if (hits.length) out.push({ go: "ps", label: "🛍️ Personal shopper", items: hits.slice(0, 5), n: hits.length });
+      }
     }
     if (desde !== "preventa" && pvApartadosLigeros) {
       const aps = pvApartadosLigeros.filter((a) => buscaEnTodo([pvBuscarTexto(a)], q));
@@ -363,9 +374,10 @@
       syncFilterTabs();
       filterSearchEl.value = q;
       applyFilters();
-    } else if (go === "swm") {
+    } else if (go === "swm" || go === "ps") {
+      showView(go);
       swmSearch = q;
-      showView("swm");
+      renderSwmAdmin();
     } else if (go === "preventa") {
       showView("preventa");
       const id = b.dataset.globalFirst;
@@ -3782,7 +3794,8 @@ ${itemLines}
       { n: count("esperando_abw"), label: "Esperando ABW", hint: "Ya pedidos, en camino", go: "esperando_abw" },
       { n: count("por_enviar"), label: "Por enviar", hint: "Generar guía", go: "por_enviar", cls: "hot" },
       { n: count("guardado"), label: "No mandar todavía", hint: "La clienta va a pedir más", go: "guardado" },
-      { n: swmLoaded ? swmNewCount : "…", label: "Dirección americana", hint: "Cotizar, comprar o enviar", go: "swm", cls: "blue" },
+      { n: swmLoaded ? swmNewCount : "…", label: "Dirección americana", hint: "Paquetes y envíos de tus clientas", go: "swm", cls: "blue" },
+      { n: swmLoaded ? psCount : "…", label: "Personal shopper", hint: "Cobrar, comprar o mandar", go: "ps", cls: "pink" },
       { n: restockCount == null ? "…" : restockCount, label: "Avisos de restock", hint: "Clientas esperando", go: "restock" },
       { n: pvApartadosLigeros ? pvResumen().activos : "…", label: "Apartados de preventa", hint: pvApartadosLigeros && pvResumen().revisar ? `${pvResumen().revisar} comprobante(s) por revisar` : "Sephora Sale", go: "preventa", cls: "hot" },
     ];
@@ -4837,6 +4850,7 @@ ${itemLines}
   const baseTitle = document.title;
   let usaPendingCount = 0;
   let swmNewCount = 0;
+  let psCount = 0;
   let swmLoaded = false;
 
   function notifyEnabled() {
@@ -5023,6 +5037,31 @@ ${itemLines}
     .filter(([k, r]) => r.pago && r.pago.status === "revision" && (k === "paquete" ? !r.crucePagado : r.status === "cotizado"));
 
   /* Lo que requiere que Mae haga algo. */
+  /* Dirección americana = lo que la clienta compra por su cuenta.
+     Personal shopper = lo que Mae compra por ella (compras y sus paquetes y
+     envíos). Cada sección enseña solo lo suyo; al buscar se avisan entre sí. */
+  const esPsPaquete = (p) => p.origen === "compra";
+  function envioEsPs(e, d = swmData) {
+    const ps = (e.paqueteIds || []).map((id) => d.paquetes.find((p) => p.id === id)).filter(Boolean);
+    return ps.length > 0 && ps.every(esPsPaquete);
+  }
+  function swmSoloDA(d) {
+    return { ...d, compras: [], paquetes: d.paquetes.filter((p) => !esPsPaquete(p)), envios: d.envios.filter((e) => !envioEsPs(e, d)) };
+  }
+  // Corre fn con swmData filtrado a solo Dirección americana.
+  let swmDataFull = null; // mientras se dibuja Dirección americana, aquí queda todo
+  function conSoloDA(fn) {
+    const full = swmData;
+    swmDataFull = full;
+    swmData = swmSoloDA(full);
+    try { return fn(); } finally { swmData = full; swmDataFull = null; }
+  }
+  function psPendientes() {
+    const envs = swmData.envios.filter((e) => envioEsPs(e));
+    return swmData.compras.filter((c) => ["solicitud", "pagado"].includes(c.status) || (c.pago && c.pago.status === "revision")).length
+      + envs.filter((e) => ["solicitado", "pagado", "en_mexico"].includes(e.status) || (e.pago && e.pago.status === "revision")).length;
+  }
+
   function swmPendientes() {
     return {
       cotizarCompra: swmData.compras.filter((c) => c.status === "solicitud"),
@@ -5048,12 +5087,13 @@ ${itemLines}
       if (!res.ok) { if (!quiet) setStatus(data.error || "No se pudo cargar la dirección americana."); return; }
       swmData = data;
       swmLoaded = true;
-      const pend = swmPendientes();
+      const pend = conSoloDA(swmPendientes);
       swmNewCount = pend.cotizarCompra.length + pend.comprar.length + pend.cotizarEnvio.length + pend.enviar.length + pend.pagos.length + pend.sinDuena.length + pend.extras.length + pend.correcciones.length;
       const badge = document.getElementById("swm-badge");
       badge.textContent = swmNewCount ? String(swmNewCount) : "";
       badge.style.display = swmNewCount ? "inline-flex" : "none";
-      const psN = swmData.compras.filter((c) => c.status === "pagado" || (c.pago && c.pago.status === "revision")).length;
+      const psN = psPendientes();
+      psCount = psN;
       const psBadge = document.getElementById("ps-nav-badge");
       if (psBadge) { psBadge.textContent = psN ? String(psN) : ""; psBadge.style.display = psN ? "inline-flex" : "none"; }
       const navBadge = document.getElementById("swm-nav-badge");
@@ -5182,8 +5222,9 @@ ${itemLines}
      dirección y envío. Usa la misma información y los mismos botones que
      Dirección americana (comparten el panel swm-panel). ---------- */
   let swmModo = ""; // "ps" = vista de Personal shopper
-  const PS_AYUDA = "1) Toca “🧾 Nueva factura”: busca a la clienta, sube la foto de tu factura y pon el total en pesos. 2) Mándale el link por WhatsApp: ahí ve la foto de su factura y paga con tarjeta o transferencia. Si te paga por fuera, toca “✅ Ya me pagó (por fuera)”. 3) En cuanto paga, pasa sola a “🚚 Por mandar” y le pido su dirección de envío. 4) Cuando la cruces, toca “🇲🇽 Ya cruzó a México” con el peso: su envío se arma solo con la dirección que puso. 5) Genera la guía: a ella le llega el cobro del envío y en cuanto paga, le llega su guía. Si no tiene dirección, toca “📍 Pedirle su dirección por WhatsApp”.";
+  const PS_AYUDA = "Aquí está todo lo que compras tú por tus clientas, en tienda o en línea (lo que ellas compran por su cuenta está en Dirección americana). 1) Compra en tienda: toca “🧾 Nueva factura”, busca a la clienta, sube la foto de tu factura y pon el total en pesos. Compra en línea: “🛒 Nueva cotización” con los artículos en dólares; cuando la pague, la compras y la registras con “Ya compré”. También llegan aquí las que te piden en “Que Mae compre por mí”. 2) Mándale el link por WhatsApp: ahí ve la foto de su factura y paga con tarjeta o transferencia. Si te paga por fuera, toca “✅ Ya me pagó (por fuera)”. 3) En cuanto paga, pasa sola a “🚚 Por mandar” y le pido su dirección de envío. 4) Cuando la cruces, toca “🇲🇽 Ya cruzó a México” con el peso: su envío se arma solo con la dirección que puso. 5) Genera la guía: a ella le llega el cobro del envío y en cuanto paga, le llega su guía. Si no tiene dirección, toca “📍 Pedirle su dirección por WhatsApp”.";
   let psTab = "cobrar";
+  let psNuevaTipo = "tienda"; // "tienda" (factura en foto) o "linea" (cotización con artículos en dólares)
   const psPaquetes = (c) => (c.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
   const psEnvios = (c) => { const ids = new Set(c.paqueteIds || []); return swmData.envios.filter((e) => e.status !== "cancelado" && (e.paqueteIds || []).some((x) => ids.has(x))); };
   function psEtapa(c) {
@@ -5251,15 +5292,17 @@ ${itemLines}
     const cuenta = (k) => compras.filter((c) => psEtapa(c) === k).length;
     document.getElementById("swm-filters").innerHTML = `${PS_TABS.filter(([k]) => k !== "pagadas" || cuenta(k) || psTab === k).map(([k, l]) => `<button type="button" class="btn-secondary ${psTab === k ? "on" : ""}" data-ps-tab="${k}">${l} (${cuenta(k)})</button>`).join("")}
       <input type="search" id="swm-search" placeholder="🔍 Busca por clienta, folio, tienda, producto…" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
-      <button type="button" class="btn-primary" data-swm-nc-toggle>🧾 Nueva factura</button>
-      <div id="swm-nc-box" style="width:100%;">${swmNuevaCompraOpen ? swmNuevaCompraForm(null, { ps: true }) : ""}</div>`;
+      <button type="button" class="btn-primary" data-swm-nc-toggle data-ps-tipo="tienda">🧾 Nueva factura (compra en tienda)</button>
+      <button type="button" class="btn-secondary" data-swm-nc-toggle data-ps-tipo="linea">🛒 Nueva cotización (compra en línea)</button>
+      <div id="swm-nc-box" style="width:100%;">${swmNuevaCompraOpen ? swmNuevaCompraForm(null, { ps: psNuevaTipo !== "linea" }) : ""}</div>`;
     const q = swmSearch.trim();
-    const match = (c) => !q || swmMatches(c, q) || buscaEnTodo((c.cotizacion && c.cotizacion.items || []).map((x) => x.nombre), q);
+    const match = (c) => !q || swmMatches(c, q) || buscaEnTodo((c.cotizacion && c.cotizacion.items || []).map((x) => x.nombre), q)
+      || psPaquetes(c).some((p) => swmMatches(p, q)) || psEnvios(c).some((e) => swmMatches(e, q));
     const lista = q ? compras.filter(match) : compras.filter((c) => psEtapa(c) === psTab);
     lista.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     const vacio = { cobrar: "No hay facturas por cobrar. Toca “🧾 Nueva factura” para hacer una.", pagadas: "No hay compras pagadas pendientes de comprar.", envio: "No hay compras por mandar.", terminadas: "Todavía no hay compras terminadas." }[psTab];
     document.getElementById("swm-empty").style.display = "none";
-    document.getElementById("swm-list").innerHTML = (q ? globalHitsHTML(q, "swm") : "")
+    document.getElementById("swm-list").innerHTML = (q ? globalHitsHTML(q, "ps") : "")
       + (lista.map(psCard).join("") || `<p style="color:#5f5866;font-size:14px;">${q ? `No encontré nada con "${escapeHtml(q)}".` : vacio}</p>`);
   }
 
@@ -5318,6 +5361,10 @@ ${itemLines}
 
   function renderSwmAdmin() {
     if (swmModo === "ps") { renderPsAdmin(); return; }
+    conSoloDA(renderDaAdmin);
+  }
+
+  function renderDaAdmin() {
     { const label = document.querySelector("#swm-panel .filters-label"); if (label) label.textContent = "🇺🇸 Dirección americana";
       const ayuda = document.querySelector("#swm-panel details.help p"); if (ayuda) { if (!ayuda.dataset.swm) ayuda.dataset.swm = ayuda.textContent; ayuda.textContent = ayuda.dataset.swm; } }
     const pend = swmPendientes();
@@ -5328,7 +5375,6 @@ ${itemLines}
       ["almacen", `📥 En almacén (${P.filter((p) => p.status === "recibido" && !p.enMexicoAt).length})`],
       ["mexico", `🇲🇽 En México (${P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length})`],
       ["sindueña", `❓ Sin dueña (${P.filter((p) => p.status === "sin_dueña").length})`],
-      ["compras", `🛍️ Compras (${swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status)).length})`],
       ["envios", `📦 Por mandar (${swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status)).length})`],
       ["enviados", `✈️ Enviados (${swmData.envios.filter((e) => e.status === "enviado").length})`],
       ["entregados", `✅ Entregados (${swmData.envios.filter((e) => e.status === "entregado").length})`],
@@ -5336,9 +5382,7 @@ ${itemLines}
     ];
     document.getElementById("swm-filters").innerHTML = `${tabs.map(([k, l]) => `<button type="button" class="btn-secondary ${swmTab === k ? "on" : ""}" data-swm-tab="${k}">${l}</button>`).join("")}
       <input type="search" id="swm-search" placeholder="🔍 Busca por nombre, folio, rastreo, calle, ciudad, estado, CP…" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
-      <button type="button" class="btn-primary" data-swm-nc-toggle>🛍️ Nueva cotización (WhatsApp)</button>
       <button type="button" class="btn-primary" data-swm-sinreg-toggle>📦 Llegó un paquete sin registrar</button>
-      <div id="swm-nc-box" style="width:100%;">${swmNuevaCompraOpen ? swmNuevaCompraForm() : ""}</div>
       <div id="swm-sinreg-box" style="width:100%;">${swmSinRegistroOpen ? swmSinRegistroForm() : ""}</div>`;
     let html = "";
     const sec = (title, items, fn) => (items.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">${title} (${items.length})</h4>${swmPorClienta(items, fn, title)}` : "");
@@ -5554,7 +5598,7 @@ ${itemLines}
     const ps = !!(opts.ps || (c && c.ps));
     const cobro = c ? c.cobro : ps ? "comision" : "peso";
     return `<div class="${c ? "" : "swm-card"}" data-swm-nc ${ps ? "data-ps=\"1\"" : ""} ${c ? `data-edit-id="${escapeHtml(c.id)}" style="margin-top:10px;border-top:2px dashed #f0d5e0;padding-top:10px;"` : ""}>
-      <h4><span>${c ? `✏️ Editar ${ps ? "factura" : "cotización"} ${escapeHtml(c.folio)}` : ps ? "🧾 Nueva factura · Personal shopper" : "🛍️ Nueva cotización (WhatsApp)"}</span></h4>
+      <h4><span>${c ? `✏️ Editar ${ps ? "factura" : "cotización"} ${escapeHtml(c.folio)}` : ps ? "🧾 Nueva factura · compra en tienda" : "🛒 Nueva cotización · compra en línea"}</span></h4>
       ${ps ? `<div class="grid">
         <label>Fecha de la compra en tienda<input data-n="fechaCompra" type="date" value="${escapeHtml((c && c.fechaCompra) || new Date().toISOString().slice(0, 10))}"></label>
       </div>` : ""}
@@ -5949,8 +5993,11 @@ ${itemLines}
       return;
     }
     if (t.closest("[data-swm-nc-toggle]")) {
+      const tipo = t.closest("[data-swm-nc-toggle]").dataset.psTipo;
+      if (tipo && swmNuevaCompraOpen && tipo !== psNuevaTipo) swmNuevaCompraOpen = false; // cambia de una a otra
+      if (tipo) psNuevaTipo = tipo;
       swmNuevaCompraOpen = !swmNuevaCompraOpen;
-      document.getElementById("swm-nc-box").innerHTML = swmNuevaCompraOpen ? swmNuevaCompraForm(null, { ps: swmModo === "ps" }) : "";
+      document.getElementById("swm-nc-box").innerHTML = swmNuevaCompraOpen ? swmNuevaCompraForm(null, { ps: swmModo === "ps" && psNuevaTipo !== "linea" }) : "";
       return;
     }
     if (t.closest("[data-swm-nc-edit]")) {
@@ -6038,7 +6085,7 @@ ${itemLines}
       const data = await swmAct({ accion: "crear_compra", email: n("email"), name: n("name"), phone: n("phone"), tienda: n("tienda"), items, taxPct: n("taxPct"), envioUSD: n("envioUSD"), cobro: n("cobro"), cruce: n("cruce"), notaClienta: n("notaClienta"), fotos, ...psExtra }, ncSave);
       if (data && data.compra) {
         swmNuevaCompraOpen = false; swmSearch = "";
-        if (swmModo === "ps") psTab = "cobrar"; else swmTab = "compras";
+        psTab = "cobrar";
         renderSwmAdmin();
         if (!data.tieneCuenta) alert(`Ese correo todavía no tiene cuenta. Cuando ${data.compra.name || "la clienta"} la cree con ${data.compra.email}, verá su cotización.`);
         const card = document.querySelector(`[data-swm-id="${CSS.escape(data.compra.id)}"]`);
@@ -6935,7 +6982,7 @@ ${itemLines}
     if (!c) return;
     const go = c.dataset.homeGo;
     if (go === "abw") showView("compras");
-    else if (go === "restock" || go === "swm" || go === "preventa") showView(go);
+    else if (go === "restock" || go === "swm" || go === "ps" || go === "preventa") showView(go);
     else goToOrders(go);
   });
   document.getElementById("abw-filtro").addEventListener("click", (e) => {
