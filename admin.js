@@ -5172,7 +5172,8 @@ ${itemLines}
         if (!res.ok || !(data.rates || []).length) { ratesEl.textContent = ""; errEl.textContent = data.error || "No hay opciones de envío para esos datos."; return; }
         swmGuiaState[id] = { rates: data.rates, selected: null, tabla: data.tabla != null ? Number(data.tabla) : null };
         const nota = card.querySelector("[data-guia-tabla]");
-        if (nota) nota.innerHTML = data.tabla != null ? `🧾 Envío que le cobras según tu tabla (${weight} kg a CP ${escapeHtml(g("cp"))}): <b>${formatPrice(data.tabla)}</b>. La paquetería que elijas es lo que te cuesta a ti la guía.` : "⚠️ Su código postal no está en tu tabla (o pesa más de 30 kg): se le cobra lo que cueste la paquetería que elijas <b>+ $100</b>. Ella solo ve el total del envío, sin desglose.";
+        if (nota) nota.innerHTML = `${data.tabla != null ? `🧾 Envío según tu tabla (${weight} kg a CP ${escapeHtml(g("cp"))}): <b>${formatPrice(data.tabla)}</b>. La paquetería que elijas es lo que te cuesta a ti la guía.` : "⚠️ Su código postal no está en tu tabla (o pesa más de 30 kg): se le cobra lo que cueste la paquetería que elijas <b>+ $100</b>. Ella solo ve el total del envío, sin desglose."}
+          <label style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-weight:600;">💲 Cóbrale de envío <input data-g="cobrar" type="number" min="0" step="1" placeholder="${data.tabla != null ? Math.round(data.tabla) : "tabla"}" style="width:110px;padding:6px 8px;"> <span style="font-weight:400;color:#6b6370;">(vacío = ${data.tabla != null ? "lo de tu tabla" : "paquetería + $100"})</span></label>`;
         const badge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
         ratesEl.innerHTML = data.rates.map((r, i) => `<label class="rate-option" data-guia-rate="${i}"><input type="radio" name="guia-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}</span></label>`).join("");
       } catch (err) { ratesEl.textContent = ""; errEl.textContent = "No se pudo conectar con el servidor."; }
@@ -5194,7 +5195,7 @@ ${itemLines}
     try {
       const res = await fetch("/.netlify/functions/admin-generate-guide", {
         method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ envioId: id, weight, total: r.total, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
+        body: JSON.stringify({ envioId: id, weight, total: r.total, cobrarEnvio: g("cobrar") !== "" ? Number(g("cobrar")) : null, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo generar la guía.");
@@ -5808,7 +5809,7 @@ ${itemLines}
         ${libres ? `<label class="swm-check" style="margin-top:8px;"><input type="checkbox" data-g-lealtad> 🎁 Cruce al 50% por lealtad (le quedan ${libres})</label>` : ""}
         <details style="margin-top:8px;"><summary style="cursor:pointer;font-size:13px;color:#6b6370;">📍 Dirección de envío (revísala si quieres)</summary>${dir}</details>
         <div style="margin-top:10px;"><button type="button" class="btn-primary" data-guia-generar disabled>2️⃣ Hacer guía y cobrarle</button></div>
-        <div class="meta" style="margin-top:4px;">Le cobro cruce ${formatPrice(base)} + el envío de tu tabla. Cuando pague, le llega su guía sola.</div>
+        <div class="meta" style="margin-top:4px;">Le cobro cruce ${formatPrice(base)} + el envío (el de tu tabla, o el que pongas en "Cóbrale de envío"). Cuando pague, le llega su guía sola.</div>
       </div>`;
     }
     return `<details style="margin-top:10px;"><summary style="cursor:pointer;font-weight:700;font-size:14px;">📦 Generar guía real (comparar precios)</summary>

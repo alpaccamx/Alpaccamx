@@ -125,7 +125,10 @@ exports.handler = async (event) => {
         return e;
       });
       const tabla = await envioEstimado(destination.zipCode, weightNum);
-      const r = await cotizarEnvio(String(envioId), { envio: tabla != null ? tabla : (Number(body.total) > 0 ? Math.ceil(Number(body.total)) + FUERA_TABLA_EXTRA : 0), premioLealtad: !!body.premioLealtad });
+      // cobrarEnvio: Mae puso a mano cuánto cobrarle de envío; si no, la tabla.
+      const aMano = body.cobrarEnvio != null && body.cobrarEnvio !== "" && Number(body.cobrarEnvio) >= 0 ? Math.round(Number(body.cobrarEnvio) * 100) / 100 : null;
+      const envio = aMano != null ? aMano : tabla != null ? tabla : (Number(body.total) > 0 ? Math.ceil(Number(body.total)) + FUERA_TABLA_EXTRA : 0);
+      const r = await cotizarEnvio(String(envioId), { envio, premioLealtad: !!body.premioLealtad });
       if (r.error) return jsonResponse(200, { guiaAnticipada: true, error: `La guía ${trackingNumber} quedó lista, pero no se pudo cobrar: ${r.error}` });
       return jsonResponse(200, { envio: r.envio, guiaAnticipada: true });
     }
