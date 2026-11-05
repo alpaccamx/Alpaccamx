@@ -5182,7 +5182,7 @@ ${itemLines}
      dirección y envío. Usa la misma información y los mismos botones que
      Dirección americana (comparten el panel swm-panel). ---------- */
   let swmModo = ""; // "ps" = vista de Personal shopper
-  const PS_AYUDA = "1) Toca “🧾 Nueva factura”: busca a la clienta, pega o escribe lo que compraste (de los tickets, en dólares) y el tax; el tipo de cambio y tu 15% se ponen solos. 2) Mándale el link por WhatsApp y su factura (📄): ahí paga con tarjeta o transferencia. Si te paga por fuera, toca “Ya me pagó por fuera”. 3) Ya pagada, toca “📦 Ya tengo sus productos” (le aviso y le pido su dirección). 4) Cuando la cruces, toca “🇲🇽 Ya cruzó a México” con el peso: su envío se arma solo con la dirección que puso. 5) Genera la guía: a ella le llega el cobro del envío y en cuanto paga, le llega su guía. Si no tiene dirección, toca “📍 Pedirle su dirección por WhatsApp”.";
+  const PS_AYUDA = "1) Toca “🧾 Nueva factura”: busca a la clienta, sube la foto de tu factura y pon el total en pesos. 2) Mándale el link por WhatsApp: ahí ve la foto de su factura y paga con tarjeta o transferencia. Si te paga por fuera, toca “✅ Ya me pagó (por fuera)”. 3) Ya pagada, toca “📦 Ya tengo sus productos” (le aviso y le pido su dirección). 4) Cuando la cruces, toca “🇲🇽 Ya cruzó a México” con el peso: su envío se arma solo con la dirección que puso. 5) Genera la guía: a ella le llega el cobro del envío y en cuanto paga, le llega su guía. Si no tiene dirección, toca “📍 Pedirle su dirección por WhatsApp”.";
   let psTab = "cobrar";
   const psPaquetes = (c) => (c.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
   const psEnvios = (c) => { const ids = new Set(c.paqueteIds || []); return swmData.envios.filter((e) => e.status !== "cancelado" && (e.paqueteIds || []).some((x) => ids.has(x))); };
@@ -5211,9 +5211,6 @@ ${itemLines}
     const pk = psPaquetes(c).filter((p) => p.status !== "cancelado");
     const envs = psEnvios(c);
     const out = [];
-    if (c.status === "cotizado" && c.pago && c.pago.status === "pendiente") {
-      out.push(`<button type="button" class="btn-secondary" data-swm-aprobar="compra:${escapeHtml(c.id)}" style="padding:6px 12px;font-size:13px;">✅ Ya me pagó por fuera</button>`);
-    }
     if (c.status === "pagado") {
       out.push(c.yaComprado
         ? `<button type="button" class="btn-primary" data-ps-en-mano="${escapeHtml(c.id)}">📦 Ya tengo sus productos (en EE.UU.)</button><span class="meta">Le aviso que ya los tienes y le pido su dirección.</span>`
@@ -5233,7 +5230,9 @@ ${itemLines}
     const enEnvio = new Set(envs.flatMap((e) => e.paqueteIds || []));
     return `<div class="ps-wrap" style="border:2px solid #f6dfe7;border-radius:18px;padding:10px;margin:12px 0;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
-        <button type="button" class="btn-secondary" data-ps-factura="${escapeHtml(c.id)}" style="padding:6px 12px;font-size:13px;">📄 Ver / descargar factura</button>
+        ${(c.facturaFotos || []).length
+          ? c.facturaFotos.map((f, i) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:6px 12px;font-size:13px;">🧾 Factura${c.facturaFotos.length > 1 ? ` ${i + 1}` : ""}</button>`).join("")
+          : `<button type="button" class="btn-secondary" data-ps-factura="${escapeHtml(c.id)}" style="padding:6px 12px;font-size:13px;">📄 Ver / descargar factura</button>`}
         ${c.yaComprado ? `<span class="meta">🛒 Comprado en tienda${c.fechaCompra ? ` el ${escapeHtml(new Date(`${c.fechaCompra}T12:00:00`).toLocaleDateString("es-MX", { day: "numeric", month: "long" }))}` : ""}</span>` : ""}
       </div>
       ${swmCompraCard(c)}
@@ -5560,7 +5559,7 @@ ${itemLines}
         <label class="swm-check" style="align-self:end;"><input type="checkbox" data-n="yaComprado" ${!c || c.yaComprado ? "checked" : ""}> 🛒 Ya lo compré en la tienda (tengo los tickets)</label>
         <label>Fecha de la compra<input data-n="fechaCompra" type="date" value="${escapeHtml((c && c.fechaCompra) || new Date().toISOString().slice(0, 10))}"></label>
       </div>` : ""}
-      ${!c && ps ? `<div class="meta">Pon lo que compraste (de los tickets, con el precio en dólares). Al guardarla le llega un correo y te doy el link y la factura para mandárselos por WhatsApp; ahí la paga (tarjeta o transferencia).</div>
+      ${!c && ps ? `<div class="meta">Sube la foto de tu factura y pon el total. Al guardarla le llega un correo con la foto y te doy el link para mandárselo por WhatsApp; ahí ve su factura y la paga (tarjeta o transferencia). Si te paga por fuera, toca “✅ Ya me pagó (por fuera)”.</div>
       <div class="grid"><label>Buscar a la clienta (código ALP-…, nombre, correo o teléfono)<input data-swm-buscar type="search"></label></div>
       <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>` : c ? `<div class="meta">Al guardar le llega un correo con la cotización corregida; el link que ya le mandaste sigue sirviendo.${q.cupon ? ` Tiene el cupón ${escapeHtml(q.cupon)}: el descuento se recalcula.` : ""}</div>
       <input data-n="email" type="hidden" value="${escapeHtml(c.email)}">` : `<div class="meta">Arma la cotización con las capturas que te mandó. Al guardarla le llega un correo y te doy el link para mandárselo por WhatsApp; ahí la ve y la paga (tarjeta o transferencia).</div>
@@ -5572,6 +5571,12 @@ ${itemLines}
         <label>WhatsApp<input data-n="phone" type="tel"></label>`}
         <label>Tienda<input data-n="tienda" type="text" placeholder="Sephora, Ulta, Amazon…" value="${escapeHtml((c && c.tienda) || "")}"></label>
       </div>
+      ${ps ? `<div class="grid">
+        <label>🧾 Foto(s) de la factura (la ve la clienta)${c && (c.facturaFotos || []).length ? ` · ya tiene ${c.facturaFotos.length}` : " *"}<input data-n="facturaFotos" type="file" accept="image/*" multiple></label>
+        <label>💲 Total a cobrar en pesos *<input data-n="totalMXN" type="number" min="0" step="0.01" placeholder="Ej. 8499.35" value="${c && c.cotizacion ? c.cotizacion.total : ""}"></label>
+        <label>Nota para la clienta<input data-n="notaClienta" type="text" value="${escapeHtml((c && c.notaClienta) || "")}"></label>
+      </div>
+      <div class="meta">El total ya debe traer tu comisión y el cruce (como en tu factura). El envío dentro de México se le cobra después, cuando cruce.</div>` : `
       <details style="margin-top:10px;" ${c ? "" : "open"}><summary style="cursor:pointer;font-weight:600;color:#a33a63;">📋 Pegar la lista de artículos (más rápido)</summary>
         <div class="meta" style="margin-top:4px;">Un artículo por renglón: nombre, cantidad y precio en dólares. Ej.:<br><code>Winterberry Ice x2 $1.95</code><br><code>Champagne Toast · Moisturizing x3 $2.25</code><br>Puedes pedirle a Claude (en Chrome) que te dé el carrito así y pegarlo aquí.</div>
         <textarea data-swm-nc-paste rows="5" style="width:100%;margin-top:6px;border:1px solid #e5d6de;border-radius:10px;padding:8px;font-size:14px;" placeholder="Winterberry Ice x2 $1.95"></textarea>
@@ -5589,7 +5594,7 @@ ${itemLines}
         <label>Nota para la clienta<input data-n="notaClienta" type="text" value="${escapeHtml((c && c.notaClienta) || "")}"></label>
         <label>${c ? "Agregar " : ""}${ps ? "Fotos de los tickets" : "Capturas"} (solo para ti)<input data-n="fotos" type="file" accept="image/*" multiple></label>
       </div>
-      <div class="meta" data-swm-nc-total style="font-size:15px;"></div>
+      <div class="meta" data-swm-nc-total style="font-size:15px;"></div>`}
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-nc-save>${c ? "Guardar cambios" : ps ? "Guardar factura y sacar link" : "Guardar y sacar link"}</button><button type="button" class="btn-secondary" ${c ? "data-swm-nc-edit-cancel" : "data-swm-nc-toggle"}>Cancelar</button></div>
     </div>`;
   }
@@ -5608,6 +5613,7 @@ ${itemLines}
     return { items, productos, cruce, n };
   }
   function swmNcTotal(box) {
+    if (!box.querySelector("[data-swm-nc-total]")) return; // factura en foto: no hay lista
     const { productos, cruce } = swmNcLeer(box);
     const tc = pricingConfig.exchangeRate || 0;
     box.querySelector("[data-swm-nc-total]").innerHTML = productos ? `Productos con tax ${formatPrice(productos)}${cruce ? ` + cruce ${formatPrice(cruce)}` : ""} = <b>${formatPrice(productos + cruce)}</b> <small>(dólar a $${tc})</small>` : "";
@@ -5616,7 +5622,7 @@ ${itemLines}
   function swmCompraWa(c) {
     const wa = waLinkFromPhone(c.phone);
     const nombre = String(c.name || "").split(/\s+/)[0];
-    const txt = `Hola${nombre ? ` ${nombre}` : ""} 💕 Ya está tu cotización ${c.folio}${c.tienda ? ` de ${c.tienda}` : ""}: ${formatPrice(c.cotizacion ? c.cotizacion.total : 0)}.\nAquí la ves y la pagas (tarjeta o transferencia): ${swmCompraLink(c)}\nSi todavía no tienes cuenta, créala con este correo: ${c.email}`;
+    const txt = `Hola${nombre ? ` ${nombre}` : ""} 💕 Ya está tu ${c.ps ? "factura" : "cotización"} ${c.folio}${c.tienda ? ` de ${c.tienda}` : ""}: ${formatPrice(c.cotizacion ? c.cotizacion.total : 0)}.\nAquí la ves y la pagas (tarjeta o transferencia): ${swmCompraLink(c)}\nSi todavía no tienes cuenta, créala con este correo: ${c.email}`;
     return wa ? `${wa}?text=${encodeURIComponent(txt)}` : `https://wa.me/?text=${encodeURIComponent(txt)}`;
   }
 
@@ -5648,6 +5654,7 @@ ${itemLines}
     const st = { pendiente: "⏳ Esperando pago", revision: "🔎 Comprobante por revisar", pagado: "✅ Pagado" }[r.pago.status] || r.pago.status;
     const met = r.pago.metodo === "mercadopago" ? "Tarjeta (Mercado Pago)" : r.pago.metodo === "transferencia" ? "Transferencia" : "";
     return `<div class="pay"><b>Pago:</b> ${st}${met ? ` · ${met}` : ""}${r.pago.paidAt ? ` · ${swmFecha(r.pago.paidAt)}` : ""}${r.pago.motivo ? ` · ⚠️ ${escapeHtml(r.pago.motivo)}` : ""}
+      ${r.pago.status === "pendiente" ? `<button type="button" class="btn-secondary" data-swm-aprobar="${kind}:${escapeHtml(r.id)}" data-por-fuera="1" style="padding:6px 12px;font-size:13px;">✅ Ya me pagó (por fuera)</button>` : ""}
       ${r.pago.status === "revision" ? `${r.pago.comprobanteAt ? `<button type="button" class="btn-secondary" data-swm-file="comprobante/${kind}/${escapeHtml(r.id)}" style="padding:4px 10px;font-size:13px;">📄 Ver comprobante</button>` : ""}
         <button type="button" class="btn-primary" data-swm-aprobar="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">✅ Aprobar pago</button>
         <button type="button" class="btn-secondary" data-swm-rechazar="${kind}:${escapeHtml(r.id)}" style="padding:6px 12px;font-size:13px;">Rechazar</button>` : ""}
@@ -5990,6 +5997,33 @@ ${itemLines}
     const ncSave = t.closest("[data-swm-nc-save]");
     if (ncSave) {
       const box = ncSave.closest("[data-swm-nc]");
+      if (box.dataset.ps) {
+        const n = (k) => { const el = box.querySelector(`[data-n="${k}"]`); return el ? el.value : ""; };
+        if (!n("email").trim()) { alert("Busca a la clienta o pon su correo."); return; }
+        const total = parseFloat(n("totalMXN")) || 0;
+        if (!(total > 0)) { alert("Pon el total a cobrar en pesos."); return; }
+        const files = [...(box.querySelector('[data-n="facturaFotos"]').files || [])].slice(0, 6);
+        if (!box.dataset.editId && !files.length) { alert("Sube la foto de la factura."); return; }
+        const facturaFotos = (await Promise.all(files.map(swmResize))).filter(Boolean);
+        const body = { ps: true, totalMXN: total, facturaFotos, tienda: n("tienda"), notaClienta: n("notaClienta"),
+          yaComprado: !!(box.querySelector('[data-n="yaComprado"]') || {}).checked, fechaCompra: n("fechaCompra") };
+        if (box.dataset.editId) {
+          const id = box.dataset.editId;
+          swmEditCompraId = "";
+          const ok = await swmAct({ accion: "editar_compra", id, ...body, quitarFactura: facturaFotos.length > 0 }, ncSave);
+          if (!ok) swmEditCompraId = id;
+          return;
+        }
+        const data = await swmAct({ accion: "crear_compra", email: n("email"), name: n("name"), phone: n("phone"), ...body }, ncSave);
+        if (data && data.compra) {
+          swmNuevaCompraOpen = false; swmSearch = ""; psTab = "cobrar"; renderSwmAdmin();
+          if (!data.tieneCuenta) alert(`Ese correo todavía no tiene cuenta. Cuando ${data.compra.name || "la clienta"} la cree con ${data.compra.email}, verá su factura y la podrá pagar.`);
+          const card = document.querySelector(`[data-swm-id="${CSS.escape(data.compra.id)}"]`);
+          if (card) { card.scrollIntoView({ behavior: "smooth", block: "start" }); card.style.outline = "3px solid #c4466e"; }
+          showToast("✅ Factura lista: toca “💬 Mandar link por WhatsApp”.");
+        }
+        return;
+      }
       const { items, n } = swmNcLeer(box);
       if (!n("email").trim()) { alert("Busca a la clienta o pon su correo."); return; }
       if (!items.length || items.some((x) => !x.nombre || !(x.precioUSD > 0))) { alert("Cada artículo necesita nombre y precio en dólares."); return; }
@@ -6062,7 +6096,12 @@ ${itemLines}
     const qc = t.closest("[data-swm-quitar-correccion]");
     if (qc) { swmAct({ accion: "quitar_correccion", id: qc.dataset.swmQuitarCorreccion }, qc); return; }
     const ap = t.closest("[data-swm-aprobar]");
-    if (ap) { const [kind, id] = ap.dataset.swmAprobar.split(":"); if (confirm("¿Ya verificaste que el dinero llegó a tu cuenta?")) swmAct({ accion: "aprobar_pago", kind, id }, ap); return; }
+    if (ap) {
+      const [kind, id] = ap.dataset.swmAprobar.split(":");
+      const pregunta = ap.dataset.porFuera ? "¿Marcarlo como pagado? (te pagó por fuera: efectivo, transferencia directa…). Le llega el aviso a la clienta y sigue el proceso." : "¿Ya verificaste que el dinero llegó a tu cuenta?";
+      if (confirm(pregunta)) swmAct({ accion: "aprobar_pago", kind, id }, ap);
+      return;
+    }
     const re = t.closest("[data-swm-rechazar]");
     if (re) { const [kind, id] = re.dataset.swmRechazar.split(":"); const motivo = prompt("¿Por qué lo rechazas? (se lo mandamos a la clienta)", "No encontramos tu transferencia, revisa el comprobante."); if (motivo != null) swmAct({ accion: "rechazar_pago", kind, id, motivo }, re); return; }
     const ca = t.closest("[data-swm-cancel]");
@@ -6403,7 +6442,7 @@ ${itemLines}
         acciones.push(`<button type="button" class="btn-primary" data-pv-aprobar="${id}:${etapa}">✅ Aprobar ${etapa}</button>`);
         acciones.push(`<button type="button" class="btn-secondary" data-pv-rechazar="${id}:${etapa}">❌ Rechazar</button>`);
       } else {
-        acciones.push(`<button type="button" class="btn-secondary" data-pv-aprobar="${id}:${etapa}">✅ Ya me pagó el ${etapa}</button>`);
+        acciones.push(`<button type="button" class="btn-secondary" data-pv-aprobar="${id}:${etapa}">✅ Ya me pagó ${a.pagoCompleto ? (etapa === "anticipo" ? "todo" : "el envío") : `el ${etapa}`} (por fuera)</button>`);
       }
     }
     if (a.cuenta && a.status === "apartado") {

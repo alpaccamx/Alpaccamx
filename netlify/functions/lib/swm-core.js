@@ -278,7 +278,7 @@ async function aplicarPago(kind, id, { metodo, paymentId, monto } = {}) {
     await avisar(rec, `${rec.folio}: recibimos tu pago 💗`, `
       <h2 style="margin:0 0 8px;font-size:20px;">¡Pago recibido!</h2>
       <p style="font-size:14px;">Recibimos tu pago de ${formatPriceMXN(rec.pago.monto || (rec.cotizacion && rec.cotizacion.total))} de ${rec.folio}.
-      ${kind === "compra" ? "Ya voy a hacer tu compra; te aviso cuando la registre." : kind === "paquete" ? "Tu cruce ya quedó pagado; cuando pidas tu envío, solo pagas la guía." : rec.guia ? "Tu envío sale con esta guía; ahorita te la mando." : "Ya preparo tu envío; te mando la guía en cuanto salga."}</p>`);
+      ${kind === "compra" ? (rec.yaComprado ? "Ya tengo tus productos; te aviso cuando crucen a México. Si todavía no pones tu dirección de envío, ponla en tu casillero." : "Ya voy a hacer tu compra; te aviso cuando la registre.") : kind === "paquete" ? "Tu cruce ya quedó pagado; cuando pidas tu envío, solo pagas la guía." : rec.guia ? "Tu envío sale con esta guía; ahorita te la mando." : "Ya preparo tu envío; te mando la guía en cuanto salga."}</p>`);
     if (kind !== "paquete") await premiarReferido(kind, rec).catch((err) => console.error("swm premio referido:", err));
     if (kind === "envio" && rec.guia) return despacharConGuia(rec);
   }
