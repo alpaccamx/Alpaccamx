@@ -5143,18 +5143,7 @@ ${itemLines}
       ratesEl.querySelectorAll("[data-guia-rate]").forEach((l) => l.classList.toggle("selected", l === rateEl));
       rateEl.querySelector("input").checked = true;
       genBtn.disabled = false;
-      const cobro = card.querySelector("[data-cobro-base]");
-      if (cobro) {
-        const r = swmGuiaState[id].rates[swmGuiaState[id].selected];
-        const lealtad = card.querySelector("[data-g-lealtad]");
-        const cruce = Number(cobro.dataset.cruce) || 0;
-        // A la clienta se le cobra el envío de tu tabla (si su CP está); la
-        // paquetería que elijas es solo lo que te cuesta a ti la guía.
-        const tabla = swmGuiaState[id].tabla;
-        const envioCobro = tabla != null ? tabla : Number(r.total) || 0;
-        const total = (Number(cobro.dataset.cobroBase) || 0) - (lealtad && lealtad.checked ? cruce / 2 : 0) + envioCobro;
-        genBtn.textContent = `2️⃣ Hacer guía y cobrarle ${formatPrice(total)}`;
-      }
+      swmGuiaBoton(card, id);
       return;
     }
     const weight = parseFloat(g("peso"));
