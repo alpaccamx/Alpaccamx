@@ -5,13 +5,15 @@
 //
 // Requiere "Authorization: Bearer <token>" (el de customer-login).
 //   GET                  -> { pedida: { at, status } | null }
-//   POST { accion: "pedir" }    -> la registra
+//   POST { accion: "pedir" }    -> la registra y le avisa a Mae por WhatsApp
 //   POST { accion: "cancelar" } -> la quita
 
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { getCustomerByEmail } = require("./lib/customer-store.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
 const { getRecord, saveRecord, mutateRecord } = require("./lib/swm-store.js");
+const { notifyCustomerTemplate } = require("./lib/whatsapp.js");
+const { WHATSAPP_MAE } = require("./lib/order-notify.js");
 
 exports.handler = async (event) => {
   if (!["GET", "POST"].includes(event.httpMethod)) return { statusCode: 405, body: "Method Not Allowed" };
@@ -40,6 +42,12 @@ exports.handler = async (event) => {
       id: me, email: me, name: (customer && customer.name) || "", phone: (customer && customer.phone) || "",
       status: "pendiente", createdAt: now, updatedAt: now,
     });
+    // Aviso por WhatsApp a Mae (si falla, la solicitud ya quedó guardada y se ve en "Por mandar").
+    const quien = (customer && customer.name) || me;
+    await notifyCustomerTemplate("aviso_pedido", {
+      phone: WHATSAPP_MAE, name: "Mae",
+      texto: `${quien} pidió que le juntes todo en una sola caja 📦. Míralo en "Por mandar" del admin: alpacca.mx/admin`,
+    }).catch((err) => console.error("customer-juntar aviso a Mae:", err));
     return json(200, { pedida: { at: now, status: "pendiente" } });
   } catch (err) {
     console.error("customer-juntar:", err);
