@@ -872,3 +872,33 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   if (new URLSearchParams(location.search).get("ver") !== "preventa") loadPreventaResumen();
 });
+
+
+/* En Mis pedidos: si tiene un pago pendiente del Sephora Sale (el anticipo
+   o el resto cuando llegan los productos), un aviso con un botón que la
+   lleva directo a pagar y subir su comprobante. */
+async function renderPreventaAvisoCuenta() {
+  const el = document.getElementById("account-preventa");
+  if (!el || !getCustomerToken()) return;
+  let apartados = [];
+  try { apartados = (await pvGet("?resumen=1")).apartados || []; } catch (err) { /* sin preventa: nada que avisar */ }
+  const fmt = (n) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
+  const pendientes = apartados.map((a) => ({ a, etapa: pvEtapa(a) })).filter((x) => x.etapa);
+  if (!pendientes.length) { el.innerHTML = ""; return; }
+  el.innerHTML = pendientes.map(({ a, etapa }) => `<section class="rounded-3xl border-2 border-rose-deep/40 bg-[#fff6f9] p-4">
+      <p class="text-base font-bold">🛍️ Sephora Sale · ${escapeHtml(a.folio)}</p>
+      <p class="mt-1 text-sm text-ink/80">${etapa === "resto" ? "¡Ya llegaron tus productos! Falta pagar el resto" : "Falta pagar tu anticipo para apartar"}: <b>${fmt(a[etapa].monto)}</b></p>
+      <button type="button" data-pv-ir-pagar="${escapeHtml(a.id)}" class="tap mt-3 w-full rounded-full bg-rose-deep px-5 py-3 text-sm font-bold text-cream hover:bg-rose-ink transition">💳 Pagar o subir mi comprobante</button>
+    </section>`).join("");
+}
+
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-pv-ir-pagar]");
+  if (!b) return;
+  const id = b.dataset.pvIrPagar;
+  if (typeof closeAccountPanel === "function") closeAccountPanel();
+  openPreventa();
+  if (!pv.lista) await new Promise((r) => { const t = setInterval(() => { if (pv.lista || pv.error) { clearInterval(t); r(); } }, 150); });
+  const card = document.querySelector(`[data-pv-ap="${CSS.escape(id)}"]`);
+  if (card) { card.scrollIntoView({ behavior: "smooth", block: "center" }); card.style.outline = "3px solid #c4466e"; setTimeout(() => { card.style.outline = ""; }, 3000); }
+});

@@ -7159,7 +7159,7 @@ function myItemProduct(it) {
 
 function myItemThumbHTML(it, size = "w-11 h-11") {
   const p = myItemProduct(it);
-  const img = (p && p.imagen) || "";
+  const img = (p && p.imagen) || it.imagen || "";
   return img
     ? `<img src="${escapeAttr(img)}" alt="" loading="lazy" class="${size} shrink-0 rounded-lg bg-pill object-contain ring-2 ring-white" />`
     : `<span class="${size} shrink-0 rounded-lg bg-blush/40 ring-2 ring-white flex items-center justify-center text-base" aria-hidden="true">🧴</span>`;
@@ -7730,6 +7730,7 @@ async function loadMyOrders() {
     }
 
     renderAccountDashboard(orders);
+    if (typeof renderPreventaAvisoCuenta === "function") renderPreventaAvisoCuenta();
     if (typeof renderMisCosas === "function") renderMisCosas(orders);
 
     renderAccountOrdersStats(orders);
