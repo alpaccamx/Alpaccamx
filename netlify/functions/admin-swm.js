@@ -50,7 +50,7 @@ const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, g
 const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, SEPARAR, COMISION_PCT, LEALTAD_PCT } = require("./lib/swm-pricing.js");
 const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
 const { getCoupon, discountFor } = require("./lib/coupons.js");
-const { ALMACENAJE_DIAS, round2, compraEnMano, cotizacionSugerida, cotizarEnvio, despacharConGuia, envioAutomatico, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
+const { ALMACENAJE_DIAS, round2, compraEnMano, marcarOrdenesDeCaja, cotizacionSugerida, cotizarEnvio, despacharConGuia, envioAutomatico, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
 
 const num = (v) => Math.max(0, parseFloat(v) || 0);
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
@@ -108,8 +108,9 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
     }
     try {
+      const juntar = (await listRecords("juntar").catch(() => [])).filter((j) => j.status === "pendiente");
       const [paquetes, compras, envios, casilleros, tiposCambio] = await Promise.all([listRecords("paquete"), listRecords("compra"), listRecords("envio"), todosLosCasilleros(), tiposDeCambio()]);
-      return json(200, { paquetes, compras, envios, casilleros, tiposCambio, comisionPct: COMISION_PCT, almacenajeDias: ALMACENAJE_DIAS, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
+      return json(200, { paquetes, compras, envios, juntar, casilleros, tiposCambio, comisionPct: COMISION_PCT, almacenajeDias: ALMACENAJE_DIAS, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
     } catch (err) {
       console.error("admin-swm GET:", err);
       return json(500, { error: "No se pudo cargar la dirección americana." });
@@ -335,6 +336,12 @@ exports.handler = async (event) => {
         return json(200, { compra: rec });
       }
 
+      // La clienta pidió "mándame todo junto" y Mae ya lo atendió.
+      case "juntar_atendida": {
+        const rec = await mutateRecord("juntar", String(b.email || "").toLowerCase(), (j) => { j.status = "atendida"; j.atendidaAt = now(); return j; });
+        return rec ? json(200, { juntar: rec }) : json(404, { error: "No existe esa solicitud." });
+      }
+
       case "compra_en_mano": {
         // (Ya casi no se usa: al pagarse una factura de Personal shopper esto pasa solo.)
         const r = await compraEnMano(id);
@@ -501,6 +508,7 @@ exports.handler = async (event) => {
         });
         if (!rec) return json(404, { error: "No existe ese envío." });
         await Promise.all((rec.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => { p.status = "enviado"; push(p, "enviado"); return p; })));
+        await marcarOrdenesDeCaja(rec);
         await avisar(rec, `tu envío ${rec.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${esc(rec.paqueteria)}</b>${rec.guia ? `<br>Guía: <b>${esc(rec.guia)}</b>` : ""}</p>`);
         return json(200, { envio: rec });
       }

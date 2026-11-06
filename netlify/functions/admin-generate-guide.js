@@ -28,7 +28,7 @@ const { cuentaDelPedido } = require("./lib/order-notify.js");
 const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { getRecord, mutateRecord } = require("./lib/swm-store.js");
-const { avisar, cotizarEnvio } = require("./lib/swm-core.js");
+const { avisar, cotizarEnvio, marcarOrdenesDeCaja } = require("./lib/swm-core.js");
 const { envioEstimado } = require("./lib/preventa-core.js");
 // CP fuera de la tabla de Mae: se le cobra la paquetería + esto (sin desglose).
 const FUERA_TABLA_EXTRA = 100;
@@ -145,6 +145,7 @@ exports.handler = async (event) => {
         p.status = "enviado"; p.history = [...(p.history || []), { at, status: "enviado" }]; return p;
       })));
       const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+      await marcarOrdenesDeCaja(rec);
       await avisar(rec, `tu envío ${rec.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${esc(rec.paqueteria)}</b><br>Guía: <b>${esc(rec.guia)}</b></p>`);
       return jsonResponse(200, { envio: rec });
     }

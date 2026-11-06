@@ -10,6 +10,7 @@ const { sendEmail, baseEmailHTML, formatPriceMXN } = require("./email.js");
 const { loadPricingData } = require("./pricing.js");
 const { notifyCustomerSwm } = require("./whatsapp.js");
 const { getCustomerByEmail } = require("./customer-store.js");
+const { listOrders, updateOrderFields } = require("./blob-store.js");
 
 const MP_API = "https://api.mercadopago.com";
 const ALMACENAJE_DIAS = 30;
@@ -201,6 +202,29 @@ async function envioAutomatico(paqueteId) {
 }
 
 /* Envío pagado que ya tiene guía: sale solo y se le manda la guía. */
+/* Pedidos de la tienda que Mae metió en la misma caja que un envío de
+   Dirección americana ("Por mandar" en el admin): cuando el envío sale con
+   su guía, esos pedidos se marcan enviados con la misma guía (sin volver a
+   avisar a la clienta: ya le llegó el aviso del envío). */
+async function marcarOrdenesDeCaja(envio) {
+  if (!envio || !envio.guia) return [];
+  try {
+    const at = new Date().toISOString();
+    const out = [];
+    for (const o of (await listOrders()).filter((x) => x.cajaEnvioId === envio.id && x.status === "paid" && !x.trackingNumber)) {
+      out.push(await updateOrderFields(o.id, {
+        trackingNumber: envio.guia, carrier: envio.paqueteria || "", shippedAt: at,
+        stage: "enviado", stageUpdatedAt: at, enEspera: null,
+        stageHistory: [...(Array.isArray(o.stageHistory) ? o.stageHistory.slice(-30) : []), { stage: "enviado", at, caja: envio.folio }],
+      }));
+    }
+    return out.filter(Boolean);
+  } catch (err) {
+    console.error("swm marcarOrdenesDeCaja:", err);
+    return [];
+  }
+}
+
 async function despacharConGuia(rec) {
   if (!rec || !rec.guia || rec.status !== "pagado") return rec;
   const at = new Date().toISOString();
@@ -214,6 +238,7 @@ async function despacharConGuia(rec) {
   await Promise.all((out.paqueteIds || []).map((x) => mutateRecord("paquete", x, (p) => {
     p.status = "enviado"; p.history = [...(p.history || []), { at, status: "enviado" }]; return p;
   })));
+  await marcarOrdenesDeCaja(out);
   await avisar(out, `tu envío ${out.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${escHTML(out.paqueteria)}</b><br>Guía: <b>${escHTML(out.guia)}</b></p>`);
   return out;
 }
@@ -407,6 +432,6 @@ async function todoDe(email) {
 
 module.exports = {
   lealtadDe, codigoReferido, premiosDe,
-  ALMACENAJE_DIAS, round2, compraEnMano, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, cotizarEnvio, despacharConGuia, ponerCruceAnticipado, porPagar, envioAutomatico, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
+  ALMACENAJE_DIAS, round2, compraEnMano, marcarOrdenesDeCaja, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, cotizarEnvio, despacharConGuia, ponerCruceAnticipado, porPagar, envioAutomatico, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
   formatPriceMXN,
 };

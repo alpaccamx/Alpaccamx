@@ -18,8 +18,9 @@
 const { getStore } = require("@netlify/blobs");
 const { blobsClientOptions } = require("./blob-store.js");
 
-const PREFIX = { paquete: "pkg/", compra: "buy/", envio: "ship/" };
+const PREFIX = { paquete: "pkg/", compra: "buy/", envio: "ship/", juntar: "join/" };
 const FOLIO = { paquete: "P", compra: "C", envio: "E", casillero: "ALP" };
+// juntar: la clienta pide "mándame todo junto" (un registro por clienta, id = su correo).
 
 function store() {
   return getStore({ name: "swm", consistency: "strong", ...blobsClientOptions() });

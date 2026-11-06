@@ -1609,3 +1609,97 @@ function initSwm() {
 
 initSwm();
 initPsSection();
+
+
+/* ---------- 📦 Mis cosas (en Mis pedidos) ----------
+   Todo lo que la clienta tiene con Alpacca, junto y con palabras simples,
+   y un solo botón: "Mándame todo junto" (la ve Mae en "Por mandar"). Solo
+   sale si tiene dos o más cosas pendientes. */
+let misCosasPedida = null;
+
+async function renderMisCosas(orders) {
+  const el = document.getElementById("account-cosas");
+  if (!el || !getCustomerToken()) return;
+  let paquetes = [], compras = [], envios = [];
+  try {
+    const [a, b] = await Promise.all([
+      fetch("/.netlify/functions/swm-client", { headers: { Authorization: `Bearer ${getCustomerToken()}` }, cache: "no-store" }).then((r) => (r.ok ? r.json() : {})),
+      fetch("/.netlify/functions/customer-juntar", { headers: { Authorization: `Bearer ${getCustomerToken()}` }, cache: "no-store" }).then((r) => (r.ok ? r.json() : {})),
+    ]);
+    paquetes = a.paquetes || []; compras = a.compras || []; envios = a.envios || [];
+    misCosasPedida = b.pedida || null;
+  } catch (err) { /* sin casillero: solo sus pedidos */ }
+
+  const filas = [];
+  const fila = (emoji, texto, estado, listo = false) => filas.push({ emoji, texto, estado, listo });
+  (orders || []).forEach((o) => {
+    if (["cancelled", "failed"].includes(o.status)) return;
+    const pcs = (o.items || []).reduce((t, it) => t + (it.qty || 0), 0);
+    const texto = `Pedido #${orderNumber(o)} · ${pcs} pieza${pcs === 1 ? "" : "s"}`;
+    if (o.status === "pending") return fila("💳", texto, "Falta pagar");
+    const st = myOrderStage(o);
+    if (["enviado", "entregado"].includes(st)) return;
+    if (o.enEspera) return fila("🧺", texto, "Te lo estoy guardando");
+    const stock = typeof isStockOnlyOrder === "function" && isStockOnlyOrder(o);
+    if (st === "llego" || (st === "pagado" && stock)) return fila("✅", texto, "Ya está listo", true);
+    fila("⏳", texto, "Viene de Corea");
+  });
+  const enEnvio = new Set(envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status)).flatMap((e) => e.paqueteIds || []));
+  paquetes.forEach((p) => {
+    if (["cancelado", "enviado", "entregado", "sin_dueña"].includes(p.status) || enEnvio.has(p.id)) return;
+    const texto = `Paquete ${p.folio}${p.tienda ? ` · ${p.tienda}` : ""}`;
+    if (p.status === "registrado") return fila("⏳", texto, "Viene en camino");
+    if (p.datosPendientes) return fila("✏️", texto, "Falta que me digas qué trae");
+    if (!p.enMexicoAt) return fila("⏳", texto, "Falta cruzarlo a México");
+    fila("✅", texto, "Ya está listo", true);
+  });
+  compras.forEach((c) => {
+    if (["comprado", "cancelado"].includes(c.status)) return;
+    const texto = `Compra ${c.folio}${c.tienda ? ` · ${c.tienda}` : ""}`;
+    fila(c.status === "cotizado" ? "💳" : "⏳", texto, c.status === "solicitud" ? "Mae la está cotizando" : c.status === "cotizado" ? "Falta pagar" : "Mae va a comprarla");
+  });
+  envios.forEach((e) => {
+    if (["enviado", "entregado", "cancelado"].includes(e.status)) return;
+    fila("📦", `Envío ${e.folio}`, e.pago && e.pago.status === "pendiente" ? "Falta pagar" : "Mae lo está preparando");
+  });
+
+  // Con menos de dos cosas no hay nada que juntar.
+  if (filas.length < 2) { el.innerHTML = ""; return; }
+
+  const dir = typeof loadMisDirecciones === "function" ? await loadMisDirecciones().catch(() => []) : [];
+  const d = typeof direccionPrincipal === "function" ? direccionPrincipal() : null;
+  el.innerHTML = `<section class="rounded-3xl border border-rose/25 bg-white p-4 shadow-[0_6px_20px_-12px_rgba(196,70,110,.45)]">
+    <h3 class="font-display text-lg">📦 Mis cosas</h3>
+    <ul class="mt-2 divide-y divide-ink/10">${filas.map((f) => `<li class="flex items-center gap-3 py-2.5">
+      <span class="text-2xl leading-none shrink-0" aria-hidden="true">${f.emoji}</span>
+      <span class="min-w-0 flex-1 text-sm">${escapeHtml(f.texto)}</span>
+      <span class="shrink-0 text-xs font-bold ${f.listo ? "text-green-700" : "text-ink/65"}">${escapeHtml(f.estado)}</span></li>`).join("")}</ul>
+    ${misCosasPedida
+      ? `<div class="mt-3 rounded-2xl bg-[#eef8f2] p-3 text-center"><p class="text-base font-bold text-green-800">✅ ¡Listo! Ya le dije a Mae</p>
+          <p class="mt-1 text-sm text-ink/75">Ella junta todo en una sola caja y te avisa.</p>
+          <button type="button" data-cosas-cancelar class="mt-2 text-xs underline text-ink/60">Mejor no, mándamelo por separado</button></div>`
+      : `<button type="button" data-cosas-pedir class="tap mt-3 w-full rounded-full bg-rose-deep px-5 py-4 text-base font-bold text-cream hover:bg-rose-ink transition">📦 Mándame todo junto</button>
+         <p class="mt-2 text-center text-xs text-ink/65">Mae junta todo en una sola caja y pagas un solo envío.</p>`}
+    ${d ? `<p class="mt-2 text-center text-xs text-ink/55">Se manda a: ${escapeHtml(direccionLinea(d))}</p>` : ""}
+    <p data-cosas-err class="mt-2 hidden text-center text-sm text-sale"></p>
+  </section>`;
+}
+
+document.addEventListener("click", async (e) => {
+  const pedir = e.target.closest("[data-cosas-pedir]");
+  const cancelar = e.target.closest("[data-cosas-cancelar]");
+  const btn = pedir || cancelar;
+  if (!btn) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch("/.netlify/functions/customer-juntar", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getCustomerToken()}` }, body: JSON.stringify({ accion: pedir ? "pedir" : "cancelar" }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "No se pudo. Intenta de nuevo.");
+    misCosasPedida = data.pedida || null;
+    renderMisCosas(typeof myOrdersCache !== "undefined" ? myOrdersCache : []);
+  } catch (err) {
+    btn.disabled = false;
+    const m = document.querySelector("[data-cosas-err]");
+    if (m) { m.textContent = err.message; m.classList.remove("hidden"); }
+  }
+});
