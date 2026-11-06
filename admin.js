@@ -5361,6 +5361,8 @@ ${itemLines}
     return [...grupos.values()].map((g) => {
       g.id = g.email || g.tel || g.raiz;
       g.casillero = g.email && D.casilleros ? D.casilleros[g.email] || "" : "";
+      // Pidió "mándame todo junto" desde su cuenta.
+      g.pidio = (D.juntar || []).find((j) => j.email === g.email && j.status === "pendiente") || null;
       ["listo", "guardado", "falta", "proceso"].forEach((s) => { g[s] = g.entradas.filter((x) => x.estado === s); });
       return g;
     });
@@ -5377,7 +5379,7 @@ ${itemLines}
   }
 
   const pmBuscar = (g, q) => buscaEnTodo([g.nombre, g.email, g.tel, g.casillero], q) || g.entradas.some((x) => (x.tipo === "pedido" ? matchesSearch(x.o, q) : x.tipo === "paquete" || x.tipo === "envio" ? swmMatches(x.p || x.e, q) : buscaEnTodo([x.titulo, x.detalle], q)));
-  const pmPorMandarN = () => pmGrupos().filter((g) => g.listo.length).length;
+  const pmPorMandarN = () => pmGrupos().filter((g) => g.listo.length || g.pidio).length;
 
   const pmSeleccion = (g) => g.listo.filter((x) => !pmDesmarcados.has(`${x.tipo}:${x.id}`));
 
@@ -5432,6 +5434,9 @@ ${itemLines}
     return `<div class="swm-card" data-pm-card="${escapeHtml(g.id)}" style="margin:12px 0;border:2px solid #f6dfe7;">
       <h4><span>👤 ${escapeHtml(g.nombre || g.email || g.tel || "Clienta")}${g.casillero ? ` · ${escapeHtml(g.casillero)}` : ""}</span><span class="meta" style="font-weight:600;">${chips}</span></h4>
       <div class="meta">${[g.email, g.tel].filter(Boolean).map(escapeHtml).join(" · ")}${wa ? ` · <a href="${escapeHtml(wa)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div>
+      ${g.pidio ? `<div style="background:#fff1f6;border:2px solid #f4b8cc;border-radius:12px;padding:8px 12px;margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between;">
+        <b style="font-size:14px;">💬 Pidió que le juntes todo en una sola caja <span class="meta" style="font-weight:400;">(${new Date(g.pidio.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" })})</span></b>
+        <button type="button" class="btn-secondary" data-pm-atendida="${escapeHtml(g.email)}" style="padding:4px 10px;font-size:12px;">✅ Ya lo atendí</button></div>` : ""}
       ${g.listo.length ? `<div style="margin-top:8px;font-weight:700;color:#17803d;font-size:14px;">✅ Listo para mandar <span class="meta" style="font-weight:400;">(quita la palomita a lo que no vaya en esta caja)</span></div>${g.listo.map((x) => pmFila(x, { check: true, marcada: !pmDesmarcados.has(`${x.tipo}:${x.id}`) })).join("")}
         ${abierta ? "" : `<div style="margin-top:10px;"><button type="button" class="btn-primary" data-pm-armar="${escapeHtml(g.id)}" ${sel.length ? "" : "disabled"}>📦 Armar caja con lo marcado (${sel.length})</button></div>`}` : ""}
       ${pmCajaHTML(g)}
@@ -5449,7 +5454,7 @@ ${itemLines}
     if (ayuda) ayuda.textContent = PM_AYUDA;
     const todos = pmGrupos();
     const FILTROS = [
-      ["listas", "✅ Listas para mandar", (g) => g.listo.length],
+      ["listas", "✅ Listas para mandar", (g) => g.listo.length || g.pidio],
       ["guardadas", "🧺 No mandar todavía", (g) => g.guardado.length],
       ["faltan", "⏳ Todavía falta algo", (g) => g.falta.length || g.proceso.length],
       ["todas", "Todas", () => true],
@@ -5459,7 +5464,7 @@ ${itemLines}
     const q = swmSearch.trim();
     const fn = FILTROS.find(([k]) => k === pmFiltro)[2];
     let lista = todos.filter((g) => (q ? pmBuscar(g, q) : fn(g)) || (pmCaja && pmCaja.key === g.id));
-    lista.sort((a, b) => (b.listo.length - a.listo.length) || String(a.nombre).localeCompare(String(b.nombre), "es"));
+    lista.sort((a, b) => (!!b.pidio - !!a.pidio) || (b.listo.length - a.listo.length) || String(a.nombre).localeCompare(String(b.nombre), "es"));
     const vacio = { listas: "Nada listo por ahora 🎉. Cuando una clienta tenga algo para mandar, aparece aquí.", guardadas: "Nadie te pidió que le guardes su pedido.", faltan: "No hay nada en proceso.", todas: "Todavía no hay nada." }[pmFiltro];
     document.getElementById("swm-empty").style.display = "none";
     const aviso = pmAviso ? `<div style="background:#eaf8f0;border:1px solid #bfe6cf;border-radius:14px;padding:12px;margin:10px 0;">
@@ -5508,6 +5513,14 @@ ${itemLines}
       const g = pmGrupos().find((x) => x.id === card.dataset.pmCard);
       const b = card.querySelector("[data-pm-armar]");
       if (g && b) { const n = pmSeleccion(g).length; b.textContent = `📦 Armar caja con lo marcado (${n})`; b.disabled = !n; }
+      return;
+    }
+    const at = t.closest("[data-pm-atendida]");
+    if (at) {
+      e.stopPropagation();
+      at.disabled = true;
+      try { await pmApi("admin-swm", { accion: "juntar_atendida", email: at.dataset.pmAtendida }); await loadSwm({ quiet: true }); } catch (err) { alert(err.message); }
+      renderSwmAdmin();
       return;
     }
     const ya = t.closest("[data-pm-ya]");

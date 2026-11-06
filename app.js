@@ -7730,6 +7730,7 @@ async function loadMyOrders() {
     }
 
     renderAccountDashboard(orders);
+    if (typeof renderMisCosas === "function") renderMisCosas(orders);
 
     renderAccountOrdersStats(orders);
     renderAccountOrdersRangeChips();

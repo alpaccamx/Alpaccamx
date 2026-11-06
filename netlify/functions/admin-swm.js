@@ -108,8 +108,9 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
     }
     try {
+      const juntar = (await listRecords("juntar").catch(() => [])).filter((j) => j.status === "pendiente");
       const [paquetes, compras, envios, casilleros, tiposCambio] = await Promise.all([listRecords("paquete"), listRecords("compra"), listRecords("envio"), todosLosCasilleros(), tiposDeCambio()]);
-      return json(200, { paquetes, compras, envios, casilleros, tiposCambio, comisionPct: COMISION_PCT, almacenajeDias: ALMACENAJE_DIAS, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
+      return json(200, { paquetes, compras, envios, juntar, casilleros, tiposCambio, comisionPct: COMISION_PCT, almacenajeDias: ALMACENAJE_DIAS, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
     } catch (err) {
       console.error("admin-swm GET:", err);
       return json(500, { error: "No se pudo cargar la dirección americana." });
@@ -333,6 +334,12 @@ exports.handler = async (event) => {
           <h2 style="margin:0 0 8px;font-size:20px;">¡Compra hecha!</h2>
           <p style="font-size:14px;">Ya compré tus productos. Va${lista.length > 1 ? "n" : ""} en camino a nuestro almacén ${lista.length} paquete${lista.length > 1 ? "s" : ""}; te aviso cuando llegue${lista.length > 1 ? "n" : ""}.</p>`);
         return json(200, { compra: rec });
+      }
+
+      // La clienta pidió "mándame todo junto" y Mae ya lo atendió.
+      case "juntar_atendida": {
+        const rec = await mutateRecord("juntar", String(b.email || "").toLowerCase(), (j) => { j.status = "atendida"; j.atendidaAt = now(); return j; });
+        return rec ? json(200, { juntar: rec }) : json(404, { error: "No existe esa solicitud." });
       }
 
       case "compra_en_mano": {
