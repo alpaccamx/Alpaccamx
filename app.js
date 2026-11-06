@@ -7725,6 +7725,8 @@ async function loadMyOrders() {
     myOrdersCache = orders;
     if (!orders.length) {
       renderAccountDashboard(orders);
+      // Aunque no tenga pedidos de la tienda, puede tener un apartado del Sephora Sale por pagar.
+      if (typeof renderPreventaAvisoCuenta === "function") renderPreventaAvisoCuenta();
       emptyEl.classList.remove("hidden");
       return;
     }
