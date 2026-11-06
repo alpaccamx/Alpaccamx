@@ -595,7 +595,7 @@ function pvPagoHTML(a) {
     s.bankAccount && `<div>Cuenta: <b>${escapeHtml(s.bankAccount)}</b> ${copiar(s.bankAccount)}</div>`].filter(Boolean).join("");
   const k = escapeHtml(a.id);
   const opt = (v, t, d) => `<label class="flex items-center gap-3 rounded-xl border-2 border-ink/15 bg-white px-3 py-2.5 cursor-pointer has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20">
-      <input type="radio" name="pv-pm-${k}" value="${v}" data-pv-pm="${k}" class="accent-[#c4466e] w-5 h-5 shrink-0"><span><b class="block text-sm">${t}</b><span class="block text-xs text-ink/70">${d}</span></span></label>`;
+      <input type="radio" name="pv-pm-${k}" value="${v}" data-pv-pm="${k}" ${v === "tr" ? "checked" : ""} class="accent-[#c4466e] w-5 h-5 shrink-0"><span><b class="block text-sm">${t}</b><span class="block text-xs text-ink/70">${d}</span></span></label>`;
   return `<div class="mt-3 rounded-xl bg-pill p-3 space-y-2">
     <b class="block text-sm">${titulo}</b>
     ${p.rechazo ? `<p class="text-xs text-sale">${escapeHtml(p.rechazo)}</p>` : ""}
@@ -606,7 +606,7 @@ function pvPagoHTML(a) {
       <button type="button" data-pv-pay-mp="${k}" class="w-full rounded-full bg-[#0074C2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#00609F]">💳 Pagar ${fmt(total)} en Mercado Pago</button>
       <p class="text-xs text-ink/70">Al terminar regresas aquí y se marca pagado solito.</p>
     </div>
-    <div data-pv-pm-box="tr:${k}" class="hidden rounded-xl bg-white p-3 text-sm space-y-2">
+    <div data-pv-pm-box="tr:${k}" class="rounded-xl bg-white p-3 text-sm space-y-2">
       <p><b>1.</b> Transfiere exactamente <b>${fmt(total)}</b> ${copiar(Number(total).toFixed(2))}</p>
       <div class="rounded-lg bg-pill/60 px-3 py-2 space-y-0.5">${bank || '<p class="text-xs text-ink/70">Cargando datos bancarios...</p>'}<div>Concepto: <b>${escapeHtml(a.folio)}</b></div></div>
       <label class="flex flex-col gap-1"><span><b>2.</b> Sube la captura de tu transferencia (foto o PDF)</span>
