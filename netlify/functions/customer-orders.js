@@ -9,6 +9,7 @@
 // todos los pedidos cuyo customer.phone coincida con el de esa cuenta.
 
 const { listOrders } = require("./lib/blob-store.js");
+const { loadCatalog, loadStock } = require("./lib/catalog-source.js");
 const { getCustomerByEmail } = require("./lib/customer-store.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
 
@@ -30,7 +31,8 @@ exports.handler = async (event) => {
     const orders = phone
       ? allOrders.filter((o) => String(o.customer?.phone || "").replace(/[^0-9]/g, "") === phone)
       : [];
-    return jsonResponse(200, { orders: orders.map(publicOrder), name: customer.name, phone: customer.phone, email: customer.email });
+    const imgs = await fotosPorSku();
+    return jsonResponse(200, { orders: orders.map((o) => publicOrder(o, imgs)), name: customer.name, phone: customer.phone, email: customer.email });
   } catch (err) {
     console.error("Error listando los pedidos de la clienta:", err);
     return jsonResponse(500, { error: "No se pudieron cargar tus pedidos." });
@@ -48,7 +50,7 @@ const PRIVATE_ORDER_FIELDS = [
 
 const STAGE_ORDER = ["pagado", "pedido_abw", "llego", "enviado", "entregado"];
 
-function publicOrder(o) {
+function publicOrder(o, imgs) {
   const rest = { ...o };
   // Misma regla que el admin (orderStage en admin.js): si Mae anotó el
   // número de compra con el proveedor, el pedido ya va en "Pedido a
@@ -60,8 +62,23 @@ function publicOrder(o) {
   PRIVATE_ORDER_FIELDS.forEach((k) => delete rest[k]);
   return {
     ...rest,
-    items: (o.items || []).map(({ costoUSD, ...it }) => it),
+    items: (o.items || []).map(({ costoUSD, ...it }) => {
+      // La foto sale del catálogo / stock por SKU (la tienda a veces no la
+      // tiene cargada en el navegador de la clienta, sobre todo en
+      // productos de stock que ya se agotaron).
+      const img = it.imagen || (imgs && (imgs.get(it.sku) || imgs.get(String(it.sku || "").replace(/__stock$/, "")))) || "";
+      return img ? { ...it, imagen: img } : it;
+    }),
   };
+}
+
+/* SKU -> foto, del catálogo y de la tabla de Stock en México. */
+async function fotosPorSku() {
+  const m = new Map();
+  const fix = (v) => { v = String(v || "").trim(); return !v ? "" : /^https?:/.test(v) ? v : `/${v.replace(/^\.?\//, "")}`; };
+  try { (await loadCatalog()).rows.forEach((r) => { if (r.SKU && r.Imagen) m.set(r.SKU, fix(r.Imagen)); }); } catch (err) { console.error("customer-orders catálogo:", err.message); }
+  try { (await loadStock()).rows.forEach((r) => { if (r.SKU && r.Imagen) m.set(r.SKU, fix(r.Imagen)); }); } catch (err) { console.error("customer-orders stock:", err.message); }
+  return m;
 }
 
 function jsonResponse(statusCode, obj) {
