@@ -13,6 +13,9 @@
 //        pidió que no se lo mande todavía (para juntarlo con algo que pida
 //        después y pagar un solo envío). No sale en "Por enviar".
 //   POST { orderId, espera: false }       -> ya se puede enviar
+//   POST { orderIds, cajaEnvioId }        -> estos pedidos van en la caja de ese envío
+//        de Dirección americana (se marcan enviados cuando el envío sale con guía);
+//        cajaEnvioId: null los saca de la caja
 //   POST { orderId, enviadoJunto: true }  -> lo marca enviado porque se fue
 //        en la caja de otro pedido del grupo (copia su guía si tiene; sin
 //        volver a avisar a la clienta)
@@ -44,6 +47,17 @@ exports.handler = async (event) => {
       // Si en el grupo queda uno solo, ya no está ligado con nadie.
       const resto = todos.filter((x) => grupo && x.envioJunto === grupo && x.id !== o.id);
       if (resto.length === 1) orders.push(await updateOrderFields(resto[0].id, { envioJunto: null }));
+      return json(200, { orders });
+    }
+
+    if (b.cajaEnvioId !== undefined && Array.isArray(b.orderIds)) {
+      const orders = [];
+      for (const ref of b.orderIds.slice(0, 30)) {
+        const o = buscar(ref);
+        if (!o) return json(404, { error: `No encontré el pedido ${String(ref).trim()}.` });
+        if (b.cajaEnvioId && (o.status !== "paid" || o.trackingNumber)) return json(409, { error: `El pedido #${o.id.slice(0, 8).toUpperCase()} ya salió o no está pagado.` });
+        orders.push(await updateOrderFields(o.id, { cajaEnvioId: b.cajaEnvioId ? String(b.cajaEnvioId) : null }));
+      }
       return json(200, { orders });
     }
 

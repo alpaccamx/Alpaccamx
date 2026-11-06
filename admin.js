@@ -3236,6 +3236,14 @@ ${itemLines}
 
   function linkBlockHTML(o) {
     if (o.status === "cancelled") return "";
+    if (o.cajaEnvioId && o.status === "paid" && !o.trackingNumber) {
+      const env = typeof swmData !== "undefined" && swmData.envios ? swmData.envios.find((x) => x.id === o.cajaEnvioId) : null;
+      return `<div style="background:#eef6fd;border:1px solid #cfe3f6;border-radius:12px;padding:10px 12px;margin:10px 0;">
+        <div style="font-weight:700;font-size:14px;">📦 Va en la caja del envío ${env ? escapeHtml(env.folio) : "de su casillero"}</div>
+        <div class="meta">Se marca enviado solo cuando ese envío salga con su guía. No le hagas otra guía a este pedido.</div>
+        <button type="button" class="btn-link" data-caja-quitar="${o.id}" style="margin-top:6px;font-size:13px;background:none;border:none;color:#8a828f;text-decoration:underline;cursor:pointer;">Sacar este pedido de esa caja</button>
+      </div>`;
+    }
     const junto = pedidosJuntos(o);
     const otros = otrosAbiertos(o);
     const fila = (x) => `<li><b>#${orderNumber(x)}</b> · ${escapeHtml(estadoCorto(x))} · ${formatPrice(x.grandTotal)}</li>`;
@@ -3321,6 +3329,8 @@ ${itemLines}
     }
     const quitar = t.closest("[data-link-quitar]");
     if (quitar) { if (confirm("¿Sacar este pedido del envío junto?")) linkAct({ orderId: quitar.dataset.linkQuitar, quitar: true }, quitar); return; }
+    const cq = t.closest("[data-caja-quitar]");
+    if (cq) { if (confirm("¿Sacar este pedido de esa caja?")) linkAct({ orderIds: [cq.dataset.cajaQuitar], cajaEnvioId: null }, cq); return; }
     const guia = t.closest("[data-link-guia]");
     if (guia) { linkAct({ orderId: guia.dataset.linkGuia, copiarGuia: true }, guia); return; }
     const envJ = t.closest("[data-link-enviado]");
@@ -3829,7 +3839,8 @@ ${itemLines}
       { n: count("esperando_abw"), label: "Esperando ABW", hint: "Ya pedidos, en camino", go: "esperando_abw" },
       { n: count("por_enviar"), label: "Por enviar", hint: "Generar guía", go: "por_enviar", cls: "hot" },
       { n: count("guardado"), label: "No mandar todavía", hint: "La clienta va a pedir más", go: "guardado" },
-      { n: swmLoaded ? swmNewCount : "…", label: "Dirección americana", hint: "Paquetes y envíos de tus clientas", go: "swm", cls: "blue" },
+      { n: swmLoaded ? pmCount : "…", label: "Por mandar", hint: "Clientas con cosas listas", go: "pm", cls: "hot" },
+            { n: swmLoaded ? swmNewCount : "…", label: "Dirección americana", hint: "Paquetes y envíos de tus clientas", go: "swm", cls: "blue" },
       { n: swmLoaded ? psCount : "…", label: "Personal shopper", hint: "Cobrar, comprar o mandar", go: "ps", cls: "pink" },
       { n: restockCount == null ? "…" : restockCount, label: "Avisos de restock", hint: "Clientas esperando", go: "restock" },
       { n: pvApartadosLigeros ? pvResumen().activos : "…", label: "Apartados de preventa", hint: pvApartadosLigeros && pvResumen().revisar ? `${pvResumen().revisar} comprobante(s) por revisar` : "Sephora Sale", go: "preventa", cls: "hot" },
@@ -4886,6 +4897,7 @@ ${itemLines}
   let usaPendingCount = 0;
   let swmNewCount = 0;
   let psCount = 0;
+  let pmCount = 0;
   let swmLoaded = false;
 
   function notifyEnabled() {
@@ -5127,6 +5139,10 @@ ${itemLines}
       const badge = document.getElementById("swm-badge");
       badge.textContent = swmNewCount ? String(swmNewCount) : "";
       badge.style.display = swmNewCount ? "inline-flex" : "none";
+      const pmN = pmPorMandarN();
+      pmCount = pmN;
+      const pmBadge = document.getElementById("pm-nav-badge");
+      if (pmBadge) { pmBadge.textContent = pmN ? String(pmN) : ""; pmBadge.style.display = pmN ? "inline-flex" : "none"; }
       const psN = psPendientes();
       psCount = psN;
       const psBadge = document.getElementById("ps-nav-badge");
@@ -5135,7 +5151,7 @@ ${itemLines}
       navBadge.textContent = badge.textContent;
       navBadge.style.display = badge.style.display;
       updateMoreBadge();
-      if (currentView === "swm" || currentView === "ps") renderSwmAdmin();
+      if (currentView === "swm" || currentView === "ps" || currentView === "pm") renderSwmAdmin();
       if (currentView === "inicio") renderHome();
     } catch (err) {
       if (!quiet) setStatus("No se pudo conectar con el servidor.");
@@ -5172,6 +5188,7 @@ ${itemLines}
     const ratesEl = card.querySelector("[data-guia-rates]");
     const genBtn = card.querySelector("[data-guia-generar]");
     errEl.textContent = "";
+    const kindKey = card.dataset.guiaKind === "orden" ? "orderId" : "envioId";
     const rateEl = t.closest("[data-guia-rate]");
     if (rateEl) {
       swmGuiaState[id].selected = Number(rateEl.dataset.guiaRate);
@@ -5190,14 +5207,20 @@ ${itemLines}
       try {
         const res = await fetch("/.netlify/functions/admin-shipping-rates", {
           method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-          body: JSON.stringify({ envioId: id, weight, destinationZipCode: g("cp"), destinationState: g("estado"), destinationCity: g("ciudad"), destinationNeighborhood: g("colonia") }),
+          body: JSON.stringify({ [kindKey]: id, weight, destinationZipCode: g("cp"), destinationState: g("estado"), destinationCity: g("ciudad"), destinationNeighborhood: g("colonia") }),
         });
         const data = await res.json();
         if (!res.ok || !(data.rates || []).length) { ratesEl.textContent = ""; errEl.textContent = data.error || "No hay opciones de envío para esos datos."; return; }
         swmGuiaState[id] = { rates: data.rates, selected: null, tabla: data.tabla != null ? Number(data.tabla) : null };
         const nota = card.querySelector("[data-guia-tabla]");
+        if (kindKey === "orderId") {
+          if (nota) nota.innerHTML = "🧾 Su envío ya lo pagó en sus pedidos: la paquetería que elijas es lo que te cuesta a ti la guía.";
+        } else {
+          const yaPagado = Number((card.dataset.pmPagado)) || 0;
+          const sugerido = data.tabla != null && yaPagado > 0 ? Math.max(0, Math.round(Number(data.tabla) - yaPagado)) : "";
         if (nota) nota.innerHTML = `${data.tabla != null ? `🧾 Envío según tu tabla (${weight} kg a CP ${escapeHtml(g("cp"))}): <b>${formatPrice(data.tabla)}</b>. La paquetería que elijas es lo que te cuesta a ti la guía.` : "⚠️ Su código postal no está en tu tabla (o pesa más de 30 kg): se le cobra lo que cueste la paquetería que elijas <b>+ $100</b>. Ella solo ve el total del envío, sin desglose."}
-          <label style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-weight:600;">💲 Cóbrale de envío <input data-g="cobrar" type="number" min="0" step="1" placeholder="${data.tabla != null ? Math.round(data.tabla) : "tabla"}" style="width:110px;padding:6px 8px;"> <span style="font-weight:400;color:#6b6370;">(vacío = ${data.tabla != null ? "lo de tu tabla" : "paquetería + $100"})</span></label>`;
+          <label style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-weight:600;">💲 Cóbrale de envío <input data-g="cobrar" type="number" min="0" step="1" value="${sugerido}" placeholder="${data.tabla != null ? Math.round(data.tabla) : "tabla"}" style="width:110px;padding:6px 8px;"> <span style="font-weight:400;color:#6b6370;">(${yaPagado > 0 && data.tabla != null ? `tabla ${formatPrice(data.tabla)} − ${formatPrice(yaPagado)} que ya pagó en sus pedidos` : `vacío = ${data.tabla != null ? "lo de tu tabla" : "paquetería + $100"}`})</span></label>`;
+        }
         const badge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
         ratesEl.innerHTML = data.rates.map((r, i) => `<label class="rate-option" data-guia-rate="${i}"><input type="radio" name="guia-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}</span></label>`).join("");
       } catch (err) { ratesEl.textContent = ""; errEl.textContent = "No se pudo conectar con el servidor."; }
@@ -5207,7 +5230,7 @@ ${itemLines}
     if (!st || st.selected == null) { errEl.textContent = "Elige una paquetería primero."; return; }
     const envio = swmData.envios.find((x) => x.id === id);
     const pagado = envio && ["pagado", "en_mexico"].includes(envio.status);
-    if (!confirm(pagado ? "¿Generar la guía? Se cobra en tu cuenta de la paquetería y a la clienta le llega el aviso." : "¿Hacer la guía y cobrarle? La guía se paga en tu cuenta de la paquetería ya; a ella le llega lo que tiene que pagar y, en cuanto pague, su guía.")) return;
+    if (kindKey === "orderId" ? !confirm("¿Generar la guía? Se cobra en tu cuenta de la paquetería y sus pedidos se marcan enviados juntos.") : !confirm(pagado ? "¿Generar la guía? Se cobra en tu cuenta de la paquetería y a la clienta le llega el aviso." : "¿Hacer la guía y cobrarle? La guía se paga en tu cuenta de la paquetería ya; a ella le llega lo que tiene que pagar y, en cuanto pague, su guía.")) return;
     const r = st.rates[st.selected];
     const destination = {
       name: g("nombre").slice(0, 30) || "Cliente", phone: g("telefono").replace(/[^0-9]/g, "").slice(-10),
@@ -5219,12 +5242,15 @@ ${itemLines}
     try {
       const res = await fetch("/.netlify/functions/admin-generate-guide", {
         method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ envioId: id, weight, total: r.total, cobrarEnvio: g("cobrar") !== "" ? Number(g("cobrar")) : null, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
+        body: JSON.stringify({ [kindKey]: id, weight, total: r.total, cobrarEnvio: g("cobrar") !== "" ? Number(g("cobrar")) : null, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo generar la guía.");
       if (data.error) alert(data.error);
+      else if (kindKey === "orderId") showToast(`✅ Guía ${data.order.trackingNumber} generada: pedidos marcados enviados`);
       else showToast(data.guiaAnticipada ? `✅ Guía ${data.envio.guia} lista y cobro enviado (${formatPrice(data.envio.cotizacion.total)}). Cuando pague, le llega su guía sola.` : `✅ Guía ${data.envio.guia} generada y aviso enviado`);
+      if (card.dataset.pmKey && !data.error) pmTerminar(card, data);
+      if (kindKey === "orderId") await fetchOrders();
       await loadSwm({ quiet: true });
     } catch (err) {
       errEl.textContent = err.message; genBtn.disabled = false; genBtn.textContent = label;
@@ -5241,6 +5267,299 @@ ${itemLines}
     return buscaEnTodo([...suyos.flatMap((x) => [x.folio, x.rastreo, x.tienda]), r.folio, r.name, r.email, r.phone, r.tienda, r.paqueteria, r.rastreo, r.guia, r.contenido, r.contenidoCaja, r.links, cas, r.etiqueta, r.ordenTienda,
       d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp, d.referencias], q);
   }
+
+  /* ---------- 📦 Por mandar: todo lo de cada clienta junto, sin importar
+     de dónde venga (pedidos de la tienda o de Corea, paquetes de su
+     casillero, compras de Personal shopper). Dice qué ya se puede mandar,
+     qué todavía falta y deja armar UNA caja con lo que esté listo.
+     Comparte el panel de Dirección americana (swm-panel) para usar sus
+     mismos botones de guía y cobro. ---------- */
+  let pmFiltro = "listas";
+  let pmCaja = null; // { key, nombre, tel, orderIds, paqueteIds, kg, kgOrdenes, pagado, paso: "dir" | "guia", envioId, orderId }
+  let pmAviso = null; // { nombre, tel, html, texto }
+  const pmDesmarcados = new Set(); // cosas listas que Mae sacó de la caja
+
+  const pmEmail = (x) => String(x || "").trim().toLowerCase();
+  const pmTel = (x) => String(x || "").replace(/\D/g, "").slice(-10);
+
+  function pmGrupos() {
+    const D = swmLoaded ? swmData : { paquetes: [], compras: [], envios: [], casilleros: {} };
+    const entradas = [];
+    const E = (x) => { entradas.push(x); };
+    const kgOrden = (o) => { try { return orderPiecesAndWeight(o).weightKg || 0; } catch (err) { return 0; } };
+    const folioEnvio = (id) => { const e = D.envios.find((x) => x.id === id); return e ? e.folio : ""; };
+
+    allOrders.forEach((o) => {
+      if (o.status === "cancelled" || o.status === "failed") return;
+      const c = o.customer || {};
+      const piezas = (o.items || []).reduce((t, it) => t + (it.qty || 0), 0);
+      const base = {
+        tipo: "pedido", id: o.id, o, email: pmEmail(o.customerEmail), tel: pmTel(c.phone), nombre: c.name || "", kg: kgOrden(o),
+        titulo: `🧾 Pedido #${orderNumber(o)}`,
+        detalle: `${piezas} pieza${piezas === 1 ? "" : "s"} · ${(o.items || []).slice(0, 2).map((it) => it.nombre).join(", ")}${(o.items || []).length > 2 ? "…" : ""}`,
+        go: { go: "pedidos", q: `#${orderNumber(o)}` },
+      };
+      if (o.status === "pending") return E({ ...base, estado: "falta", nota: `💳 falta su pago (${formatPrice(o.grandTotal)})` });
+      const b = orderBucket(o);
+      if (!b || b === "enviado" || b === "entregado") return;
+      if (b === "por_abw") return E({ ...base, estado: "falta", nota: "🇰🇷 hay que pedirlo a Corea" });
+      if (b === "esperando_abw") return E({ ...base, estado: "falta", nota: "🇰🇷 viene de Corea" });
+      if (isEntregaPersonal(o)) return E({ ...base, estado: "falta", nota: "📍 se lo entregas en persona (Juárez)" });
+      if (o.cajaEnvioId) return E({ ...base, estado: "proceso", nota: `📦 ya va en la caja del envío ${folioEnvio(o.cajaEnvioId)}` });
+      if (b === "guardado") return E({ ...base, estado: "guardado", nota: o.enEspera && o.enEspera.nota ? `🧺 ${o.enEspera.nota}` : "🧺 pidió que no se lo mandes todavía" });
+      E({ ...base, estado: "listo" });
+    });
+
+    D.paquetes.forEach((p) => {
+      if (!p.email || ["sin_dueña", "cancelado", "enviado", "entregado", "en_envio"].includes(p.status)) return;
+      const ps = p.origen === "compra";
+      const base = {
+        tipo: "paquete", id: p.id, p, email: pmEmail(p.email), tel: pmTel(p.phone), nombre: p.name || "", kg: Number(p.cobrable) || Number(p.kg) || 0,
+        titulo: `${ps ? "🛍️" : "🇺🇸"} Paquete ${p.folio}`,
+        detalle: [p.tienda, ps ? "compra de Mae" : "", !ps && p.rastreo ? `rastreo ${p.rastreo}` : ""].filter(Boolean).join(" · "),
+        go: { go: ps ? "ps" : "swm", q: p.folio },
+      };
+      if (p.status === "registrado") return E({ ...base, estado: "falta", nota: "🇺🇸 viene en camino a la dirección americana" });
+      if (p.datosPendientes) return E({ ...base, estado: "falta", nota: "✏️ falta que diga qué trae" });
+      if ((p.correccion && p.correccion.estado === "pedida") || (p.separar && p.separar.estado === "pedida")) return E({ ...base, estado: "falta", nota: "✏️ tiene una corrección o separación pendiente" });
+      if (!p.enMexicoAt) return E({ ...base, estado: "falta", nota: "🇺🇸 ya llegó a EE.UU.; falta cruzarlo a México" });
+      E({ ...base, estado: "listo" });
+    });
+
+    D.compras.forEach((c) => {
+      if (!c.email || ["comprado", "cancelado"].includes(c.status)) return;
+      const nota = c.status === "solicitud" ? "🆕 hay que cotizarle" : c.status === "cotizado" ? `💳 falta su pago (${formatPrice(c.cotizacion ? c.cotizacion.total : 0)})` : "🛒 ya pagó: hay que comprarlo";
+      E({ tipo: "compra", id: c.id, email: pmEmail(c.email), tel: pmTel(c.phone), nombre: c.name || "", titulo: `🛍️ Compra ${c.folio}`, detalle: c.tienda || "compra por ella", estado: "falta", nota, go: { go: "ps", q: c.folio } });
+    });
+
+    D.envios.forEach((e) => {
+      if (!e.email || ["enviado", "entregado", "cancelado"].includes(e.status)) return;
+      const nota = e.guia && e.status !== "pagado" ? "guía lista, esperando su pago" : { solicitado: "hay que cotizarle", cotizado: "esperando su pago", pagado: "ya pagó: falta hacerle su guía", en_mexico: "ya pagó: falta hacerle su guía" }[e.status] || e.status;
+      E({ tipo: "envio", id: e.id, e, email: pmEmail(e.email), tel: pmTel(e.phone), nombre: e.name || "", titulo: `📦 Envío ${e.folio}`, detalle: "su caja a México", estado: "proceso", nota, go: { go: envioEsPs(e, D) ? "ps" : "swm", q: e.folio } });
+    });
+
+    // Una misma clienta puede venir con correo en unas cosas y solo teléfono en otras.
+    const padre = new Map();
+    const raiz = (k) => { while (padre.get(k) !== k) { padre.set(k, padre.get(padre.get(k))); k = padre.get(k); } return k; };
+    entradas.forEach((x) => {
+      const ks = [x.email && `e:${x.email}`, x.tel && `t:${x.tel}`].filter(Boolean);
+      if (!ks.length) ks.push(`i:${x.id}`);
+      ks.forEach((k) => { if (!padre.has(k)) padre.set(k, k); });
+      for (let i = 1; i < ks.length; i++) padre.set(raiz(ks[0]), raiz(ks[i]));
+      x.k0 = ks[0];
+    });
+    const grupos = new Map();
+    entradas.forEach((x) => {
+      const r = raiz(x.k0);
+      let g = grupos.get(r);
+      if (!g) { g = { raiz: r, nombre: "", email: "", tel: "", entradas: [] }; grupos.set(r, g); }
+      g.entradas.push(x);
+      if (!g.nombre && x.nombre) g.nombre = x.nombre;
+      if (!g.email && x.email) g.email = x.email;
+      if (!g.tel && x.tel) g.tel = x.tel;
+    });
+    return [...grupos.values()].map((g) => {
+      g.id = g.email || g.tel || g.raiz;
+      g.casillero = g.email && D.casilleros ? D.casilleros[g.email] || "" : "";
+      ["listo", "guardado", "falta", "proceso"].forEach((s) => { g[s] = g.entradas.filter((x) => x.estado === s); });
+      return g;
+    });
+  }
+
+  // La dirección con la que se arma la caja: la del último envío de su
+  // casillero; si no hay, la de su último pedido.
+  function pmDireccion(g) {
+    const envs = swmLoaded ? swmData.envios.filter((e) => e.email === g.email && e.direccion && /^\d{5}$/.test(String(e.direccion.cp || ""))).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))) : [];
+    if (envs[0]) return { ...envs[0].direccion };
+    const o = g.entradas.filter((x) => x.tipo === "pedido").map((x) => x.o).filter((o) => o.customer && o.customer.cp).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+    const c = (o && o.customer) || {};
+    return { nombre: c.name || g.nombre || "", telefono: c.phone || g.tel || "", calle: c.street || "", colonia: c.colonia || "", ciudad: c.municipio || "", estado: c.estado || "", cp: c.cp || "", referencias: c.referencias || "" };
+  }
+
+  const pmBuscar = (g, q) => buscaEnTodo([g.nombre, g.email, g.tel, g.casillero], q) || g.entradas.some((x) => (x.tipo === "pedido" ? matchesSearch(x.o, q) : x.tipo === "paquete" || x.tipo === "envio" ? swmMatches(x.p || x.e, q) : buscaEnTodo([x.titulo, x.detalle], q)));
+  const pmPorMandarN = () => pmGrupos().filter((g) => g.listo.length).length;
+
+  const pmSeleccion = (g) => g.listo.filter((x) => !pmDesmarcados.has(`${x.tipo}:${x.id}`));
+
+  function pmFila(x, { check = false, marcada = true } = {}) {
+    const color = { listo: "#17803d", guardado: "#6a45b8", falta: "#8a5a00", proceso: "#1b6fb3" }[x.estado];
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-top:1px solid #f6eef2;">
+      ${check ? `<input type="checkbox" data-pm-chk="${x.tipo}:${escapeHtml(x.id)}" ${marcada ? "checked" : ""} style="width:22px;height:22px;margin-top:2px;flex:none;accent-color:#c4466e;">` : ""}
+      <div style="flex:1;min-width:0;font-size:14px;"><b>${escapeHtml(x.titulo)}</b> <span class="meta">${escapeHtml(x.detalle || "")}${x.kg ? ` · ${x.kg.toFixed(x.kg < 1 ? 2 : 1)} kg` : ""}</span>
+        ${x.nota ? `<div style="color:${color};font-size:13px;">${escapeHtml(x.nota)}</div>` : ""}</div>
+      <div style="display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end;">
+        ${x.estado === "guardado" && x.tipo === "pedido" ? `<button type="button" class="btn-secondary" data-pm-ya="${escapeHtml(x.id)}" style="padding:4px 10px;font-size:12px;">▶️ Ya puede salir</button>` : ""}
+        ${x.go ? `<button type="button" class="btn-secondary" data-global-go="${x.go.go}" data-global-q="${escapeHtml(x.go.q)}" style="padding:4px 10px;font-size:12px;">Abrir</button>` : ""}
+      </div></div>`;
+  }
+
+  function pmCajaHTML(g) {
+    const c = pmCaja;
+    if (!c || c.key !== g.id) return "";
+    if (c.paso === "dir") {
+      const d = c.dir;
+      const inp = (k, l, v, extra = "") => `<label>${l}<input data-pmf="${k}" type="text" value="${escapeHtml(v || "")}" ${extra}></label>`;
+      return `<div style="background:#fdf6f9;border:2px solid #f0d5e0;border-radius:14px;padding:12px;margin-top:10px;">
+        <div style="font-weight:700;">📦 Armar la caja: ${c.paqueteIds.length ? `${c.paqueteIds.length} paquete${c.paqueteIds.length > 1 ? "s" : ""}` : ""}${c.paqueteIds.length && c.orderIds.length ? " + " : ""}${c.orderIds.length ? `${c.orderIds.length} pedido${c.orderIds.length > 1 ? "s" : ""}` : ""}</div>
+        <div class="meta">¿A dónde va? Revisa la dirección; en el siguiente paso eliges paquetería y se hace la guía.</div>
+        <div class="grid" style="margin-top:8px;">${inp("nombre", "Nombre de quien recibe", d.nombre)}${inp("telefono", "Teléfono", d.telefono)}${inp("calle", "Calle y número", d.calle)}${inp("colonia", "Colonia", d.colonia)}${inp("ciudad", "Ciudad", d.ciudad)}${inp("estado", "Estado", d.estado)}${inp("cp", "Código postal", d.cp, 'maxlength="5" inputmode="numeric"')}${inp("referencias", "Referencias", d.referencias)}</div>
+        <div data-pm-err style="color:#b33660;font-size:13px;margin-top:6px;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-pm-dir-seguir>Seguir: elegir paquetería ›</button><button type="button" class="btn-secondary" data-pm-cancelar>Cancelar</button></div>
+      </div>`;
+    }
+    // paso "guia": mismo formulario de guía de Dirección americana.
+    const nota = c.pagado > 0 ? `<div class="meta" style="margin-top:6px;">💡 En sus pedidos ya pagó ${formatPrice(c.pagado)} de envío; abajo se le descuenta del envío de esta caja (puedes cambiarlo).</div>` : "";
+    if (c.envioId) {
+      const e = swmData.envios.find((x) => x.id === c.envioId);
+      if (!e) return `<div class="meta">Cargando el envío…</div>`;
+      return `<div class="swm-card" data-swm-id="${escapeHtml(e.id)}" data-kind="envio" data-pm-key="${escapeHtml(g.id)}" data-pm-pagado="${c.pagado || 0}" style="margin-top:10px;border:2px solid #f0d5e0;">
+        <h4><span>📦 Caja ${escapeHtml(e.folio)}</span><button type="button" class="btn-secondary" data-pm-cancelar style="padding:4px 10px;font-size:12px;">Cerrar</button></h4>
+        <div class="meta">${c.paqueteIds.length} paquete${c.paqueteIds.length === 1 ? "" : "s"}${c.orderIds.length ? ` + ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"}` : ""}. A ella le llega el cobro del envío; cuando pague, sale su guía${c.orderIds.length ? " y sus pedidos se marcan enviados" : ""}.</div>${nota}
+        ${swmGuiaForm({ ...e, kgExtra: c.kgOrdenes }, true)}</div>`;
+    }
+    const o = allOrders.find((x) => x.id === c.orderId);
+    return `<div class="swm-card" data-swm-id="${escapeHtml(c.orderId)}" data-kind="orden" data-guia-kind="orden" data-pm-key="${escapeHtml(g.id)}" style="margin-top:10px;border:2px solid #f0d5e0;">
+      <h4><span>📦 Caja con ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"}</span><button type="button" class="btn-secondary" data-pm-cancelar style="padding:4px 10px;font-size:12px;">Cerrar</button></h4>
+      <div class="meta">Su envío ya está pagado en sus pedidos. Al hacer la guía, todos se marcan enviados juntos y se le avisa.</div>
+      ${swmGuiaForm({ id: c.orderId, email: g.email, direccion: c.dir, paqueteIds: [], kgExtra: c.kgOrdenes, sugerido: {} }, "orden")}</div>`;
+  }
+
+  function pmCardHTML(g) {
+    const sel = pmSeleccion(g);
+    const chips = [g.listo.length ? `✅ ${g.listo.length} lista${g.listo.length === 1 ? "" : "s"}` : "", g.guardado.length ? `🧺 ${g.guardado.length} guardada${g.guardado.length === 1 ? "" : "s"}` : "", (g.falta.length + g.proceso.length) ? `⏳ ${g.falta.length + g.proceso.length} en proceso` : ""].filter(Boolean).join(" · ");
+    const wa = waLinkFromPhone(g.tel);
+    const abierta = pmCaja && pmCaja.key === g.id;
+    return `<div class="swm-card" data-pm-card="${escapeHtml(g.id)}" style="margin:12px 0;border:2px solid #f6dfe7;">
+      <h4><span>👤 ${escapeHtml(g.nombre || g.email || g.tel || "Clienta")}${g.casillero ? ` · ${escapeHtml(g.casillero)}` : ""}</span><span class="meta" style="font-weight:600;">${chips}</span></h4>
+      <div class="meta">${[g.email, g.tel].filter(Boolean).map(escapeHtml).join(" · ")}${wa ? ` · <a href="${escapeHtml(wa)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div>
+      ${g.listo.length ? `<div style="margin-top:8px;font-weight:700;color:#17803d;font-size:14px;">✅ Listo para mandar <span class="meta" style="font-weight:400;">(quita la palomita a lo que no vaya en esta caja)</span></div>${g.listo.map((x) => pmFila(x, { check: true, marcada: !pmDesmarcados.has(`${x.tipo}:${x.id}`) })).join("")}
+        ${abierta ? "" : `<div style="margin-top:10px;"><button type="button" class="btn-primary" data-pm-armar="${escapeHtml(g.id)}" ${sel.length ? "" : "disabled"}>📦 Armar caja con lo marcado (${sel.length})</button></div>`}` : ""}
+      ${pmCajaHTML(g)}
+      ${g.guardado.length ? `<div style="margin-top:10px;font-weight:700;color:#6a45b8;font-size:14px;">🧺 No mandar todavía</div>${g.guardado.map((x) => pmFila(x)).join("")}` : ""}
+      ${(g.falta.length || g.proceso.length) ? `<div style="margin-top:10px;font-weight:700;color:#8a5a00;font-size:14px;">⏳ Todavía falta / en proceso</div>${[...g.proceso, ...g.falta].map((x) => pmFila(x)).join("")}` : ""}
+    </div>`;
+  }
+
+  const PM_AYUDA = "Aquí está todo lo de cada clienta junto, venga de donde venga (tienda, Corea, su casillero o Personal shopper). 1) Abre “✅ Listas para mandar”: cada tarjeta es una clienta con lo que ya puedes mandar. 2) Quita la palomita a lo que no vaya en esa caja y toca “📦 Armar caja”. 3) Revisa la dirección, elige paquetería y se hace UNA sola guía. Si lleva cosas de su casillero, a ella le llega el cobro del envío y, cuando paga, sale su guía y sus pedidos se marcan enviados solos; si solo son pedidos de la tienda, se marcan enviados al momento. Lo que le falta (Corea, cruzar, pago) sale abajo, en gris, para que no se te olvide.";
+
+  function renderPmAdmin() {
+    const label = document.querySelector("#swm-panel .filters-label");
+    if (label) label.textContent = "📦 Por mandar";
+    const ayuda = document.querySelector("#swm-panel details.help p");
+    if (ayuda) ayuda.textContent = PM_AYUDA;
+    const todos = pmGrupos();
+    const FILTROS = [
+      ["listas", "✅ Listas para mandar", (g) => g.listo.length],
+      ["guardadas", "🧺 No mandar todavía", (g) => g.guardado.length],
+      ["faltan", "⏳ Todavía falta algo", (g) => g.falta.length || g.proceso.length],
+      ["todas", "Todas", () => true],
+    ];
+    document.getElementById("swm-filters").innerHTML = `${FILTROS.map(([k, l, fn]) => `<button type="button" class="btn-secondary ${pmFiltro === k ? "on" : ""}" data-pm-filtro="${k}">${l} (${todos.filter(fn).length})</button>`).join("")}
+      <input type="search" id="swm-search" placeholder="🔍 Busca una clienta, pedido, calle, ciudad…" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">`;
+    const q = swmSearch.trim();
+    const fn = FILTROS.find(([k]) => k === pmFiltro)[2];
+    let lista = todos.filter((g) => (q ? pmBuscar(g, q) : fn(g)) || (pmCaja && pmCaja.key === g.id));
+    lista.sort((a, b) => (b.listo.length - a.listo.length) || String(a.nombre).localeCompare(String(b.nombre), "es"));
+    const vacio = { listas: "Nada listo por ahora 🎉. Cuando una clienta tenga algo para mandar, aparece aquí.", guardadas: "Nadie te pidió que le guardes su pedido.", faltan: "No hay nada en proceso.", todas: "Todavía no hay nada." }[pmFiltro];
+    document.getElementById("swm-empty").style.display = "none";
+    const aviso = pmAviso ? `<div style="background:#eaf8f0;border:1px solid #bfe6cf;border-radius:14px;padding:12px;margin:10px 0;">
+      <div style="font-weight:700;">${pmAviso.html}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${pmAviso.tel ? `<a class="btn-primary" style="text-decoration:none;padding:8px 14px;" target="_blank" rel="noopener" href="${escapeHtml(`${waLinkFromPhone(pmAviso.tel)}?text=${encodeURIComponent(pmAviso.texto)}`)}">💬 Avisarle por WhatsApp</a>` : ""}<button type="button" class="btn-secondary" data-pm-aviso-cerrar>Cerrar</button></div></div>` : "";
+    document.getElementById("swm-list").innerHTML = aviso
+      + (lista.map(pmCardHTML).join("") || `<p style="color:#5f5866;font-size:14px;">${q ? `No encontré nada con "${escapeHtml(q)}".` : vacio}</p>`);
+  }
+
+  // Quita de la vista el aviso y la caja abierta, y refresca contadores.
+  function pmTerminar(card, data) {
+    const c = pmCaja;
+    if (!c) return;
+    const wa = c.tel ? true : false;
+    if (card.dataset.guiaKind === "orden") {
+      const o = data.order || {};
+      pmAviso = { nombre: c.nombre, tel: c.tel, html: `✅ Caja de ${escapeHtml(c.nombre || "la clienta")} lista: guía ${escapeHtml(o.trackingNumber || "")}${o.carrier ? ` (${escapeHtml(o.carrier)})` : ""}. Sus ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"} ya están marcados enviados.${data.whatsappSent ? " Ya se le avisó por WhatsApp." : ""}`,
+        texto: `Hola${c.nombre ? ` ${String(c.nombre).split(/\s+/)[0]}` : ""} 💕 ¡Ya salió tu caja! 📦 Paquetería: ${o.carrier || ""} · Guía: ${o.trackingNumber || ""}. Incluye todos tus pedidos. Cualquier cosa aquí estoy 🌸` };
+    } else {
+      const e = data.envio || {};
+      pmAviso = { nombre: c.nombre, tel: c.tel, html: `✅ Caja ${escapeHtml(e.folio || "")} de ${escapeHtml(c.nombre || "la clienta")} lista. ${data.guiaAnticipada ? `Ya le llegó el cobro del envío (${formatPrice(e.cotizacion ? e.cotizacion.total : 0)}); cuando pague, sale su guía${c.orderIds.length ? " y sus pedidos se marcan enviados" : ""}.` : "Ya salió con su guía."}`,
+        texto: `Hola${c.nombre ? ` ${String(c.nombre).split(/\s+/)[0]}` : ""} 💕 Ya preparé tu caja ${e.folio || ""} 📦. Te mandé el cobro del envío; entra aquí para pagarlo y en cuanto pague te llega tu guía: ${location.origin}/?ver=direccion-americana` };
+    }
+    pmCaja = null;
+    pmDesmarcados.clear();
+  }
+
+  async function pmApi(url, body) {
+    const res = await fetch(`/.netlify/functions/${url}`, { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
+    return data;
+  }
+  const pmActualizaOrdenes = (data) => (data.orders || []).forEach((u) => { const i = allOrders.findIndex((x) => x.id === u.id); if (i >= 0) allOrders[i] = u; });
+
+  document.getElementById("swm-panel").addEventListener("click", async (e) => {
+    const t = e.target;
+    const f = t.closest("[data-pm-filtro]");
+    if (f) { e.stopPropagation(); pmFiltro = f.dataset.pmFiltro; swmSearch = ""; renderSwmAdmin(); return; }
+    if (t.closest("[data-pm-aviso-cerrar]")) { e.stopPropagation(); pmAviso = null; renderSwmAdmin(); return; }
+    if (t.closest("[data-pm-cancelar]")) { e.stopPropagation(); pmCaja = null; renderSwmAdmin(); return; }
+    const chk = t.closest("[data-pm-chk]");
+    if (chk) { e.stopPropagation();
+      if (chk.checked) pmDesmarcados.delete(chk.dataset.pmChk); else pmDesmarcados.add(chk.dataset.pmChk);
+      const card = chk.closest("[data-pm-card]");
+      const g = pmGrupos().find((x) => x.id === card.dataset.pmCard);
+      const b = card.querySelector("[data-pm-armar]");
+      if (g && b) { const n = pmSeleccion(g).length; b.textContent = `📦 Armar caja con lo marcado (${n})`; b.disabled = !n; }
+      return;
+    }
+    const ya = t.closest("[data-pm-ya]");
+    if (ya) { e.stopPropagation();
+      ya.disabled = true;
+      try { pmActualizaOrdenes(await pmApi("admin-link-orders", { orderId: ya.dataset.pmYa, espera: false })); showToast("▶️ Listo: ya puede salir."); applyFilters(); } catch (err) { alert(err.message); ya.disabled = false; }
+      renderSwmAdmin();
+      return;
+    }
+    const armar = t.closest("[data-pm-armar]");
+    if (armar) { e.stopPropagation();
+      const g = pmGrupos().find((x) => x.id === armar.dataset.pmArmar);
+      if (!g) return;
+      const sel = pmSeleccion(g);
+      if (!sel.length) return;
+      const ords = sel.filter((x) => x.tipo === "pedido");
+      const paqs = sel.filter((x) => x.tipo === "paquete");
+      const kgOrdenes = ords.reduce((s, x) => s + (x.kg || 0), 0);
+      pmCaja = { key: g.id, nombre: g.nombre, tel: g.tel, email: g.email, orderIds: ords.map((x) => x.id), paqueteIds: paqs.map((x) => x.id), kgOrdenes,
+        pagado: paqs.length ? ords.reduce((s, x) => s + (Number(x.o.shippingNacionalMXN) || 0), 0) : 0, dir: pmDireccion(g), paso: "dir", envioId: "", orderId: "" };
+      if (!paqs.length) {
+        // Solo pedidos de la tienda: se ligan (para que salgan juntos) y se pasa directo a la guía.
+        armar.disabled = true;
+        try {
+          if (ords.length > 1) pmActualizaOrdenes(await pmApi("admin-link-orders", { orderIds: ords.map((x) => x.id) }));
+        } catch (err) { alert(err.message); pmCaja = null; armar.disabled = false; return; }
+        pmCaja.orderId = ords[0].id; pmCaja.paso = "guia";
+      }
+      renderSwmAdmin();
+      const el = document.querySelector(`[data-pm-card="${CSS.escape(g.id)}"] [data-swm-id], [data-pm-card="${CSS.escape(g.id)}"] [data-pmf]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (t.closest("[data-pm-dir-seguir]")) { e.stopPropagation();
+      const box = t.closest("[data-pm-card]");
+      const v = (k) => (box.querySelector(`[data-pmf="${k}"]`) || {}).value?.trim() || "";
+      const dir = { nombre: v("nombre"), telefono: v("telefono"), calle: v("calle"), colonia: v("colonia"), ciudad: v("ciudad"), estado: v("estado"), cp: v("cp"), referencias: v("referencias") };
+      const err = box.querySelector("[data-pm-err]");
+      if (!dir.nombre || !dir.telefono || !dir.calle || !dir.ciudad || !/^\d{5}$/.test(dir.cp)) { err.textContent = "Completa nombre, teléfono, calle y número, ciudad y código postal de 5 dígitos."; return; }
+      const btn = t.closest("[data-pm-dir-seguir]");
+      btn.disabled = true; btn.textContent = "Preparando la caja…";
+      try {
+        const r = await pmApi("admin-swm", { accion: "crear_envio", email: pmCaja.email, paqueteIds: pmCaja.paqueteIds, direccion: dir });
+        if (pmCaja.orderIds.length) pmActualizaOrdenes(await pmApi("admin-link-orders", { orderIds: pmCaja.orderIds, cajaEnvioId: r.envio.id }));
+        pmCaja.dir = dir; pmCaja.envioId = r.envio.id; pmCaja.paso = "guia";
+        await loadSwm({ quiet: true });
+        applyFilters();
+      } catch (ex) { err.textContent = ex.message; btn.disabled = false; btn.textContent = "Seguir: elegir paquetería ›"; return; }
+      renderSwmAdmin();
+      return;
+    }
+  }, true);
 
   /* ---------- 🛍️ Personal shopper: las compras que Mae hace por sus
      clientas, en un solo lugar: factura → cobro → compra → cruce →
@@ -5386,6 +5705,7 @@ ${itemLines}
 
   function renderSwmAdmin() {
     if (swmModo === "ps") { renderPsAdmin(); return; }
+    if (swmModo === "pm") { renderPmAdmin(); return; }
     conSoloDA(renderDaAdmin);
   }
 
@@ -5819,7 +6139,7 @@ ${itemLines}
   function swmGuiaForm(e, cobrar = false) {
     const d = e.direccion || {};
     const pk = (e.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
-    const kg = Math.max(1, Math.ceil(pk.reduce((s, p) => s + (Number(p.kg) || Number(p.cobrable) || 0), 0)) || Math.ceil((e.sugerido && e.sugerido.kg) || 1));
+    const kg = Math.max(1, Math.ceil(pk.reduce((s, p) => s + (Number(p.kg) || Number(p.cobrable) || 0), 0) + (Number(e.kgExtra) || 0)) || Math.ceil((e.sugerido && e.sugerido.kg) || 1));
     const inp = (k, l, v, extra = "") => `<label>${l}<input data-g="${k}" type="text" value="${escapeHtml(v || "")}" ${extra}></label>`;
     const dir = `<div class="grid" style="margin-top:8px;">
         ${inp("nombre", "Nombre", d.nombre)}${inp("telefono", "Teléfono", d.telefono)}
@@ -5828,6 +6148,19 @@ ${itemLines}
       </div>`;
     const rates = `<div data-guia-error style="color:#b33660;font-size:13px;margin-top:6px;"></div>
       <div class="rate-options" data-guia-rates style="margin-top:6px;"></div>`;
+    if (cobrar === "orden") {
+      // Caja solo con pedidos de la tienda: su envío ya está pagado en los pedidos.
+      return `<div style="margin-top:10px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+          <label style="max-width:150px;">Peso de la caja (kg)<input data-g="peso" type="text" inputmode="decimal" value="${kg}"></label>
+          <button type="button" class="btn-secondary" data-guia-cotizar style="padding:8px 14px;">1️⃣ Ver precios de envío</button>
+        </div>
+        <div class="meta" data-guia-tabla style="margin-top:6px;"></div>
+        ${rates}
+        <details style="margin-top:8px;" open><summary style="cursor:pointer;font-size:13px;color:#6b6370;">📍 Dirección de envío (revísala si quieres)</summary>${dir}</details>
+        <div style="margin-top:10px;"><button type="button" class="btn-primary" data-guia-generar disabled>2️⃣ Hacer guía y marcar enviados</button></div>
+      </div>`;
+    }
     if (cobrar) {
       // Cobro en un solo paso: la guía + cruce + envío con el precio de la paquetería.
       const s = e.sugerido || {};
@@ -6792,6 +7125,7 @@ ${itemLines}
     usa: { el: "usa-orders-panel", title: "🛍️ Encargos USA", nav: "mas" },
     swm: { el: "swm-panel", title: "🇺🇸 Dirección americana" },
     ps: { el: "swm-panel", title: "🛍️ Personal shopper" },
+    pm: { el: "swm-panel", title: "📦 Por mandar" },
     ajustes: { el: "settings-view", title: "⚙️ Ajustes", nav: "mas" },
     papelera: { el: "trash-view", title: "🗑️ Papelera", nav: "mas" },
     revision: { el: "revision-view", title: "🔄 Revisión ABW", nav: "mas" },
@@ -6835,9 +7169,10 @@ ${itemLines}
     if (view === "restock" && !restockRequestsLoaded) loadRestockRequests();
     if (view === "resenas" && !reviewsLoaded) loadReviews();
     if (view === "usa" && !usaClientsLoaded) loadUsaClients();
-    if (view === "swm" || view === "ps") {
-      if (swmModo !== (view === "ps" ? "ps" : "")) { swmSearch = ""; swmNuevaCompraOpen = false; }
-      swmModo = view === "ps" ? "ps" : "";
+    if (view === "swm" || view === "ps" || view === "pm") {
+      const modo = view === "ps" ? "ps" : view === "pm" ? "pm" : "";
+      if (swmModo !== modo) { swmSearch = ""; swmNuevaCompraOpen = false; }
+      swmModo = modo;
       renderSwmAdmin(); loadSwm();
     }
     window.scrollTo({ top: 0 });
@@ -7070,7 +7405,7 @@ ${itemLines}
     if (!c) return;
     const go = c.dataset.homeGo;
     if (go === "abw") showView("compras");
-    else if (go === "restock" || go === "swm" || go === "ps" || go === "preventa") showView(go);
+    else if (go === "restock" || go === "swm" || go === "ps" || go === "pm" || go === "preventa") showView(go);
     else goToOrders(go);
   });
   document.getElementById("abw-filtro").addEventListener("click", (e) => {
