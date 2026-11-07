@@ -76,7 +76,7 @@
       }
       if (currentView === "inicio") renderHome();
       // Para que las tarjetas de pedido ya muestren la ganancia.
-      if (allOrders.length && currentView !== "pedidos") applyFilters();
+      if (allOrders.length && currentView !== "pedidos" && currentView !== "corea") applyFilters();
     } catch (err) {
       // Sin esto, el campo "Precio tarjeta" simplemente se sigue llenando
       // a mano como antes -- no rompe nada.
@@ -307,10 +307,12 @@
     q = String(q || "").trim();
     if (q.length < 3) return [];
     const out = [];
-    if (desde !== "pedidos") {
-      const ps = allOrders.filter((o) => matchesSearch(o, q));
-      if (ps.length) out.push({ go: "pedidos", label: "🧾 Pedidos", items: ps.slice(0, 5).map((o) => `#${orderNumber(o)} · ${(o.customer && o.customer.name) || ""}`), n: ps.length });
-    }
+    // Pedidos: los de stock y los de Corea viven en secciones distintas.
+    [["pedidos", "🧾 Pedidos de stock", "stock"], ["corea", "🇰🇷 Pedidos de Corea", "corea"]].forEach(([go, label, tipo]) => {
+      if (desde === go || desde === "todos") return;
+      const ps = allOrders.filter((o) => pedidoTipo(o) === tipo && matchesSearch(o, q));
+      if (ps.length) out.push({ go, label, items: ps.slice(0, 5).map((o) => `#${orderNumber(o)} · ${(o.customer && o.customer.name) || ""}`), n: ps.length });
+    });
     if (swmLoaded) {
       const D = swmDataFull || swmData;
       const envLbl = (r) => `${r.folio} · envío de ${r.name || r.email || ""}${r.direccion && r.direccion.nombre && r.direccion.nombre !== r.name ? ` para ${r.direccion.nombre}` : ""}`;
@@ -355,7 +357,7 @@
       box.id = "global-hits-pedidos";
       filtersEl.insertAdjacentElement("afterend", box);
     }
-    box.innerHTML = search ? globalHitsHTML(search, "pedidos") : "";
+    box.innerHTML = search ? globalHitsHTML(search, pedidosTodos ? "todos" : currentView) : "";
     // La Dirección americana se carga hasta que la abres: si buscas aquí, se carga sola.
     if (search && search.length >= 3 && !swmLoaded && !globalSwmPedido) {
       globalSwmPedido = true;
@@ -368,8 +370,8 @@
     if (!b) return;
     const q = b.dataset.globalQ || "";
     const go = b.dataset.globalGo;
-    if (go === "pedidos") {
-      showView("pedidos");
+    if (go === "pedidos" || go === "corea") {
+      showView(go);
       resetTabs();
       syncFilterTabs();
       filterSearchEl.value = q;
@@ -400,7 +402,11 @@
     currentSearchTerm = search;
     const bounds = getRangeBounds(currentRange);
 
-    filteredOrders = allOrders.filter((o) => {
+    const tipo = vistaTipo();
+    const delTipo = tipo ? allOrders.filter((o) => pedidoTipo(o) === tipo) : allOrders;
+    syncOrdersKindUi(tipo);
+
+    filteredOrders = delTipo.filter((o) => {
       if (currentStatus && o.status !== currentStatus) return false;
       if (currentBucket && orderBucket(o) !== currentBucket) return false;
       if (bounds) {
@@ -415,7 +421,7 @@
     // se muestran siempre para que Mae no se le pase ninguno -- pero también
     // deben respetar la búsqueda, si no parece que el buscador está roto
     // (aparece un pedido que no tiene nada que ver con lo que se buscó).
-    const pendingOrders = allOrders.filter((o) => o.status === "pending");
+    const pendingOrders = delTipo.filter((o) => o.status === "pending");
     renderPending(
       currentBucket ? [] : (search ? pendingOrders.filter((o) => matchesSearch(o, search)) : pendingOrders),
       Boolean(search) && pendingOrders.length > 0
@@ -428,7 +434,7 @@
       filteredOrders.some((o) => o.status === "pending")
     );
     renderGlobalHitsPedidos(search);
-    const total = allOrders.length;
+    const total = delTipo.length;
     filterCountEl.textContent = filteredOrders.length === total
       ? `${total} pedido${total === 1 ? "" : "s"}`
       : `${filteredOrders.length} de ${total} pedidos`;
@@ -3213,6 +3219,12 @@ ${itemLines}
     entregado: "🎁 Entregado",
   };
   let currentBucket = "";
+  // Pedidos de Stock = solo piezas que ya tienes en México. Pedidos de Corea = traen
+  // algo que se pide a ABW (aunque también lleve piezas de stock).
+  const pedidoTipo = (o) => (supplierSourceableItems(o).length ? "corea" : "stock");
+  let pedidosTodos = false; // llegó desde Inicio a una etapa que mezcla Stock y Corea
+  let pedidosTodosNext = false;
+  const vistaTipo = () => (pedidosTodos ? null : currentView === "corea" ? "corea" : currentView === "pedidos" ? "stock" : null);
   let restockCount = null;
   const abwExcluded = new Set();
   // "compartido": solo los pedidos del pedido compartido de Corea (los que
@@ -3914,8 +3926,35 @@ ${itemLines}
     }`;
   }
 
+  function syncOrdersKindUi(tipo) {
+    const abwTabs = bucketTabsEl.querySelectorAll('[data-bucket="por_abw"], [data-bucket="esperando_abw"]');
+    abwTabs.forEach((b) => { b.style.display = tipo === "stock" ? "none" : ""; });
+    if (tipo === "stock" && (currentBucket === "por_abw" || currentBucket === "esperando_abw")) { currentBucket = ""; syncFilterTabs(); }
+    let note = document.getElementById("orders-note");
+    if (!note) return;
+    const partes = [];
+    if (pedidosTodos) partes.push(`<div style="margin-bottom:8px;">👀 Estás viendo los pedidos de <b>Stock y Corea juntos</b>. <button type="button" class="btn-secondary" data-ordkind="pedidos" style="padding:4px 10px;font-size:12px;">Solo Stock</button> <button type="button" class="btn-secondary" data-ordkind="corea" style="padding:4px 10px;font-size:12px;">Solo Corea</button></div>`);
+    if (currentBucket === "por_enviar") partes.push(`<div>💡 ¿Varios pedidos de la misma clienta? En <b>Por mandar</b> salen agrupados por clienta: palomeas los pedidos que van juntos y haces la guía de una vez. <button type="button" class="btn-primary" data-ordgo="pm" style="padding:6px 12px;font-size:13px;">📦 Ir a Por mandar</button></div>`);
+    note.style.display = partes.length ? "block" : "none";
+    note.innerHTML = partes.join("");
+  }
+  document.addEventListener("click", (e) => {
+    const k = e.target.closest("[data-ordkind]");
+    if (k) { pedidosTodosNext = false; showView(k.dataset.ordkind); return; }
+    const g = e.target.closest("[data-ordgo]");
+    if (g) showView(g.dataset.ordgo);
+  });
+
   function goToOrders(filter) {
-    showView("pedidos");
+    // Corea para lo de ABW; lo que mezcla las dos (por enviar, enviados…) se ve junto.
+    let vista = "pedidos";
+    pedidosTodosNext = false;
+    if (filter === "pending") {
+      const p = allOrders.find((o) => o.status === "pending");
+      vista = p && pedidoTipo(p) === "corea" ? "corea" : "pedidos";
+    } else if (filter === "por_abw" || filter === "esperando_abw") vista = "corea";
+    else pedidosTodosNext = true;
+    showView(vista);
     resetTabs();
     currentBucket = "";
     if (filter === "pending") {
@@ -5297,7 +5336,7 @@ ${itemLines}
         tipo: "pedido", id: o.id, o, email: pmEmail(o.customerEmail), tel: pmTel(c.phone), nombre: c.name || "", kg: kgOrden(o),
         titulo: `🧾 Pedido #${orderNumber(o)}`,
         detalle: `${piezas} pieza${piezas === 1 ? "" : "s"} · ${(o.items || []).slice(0, 2).map((it) => it.nombre).join(", ")}${(o.items || []).length > 2 ? "…" : ""}`,
-        go: { go: "pedidos", q: `#${orderNumber(o)}` },
+        go: { go: pedidoTipo(o) === "corea" ? "corea" : "pedidos", q: `#${orderNumber(o)}` },
       };
       if (o.status === "pending") return E({ ...base, estado: "falta", nota: `💳 falta su pago (${formatPrice(o.grandTotal)})` });
       const b = orderBucket(o);
@@ -7419,7 +7458,8 @@ ${itemLines}
   const VIEWS = {
     inicio: { el: "home-view", title: "🌸 Inicio", nav: "inicio" },
     compras: { el: "abw-view", title: "🛍️ Compras ABW", nav: "inicio" },
-    pedidos: { el: "orders-view", title: "🧾 Pedidos", display: "block" },
+    pedidos: { el: "orders-view", title: "🧾 Pedidos de stock", display: "block" },
+    corea: { el: "orders-view", title: "🇰🇷 Pedidos de Corea", display: "block" },
     clientas: { el: "clients-view", title: "👩 Clientas" },
     catalogo: { el: "catalog-view", title: "🏷️ Catálogo" },
     inventario: { el: "inventory-panel", title: "📦 Stock en México" },
@@ -7458,6 +7498,10 @@ ${itemLines}
       b.classList.toggle("active", on);
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
+    if (view === "pedidos" || view === "corea") {
+      pedidosTodos = pedidosTodosNext; pedidosTodosNext = false;
+      if (typeof applyFilters === "function" && allOrders) applyFilters();
+    }
     if (view === "inicio") renderHome();
     if (view === "compras") renderAbw();
     if (view === "clientas") renderClients();
