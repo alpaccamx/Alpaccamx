@@ -2094,31 +2094,52 @@ ${itemLines}
   let inventoryProducts = [];
   let inventorySearchTerm = "";
 
-  /* ----- 📥 Lotes de stock listos para cargar -----
+  /* ----- 📥 Cambios de stock listos para aplicar -----
      Claude deja los productos nuevos en /stock-lotes/*.json (con sus fotos ya
      subidas al sitio); aquí se cargan con un solo botón al Sheet de Stock.
      Es seguro tocarlo dos veces: lo que ya existe se salta. */
+  let stockLotesMsg = ""; // resultado de lo último que se aplicó (queda visible)
   async function renderStockLotes() {
     const box = document.getElementById("stock-lotes-box");
     if (!box) return;
     try {
       const idx = await (await fetch("/stock-lotes/index.json", { cache: "no-store" })).json();
       const lotes = await Promise.all(idx.map(async (f) => ({ f, ...(await (await fetch(`/stock-lotes/${f}`, { cache: "no-store" })).json()) })));
-      const existentes = new Set(inventoryProducts.map((p) => String(p.sku || "").trim()));
-      const pendientes = lotes.map((l) => ({ ...l, falta: l.productos.filter((p) => !existentes.has(p.sku)) })).filter((l) => l.falta.length);
-      if (!pendientes.length) { box.style.display = "none"; box.innerHTML = ""; return; }
+      const porSku = new Map(inventoryProducts.map((p) => [String(p.sku || "").trim(), p]));
+      // Mezclas: juntar piezas de un producto en otro (ej. lotes de 3 → lotes de 10).
+      const calcMezcla = (m, inv) => {
+        const o = inv.get(m.origen); const d = inv.get(m.destino);
+        if (!o || !d) return null;
+        const total = (Number(d.piezas) || 0) * m.porDestino + (Number(o.piezas) || 0) * m.porOrigen;
+        const nuevos = Math.floor(total / m.porDestino);
+        const sobran = total - nuevos * m.porDestino;
+        const camposListos = Object.entries(m.campos || {}).every(([k, v]) => String(d[k] || "") === String(v));
+        const hecho = !(Number(o.piezas) > 0) && camposListos;
+        return { o, d, nuevos, sobran, hecho };
+      };
+      const pendientes = lotes.map((l) => ({
+        ...l,
+        falta: l.productos.filter((p) => !porSku.has(p.sku)),
+        mezclas: (l.mezclas || []).map((m) => ({ m, c: calcMezcla(m, porSku) })).filter((x) => x.c && !x.c.hecho),
+      })).filter((l) => l.falta.length || l.mezclas.length);
+      if (!pendientes.length) {
+        if (stockLotesMsg) { box.style.display = "block"; box.innerHTML = `<div class="swm-card" style="border:2px solid #17803d;"><div style="font-size:14px;">${stockLotesMsg}</div><button type="button" class="btn-secondary" data-stock-lote-cerrar style="margin-top:8px;">Cerrar</button></div>`; box.querySelector("[data-stock-lote-cerrar]").addEventListener("click", () => { stockLotesMsg = ""; box.style.display = "none"; box.innerHTML = ""; }); }
+        else { box.style.display = "none"; box.innerHTML = ""; }
+        return;
+      }
       box.style.display = "block";
       box.innerHTML = pendientes.map((l) => `<div class="swm-card" style="border:2px solid #c4466e;">
-        <h4><span>📥 Productos nuevos listos para cargar</span></h4>
+        <h4><span>📥 Cambios de Stock listos para aplicar</span></h4>
         <div class="meta">${escapeHtml(l.nombre || l.f)}</div>
-        <ul style="margin:8px 0;padding-left:20px;font-size:14px;">${l.falta.map((p) => `<li><b>${p.piezas}</b> × ${escapeHtml(p.nombre)} · ${formatPrice(p.precio)}</li>`).join("")}</ul>
-        <button type="button" class="btn-primary" data-stock-lote="${escapeHtml(l.f)}">📥 Cargar ${l.falta.length} producto${l.falta.length === 1 ? "" : "s"} al Stock</button>
+        ${l.falta.length ? `<div style="font-weight:700;margin-top:6px;">Productos nuevos</div><ul style="margin:4px 0 8px;padding-left:20px;font-size:14px;">${l.falta.map((p) => `<li><b>${p.piezas}</b> × ${escapeHtml(p.nombre)} · ${formatPrice(p.precio)}</li>`).join("")}</ul>` : ""}
+        ${l.mezclas.map(({ m, c }) => `<div style="margin-top:6px;font-size:14px;">🔀 ${escapeHtml(m.texto || "Juntar piezas")}: <b>${c.o.piezas}</b> lote${c.o.piezas === 1 ? "" : "s"} de ${m.porOrigen} + <b>${c.d.piezas}</b> de ${m.porDestino} → <b>${c.nuevos} lotes de ${m.porDestino}</b>${c.sobran ? ` <span style="color:#8a5a00;">(sobran ${c.sobran} pieza${c.sobran === 1 ? "" : "s"} sueltas)</span>` : ""}</div>`).join("")}
+        <button type="button" class="btn-primary" data-stock-lote="${escapeHtml(l.f)}" style="margin-top:10px;">📥 Aplicar al Stock</button>
         <div data-stock-lote-msg style="margin-top:8px;font-size:14px;"></div></div>`).join("");
       box.querySelectorAll("[data-stock-lote]").forEach((btn) => btn.addEventListener("click", async () => {
         const lote = pendientes.find((l) => l.f === btn.dataset.stockLote);
         const msg = btn.parentElement.querySelector("[data-stock-lote-msg]");
         btn.disabled = true;
-        let ok = 0; const fallas = [];
+        let ok = 0; const fallas = []; let sobraron = "";
         for (const p of lote.falta) {
           msg.textContent = `Cargando ${ok + fallas.length + 1} de ${lote.falta.length}…`;
           try {
@@ -2126,8 +2147,27 @@ ${itemLines}
             if (r.ok || /ya existe/i.test((r.data && r.data.error) || "")) ok++; else fallas.push(`${p.nombre}: ${(r.data && r.data.error) || "error"}`);
           } catch (err) { fallas.push(`${p.nombre}: sin conexión`); }
         }
-        msg.innerHTML = `✅ ${ok} cargado${ok === 1 ? "" : "s"}.${fallas.length ? `<br><span style="color:#b33660;">No se pudieron: ${fallas.map(escapeHtml).join("; ")}. Toca de nuevo el botón para reintentar.</span>` : ""}`;
+        for (const { m } of lote.mezclas) {
+          msg.textContent = "Juntando los lotes…";
+          try {
+            // Se vuelve a leer el Stock justo ahora, por si cambió algo.
+            const res = await fetch("/.netlify/functions/admin-list-stock", { headers: { "x-admin-key": adminKey } });
+            const fresco = new Map(((await res.json()).products || []).map((p) => [String(p.sku || "").trim(), p]));
+            const c = calcMezcla(m, fresco);
+            if (!c) throw new Error("no encontré los productos");
+            const upd = async (sku, campos) => {
+              const r = await fetch("/.netlify/functions/admin-update-stock-product", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ sku, ...campos }) });
+              if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "no se pudo guardar");
+            };
+            await upd(m.destino, { piezas: c.nuevos, ...(m.campos || {}) });   // primero suma al destino
+            await upd(m.origen, { piezas: 0 });                                  // luego vacía el origen
+            ok++;
+            if (c.sobran) sobraron = ` Sobraron ${c.sobran} gel${c.sobran === 1 ? "" : "es"} suelto${c.sobran === 1 ? "" : "s"} (no completan un lote de ${m.porDestino}).`;
+          } catch (err) { fallas.push(`Juntar lotes: ${err.message}`); }
+        }
+        msg.innerHTML = `✅ ${ok} cambio${ok === 1 ? "" : "s"} aplicado${ok === 1 ? "" : "s"}.${sobraron}${fallas.length ? `<br><span style="color:#b33660;">No se pudieron: ${fallas.map(escapeHtml).join("; ")}. Toca de nuevo el botón para reintentar.</span>` : ""}`;
         btn.disabled = false;
+        stockLotesMsg = msg.innerHTML;
         loadInventory();
       }));
     } catch (err) { box.style.display = "none"; }
