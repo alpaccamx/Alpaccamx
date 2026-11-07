@@ -1,0 +1,127 @@
+{
+ "nombre": "Target El Paso (7 nov): kits de skincare y DAISE",
+ "productos": [
+  {
+   "sku": "STOCK-TGT-DAISE-PETAL-WATERMELON",
+   "nombre": "DAISE Petal Pod · Watermelon Crush",
+   "marca": "DAISE",
+   "categoria": "Maquillaje",
+   "descripcion": "Bálsamo labial en forma de flor que se pega a la parte de atrás del celular, compatible con todos los modelos. Aroma Watermelon Crush, 0.06 oz (1.7 g). Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "precio": 229,
+   "peso": 0.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-petal-watermelon.jpg",
+   "precioTarjeta": 243
+  },
+  {
+   "sku": "STOCK-TGT-DAISE-PETAL-STRAWBERRY",
+   "nombre": "DAISE Petal Pod · Strawberry Breeze",
+   "marca": "DAISE",
+   "categoria": "Maquillaje",
+   "descripcion": "Bálsamo labial en forma de flor que se pega a la parte de atrás del celular, compatible con todos los modelos. Aroma Strawberry Breeze, 0.06 oz (1.7 g). Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "precio": 229,
+   "peso": 0.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-petal-strawberry.jpg",
+   "precioTarjeta": 243
+  },
+  {
+   "sku": "STOCK-TGT-DAISE-TINTED-LIP-TRIO",
+   "nombre": "DAISE Tinted Lip Balm Trio (3 pzs)",
+   "marca": "DAISE",
+   "categoria": "Maquillaje",
+   "descripcion": "Set de 3 bálsamos labiales con color (Peptide Lip Butter Balm) de 15 ml cada uno: Berry & Vanilla, Cake Pop y Sugar Bear, con dijes de florecitas. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 489,
+   "peso": 0.35,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-lip.jpg",
+   "precioTarjeta": 519
+  },
+  {
+   "sku": "STOCK-TGT-DAISE-MINI-MIST-TRIO",
+   "nombre": "DAISE Mini Fragrance Body Mist Trio (3 pzs)",
+   "marca": "DAISE",
+   "categoria": "Cuidado corporal",
+   "descripcion": "Set de 3 mini body mist en forma de flor, de 30 ml cada uno: Sunny (vainilla y coco), Hello (frambuesa y menta) y Glaze (vainilla y caramelo). Incluye stickers. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 489,
+   "peso": 0.35,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-mist.jpg",
+   "precioTarjeta": 519
+  },
+  {
+   "sku": "STOCK-TGT-STARFACE-BIG-LIL-4PC",
+   "nombre": "Starface Big Lil · Set de parches para barritos (4 pzs)",
+   "marca": "Starface",
+   "categoria": "Skincare",
+   "descripcion": "Set de regalo con parches hydro-star para barritos (hidrocoloide) en 3 presentaciones, dentro de un estuche amarillo con cierre. Original, traído de Estados Unidos.",
+   "piezas": 10,
+   "precio": 649,
+   "peso": 0.55,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-starface.jpg",
+   "precioTarjeta": 688
+  },
+  {
+   "sku": "STOCK-TGT-MEDICUBE-NIGHT-SPA-GLOW-3PC",
+   "nombre": "medicube Holiday Night Spa Glow Kit (3 pzs)",
+   "marca": "medicube",
+   "categoria": "Skincare",
+   "descripcion": "Kit de edición navideña con Collagen Jelly Cream y 2 mascarillas de gel PDRN Pink Collagen. Paso 1: Collagen Bounce. Paso 2: Pink Glow Lock-In. Original, traído de Estados Unidos.",
+   "piezas": 8,
+   "precio": 649,
+   "peso": 1.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-nightspa.jpg",
+   "precioTarjeta": 688
+  },
+  {
+   "sku": "STOCK-TGT-MEDICUBE-PINK-COLLAGEN-8PC",
+   "nombre": "medicube Holiday Pink Collagen 4 Days Glowing Kit (8 pzs)",
+   "marca": "medicube",
+   "categoria": "Skincare",
+   "descripcion": "Kit de edición navideña para 4 días: 4 mascarillas de gel PDRN Pink Collagen y 4 cápsulas de crema PDRN Pink Collagen de 4.5 g. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 649,
+   "peso": 0.7,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-pink.jpg",
+   "precioTarjeta": 688
+  },
+  {
+   "sku": "STOCK-TGT-BYOMA-LAB-KIT-5PC",
+   "nombre": "BYOMA Barrier Boosting Lab Kit (5 pzs)",
+   "marca": "BYOMA",
+   "categoria": "Skincare",
+   "descripcion": "Kit de 5 productos en tamaño viaje para reforzar la barrera de la piel: Creamy Jelly Cleanser, Hydrating Milky Toner, Phyto-Mucin Glow Serum, Moisturizing Gel-Cream y Moisturizing Rich Cream, dentro de un estuche rosa con cierre. Original, traído de Estados Unidos.",
+   "piezas": 7,
+   "precio": 809,
+   "peso": 0.5,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-byoma.jpg",
+   "precioTarjeta": 858
+  },
+  {
+   "sku": "STOCK-TGT-UNLOCKT-BEST-OF-KOREAN-8PC",
+   "nombre": "Unlockt Best of Korean Skincare Set (8 pzs)",
+   "marca": "Unlockt Brands",
+   "categoria": "Skincare",
+   "descripcion": "Calendario de 7 días de K-Beauty más un regalo, con productos de medicube, SKIN1004, Sungboon Editor y Round Lab. Una probadita de skincare coreano para descubrir marcas. Original, traído de Estados Unidos.",
+   "piezas": 7,
+   "precio": 969,
+   "peso": 0.7,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-unlockt.jpg",
+   "precioTarjeta": 1028
+  },
+  {
+   "sku": "STOCK-TGT-DAISE-ADVENT-8PC",
+   "nombre": "DAISE Holiday Advent Calendar Bath & Body (8 pzs)",
+   "marca": "DAISE",
+   "categoria": "Cuidado corporal",
+   "descripcion": "Colección sorpresa DAISE Dreamhouse de baño y cuerpo: una sorpresa de belleza para cada día de la semana (7 sorpresas dentro). Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 969,
+   "peso": 1.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-advent.jpg",
+   "precioTarjeta": 1028
+  }
+ ],
+ "mezclas": [],
+ "ajustes": []
+}
