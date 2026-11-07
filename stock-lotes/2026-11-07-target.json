@@ -50,6 +50,18 @@
    "precioTarjeta": 519
   },
   {
+   "sku": "STOCK-TGT-GOOD-MOLECULES-MERRY-GLOW-4PC",
+   "nombre": "Good Molecules Merry & Glow Hydration Set (4 pzs)",
+   "marca": "Good Molecules",
+   "categoria": "Skincare",
+   "descripcion": "Rutina navideña de 4 pasos para hidratar, rellenar y apoyar la barrera de la piel, de 30 ml cada uno: Hydrating Facial Cleansing Gel, Sakura Hyaluronic Acid Boosting Essence, Hyaluronic Acid Serum y Rich Cream with Ceramides. Original, traído de Estados Unidos.",
+   "piezas": 5,
+   "precio": 649,
+   "peso": 0.35,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-goodmolecules-merry-glow.jpg",
+   "precioTarjeta": 688
+  },
+  {
    "sku": "STOCK-TGT-STARFACE-BIG-LIL-4PC",
    "nombre": "Starface Big Lil · Set de parches para barritos (4 pzs)",
    "marca": "Starface",
