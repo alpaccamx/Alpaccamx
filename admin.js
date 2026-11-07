@@ -1327,6 +1327,13 @@
 
   function proofLinkHTML(o) {
     let html = o.hasPaymentProof ? `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeHtml(o.id)}" style="font-size: 14px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>` : "";
+    // Transferencia por confirmar y todavía sin comprobante: se nota y se le puede recordar.
+    if (o.status === "pending" && o.source !== "mercadopago" && !o.hasPaymentProof) {
+      const wa = waLinkFromPhone(o.customer && o.customer.phone);
+      const nombre = ((o.customer && o.customer.name) || "").trim().split(/\s+/)[0];
+      const txt = `Hola${nombre ? ` ${nombre}` : ""} 💕 vi tu pedido #${orderNumber(o)} por ${formatPrice(o.grandTotal)}. Cuando hagas tu transferencia, sube tu comprobante en alpacca.mx > Mi cuenta > Mis pedidos (o mándamelo por aquí) para confirmarlo 🌸`;
+      html += `<div style="margin-top:8px;background:#fff8ea;border:1px solid #f6dcbd;border-radius:12px;padding:8px 12px;font-size:14px;">⏳ <b>Todavía no sube su comprobante.</b> En cuanto lo suba, aquí te sale el botón "Ver comprobante de pago".${wa ? ` <a class="btn-secondary" style="text-decoration:none;margin-left:6px;padding:4px 10px;font-size:13px;" target="_blank" rel="noopener" href="${escapeHtml(`${wa}?text=${encodeURIComponent(txt)}`)}">💬 Recordárselo por WhatsApp</a>` : ""}</div>`;
+    }
     // Diferencia de un pedido editado (le agregaste cosas ya pagado).
     const pagado = o.montoPagado != null ? Number(o.montoPagado) : null;
     const debe = o.status === "paid" && pagado != null ? Math.round(((Number(o.grandTotal) || 0) - pagado) * 100) / 100 : 0;
