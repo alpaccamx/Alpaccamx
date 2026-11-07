@@ -213,7 +213,11 @@ exports.handler = async (event) => {
         const rec = await mutateRecord("paquete", id, (p) => {
           if (p.origen !== "compra") return null;
           if (b.ordenTienda != null) p.ordenTienda = clip(b.ordenTienda, 80);
-          if (b.rastreo != null) p.rastreo = clip(b.rastreo, 80);
+          if (Array.isArray(b.rastreos) || b.rastreo != null) {
+            const g = [...new Set((Array.isArray(b.rastreos) ? b.rastreos : [b.rastreo]).map((x) => clip(x, 80)).filter(Boolean))].slice(0, 10);
+            p.rastreo = g[0] || "";
+            if (g.length > 1) p.guiasUSA = g; else delete p.guiasUSA;
+          }
           return p;
         });
         if (!rec) return json(404, { error: "No existe ese paquete de compra." });
@@ -326,7 +330,9 @@ exports.handler = async (event) => {
         const compra = await getRecord("compra", id);
         if (!compra) return json(404, { error: "No existe esa compra." });
         // ordenTienda: número de orden de la tienda, solo para Mae (no se le muestra a la clienta).
-        const lista = (Array.isArray(b.paquetes) ? b.paquetes : []).map((x) => ({ tienda: clip(x.tienda, 80), rastreo: clip(x.rastreo, 80), ordenTienda: clip(x.orden, 80), contenido: clip(x.contenido, 300) })).filter((x) => x.tienda || x.rastreo || x.ordenTienda);
+        // Varias guías de EE.UU.: la tienda a veces divide un mismo pedido en varias cajas.
+        const guiasDe = (x) => [...new Set((Array.isArray(x.rastreos) ? x.rastreos : [x.rastreo]).map((g) => clip(g, 80)).filter(Boolean))].slice(0, 10);
+        const lista = (Array.isArray(b.paquetes) ? b.paquetes : []).map((x) => { const g = guiasDe(x); return { tienda: clip(x.tienda, 80), rastreo: g[0] || "", ...(g.length > 1 ? { guiasUSA: g } : {}), ordenTienda: clip(x.orden, 80), contenido: clip(x.contenido, 300) }; }).filter((x) => x.tienda || x.rastreo || x.ordenTienda);
         if (!lista.length) return json(400, { error: "Pon al menos un paquete (tienda o número de orden)." });
         // El contenido sale del resumen de la compra (ya no se escribe a mano).
         const resumen = clip(((compra.cotizacion && compra.cotizacion.items) || []).filter((i) => !i.envio).map((i) => `${i.cantidad > 1 ? `${i.cantidad}× ` : ""}${i.nombre}`).join(", "), 300);

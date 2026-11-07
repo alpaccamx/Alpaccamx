@@ -417,6 +417,7 @@ function publico(r) {
   delete out.ordenTienda;
   // Lo que Mae compró por ella: el rastreo es de Mae, no se le muestra.
   if (out.origen === "compra") delete out.rastreo;
+  delete out.guiasUSA;
   delete out.history;
   delete out.capturas;
   if (out.pago) out.pago = { ...out.pago, paymentId: undefined };
