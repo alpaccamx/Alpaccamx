@@ -2121,7 +2121,9 @@ ${itemLines}
         ...l,
         falta: l.productos.filter((p) => !porSku.has(p.sku)),
         mezclas: (l.mezclas || []).map((m) => ({ m, c: calcMezcla(m, porSku) })).filter((x) => x.c && !x.c.hecho),
-      })).filter((l) => l.falta.length || l.mezclas.length);
+        // Ajustes: cambiar campos (ej. la foto) de productos que ya están en el Stock.
+        ajustes: (l.ajustes || []).filter((a) => porSku.has(a.sku) && Object.entries(a.campos).some(([k, v]) => String(porSku.get(a.sku)[k] || "") !== String(v))),
+      })).filter((l) => l.falta.length || l.mezclas.length || l.ajustes.length);
       if (!pendientes.length) {
         if (stockLotesMsg) { box.style.display = "block"; box.innerHTML = `<div class="swm-card" style="border:2px solid #17803d;"><div style="font-size:14px;">${stockLotesMsg}</div><button type="button" class="btn-secondary" data-stock-lote-cerrar style="margin-top:8px;">Cerrar</button></div>`; box.querySelector("[data-stock-lote-cerrar]").addEventListener("click", () => { stockLotesMsg = ""; box.style.display = "none"; box.innerHTML = ""; }); }
         else { box.style.display = "none"; box.innerHTML = ""; }
@@ -2132,6 +2134,7 @@ ${itemLines}
         <h4><span>📥 Cambios de Stock listos para aplicar</span></h4>
         <div class="meta">${escapeHtml(l.nombre || l.f)}</div>
         ${l.falta.length ? `<div style="font-weight:700;margin-top:6px;">Productos nuevos</div><ul style="margin:4px 0 8px;padding-left:20px;font-size:14px;">${l.falta.map((p) => `<li><b>${p.piezas}</b> × ${escapeHtml(p.nombre)} · ${formatPrice(p.precio)}</li>`).join("")}</ul>` : ""}
+        ${l.ajustes.length ? `<div style="margin-top:6px;font-size:14px;">🖼️ ${escapeHtml(l.ajustesTexto || "Ajustes")}: <b>${l.ajustes.length}</b> producto${l.ajustes.length === 1 ? "" : "s"}</div>` : ""}
         ${l.mezclas.map(({ m, c }) => `<div style="margin-top:6px;font-size:14px;">🔀 ${escapeHtml(m.texto || "Juntar piezas")}: <b>${c.o.piezas}</b> lote${c.o.piezas === 1 ? "" : "s"} de ${m.porOrigen} + <b>${c.d.piezas}</b> de ${m.porDestino} → <b>${c.nuevos} lotes de ${m.porDestino}</b>${c.sobran ? ` <span style="color:#8a5a00;">(sobran ${c.sobran} pieza${c.sobran === 1 ? "" : "s"} sueltas)</span>` : ""}</div>`).join("")}
         <button type="button" class="btn-primary" data-stock-lote="${escapeHtml(l.f)}" style="margin-top:10px;">📥 Aplicar al Stock</button>
         <div data-stock-lote-msg style="margin-top:8px;font-size:14px;"></div></div>`).join("");
@@ -2146,6 +2149,13 @@ ${itemLines}
             const r = await addStockProductRequest(p);
             if (r.ok || /ya existe/i.test((r.data && r.data.error) || "")) ok++; else fallas.push(`${p.nombre}: ${(r.data && r.data.error) || "error"}`);
           } catch (err) { fallas.push(`${p.nombre}: sin conexión`); }
+        }
+        for (const a of lote.ajustes) {
+          msg.textContent = "Cambiando fotos…";
+          try {
+            const r = await fetch("/.netlify/functions/admin-update-stock-product", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ sku: a.sku, ...a.campos }) });
+            if (r.ok) ok++; else fallas.push(`${a.sku}: ${((await r.json().catch(() => ({}))).error) || "error"}`);
+          } catch (err) { fallas.push(`${a.sku}: sin conexión`); }
         }
         for (const { m } of lote.mezclas) {
           msg.textContent = "Juntando los lotes…";
