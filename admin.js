@@ -1326,7 +1326,7 @@
   }
 
   function proofLinkHTML(o) {
-    let html = o.hasPaymentProof ? `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeHtml(o.id)}" style="font-size: 14px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago</button></div>` : "";
+    let html = o.hasPaymentProof ? `<div style="margin-top:8px;"><button type="button" data-view-proof="${escapeHtml(o.id)}" style="font-size: 14px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">📎 Ver comprobante de pago${(o.proofsMore || []).length ? " 1" : ""}</button>${(o.proofsMore || []).map((m) => ` <button type="button" data-view-proof="${escapeHtml(o.id)}" data-view-proof-n="${m.n}" style="font-size: 14px;font-weight:700;color:#0b6bc2;text-decoration:none;background:none;border:none;padding:0 0 0 10px;cursor:pointer;">📎 Comprobante ${m.n + 1}</button>`).join("")}</div>` : "";
     // Transferencia por confirmar y todavía sin comprobante: se nota y se le puede recordar.
     if (o.status === "pending" && o.source !== "mercadopago" && !o.hasPaymentProof) {
       const wa = waLinkFromPhone(o.customer && o.customer.phone);
@@ -1526,7 +1526,7 @@ ${itemLines}
 
   function wireProofLinkButtons(container) {
     container.querySelectorAll("[data-view-proof]").forEach((btn) => {
-      btn.addEventListener("click", () => viewPaymentProof(btn.dataset.viewProof, btn, btn.dataset.viewProofExtra));
+      btn.addEventListener("click", () => viewPaymentProof(btn.dataset.viewProof, btn, btn.dataset.viewProofExtra, btn.dataset.viewProofN));
     });
   }
 
@@ -1597,12 +1597,12 @@ ${itemLines}
     }
   }
 
-  async function viewPaymentProof(orderId, btn, extra) {
+  async function viewPaymentProof(orderId, btn, extra, n) {
     const original = btn.textContent;
     btn.disabled = true;
     btn.textContent = "Cargando...";
     try {
-      const res = await fetch(`/.netlify/functions/admin-payment-proof?orderId=${encodeURIComponent(orderId)}${extra != null && extra !== "" ? `&extra=${encodeURIComponent(extra)}` : ""}`, {
+      const res = await fetch(`/.netlify/functions/admin-payment-proof?orderId=${encodeURIComponent(orderId)}${extra != null && extra !== "" ? `&extra=${encodeURIComponent(extra)}` : ""}${n != null && n !== "" ? `&n=${encodeURIComponent(n)}` : ""}`, {
         headers: { "x-admin-key": adminKey },
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
@@ -7030,7 +7030,10 @@ ${itemLines}
       if (etapa === "anticipo" && a.status !== "nuevo") continue;
       if (etapa === "resto" && a.status !== "llego") continue;
       if (p.status === "revision") {
-        if (p.comprobanteAt) acciones.push(`<button type="button" class="btn-secondary" data-pv-file="comprobante/${id}/${etapa}">📄 Ver comprobante</button>`);
+        if (p.comprobanteAt) {
+          const n = Math.max(1, Math.min(3, Number(p.comprobanteN) || 1));
+          for (let i = 1; i <= n; i++) acciones.push(`<button type="button" class="btn-secondary" data-pv-file="comprobante/${id}/${etapa}${i > 1 ? `/${i}` : ""}">📄 Ver comprobante${n > 1 ? ` ${i}` : ""}</button>`);
+        }
         acciones.push(`<button type="button" class="btn-primary" data-pv-aprobar="${id}:${etapa}">✅ Aprobar ${etapa}</button>`);
         acciones.push(`<button type="button" class="btn-secondary" data-pv-rechazar="${id}:${etapa}">❌ Rechazar</button>`);
       } else {

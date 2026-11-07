@@ -33,7 +33,8 @@ exports.handler = async (event) => {
 
   try {
     // ?extra=n -> comprobante de una diferencia (pedido editado), n = 0, 1, ...
-    const extra = /^\d{1,3}$/.test(String(params.extra || "")) ? `/extra/${params.extra}` : "";
+    // ?n=1|2 -> el 2.º o 3.er comprobante del pedido (cuando subió varios).
+    const extra = /^\d{1,3}$/.test(String(params.extra || "")) ? `/extra/${params.extra}` : /^[12]$/.test(String(params.n || "")) ? `/p/${params.n}` : "";
     const result = await getPaymentProof(orderId + extra);
     if (!result || !result.data) {
       return { statusCode: 404, body: "No hay comprobante para este pedido." };

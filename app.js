@@ -6201,8 +6201,10 @@ async function sendQuote(e) {
   // El comprobante de transferencia es obligatorio -- no se registra el
   // pedido sin él (el input ya tiene "required", esto es por si acaso).
   const fileInput = document.getElementById("proof-file-input");
-  const file = fileInput.files && fileInput.files[0];
-  const proofMessage = !file ? "Sube tu comprobante de transferencia para confirmar el pedido." : validateProofFile(file);
+  const files = Array.from(fileInput.files || []);
+  const proofMessage = !files.length ? "Sube tu comprobante de transferencia para confirmar el pedido."
+    : files.length > MAX_PROOF_FILES ? `Puedes subir hasta ${MAX_PROOF_FILES} comprobantes.`
+    : files.map(validateProofFile).find(Boolean) || null;
   if (proofMessage) {
     showCartError("cart-error", proofMessage);
     fileInput.setAttribute("aria-invalid", "true");
@@ -6222,9 +6224,9 @@ async function sendQuote(e) {
   // fotos pesadas se achican antes): sin comprobante no se crea el pedido.
   let proof;
   try {
-    const listo = await achicarComprobante(file);
-    if (listo.size > MAX_PROOF_FILE_MB * 1024 * 1024) throw new Error("pesado");
-    proof = { filename: listo.name, contentType: listo.type, dataBase64: await fileToBase64(listo) };
+    const listos = await Promise.all(files.map(achicarComprobante));
+    if (listos.reduce((t, f) => t + f.size, 0) > MAX_PROOF_FILE_MB * 1024 * 1024) throw new Error("pesado");
+    proof = await Promise.all(listos.map(async (f) => ({ filename: f.name, contentType: f.type, dataBase64: await fileToBase64(f) })));
   } catch (err) {
     sendBtn.disabled = false;
     sendBtn.innerHTML = originalLabel;
@@ -6306,8 +6308,8 @@ function recordTransferOrder(proof) {
       body: JSON.stringify({
         source: "transferencia",
         idempotencyKey: orderIdempotencyKey(fingerprint),
-        // El comprobante viaja con el pedido: sin él no se registra.
-        proof,
+        // Los comprobantes (hasta 3) viajan con el pedido: sin ellos no se registra.
+        proofs: proof,
         customer: c,
         items,
         subtotal,
@@ -6402,7 +6404,8 @@ function showQuoteSuccess(orderId, proofFailed) {
   }
 }
 
-const MAX_PROOF_FILE_MB = 4;
+const MAX_PROOF_FILE_MB = 4; // en total, entre todos los comprobantes de un envío
+const MAX_PROOF_FILES = 3;
 
 /* Valida tipo y tamaño del comprobante antes de mandarlo -- regresa un
    mensaje de error, o null si el archivo está bien. */
@@ -6447,26 +6450,16 @@ function fileToBase64(file) {
   });
 }
 
-function uploadProofFile(orderId, file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = String(reader.result).split(",")[1] || "";
-      fetch("/.netlify/functions/upload-payment-proof", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getCustomerToken()}` },
-        body: JSON.stringify({ orderId, filename: file.name, contentType: file.type, dataBase64: base64 }),
-      })
-        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-        .then(({ ok, data }) => {
-          if (!ok) throw new Error(data.error || "No se pudo subir el comprobante.");
-          resolve();
-        })
-        .catch(reject);
-    };
-    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
-    reader.readAsDataURL(file);
+async function uploadProofFile(orderId, fileOrFiles) {
+  const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+  const proofs = await Promise.all(files.map(async (f) => ({ filename: f.name, contentType: f.type, dataBase64: await fileToBase64(f) })));
+  const res = await fetch("/.netlify/functions/upload-payment-proof", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${getCustomerToken()}` },
+    body: JSON.stringify({ orderId, proofs }),
   });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "No se pudo subir el comprobante.");
 }
 
 function closeQuoteSuccess() {
@@ -7456,8 +7449,9 @@ function myOrderCardHTML(o) {
   const proofBlock = needsProof
     ? `<div class="pt-2 border-t border-ink/10 space-y-2">
         <p class="text-xs text-ink/75">Este pedido todavía no tiene comprobante de transferencia.</p>
-        <input type="file" accept="image/*,application/pdf" data-my-proof-file="${escapeAttr(o.id)}"
-          aria-label="Comprobante de transferencia de este pedido" class="text-xs w-full" />
+        <input type="file" accept="image/*,application/pdf" multiple data-my-proof-file="${escapeAttr(o.id)}"
+          aria-label="Comprobante de transferencia de este pedido (hasta 3)" class="text-xs w-full" />
+        <p class="text-[11px] text-ink/60">Puedes elegir hasta 3 archivos a la vez.</p>
         <button type="button" data-my-proof-btn="${escapeAttr(o.id)}"
           class="tap w-full rounded-full bg-rose-deep text-cream text-xs font-semibold py-2 hover:bg-rose-ink transition">📤 Subir comprobante</button>
         <p data-my-proof-status="${escapeAttr(o.id)}" class="text-xs"></p>
@@ -7474,7 +7468,7 @@ function myOrderCardHTML(o) {
         <p class="text-xs text-ink/75">Cambiamos tu pedido: ya pagaste ${formatPrice(pagadoMXN)} y el total nuevo es ${formatPrice(o.grandTotal)}. ${enRevision ? "Ya recibimos tu comprobante; lo estamos revisando." : "Paga la diferencia por transferencia y sube aquí tu comprobante."}</p>
         ${rechazado ? `<p class="text-xs text-rose-ink">No pudimos validar tu comprobante: ${escapeHtml(rechazado.motivo || "")}. Súbelo de nuevo.</p>` : ""}
         ${!enRevision && typeof hasBankDetails === "function" && hasBankDetails() ? `<div class="text-xs text-ink/80 space-y-0.5">${bankDetailsHTML()}</div>` : ""}
-        ${enRevision ? "" : `<input type="file" accept="image/*,application/pdf" data-my-proof-file="${escapeAttr(o.id)}" aria-label="Comprobante de la diferencia" class="text-xs w-full" />
+        ${enRevision ? "" : `<input type="file" accept="image/*,application/pdf" multiple data-my-proof-file="${escapeAttr(o.id)}" aria-label="Comprobante de la diferencia (hasta 3)" class="text-xs w-full" />
         <button type="button" data-my-proof-btn="${escapeAttr(o.id)}" class="tap w-full rounded-full bg-rose-deep text-cream text-xs font-semibold py-2 hover:bg-rose-ink transition">📤 Subir comprobante de la diferencia</button>
         <p data-my-proof-status="${escapeAttr(o.id)}" class="text-xs"></p>`}
       </div>`
@@ -7648,15 +7642,18 @@ async function uploadMyOrderProof(orderId) {
     statusEl.textContent = msg;
     statusEl.className = `text-xs ${ok ? "text-ink/75" : "text-rose-ink"}`;
   };
-  const file = input.files && input.files[0];
-  if (!file) return show("Selecciona una imagen o PDF primero.", false);
-  const proofError = validateProofFile(file);
+  const files = Array.from(input.files || []);
+  if (!files.length) return show("Selecciona una imagen o PDF primero.", false);
+  if (files.length > MAX_PROOF_FILES) return show(`Puedes subir hasta ${MAX_PROOF_FILES} comprobantes.`, false);
+  const proofError = files.map(validateProofFile).find(Boolean);
   if (proofError) return show(proofError, false);
 
   btn.disabled = true;
   btn.textContent = "Subiendo…";
   try {
-    await uploadProofFile(orderId, await achicarComprobante(file));
+    const listos = await Promise.all(files.map(achicarComprobante));
+    if (listos.reduce((t, f) => t + f.size, 0) > MAX_PROOF_FILE_MB * 1024 * 1024) throw new Error("Tus comprobantes pesan demasiado juntos. Súbelos como capturas de pantalla o fotos.");
+    await uploadProofFile(orderId, listos);
     const order = myOrdersCache.find((o) => o.id === orderId);
     const esDiferencia = order && order.status === "paid";
     show(esDiferencia ? "✅ ¡Comprobante recibido! Mae lo revisa y te avisa." : "✅ ¡Comprobante recibido! Te confirmaremos tu pedido pronto.", true);

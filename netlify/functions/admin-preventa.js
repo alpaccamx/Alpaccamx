@@ -45,7 +45,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === "GET") {
     const key = (event.queryStringParameters || {}).archivo;
     if (key) {
-      if (!/^comprobante\/[0-9a-f-]{36}\/(anticipo|resto)$/.test(key)) return json(400, { error: "Archivo inválido." });
+      if (!/^comprobante\/[0-9a-f-]{36}\/(anticipo|resto)(\/[23])?$/.test(key)) return json(400, { error: "Archivo inválido." });
       const f = await getFile(key);
       if (!f) return json(404, { error: "No existe." });
       return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
