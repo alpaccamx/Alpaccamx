@@ -6218,8 +6218,22 @@ async function sendQuote(e) {
   sendBtn.disabled = true;
   sendBtn.innerHTML = "<span>Enviando…</span>";
 
+  // El comprobante se manda junto con el pedido, en una sola petición (las
+  // fotos pesadas se achican antes): sin comprobante no se crea el pedido.
+  let proof;
+  try {
+    const listo = await achicarComprobante(file);
+    if (listo.size > MAX_PROOF_FILE_MB * 1024 * 1024) throw new Error("pesado");
+    proof = { filename: listo.name, contentType: listo.type, dataBase64: await fileToBase64(listo) };
+  } catch (err) {
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = originalLabel;
+    showCartError("cart-error", err && err.message === "pesado" ? "Tu comprobante pesa demasiado. Súbelo como captura de pantalla o foto." : "No pudimos leer tu comprobante. Elige la imagen o el PDF otra vez.");
+    return;
+  }
+
   const direccionUsada = direccionDelCarrito();
-  const { orderId, error } = await recordTransferOrder();
+  const { orderId, error } = await recordTransferOrder(proof);
 
   if (!orderId) {
     sendBtn.disabled = false;
@@ -6234,13 +6248,7 @@ async function sendQuote(e) {
   saveCart();
   renderCart();
 
-  sendBtn.innerHTML = "<span>Subiendo comprobante…</span>";
-  let proofFailed = false;
-  try {
-    await uploadProofFile(orderId, file);
-  } catch (err) {
-    proofFailed = true;
-  }
+  const proofFailed = false; // el comprobante ya se guardó junto con el pedido
 
   sendBtn.disabled = false;
   sendBtn.innerHTML = originalLabel;
@@ -6282,7 +6290,7 @@ function clearOrderIdempotencyKey() {
 /* Registra el pedido para que aparezca en /admin.html y, cuando
    confirmes el pago recibido, se descuenten las piezas vendidas del
    stock. Devuelve el orderId (o null si algo falló). */
-function recordTransferOrder() {
+function recordTransferOrder(proof) {
   try {
     const c = getCustomerFields();
     const items = cartItemsForOrder();
@@ -6298,6 +6306,8 @@ function recordTransferOrder() {
       body: JSON.stringify({
         source: "transferencia",
         idempotencyKey: orderIdempotencyKey(fingerprint),
+        // El comprobante viaja con el pedido: sin él no se registra.
+        proof,
         customer: c,
         items,
         subtotal,
@@ -6399,8 +6409,10 @@ const MAX_PROOF_FILE_MB = 4;
 function validateProofFile(file) {
   const isAllowedType = file.type.startsWith("image/") || file.type === "application/pdf";
   if (!isAllowedType) return "Solo se aceptan imágenes o archivos PDF.";
-  if (file.size > MAX_PROOF_FILE_MB * 1024 * 1024) {
-    return `El archivo pesa más de ${MAX_PROOF_FILE_MB}MB. Usa uno más ligero.`;
+  // Las fotos se achican solas antes de subirlas; los PDF no.
+  const limite = file.type === "application/pdf" ? MAX_PROOF_FILE_MB : 30;
+  if (file.size > limite * 1024 * 1024) {
+    return `El archivo pesa más de ${limite}MB. Usa uno más ligero.`;
   }
   return null;
 }
@@ -6408,6 +6420,33 @@ function validateProofFile(file) {
 /* Sube el comprobante de pago (imagen o PDF) de un pedido ya registrado.
    Regresa una Promise que se rechaza con un Error si algo falla, para
    que quien la llame decida cómo avisarle al cliente. */
+/* Las capturas de iPhone pesan varios MB y no caben en una sola petición:
+   las fotos se achican (JPG, lado mayor 1600 px); los PDF van tal cual. */
+async function achicarComprobante(file) {
+  if (!/^image\//.test(file.type) || file.size < 300 * 1024) return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * k);
+    canvas.height = Math.round(bmp.height * k);
+    canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.82));
+    return blob && blob.size < file.size ? new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file;
+  } catch (err) {
+    return file;
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function uploadProofFile(orderId, file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -7617,7 +7656,7 @@ async function uploadMyOrderProof(orderId) {
   btn.disabled = true;
   btn.textContent = "Subiendo…";
   try {
-    await uploadProofFile(orderId, file);
+    await uploadProofFile(orderId, await achicarComprobante(file));
     const order = myOrdersCache.find((o) => o.id === orderId);
     const esDiferencia = order && order.status === "paid";
     show(esDiferencia ? "✅ ¡Comprobante recibido! Mae lo revisa y te avisa." : "✅ ¡Comprobante recibido! Te confirmaremos tu pedido pronto.", true);

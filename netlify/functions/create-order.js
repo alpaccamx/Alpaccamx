@@ -36,12 +36,13 @@
 
 const { randomUUID } = require("crypto");
 const {
-  saveNewOrder, transitionOrder, getEffectiveSoldMap,
+  saveNewOrder, savePaymentProof, transitionOrder, getEffectiveSoldMap,
   claimIdempotencyKey, completeIdempotencyKey, releaseIdempotencyKey,
 } = require("./lib/blob-store.js");
 const { priceOrder, matchesClientTotals } = require("./lib/pricing.js");
 const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/coupons.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
+const { detectFileType } = require("./lib/file-signature.js");
 const { notifySellerOrderCreated, notifyCustomerOrderPending } = require("./lib/whatsapp.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { cuentaDelPedido } = require("./lib/order-notify.js");
@@ -50,6 +51,7 @@ const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 const { phone10 } = require("./lib/phone.js");
 
 const MP_API = "https://api.mercadopago.com";
+const MAX_PROOF_BYTES = 5 * 1024 * 1024;
 
 // Aviso a la CLIENTA de que su pedido ya se recibió y está pendiente de
 // confirmación -- el correo solo se manda si tiene cuenta con ese teléfono
@@ -119,6 +121,26 @@ exports.handler = async (event) => {
   }
   if (!Array.isArray(items) || !items.length) {
     return jsonResponse(400, { error: "El pedido no tiene productos." });
+  }
+
+  // Pedido por transferencia: el comprobante VIENE EN ESTA MISMA petición y es
+  // obligatorio. Así no puede existir un pedido por transferencia sin
+  // comprobante (antes se registraba primero y el comprobante se subía
+  // aparte, y si esa segunda subida fallaba el pedido se quedaba sin él).
+  let proof = null;
+  if (source === "transferencia" || source === "whatsapp") {
+    const p = body.proof || {};
+    if (!p.dataBase64) return jsonResponse(400, { error: "Sube tu comprobante de transferencia para confirmar el pedido. Si no te deja, recarga la página e inténtalo otra vez." });
+    let buffer;
+    try { buffer = Buffer.from(String(p.dataBase64), "base64"); } catch (err) { return jsonResponse(400, { error: "El comprobante no se pudo leer." }); }
+    if (!buffer.length || buffer.length > MAX_PROOF_BYTES) return jsonResponse(400, { error: "El comprobante debe pesar menos de 5 MB." });
+    const realType = detectFileType(buffer);
+    if (!realType) return jsonResponse(400, { error: "El comprobante debe ser una imagen o un PDF." });
+    proof = {
+      buffer,
+      filename: String(p.filename || "comprobante").slice(0, 120),
+      contentType: realType === "pdf" ? "application/pdf" : typeof p.contentType === "string" && /^image\/[a-z0-9.+-]+$/i.test(p.contentType) ? p.contentType : "image/jpeg",
+    };
   }
 
   // Los precios, el stock y el envío se recalculan AQUÍ a partir de las
@@ -266,6 +288,11 @@ exports.handler = async (event) => {
   };
 
   try {
+    // El comprobante se guarda ANTES que el pedido: si falla, no se crea nada.
+    if (proof) {
+      await savePaymentProof(order.id, proof.buffer, { contentType: proof.contentType, filename: proof.filename });
+      Object.assign(order, { hasPaymentProof: true, proofFilename: proof.filename, proofContentType: proof.contentType, proofUploadedAt: new Date().toISOString() });
+    }
     await saveNewOrder(order);
   } catch (err) {
     console.error("Error guardando el pedido:", err);
