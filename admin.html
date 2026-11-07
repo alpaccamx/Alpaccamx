@@ -679,6 +679,7 @@
   .nav-btn .nav-ico { font-size: 0 !important; width: 20px; height: 20px; display: inline-block; background: currentColor; -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; flex: none; }
   .nav-btn[data-view="inicio"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'/%3E%3C/svg%3E"); }
   .nav-btn[data-view="pedidos"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 2h12v20l-3-2-3 2-3-2-3 2z'/%3E%3Cpath d='M9 7h6M9 11h6M9 15h4'/%3E%3C/svg%3E"); }
+  .nav-btn[data-view="corea"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18'/%3E%3C/svg%3E"); }
   .nav-btn[data-view="swm"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8 12 3 3 8v8l9 5 9-5z'/%3E%3Cpath d='m3 8 9 5 9-5M12 13v8'/%3E%3C/svg%3E"); }
   .nav-btn[data-view="clientas"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='4'/%3E%3Cpath d='M2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 9M22 21a7 7 0 0 0-4-6.3'/%3E%3C/svg%3E"); }
   .nav-btn[data-view="catalogo"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12V3h9l9 9-9 9z'/%3E%3Ccircle cx='7.5' cy='7.5' r='1.5'/%3E%3C/svg%3E"); }
@@ -709,6 +710,8 @@
     .nav-logo::before { content: ""; width: 30px; height: 30px; border-radius: 9px; background: var(--accent); -webkit-mask: none; }
     .nav-btn { width: 100% !important; height: 42px !important; justify-content: flex-start !important; gap: 12px !important; padding: 0 12px !important; border-radius: var(--radius-sm) !important; color: var(--nav-ink) !important; font-size: 15px !important; font-weight: 700; }
     .nav-btn .nav-txt { display: inline !important; white-space: nowrap; text-align: left; }
+    .nav-btn[data-view="pedidos"] .nav-txt { font-size: 0; } .nav-btn[data-view="pedidos"] .nav-txt::after { content: "Pedidos stock"; font-size: 15px; }
+    .nav-btn[data-view="corea"] .nav-txt { font-size: 0; } .nav-btn[data-view="corea"] .nav-txt::after { content: "Pedidos Corea"; font-size: 15px; }
     .nav-btn[data-view="swm"] .nav-txt { font-size: 0; } .nav-btn[data-view="swm"] .nav-txt::after { content: "Dirección americana"; font-size: 15px; }
     .nav-btn[data-view="inventario"] .nav-txt { font-size: 0; } .nav-btn[data-view="inventario"] .nav-txt::after { content: "Stock en México"; font-size: 15px; }
     .nav-btn[data-view="mas"] .nav-txt { font-size: 0; } .nav-btn[data-view="mas"] .nav-txt::after { content: "Más secciones"; font-size: 15px; }
@@ -789,13 +792,14 @@
   <nav class="toolbar" id="toolbar" aria-label="Secciones del admin" style="display:none;">
     <span class="nav-logo" aria-hidden="true">🌸</span>
     <button type="button" class="nav-btn active" data-view="inicio" data-tip="Inicio" aria-current="page"><span class="nav-ico" aria-hidden="true">🏠</span><span class="nav-txt">Inicio</span></button>
-    <button type="button" class="nav-btn" data-view="pedidos" data-tip="Pedidos"><span class="nav-ico" aria-hidden="true">🧾</span><span class="nav-txt">Pedidos</span></button>
+    <button type="button" class="nav-btn" data-view="pedidos" data-tip="Pedidos de stock" aria-label="Pedidos de stock"><span class="nav-ico" aria-hidden="true">🧾</span><span class="nav-txt">Stock</span></button>
+    <button type="button" class="nav-btn nav-desk" data-view="corea" data-tip="Pedidos de Corea" aria-label="Pedidos de Corea"><span class="nav-ico" aria-hidden="true">🇰🇷</span><span class="nav-txt">Corea</span></button>
     <button type="button" class="nav-btn" data-view="swm" data-tip="Dirección americana" aria-label="Dirección americana"><span class="nav-ico" aria-hidden="true">🇺🇸</span><span class="nav-txt">EE.UU.</span><span class="nav-badge" id="swm-nav-badge" style="display:none;"></span></button>
     <button type="button" class="nav-btn nav-desk" data-view="pm" data-tip="Por mandar" aria-label="Por mandar"><span class="nav-ico" aria-hidden="true">📦</span><span class="nav-txt">Por mandar</span><span class="nav-badge" id="pm-nav-badge" style="display:none;"></span></button>
     <button type="button" class="nav-btn nav-desk" data-view="ps" data-tip="Personal shopper" aria-label="Personal shopper"><span class="nav-ico" aria-hidden="true">🛍️</span><span class="nav-txt">Personal shopper</span><span class="nav-badge" id="ps-nav-badge" style="display:none;"></span></button>
     <button type="button" class="nav-btn" id="clients-toggle" data-view="clientas" data-tip="Clientas"><span class="nav-ico" aria-hidden="true">👩</span><span class="nav-txt">Clientas</span></button>
     <button type="button" class="nav-btn" id="catalog-toggle" data-view="catalogo" data-tip="Catálogo"><span class="nav-ico" aria-hidden="true">🏷️</span><span class="nav-txt">Catálogo</span></button>
-    <button type="button" class="nav-btn" id="inventory-toggle" data-view="inventario" data-tip="Stock en México" aria-label="Stock en México"><span class="nav-ico" aria-hidden="true">📦</span><span class="nav-txt">Stock</span></button>
+    <button type="button" class="nav-btn" id="inventory-toggle" data-view="inventario" data-tip="Stock en México" aria-label="Stock en México"><span class="nav-ico" aria-hidden="true">📦</span><span class="nav-txt">Inventario</span></button>
     <button type="button" class="nav-btn" id="more-toggle" data-view="mas" data-tip="Más secciones" aria-label="Más secciones"><span class="nav-ico" aria-hidden="true">☰</span><span class="nav-txt">Más</span><span class="nav-badge" id="more-badge" style="display:none;"></span></button>
   </nav>
 
@@ -813,6 +817,7 @@
   <div id="more-view" class="more-grid" style="display:none;">
     <button type="button" class="more-btn" data-goto="restock"><span class="ico" aria-hidden="true">🔔</span><span>Avisos de restock<small>Clientas esperando un producto</small></span><span class="nav-badge" id="restock-requests-badge" style="display:none;"></span></button>
     <button type="button" class="more-btn" data-goto="resenas"><span class="ico" aria-hidden="true">⭐</span><span>Reseñas<small>Ver y borrar reseñas</small></span></button>
+    <button type="button" class="more-btn" data-goto="corea"><span class="ico" aria-hidden="true">🇰🇷</span><span>Pedidos de Corea<small>Pedidos con productos de ABW</small></span></button>
     <button type="button" class="more-btn" data-goto="pm"><span class="ico" aria-hidden="true">📦</span><span>Por mandar<small>Todo lo de cada clienta junto: arma una sola caja</small></span></button>
     <button type="button" class="more-btn" data-goto="ps"><span class="ico" aria-hidden="true">🧾</span><span>Personal shopper<small>Facturas, cobro y envío de las compras que haces por tus clientas</small></span></button>
     <button type="button" class="more-btn" data-goto="swm"><span class="ico" aria-hidden="true">🇺🇸</span><span>Dirección americana<small>Casillero EE.UU.: paquetes, compras y envíos</small></span><span class="nav-badge" id="swm-badge" style="display:none;"></span></button>
@@ -935,6 +940,7 @@
 
   <div id="orders-view" style="display:none;">
   <button type="button" id="pv-orders-banner" style="display:none;width:100%;text-align:left;margin:0 0 12px;padding:12px 14px;border-radius:14px;border:1px solid #f8cfdd;background:#fde8f0;color:#7a2d48;font-size:14px;cursor:pointer;"></button>
+  <div id="orders-note" style="display:none;background:#fdf6f9;border:1px solid #f0d5e0;border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:14px;"></div>
   <h2 class="section-title" id="history-title" style="display:none;">📋 Todos tus pedidos</h2>
 
   <div class="filters" id="filters" style="display:none;">
