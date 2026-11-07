@@ -7172,7 +7172,7 @@ ${itemLines}
       return;
     }
     const reemb = t.closest("[data-pv-reembolsado]");
-    if (reemb) { if (confirm("¿Ya le hiciste su reembolso?")) await pvAct({ accion: "reembolsado", id: reemb.dataset.pvReembolsado }, reemb); return; }
+    if (reemb) { if (confirm("¿Ya le hiciste su reembolso? Le llega un aviso por correo y WhatsApp.")) await pvAct({ accion: "reembolsado", id: reemb.dataset.pvReembolsado }, reemb); return; }
     const st = pvSel();
     if (!st) return;
     const elegir = t.closest("[data-pvn-elegir]");
@@ -7391,10 +7391,9 @@ ${itemLines}
     if (entregado) { await pvAct({ accion: "marcar_entregado", id: entregado.dataset.pvEntregado }, btn); return; }
     const cancelar = t.closest("[data-pv-cancelar]");
     if (cancelar) {
-      const motivo = prompt("¿Por qué se cancela? (déjalo vacío si no quieres decirle nada). Si ya había pagado, queda apuntado su reembolso pendiente.", "");
+      const motivo = prompt("¿Por qué se cancela? (se lo mandamos a la clienta por correo y WhatsApp; déjalo vacío si no quieres decirle nada). Si ya había pagado, queda apuntado su reembolso pendiente.", "");
       if (motivo == null) return;
-      const avisarle = confirm("¿Le aviso a la clienta por correo y WhatsApp?");
-      await pvAct({ accion: "cancelar", id: cancelar.dataset.pvCancelar, motivo, avisar: avisarle }, btn);
+      await pvAct({ accion: "cancelar", id: cancelar.dataset.pvCancelar, motivo, avisar: true }, btn);
     }
   });
 

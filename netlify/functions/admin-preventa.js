@@ -273,7 +273,7 @@ exports.handler = async (event) => {
           return a;
         });
         if (!rec) return json(404, { error: "No existe ese apartado." });
-        if (b.avisar) {
+        if (b.avisar !== false) {
           await avisar(rec, `${rec.folio}: se canceló tu apartado`, `<h2 style="margin:0 0 8px;font-size:20px;">Se canceló tu apartado</h2>${motivo ? `<p style="font-size:14px;">${esc(motivo)}</p>` : ""}${aReembolsar > 0 ? `<p style="font-size:14px;">Te reembolsamos <b>${formatPriceMXN(aReembolsar)}</b>. Escríbenos por WhatsApp para hacerte tu reembolso.</p>` : ""}`,
             `${rec.folio}: se canceló tu apartado${motivo ? `. ${motivo}` : ""}${aReembolsar > 0 ? `. Te reembolsamos ${formatPriceMXN(aReembolsar)}, escríbenos por WhatsApp para hacerte tu reembolso` : ""}`);
         }
@@ -360,6 +360,10 @@ exports.handler = async (event) => {
           return a;
         });
         if (!rec) return json(404, { error: "Ese apartado no tiene reembolso pendiente." });
+        if (b.avisar !== false) {
+          await avisar(rec, `${rec.folio}: ya te hicimos tu reembolso 💸`, `<h2 style="margin:0 0 8px;font-size:20px;">Ya te hicimos tu reembolso</h2><p style="font-size:14px;">Te reembolsamos <b>${formatPriceMXN(rec.reembolso.monto)}</b> de tu apartado ${esc(rec.folio)}. Si no lo ves reflejado en unos días, escríbenos.</p>`,
+            `${rec.folio}: ya te hicimos tu reembolso de ${formatPriceMXN(rec.reembolso.monto)}. Si no lo ves reflejado en unos días, escríbenos`);
+        }
         return json(200, { apartado: rec });
       }
 
