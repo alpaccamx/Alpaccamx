@@ -2094,6 +2094,45 @@ ${itemLines}
   let inventoryProducts = [];
   let inventorySearchTerm = "";
 
+  /* ----- 📥 Lotes de stock listos para cargar -----
+     Claude deja los productos nuevos en /stock-lotes/*.json (con sus fotos ya
+     subidas al sitio); aquí se cargan con un solo botón al Sheet de Stock.
+     Es seguro tocarlo dos veces: lo que ya existe se salta. */
+  async function renderStockLotes() {
+    const box = document.getElementById("stock-lotes-box");
+    if (!box) return;
+    try {
+      const idx = await (await fetch("/stock-lotes/index.json", { cache: "no-store" })).json();
+      const lotes = await Promise.all(idx.map(async (f) => ({ f, ...(await (await fetch(`/stock-lotes/${f}`, { cache: "no-store" })).json()) })));
+      const existentes = new Set(inventoryProducts.map((p) => String(p.sku || "").trim()));
+      const pendientes = lotes.map((l) => ({ ...l, falta: l.productos.filter((p) => !existentes.has(p.sku)) })).filter((l) => l.falta.length);
+      if (!pendientes.length) { box.style.display = "none"; box.innerHTML = ""; return; }
+      box.style.display = "block";
+      box.innerHTML = pendientes.map((l) => `<div class="swm-card" style="border:2px solid #c4466e;">
+        <h4><span>📥 Productos nuevos listos para cargar</span></h4>
+        <div class="meta">${escapeHtml(l.nombre || l.f)}</div>
+        <ul style="margin:8px 0;padding-left:20px;font-size:14px;">${l.falta.map((p) => `<li><b>${p.piezas}</b> × ${escapeHtml(p.nombre)} · ${formatPrice(p.precio)}</li>`).join("")}</ul>
+        <button type="button" class="btn-primary" data-stock-lote="${escapeHtml(l.f)}">📥 Cargar ${l.falta.length} producto${l.falta.length === 1 ? "" : "s"} al Stock</button>
+        <div data-stock-lote-msg style="margin-top:8px;font-size:14px;"></div></div>`).join("");
+      box.querySelectorAll("[data-stock-lote]").forEach((btn) => btn.addEventListener("click", async () => {
+        const lote = pendientes.find((l) => l.f === btn.dataset.stockLote);
+        const msg = btn.parentElement.querySelector("[data-stock-lote-msg]");
+        btn.disabled = true;
+        let ok = 0; const fallas = [];
+        for (const p of lote.falta) {
+          msg.textContent = `Cargando ${ok + fallas.length + 1} de ${lote.falta.length}…`;
+          try {
+            const r = await addStockProductRequest(p);
+            if (r.ok || /ya existe/i.test((r.data && r.data.error) || "")) ok++; else fallas.push(`${p.nombre}: ${(r.data && r.data.error) || "error"}`);
+          } catch (err) { fallas.push(`${p.nombre}: sin conexión`); }
+        }
+        msg.innerHTML = `✅ ${ok} cargado${ok === 1 ? "" : "s"}.${fallas.length ? `<br><span style="color:#b33660;">No se pudieron: ${fallas.map(escapeHtml).join("; ")}. Toca de nuevo el botón para reintentar.</span>` : ""}`;
+        btn.disabled = false;
+        loadInventory();
+      }));
+    } catch (err) { box.style.display = "none"; }
+  }
+
   async function loadInventory() {
     const listEl = document.getElementById("inventory-list");
     const emptyEl = document.getElementById("inventory-empty");
@@ -2116,6 +2155,7 @@ ${itemLines}
       inventoryLoaded = true;
       inventoryProducts = data.products || [];
       renderInventoryList();
+      renderStockLotes();
     } catch (err) {
       loadingEl.style.display = "none";
       errorEl.textContent = "No se pudo conectar con el servidor.";
