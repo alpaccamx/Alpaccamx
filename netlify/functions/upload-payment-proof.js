@@ -12,11 +12,10 @@
 // pedido.
 
 const { getOrder, updateOrderFields, savePaymentProof } = require("./lib/blob-store.js");
-const { detectFileType } = require("./lib/file-signature.js");
+const { leerComprobantes } = require("./lib/comprobantes.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -40,40 +39,14 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "JSON inválido." });
   }
 
-  const { orderId, filename, contentType, dataBase64 } = body;
-  if (!orderId || !dataBase64) {
-    return jsonResponse(400, { error: "Faltan orderId o el archivo." });
+  const { orderId } = body;
+  if (!orderId) {
+    return jsonResponse(400, { error: "Falta orderId o el archivo." });
   }
-
-  let buffer;
-  try {
-    buffer = Buffer.from(dataBase64, "base64");
-  } catch (err) {
-    return jsonResponse(400, { error: "El archivo no se pudo leer." });
-  }
-  if (!buffer.length || buffer.length > MAX_BYTES) {
-    return jsonResponse(400, { error: "El archivo debe pesar menos de 5MB." });
-  }
-
-  // No confiamos en el "contentType" que manda el navegador (es fácil de
-  // falsificar) -- se verifica el contenido real del archivo por sus
-  // primeros bytes. Ver lib/file-signature.js.
-  const realType = detectFileType(buffer);
-  if (!realType) {
-    return jsonResponse(400, { error: "Solo se aceptan imágenes o archivos PDF." });
-  }
-
-  // El contentType que se guarda (para servirlo luego con el header
-  // correcto en admin-payment-proof.js) también se sanea: si el archivo
-  // sí es un PDF/imagen real, se usa el que mandó el navegador solo si
-  // "hace juego" con lo que se detectó en los bytes; si no, un valor
-  // genérico seguro para ese tipo.
-  const safeContentType =
-    realType === "pdf"
-      ? "application/pdf"
-      : typeof contentType === "string" && /^image\/[a-z0-9.+-]+$/i.test(contentType)
-        ? contentType
-        : "image/jpeg";
+  // Hasta 3 comprobantes a la vez ("proofs"); un solo archivo (formato anterior) también vale.
+  const leidos = leerComprobantes(Array.isArray(body.proofs) ? body.proofs : { filename: body.filename, contentType: body.contentType, dataBase64: body.dataBase64 });
+  if (leidos.error) return jsonResponse(400, { error: leidos.error });
+  const archivos = leidos.files;
 
   try {
     const order = await getOrder(orderId);
@@ -89,12 +62,14 @@ exports.handler = async (event) => {
     const debe = Math.round(((Number(order.grandTotal) || 0) - pagado) * 100) / 100;
     if (order.status === "paid") {
       if (!(debe > 0.5)) return jsonResponse(409, { error: "Este pedido no tiene nada pendiente de pagar." });
-      const n = (order.proofsExtra || []).length;
-      await savePaymentProof(`${orderId}/extra/${n}`, buffer, { contentType: safeContentType, filename: String(filename || "comprobante") });
-      await updateOrderFields(orderId, {
-        proofsExtra: [...(order.proofsExtra || []), { n, filename: String(filename || "comprobante"), contentType: safeContentType, at: new Date().toISOString(), monto: debe, status: "revision" }],
-      });
-      return jsonResponse(200, { ok: true, extra: n });
+      let extras = [...(order.proofsExtra || [])];
+      for (const f of archivos) {
+        const n = extras.length;
+        await savePaymentProof(`${orderId}/extra/${n}`, f.buffer, { contentType: f.contentType, filename: f.filename });
+        extras.push({ n, filename: f.filename, contentType: f.contentType, at: new Date().toISOString(), monto: debe, status: "revision" });
+      }
+      await updateOrderFields(orderId, { proofsExtra: extras });
+      return jsonResponse(200, { ok: true, extra: extras.length - 1 });
     }
     if (order.status !== "pending") {
       return jsonResponse(409, { error: "Este pedido ya no acepta comprobantes." });
@@ -103,12 +78,15 @@ exports.handler = async (event) => {
       return jsonResponse(409, { error: "Este pedido no se paga por transferencia." });
     }
 
-    await savePaymentProof(orderId, buffer, { contentType: safeContentType, filename: String(filename || "comprobante") });
+    const [primero, ...mas] = archivos;
+    await savePaymentProof(orderId, primero.buffer, { contentType: primero.contentType, filename: primero.filename });
+    for (let i = 0; i < mas.length; i++) await savePaymentProof(`${orderId}/p/${i + 1}`, mas[i].buffer, { contentType: mas[i].contentType, filename: mas[i].filename });
     await updateOrderFields(orderId, {
       hasPaymentProof: true,
-      proofFilename: String(filename || "comprobante"),
-      proofContentType: safeContentType,
+      proofFilename: primero.filename,
+      proofContentType: primero.contentType,
       proofUploadedAt: new Date().toISOString(),
+      proofsMore: mas.map((f, i) => ({ n: i + 1, filename: f.filename, contentType: f.contentType })),
     });
 
     return jsonResponse(200, { ok: true });

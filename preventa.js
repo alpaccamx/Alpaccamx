@@ -563,7 +563,7 @@ function pvCheckoutHTML() {
         <p><b>1.</b> Transfiere exactamente <b>${pvMXN(anticipo)}</b></p>
         ${pvBancoHTML()}
         <label class="flex flex-col gap-1"><span><b>2.</b> Sube la captura de tu transferencia (foto o PDF) *</span>
-          <input type="file" accept="image/*,application/pdf" data-pv-apartar-proof class="text-xs font-normal" /></label>
+          <input type="file" accept="image/*,application/pdf" multiple data-pv-apartar-proof class="text-xs font-normal" /><span class="text-[11px] text-ink/60">Puedes elegir hasta 3 archivos a la vez.</span></label>
       </div>
     </fieldset>
     <fieldset class="space-y-2"><legend class="text-sm font-semibold mb-1">¿Cómo te lo entrego?</legend>
@@ -631,7 +631,7 @@ function pvPagoHTML(a) {
       <p><b>1.</b> Transfiere exactamente <b>${fmt(total)}</b> ${copiar(Number(total).toFixed(2))}</p>
       <div class="rounded-lg bg-pill/60 px-3 py-2 space-y-0.5">${bank || '<p class="text-xs text-ink/70">Cargando datos bancarios...</p>'}<div>Concepto: <b>${escapeHtml(a.folio)}</b></div></div>
       <label class="flex flex-col gap-1"><span><b>2.</b> Sube la captura de tu transferencia (foto o PDF)</span>
-        <input type="file" accept="image/*,application/pdf" data-pv-proof="${k}" class="text-xs font-normal" /></label>
+        <input type="file" accept="image/*,application/pdf" multiple data-pv-proof="${k}" class="text-xs font-normal" /><span class="text-[11px] text-ink/60">Puedes elegir hasta 3 archivos a la vez.</span></label>
       <p data-pv-proof-msg="${k}" class="text-xs"></p>
     </div>
   </div>`;
@@ -691,23 +691,20 @@ async function pvApartar(form) {
   const items = Object.values(pv.bag).map((x) => ({ id: x.id, sku: x.sku, qty: x.qty }));
   const metodo = (form.querySelector("[data-pv-metodo]:checked") || {}).value === "mp" ? "mercadopago" : "transferencia";
   pv.metodo = metodo === "mercadopago" ? "mp" : "tr";
-  let archivo = null;
+  let archivos = [];
   if (metodo === "transferencia") {
-    archivo = (form.querySelector("[data-pv-apartar-proof]").files || [])[0];
-    if (!archivo) return fail("Sube la captura de tu transferencia para apartar (o elige pagar con tarjeta).");
-    if (!(archivo.type.startsWith("image/") || archivo.type === "application/pdf")) return fail("El comprobante debe ser una imagen o un PDF.");
+    archivos = Array.from(form.querySelector("[data-pv-apartar-proof]").files || []);
+    if (!archivos.length) return fail("Sube la captura de tu transferencia para apartar (o elige pagar con tarjeta).");
+    if (archivos.length > 3) return fail("Puedes subir hasta 3 comprobantes.");
+    if (archivos.some((a) => !(a.type.startsWith("image/") || a.type === "application/pdf"))) return fail("Los comprobantes deben ser imágenes o PDF.");
   }
   btn.disabled = true;
   const label = btn.textContent;
   btn.textContent = "Apartando...";
   try {
-    let comprobante;
-    if (archivo) {
-      const listo = await pvAchicarImagen(archivo);
-      if (listo.size > 4 * 1024 * 1024) throw new Error("Tu comprobante pesa demasiado. Súbelo como captura de pantalla o foto.");
-      comprobante = { filename: listo.name, contentType: listo.type, dataBase64: await pvFileToBase64(listo) };
-    }
-    const data = await pvPost({ accion: "apartar", items, entrega: pv.entrega, direccion, nota: form.querySelector("[data-pv-nota]").value, pagoCompleto: pv.pago === "completo", metodo, comprobante });
+    let comprobantes;
+    if (archivos.length) comprobantes = await pvPrepararComprobantes(archivos);
+    const data = await pvPost({ accion: "apartar", items, entrega: pv.entrega, direccion, nota: form.querySelector("[data-pv-nota]").value, pagoCompleto: pv.pago === "completo", metodo, comprobantes });
     if (data.redirectUrl) {
       pv.bag = {};
       pvGuardarBolsa();
@@ -756,17 +753,25 @@ async function pvAchicarImagen(file) {
   }
 }
 
+/* Achica las fotos (las capturas de iPhone pesan varios MB) y las pasa a base64;
+   hasta 3 archivos, 4 MB entre todos. */
+async function pvPrepararComprobantes(archivos) {
+  const listos = await Promise.all(archivos.map(pvAchicarImagen));
+  if (listos.reduce((t, f) => t + f.size, 0) > 4 * 1024 * 1024) throw new Error("Tus comprobantes pesan demasiado juntos. Súbelos como capturas de pantalla o fotos.");
+  return Promise.all(listos.map(async (f) => ({ filename: f.name, contentType: f.type, dataBase64: await pvFileToBase64(f) })));
+}
+
 async function pvSubirComprobante(id, input) {
   const msg = document.querySelector(`[data-pv-proof-msg="${CSS.escape(id)}"]`);
-  let file = input.files && input.files[0];
-  if (!file) return;
+  const archivos = Array.from(input.files || []);
+  if (!archivos.length) return;
+  if (archivos.length > 3) { msg.textContent = "Puedes subir hasta 3 comprobantes."; msg.className = "text-xs text-sale"; return; }
   msg.textContent = "Subiendo...";
   msg.className = "text-xs text-ink/70";
   try {
-    file = await pvAchicarImagen(file);
-    if (file.size > 4 * 1024 * 1024) { msg.textContent = "El archivo pesa mucho. Mándalo como captura de pantalla o foto, o escríbele a Mae."; msg.className = "text-xs text-sale"; return; }
+    const comprobantes = await pvPrepararComprobantes(archivos);
     await pvPost({ accion: "pagar", id, metodo: "transferencia" });
-    await pvPost({ accion: "comprobante", id, filename: file.name, contentType: file.type, dataBase64: await pvFileToBase64(file) });
+    await pvPost({ accion: "comprobante", id, comprobantes });
     await loadPreventa();
   } catch (ex) {
     msg.textContent = /load failed|failed to fetch|network/i.test(ex.message || "") ? "No se pudo subir. Revisa tu internet e inténtalo otra vez." : ex.message;

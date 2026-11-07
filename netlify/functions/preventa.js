@@ -14,11 +14,14 @@ const { randomUUID } = require("crypto");
 const { getCustomerByEmail } = require("./lib/customer-store.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
-const { detectFileType } = require("./lib/file-signature.js");
+const { leerComprobantes } = require("./lib/comprobantes.js");
 const { listApartados, getApartado, saveApartado, mutateApartado, nextFolio, saveFile } = require("./lib/preventa-store.js");
 const { configActual, abierta, productosConCupo, productoPublico, pesoDe, pesosEnvio, envioEstimado, apartadoPublico, etapaPorPagar, crearPreferenciaMP, avisar, listaHTML, formatPriceMXN, HORAS_PARA_PAGAR } = require("./lib/preventa-core.js");
 
-const MAX_BYTES = 5 * 1024 * 1024;
+/* Guarda hasta 3 comprobantes: el 1.º en comprobante/<id>/<etapa> y los demás en .../2 y .../3. */
+async function guardarComprobantes(id, etapa, files) {
+  for (let i = 0; i < files.length; i++) await saveFile(`comprobante/${id}/${etapa}${i ? `/${i + 1}` : ""}`, files[i].buffer, files[i].contentType);
+}
 const MAX_PIEZAS = 60;
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
 const now = () => new Date().toISOString();
@@ -82,16 +85,12 @@ exports.handler = async (event) => {
         // comprobante); con tarjeta se manda directo a Mercado Pago.
         const metodo = b.metodo === "mercadopago" ? "mercadopago" : b.metodo === "transferencia" ? "transferencia" : null;
         if (!metodo) return json(400, { error: "Elige cómo vas a pagar (transferencia o tarjeta). Si no te sale, recarga la página e inténtalo otra vez." });
-        let comprobante = null;
+        let comprobantes = null;
         if (metodo === "transferencia") {
-          const c = b.comprobante || {};
-          if (!c.dataBase64) return json(400, { error: "Sube la captura de tu transferencia para apartar." });
-          let buf;
-          try { buf = Buffer.from(String(c.dataBase64), "base64"); } catch { return json(400, { error: "El comprobante no se pudo leer." }); }
-          if (!buf.length || buf.length > MAX_BYTES) return json(400, { error: "El comprobante debe pesar menos de 5 MB." });
-          const real = detectFileType(buf);
-          if (!real) return json(400, { error: "El comprobante debe ser una imagen o un PDF." });
-          comprobante = { buf, ct: real === "pdf" ? "application/pdf" : /^image\/[a-z0-9.+-]+$/i.test(c.contentType || "") ? c.contentType : "image/jpeg" };
+          // Hasta 3 comprobantes a la vez ("comprobantes"); "comprobante" (uno solo) también vale.
+          const leidos = leerComprobantes(Array.isArray(b.comprobantes) ? b.comprobantes : b.comprobante);
+          if (leidos.error) return json(400, { error: leidos.error.startsWith("Sube") ? "Sube la captura de tu transferencia para apartar." : leidos.error });
+          comprobantes = leidos.files;
         }
         // Un renglón por producto + tono/tamaño (sku).
         const pedidos = new Map();
@@ -146,15 +145,15 @@ exports.handler = async (event) => {
           envio: 0, ...pesos, envioEstimado: envioEst, entrega, direccion, nota: clip(b.nota, 500), status: "nuevo",
           history: [{ at: now(), status: "nuevo" }], createdAt: now(), updatedAt: now(),
         };
-        if (comprobante) {
-          // El comprobante se guarda ANTES que el apartado: si falla, no se crea nada.
-          await saveFile(`comprobante/${rec.id}/anticipo`, comprobante.buf, comprobante.ct);
-          rec.anticipo = { ...rec.anticipo, metodo: "transferencia", status: "revision", comprobanteAt: now(), comprobanteTipo: comprobante.ct };
+        if (comprobantes) {
+          // Los comprobantes se guardan ANTES que el apartado: si falla, no se crea nada.
+          await guardarComprobantes(rec.id, "anticipo", comprobantes);
+          rec.anticipo = { ...rec.anticipo, metodo: "transferencia", status: "revision", comprobanteAt: now(), comprobanteTipo: comprobantes[0].contentType, comprobanteN: comprobantes.length };
         } else {
           rec.anticipo = { ...rec.anticipo, metodo: "mercadopago", elegidoAt: now() };
         }
         await saveApartado(rec);
-        if (comprobante) {
+        if (comprobantes) {
           await avisar(rec, `${rec.folio}: recibimos tu comprobante`, `
             <h2 style="margin:0 0 8px;font-size:20px;">¡Recibimos tu comprobante!</h2>
             ${listaHTML(rec)}
@@ -199,16 +198,11 @@ exports.handler = async (event) => {
         if (!a || a.email !== me) return json(404, { error: "No encontramos ese apartado." });
         const etapa = etapaPorPagar(a);
         if (!etapa) return json(409, { error: "Este apartado ya no acepta comprobantes." });
-        if (!b.dataBase64) return json(400, { error: "Falta el archivo." });
-        let buf;
-        try { buf = Buffer.from(String(b.dataBase64), "base64"); } catch { return json(400, { error: "El archivo no se pudo leer." }); }
-        if (!buf.length || buf.length > MAX_BYTES) return json(400, { error: "El archivo debe pesar menos de 5 MB." });
-        const real = detectFileType(buf);
-        if (!real) return json(400, { error: "Solo se aceptan imágenes o archivos PDF." });
-        const ct = real === "pdf" ? "application/pdf" : /^image\/[a-z0-9.+-]+$/i.test(b.contentType || "") ? b.contentType : "image/jpeg";
-        await saveFile(`comprobante/${a.id}/${etapa}`, buf, ct);
+        const leidos = leerComprobantes(Array.isArray(b.comprobantes) ? b.comprobantes : { filename: b.filename, contentType: b.contentType, dataBase64: b.dataBase64 });
+        if (leidos.error) return json(400, { error: leidos.error });
+        await guardarComprobantes(a.id, etapa, leidos.files);
         const updated = await mutateApartado(a.id, (r) => {
-          r[etapa] = { ...r[etapa], status: "revision", metodo: "transferencia", comprobanteAt: now(), comprobanteTipo: ct, rechazo: undefined };
+          r[etapa] = { ...r[etapa], status: "revision", metodo: "transferencia", comprobanteAt: now(), comprobanteTipo: leidos.files[0].contentType, comprobanteN: leidos.files.length, rechazo: undefined };
           return r;
         });
         return json(200, { apartado: apartadoPublico(updated) });
