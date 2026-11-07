@@ -11,7 +11,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-bare-vanilla.jpg",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-ANGEL-FANTASY-SHIMMER",
@@ -23,7 +24,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-angel-fantasy-shimmer.jpg",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-SPOTLIGHT-SHIMMER",
@@ -35,7 +37,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-spotlight-shimmer.jpg",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-RICH-VANILLA-MYSTERE",
@@ -47,7 +50,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-rich-vanilla-mystere.webp",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-CRIMSON-BERRY-KISS",
@@ -59,7 +63,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-crimson-berry-kiss.webp",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-INDULGENT-CREME",
@@ -71,7 +76,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-indulgent-creme.jpg",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-RUBY-PLUM-NIGHTS",
@@ -83,7 +89,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-ruby-plum-nights.jpg",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-ROSE-SILK",
@@ -95,7 +102,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-rose-silk.jpg",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-ELIXIR-NOCTURNE-SHIMMER",
@@ -107,7 +115,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-elixir-nocturne-shimmer.webp",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-PURE-SEDUCTION-ICON",
@@ -119,7 +128,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-pure-seduction-icon.jpg",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-VELVET-PETALS-SHIMMER",
@@ -131,7 +141,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-velvet-petals-shimmer.jpg",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-BLUSH-CHERRY-ROYALE",
@@ -143,7 +154,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-blush-cherry-royale.webp",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-VSBM-PURE-SEDUCTION",
@@ -155,7 +167,8 @@
    "precio": 155,
    "peso": 0.35,
    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-pure-seduction.jpg",
-   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
+   "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "precioTarjeta": 165
   },
   {
    "sku": "STOCK-BBWM-PURE-WONDER",
@@ -167,7 +180,8 @@
    "precio": 150,
    "peso": 0.3,
    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-pure-wonder-v2.jpg",
-   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
+   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp",
+   "precioTarjeta": 159
   },
   {
    "sku": "STOCK-BBWM-STRAWBERRY-SNOWFLAKES",
@@ -179,7 +193,8 @@
    "precio": 150,
    "peso": 0.3,
    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-strawberry-snowflakes-v2.jpg",
-   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
+   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp",
+   "precioTarjeta": 159
   },
   {
    "sku": "STOCK-BBWM-YOURE-THE-ONE",
@@ -191,7 +206,8 @@
    "precio": 150,
    "peso": 0.3,
    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-youre-the-one.jpg",
-   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
+   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp",
+   "precioTarjeta": 159
   },
   {
    "sku": "STOCK-BBWM-TWISTED-PEPPERMINT",
@@ -203,7 +219,8 @@
    "precio": 150,
    "peso": 0.3,
    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-twisted-peppermint-v2.jpg",
-   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
+   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp",
+   "precioTarjeta": 159
   },
   {
    "sku": "STOCK-BBWM-COZY-VANILLA-BOURBON",
@@ -215,7 +232,8 @@
    "precio": 150,
    "peso": 0.3,
    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-cozy-vanilla-bourbon-v2.jpg",
-   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
+   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp",
+   "precioTarjeta": 159
   },
   {
    "sku": "STOCK-BBWM-GINGHAM",
@@ -227,7 +245,8 @@
    "precio": 150,
    "peso": 0.3,
    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-gingham-v2.webp",
-   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
+   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp",
+   "precioTarjeta": 159
   },
   {
    "sku": "STOCK-BBWM-IVORY-CASHMERE",
@@ -239,7 +258,8 @@
    "precio": 150,
    "peso": 0.3,
    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-ivory-cashmere-v2.jpg",
-   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
+   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp",
+   "precioTarjeta": 159
   },
   {
    "sku": "STOCK-BBWM-GINGHAM-FRESH",
@@ -251,7 +271,8 @@
    "precio": 150,
    "peso": 0.3,
    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-gingham-fresh.jpg",
-   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
+   "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp",
+   "precioTarjeta": 159
   },
   {
    "sku": "STOCK-BBW-GEL-LOTE10",
@@ -262,7 +283,8 @@
    "piezas": 132,
    "precio": 350,
    "peso": 0.5,
-   "imagen": "https://alpacca.mx/assets/products/stock/bbw-pocketbac-lote-10-surtido.jpg"
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-pocketbac-lote-10-surtido.jpg",
+   "precioTarjeta": 371
   }
  ],
  "mezclas": [
@@ -350,7 +372,139 @@
    "campos": {
     "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-ruby-plum-nights.jpg"
    }
+  },
+  {
+   "sku": "STOCK-VSBM-BARE-VANILLA",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-ANGEL-FANTASY-SHIMMER",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-SPOTLIGHT-SHIMMER",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-RICH-VANILLA-MYSTERE",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-CRIMSON-BERRY-KISS",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-INDULGENT-CREME",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-RUBY-PLUM-NIGHTS",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-ROSE-SILK",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-ELIXIR-NOCTURNE-SHIMMER",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-PURE-SEDUCTION-ICON",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-VELVET-PETALS-SHIMMER",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-BLUSH-CHERRY-ROYALE",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-PURE-SEDUCTION",
+   "campos": {
+    "precioTarjeta": 165
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-PURE-WONDER",
+   "campos": {
+    "precioTarjeta": 159
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-STRAWBERRY-SNOWFLAKES",
+   "campos": {
+    "precioTarjeta": 159
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-YOURE-THE-ONE",
+   "campos": {
+    "precioTarjeta": 159
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-TWISTED-PEPPERMINT",
+   "campos": {
+    "precioTarjeta": 159
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-COZY-VANILLA-BOURBON",
+   "campos": {
+    "precioTarjeta": 159
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-GINGHAM",
+   "campos": {
+    "precioTarjeta": 159
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-IVORY-CASHMERE",
+   "campos": {
+    "precioTarjeta": 159
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-GINGHAM-FRESH",
+   "campos": {
+    "precioTarjeta": 159
+   }
+  },
+  {
+   "sku": "STOCK-BBW-GEL-LOTE10",
+   "campos": {
+    "precioTarjeta": 371
+   }
   }
  ],
- "ajustesTexto": "Cambiar la foto de 12 body mists por las correctas"
+ "ajustesTexto": "Cambiar la foto de 12 body mists y poner el precio con tarjeta (+6%) a los productos nuevos"
 }
