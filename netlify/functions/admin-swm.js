@@ -207,6 +207,19 @@ exports.handler = async (event) => {
         return json(200, { paquete: rec });
       }
 
+      // Notas solo para Mae en un paquete de una compra de Personal shopper: número de
+      // orden de la tienda y guía de EE.UU. con la que le llega a ella. No se avisa a la clienta.
+      case "nota_paquete": {
+        const rec = await mutateRecord("paquete", id, (p) => {
+          if (p.origen !== "compra") return null;
+          if (b.ordenTienda != null) p.ordenTienda = clip(b.ordenTienda, 80);
+          if (b.rastreo != null) p.rastreo = clip(b.rastreo, 80);
+          return p;
+        });
+        if (!rec) return json(404, { error: "No existe ese paquete de compra." });
+        return json(200, { paquete: rec });
+      }
+
       case "crear_compra":
       case "editar_compra": {
         const editar = b.accion === "editar_compra";
