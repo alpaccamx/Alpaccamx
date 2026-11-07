@@ -5366,7 +5366,7 @@ function cartKoreaParcels() {
    Corea y el nacional entre todo. El precio sugerido queda un poco abajo
    del de Amazon México (investigado a mano en
    assets/data/precio-amazon.json, por marca + nombre sin tono); si no hay
-   dato, costo × 1.8. Nunca por debajo de costo × 1.3. */
+   dato, costo × 1.35. Nunca por debajo de costo × 1.3. */
 let precioAmazon = null;
 function cargarPrecioAmazon() {
   if (precioAmazon) return;
@@ -5413,7 +5413,7 @@ function calcReventa(items, s) {
     const piezas = m ? Number(m[1]) || 1 : 1;
     const costoPieza = costo / piezas;
     const amazon = (precioAmazon && precioAmazon[claveAmazon(it.product)]) || 0;
-    const ventaPieza = Math.max(precioEn9(amazon ? amazon * 0.9 : costoPieza * 1.8), precioEn9(costoPieza * 1.3));
+    const ventaPieza = Math.max(precioEn9(amazon ? amazon * 0.9 : costoPieza * 1.35), precioEn9(costoPieza * 1.3));
     const venta = ventaPieza * piezas;
     lineas[id] = { costo, venta, amazon, piezas, costoPieza, ventaPieza, ganancia: (venta - costo) * it.qty };
     costoTotal += costo * it.qty;
