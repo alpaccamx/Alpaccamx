@@ -697,19 +697,38 @@ function pvFileToBase64(file) {
   });
 }
 
+/* Las capturas de iPhone pesan varios MB y el servidor no deja pasar tanto:
+   las fotos se achican antes de subirlas; los PDF se mandan tal cual. */
+async function pvAchicarImagen(file) {
+  if (!/^image\//.test(file.type) || file.size < 300 * 1024) return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * k);
+    canvas.height = Math.round(bmp.height * k);
+    canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.82));
+    return blob && blob.size < file.size ? new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file;
+  } catch (err) {
+    return file;
+  }
+}
+
 async function pvSubirComprobante(id, input) {
   const msg = document.querySelector(`[data-pv-proof-msg="${CSS.escape(id)}"]`);
-  const file = input.files && input.files[0];
+  let file = input.files && input.files[0];
   if (!file) return;
-  if (file.size > 5 * 1024 * 1024) { msg.textContent = "El archivo debe pesar menos de 5 MB."; msg.className = "text-xs text-sale"; return; }
   msg.textContent = "Subiendo...";
   msg.className = "text-xs text-ink/70";
   try {
+    file = await pvAchicarImagen(file);
+    if (file.size > 4 * 1024 * 1024) { msg.textContent = "El archivo pesa mucho. Mándalo como captura de pantalla o foto, o escríbele a Mae."; msg.className = "text-xs text-sale"; return; }
     await pvPost({ accion: "pagar", id, metodo: "transferencia" });
     await pvPost({ accion: "comprobante", id, filename: file.name, contentType: file.type, dataBase64: await pvFileToBase64(file) });
     await loadPreventa();
   } catch (ex) {
-    msg.textContent = ex.message;
+    msg.textContent = /load failed|failed to fetch|network/i.test(ex.message || "") ? "No se pudo subir. Revisa tu internet e inténtalo otra vez." : ex.message;
     msg.className = "text-xs text-sale";
   }
 }
