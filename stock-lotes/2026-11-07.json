@@ -46,7 +46,7 @@
    "piezas": 2,
    "precio": 155,
    "peso": 0.35,
-   "imagen": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-rich-vanilla-mystere.webp",
    "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
   },
   {
@@ -58,7 +58,7 @@
    "piezas": 6,
    "precio": 155,
    "peso": 0.35,
-   "imagen": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-crimson-berry-kiss.webp",
    "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
   },
   {
@@ -82,7 +82,7 @@
    "piezas": 4,
    "precio": 155,
    "peso": 0.35,
-   "imagen": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-ruby-plum-nights.jpg",
    "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
   },
   {
@@ -94,7 +94,7 @@
    "piezas": 4,
    "precio": 155,
    "peso": 0.35,
-   "imagen": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-rose-silk.jpg",
    "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
   },
   {
@@ -106,7 +106,7 @@
    "piezas": 2,
    "precio": 155,
    "peso": 0.35,
-   "imagen": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-elixir-nocturne-shimmer.webp",
    "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
   },
   {
@@ -142,7 +142,7 @@
    "piezas": 3,
    "precio": 155,
    "peso": 0.35,
-   "imagen": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg",
+   "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-blush-cherry-royale.webp",
    "imagenGeneral": "https://alpacca.mx/assets/products/stock/victorias-secret-fragrance-mist.jpg"
   },
   {
@@ -166,7 +166,7 @@
    "piezas": 5,
    "precio": 150,
    "peso": 0.3,
-   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-pure-wonder.jpg",
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-pure-wonder-v2.jpg",
    "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
   },
   {
@@ -178,7 +178,7 @@
    "piezas": 3,
    "precio": 150,
    "peso": 0.3,
-   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-strawberry-snowflakes.jpg",
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-strawberry-snowflakes-v2.jpg",
    "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
   },
   {
@@ -202,7 +202,7 @@
    "piezas": 4,
    "precio": 150,
    "peso": 0.3,
-   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-twisted-peppermint.jpg",
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-twisted-peppermint-v2.jpg",
    "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
   },
   {
@@ -214,7 +214,7 @@
    "piezas": 1,
    "precio": 150,
    "peso": 0.3,
-   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-cozy-vanilla-bourbon.jpg",
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-cozy-vanilla-bourbon-v2.jpg",
    "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
   },
   {
@@ -226,7 +226,7 @@
    "piezas": 2,
    "precio": 150,
    "peso": 0.3,
-   "imagen": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp",
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-gingham-v2.webp",
    "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
   },
   {
@@ -238,7 +238,7 @@
    "piezas": 1,
    "precio": 150,
    "peso": 0.3,
-   "imagen": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp",
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-ivory-cashmere-v2.jpg",
    "imagenGeneral": "https://raw.githubusercontent.com/alpaccamx/Alpaccamx/fotos/assets/uploads/bbw-mist-general-tienda.webp"
   },
   {
@@ -277,5 +277,80 @@
    },
    "texto": "Juntar los lotes de 3 (Twisted Peppermint) con los lotes de 10 de geles navideños: todo queda en lotes de 10"
   }
- ]
+ ],
+ "ajustes": [
+  {
+   "sku": "STOCK-BBWM-GINGHAM",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-gingham-v2.webp"
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-IVORY-CASHMERE",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-ivory-cashmere-v2.jpg"
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-STRAWBERRY-SNOWFLAKES",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-strawberry-snowflakes-v2.jpg"
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-TWISTED-PEPPERMINT",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-twisted-peppermint-v2.jpg"
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-PURE-WONDER",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-pure-wonder-v2.jpg"
+   }
+  },
+  {
+   "sku": "STOCK-BBWM-COZY-VANILLA-BOURBON",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/bbw-mist-cozy-vanilla-bourbon-v2.jpg"
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-BLUSH-CHERRY-ROYALE",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-blush-cherry-royale.webp"
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-CRIMSON-BERRY-KISS",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-crimson-berry-kiss.webp"
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-ELIXIR-NOCTURNE-SHIMMER",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-elixir-nocturne-shimmer.webp"
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-RICH-VANILLA-MYSTERE",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-rich-vanilla-mystere.webp"
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-ROSE-SILK",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-rose-silk.jpg"
+   }
+  },
+  {
+   "sku": "STOCK-VSBM-RUBY-PLUM-NIGHTS",
+   "campos": {
+    "imagen": "https://alpacca.mx/assets/products/stock/vs-mist-ruby-plum-nights.jpg"
+   }
+  }
+ ],
+ "ajustesTexto": "Cambiar la foto de 12 body mists por las correctas"
 }
