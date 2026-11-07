@@ -16,7 +16,7 @@ const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
 const { leerComprobantes } = require("./lib/comprobantes.js");
 const { listApartados, getApartado, saveApartado, mutateApartado, nextFolio, saveFile } = require("./lib/preventa-store.js");
-const { configActual, abierta, productosConCupo, productoPublico, pesoDe, pesosEnvio, envioEstimado, apartadoPublico, etapaPorPagar, crearPreferenciaMP, avisar, listaHTML, formatPriceMXN, HORAS_PARA_PAGAR } = require("./lib/preventa-core.js");
+const { configActual, abierta, productosConCupo, productoPublico, pesoDe, pesosEnvio, envioEstimado, apartadoPublico, etapaPorPagar, crearPreferenciaMP, avisar, listaHTML, formatPriceMXN, HORAS_PARA_PAGAR, round2 } = require("./lib/preventa-core.js");
 
 /* Guarda hasta 3 comprobantes: el 1.º en comprobante/<id>/<etapa> y los demás en .../2 y .../3. */
 async function guardarComprobantes(id, etapa, files) {
@@ -191,6 +191,24 @@ exports.handler = async (event) => {
           return r;
         });
         return json(200, { redirectUrl, apartado: apartadoPublico(updated) });
+      }
+
+      // Liquidar antes de que lleguen los productos: se abre el pago del resto (sin envío).
+      case "liquidar": {
+        const a = await getApartado(String(b.id || ""));
+        if (!a || a.email !== me) return json(404, { error: "No encontramos ese apartado." });
+        if (a.status !== "apartado" || a.pagoCompleto || !a.anticipo || a.anticipo.status !== "pagado") return json(409, { error: "Este apartado ya no se puede liquidar desde aquí." });
+        if (a.adelantado) return json(200, { apartado: apartadoPublico(a) });
+        const resto = round2((Number(a.total) || 0) - (Number(a.anticipo.monto) || 0));
+        if (!(resto > 0)) return json(409, { error: "No hay nada por liquidar." });
+        const updated = await mutateApartado(a.id, (r) => {
+          if (r.status !== "apartado" || r.pagoCompleto || r.adelantado) return null;
+          r.adelantado = true;
+          r.resto = { ...r.resto, monto: resto, status: "pendiente" };
+          r.history = [...(r.history || []), { at: now(), status: r.status, liquidarAntes: true }];
+          return r;
+        });
+        return json(200, { apartado: apartadoPublico(updated || a) });
       }
 
       case "comprobante": {

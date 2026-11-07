@@ -7118,7 +7118,7 @@ ${itemLines}
       const p = a[etapa] || {};
       if (!a.cuenta || p.status === "pagado") continue;
       if (etapa === "anticipo" && a.status !== "nuevo") continue;
-      if (etapa === "resto" && a.status !== "llego") continue;
+      if (etapa === "resto" && a.status !== "llego" && !(a.status === "apartado" && a.adelantado)) continue;
       if (p.status === "revision") {
         if (p.comprobanteAt) {
           const n = Math.max(1, Math.min(3, Number(p.comprobanteN) || 1));
@@ -7147,6 +7147,7 @@ ${itemLines}
       <div class="meta">${escapeHtml(a.email)}${tel ? ` · <a href="https://wa.me/52${tel}" target="_blank" rel="noopener">📱 ${tel}</a>` : ""} · ${formatFecha(a.createdAt)}</div>
       <ul style="margin:8px 0;padding-left:20px;font-size:14px;">${(a.items || []).map((it) => `<li>${it.qty} × ${escapeHtml(it.marca ? `${it.marca} · ` : "")}${escapeHtml(it.nombre)}${it.variante ? ` · <b>${escapeHtml(it.variante)}</b>` : ""}${it.tamano ? ` (${escapeHtml(it.tamano)})` : ""} <span style="color:#6b6b6b;">(${formatPrice(it.precio)} c/u)</span></li>`).join("")}</ul>
       <div class="meta">${a.pesoKg ? `⚖️ ${a.pesoKg} kg real${a.pesoVolKg ? ` · ${a.pesoVolKg} kg volumétrico` : ""}${a.pesoCobrableKg ? ` → se cobra ${a.pesoCobrableKg} kg` : ""}${a.entrega === "envio" && a.envioEstimado != null && a.status === "apartado" ? ` · envío estimado ${formatPrice(a.envioEstimado)}` : ""} · ` : ""}Total <b>${formatPrice(a.total)}</b> · ${a.pagoCompleto ? `<b style="color:#17803d;">💳 Pago completo</b> ${pago("anticipo")} · Envío al llegar ${pago("resto")}` : `Anticipo ${pago("anticipo")} · Resto ${pago("resto")}`}${a.envio ? ` · incluye envío ${formatPrice(a.envio)}` : ""}</div>
+      ${a.adelantado ? `<div class="meta" style="color:#8a5a00;font-weight:600;">💳 Quiere liquidar antes de que lleguen: está pendiente su pago del resto.</div>` : ""}${a.liquidadoAntesAt ? `<div class="meta" style="color:#17803d;font-weight:600;">✅ Ya liquidó antes de que llegaran (al llegar solo falta el envío).</div>` : ""}
       <div class="meta">${a.entrega === "personal" ? "📍 Entrega personal en Ciudad Juárez" : `📦 Envío a: ${escapeHtml([d.nombre, d.calle, d.colonia, d.ciudad, d.estado, d.cp && `CP ${d.cp}`].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}`}</div>
       ${a.nota ? `<div class="meta">📝 ${escapeHtml(a.nota)}</div>` : ""}
       ${a.guia ? `<div class="meta">🚚 ${escapeHtml(a.paqueteria || "")} · guía <b>${escapeHtml(a.guia)}</b></div>` : ""}

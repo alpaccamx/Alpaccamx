@@ -134,8 +134,13 @@ const pvTipoVar = (p) => (/size/i.test(p.variacion || "") ? "tamaño" : "tono");
 function pvEtapa(a) {
   if (a.status === "nuevo" && !a.vencido && a.anticipo && a.anticipo.status !== "pagado") return "anticipo";
   if (a.status === "llego" && a.resto && a.resto.status !== "pagado" && a.resto.monto > 0) return "resto";
+  if (a.status === "apartado" && a.adelantado && a.resto && a.resto.status !== "pagado" && a.resto.monto > 0) return "resto";
   return null;
 }
+
+/* ¿Puede liquidar ahora, antes de que lleguen sus productos? */
+const pvPuedeLiquidar = (a) => a.status === "apartado" && !a.pagoCompleto && !a.adelantado && a.anticipo && a.anticipo.status === "pagado" && a.resto && a.resto.status === "espera" && (Number(a.total) - Number(a.anticipo.monto)) > 0;
+const pvRestoProductos = (a) => Math.round((Number(a.total) - Number(a.anticipo.monto)) * 100) / 100;
 
 function pvCierreTexto(iso) {
   if (!iso) return "";
@@ -605,7 +610,7 @@ function pvPagoHTML(a) {
   const p = a[etapa];
   const total = p.monto;
   const fmt = (n) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
-  const titulo = etapa === "anticipo" ? `${a.pagoCompleto ? "Paga tu pedido" : "Paga tu anticipo"}: ${fmt(total)}` : a.pagoCompleto ? `Paga el envío: ${fmt(total)}` : `Paga el resto: ${fmt(total)}${a.envio ? ` (incluye envío ${fmt(a.envio)})` : ""}`;
+  const titulo = a.adelantado && etapa === "resto" ? `Liquida tu pedido: ${fmt(total)}${a.entrega === "envio" ? " (el envío lo pagas cuando lleguen tus productos)" : ""}` : etapa === "anticipo" ? `${a.pagoCompleto ? "Paga tu pedido" : "Paga tu anticipo"}: ${fmt(total)}` : a.pagoCompleto ? `Paga el envío: ${fmt(total)}` : `Paga el resto: ${fmt(total)}${a.envio ? ` (incluye envío ${fmt(a.envio)})` : ""}`;
   if (p.status === "revision") {
     return `<div class="mt-3 rounded-xl bg-[#fff6e5] p-3 text-sm"><b>🔎 Estamos revisando tu comprobante</b><p class="text-xs mt-1">Te avisamos por correo en cuanto se confirme.</p></div>`;
   }
@@ -652,6 +657,7 @@ function pvApartadoHTML(a) {
     <div class="mt-2 text-xs text-ink/75 space-y-0.5">${filas.map(([t, v]) => `<div class="flex justify-between gap-3"><span>${t}</span><span class="font-semibold text-ink">${v}</span></div>`).join("")}</div>
     ${a.entrega === "personal" ? '<p class="mt-2 text-xs text-ink/70">📍 Entrega personal en Ciudad Juárez</p>' : ""}
     ${a.status === "enviado" && a.guia ? `<p class="mt-2 text-sm">🚚 ${escapeHtml(a.paqueteria || "")} · Guía <b>${escapeHtml(a.guia)}</b></p>` : ""}
+    ${pvPuedeLiquidar(a) ? `<div class="mt-3 rounded-xl border-2 border-rose-deep/40 bg-[#fff6f9] p-3"><p class="text-sm"><b>¿Quieres liquidar ya?</b> Paga lo que falta de tus productos (<b>${fmt(pvRestoProductos(a))}</b>) y ${a.entrega === "envio" ? "cuando lleguen solo pagas el envío" : "cuando lleguen no pagas nada más"}.</p><button type="button" data-pv-liquidar="${escapeHtml(a.id)}" class="tap mt-2 w-full rounded-full bg-rose-deep px-5 py-3 text-sm font-bold text-cream hover:bg-rose-ink transition">💳 Liquidar mi pedido ahora</button></div>` : ""}
     ${pvPagoHTML(a)}
     ${a.status === "nuevo" && !a.vencido && !["pagado", "revision"].includes(a.anticipo.status) ? `<button type="button" data-pv-cancelar="${escapeHtml(a.id)}" class="mt-2 text-xs underline text-ink/60">Cancelar este apartado</button>` : ""}
   </article>`;
@@ -954,22 +960,54 @@ async function renderPreventaAvisoCuenta() {
   let apartados = [];
   try { apartados = (await pvGet("?resumen=1")).apartados || []; } catch (err) { /* sin preventa: nada que avisar */ }
   const fmt = (n) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
-  const pendientes = apartados.map((a) => ({ a, etapa: pvEtapa(a) })).filter((x) => x.etapa);
-  if (!pendientes.length) { el.innerHTML = ""; return; }
-  el.innerHTML = pendientes.map(({ a, etapa }) => `<section class="rounded-3xl border-2 border-rose-deep/40 bg-[#fff6f9] p-4">
+  const tarjetas = apartados.map((a) => {
+    const etapa = pvEtapa(a);
+    if (etapa) {
+      const texto = a.adelantado && etapa === "resto" ? "Para liquidar tu pedido te falta pagar" : etapa === "resto" ? "¡Ya llegaron tus productos! Falta pagar el resto" : "Falta pagar tu anticipo para apartar";
+      return `<section class="rounded-3xl border-2 border-rose-deep/40 bg-[#fff6f9] p-4">
       <p class="text-base font-bold">🛍️ Sephora Sale · ${escapeHtml(a.folio)}</p>
-      <p class="mt-1 text-sm text-ink/80">${etapa === "resto" ? "¡Ya llegaron tus productos! Falta pagar el resto" : "Falta pagar tu anticipo para apartar"}: <b>${fmt(a[etapa].monto)}</b></p>
+      <p class="mt-1 text-sm text-ink/80">${texto}: <b>${fmt(a[etapa].monto)}</b></p>
       <button type="button" data-pv-ir-pagar="${escapeHtml(a.id)}" class="tap mt-3 w-full rounded-full bg-rose-deep px-5 py-3 text-sm font-bold text-cream hover:bg-rose-ink transition">💳 Pagar o subir mi comprobante</button>
-    </section>`).join("");
+    </section>`;
+    }
+    if (pvPuedeLiquidar(a)) {
+      return `<section class="rounded-3xl border-2 border-rose-deep/40 bg-[#fff6f9] p-4">
+      <p class="text-base font-bold">🛍️ Sephora Sale · ${escapeHtml(a.folio)}</p>
+      <p class="mt-1 text-sm text-ink/80">Tu pedido ya está apartado. ¿Quieres <b>liquidarlo ya</b>? Te faltan <b>${fmt(pvRestoProductos(a))}</b>${a.entrega === "envio" ? " y al llegar solo pagas el envío" : ""}.</p>
+      <button type="button" data-pv-liquidar-ya="${escapeHtml(a.id)}" class="tap mt-3 w-full rounded-full bg-rose-deep px-5 py-3 text-sm font-bold text-cream hover:bg-rose-ink transition">💳 Liquidar mi pedido</button>
+    </section>`;
+    }
+    return "";
+  }).filter(Boolean);
+  el.innerHTML = tarjetas.join("");
 }
 
-document.addEventListener("click", async (e) => {
-  const b = e.target.closest("[data-pv-ir-pagar]");
-  if (!b) return;
-  const id = b.dataset.pvIrPagar;
+/* Abre Sephora Sale en el apartado de la clienta (para pagar o subir su comprobante). */
+async function pvIrAPagar(id) {
   if (typeof closeAccountPanel === "function") closeAccountPanel();
   openPreventa();
   if (!pv.lista) await new Promise((r) => { const t = setInterval(() => { if (pv.lista || pv.error) { clearInterval(t); r(); } }, 150); });
   const card = document.querySelector(`[data-pv-ap="${CSS.escape(id)}"]`);
   if (card) { card.scrollIntoView({ behavior: "smooth", block: "center" }); card.style.outline = "3px solid #c4466e"; setTimeout(() => { card.style.outline = ""; }, 3000); }
+}
+
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-pv-ir-pagar]");
+  if (b) { pvIrAPagar(b.dataset.pvIrPagar); return; }
+  // "Liquidar mi pedido": abre el pago del resto y lleva a la clienta directo a pagar.
+  const l = e.target.closest("[data-pv-liquidar-ya], [data-pv-liquidar]");
+  if (!l) return;
+  const id = l.dataset.pvLiquidarYa || l.dataset.pvLiquidar;
+  l.disabled = true;
+  const txt = l.textContent;
+  l.textContent = "Abriendo...";
+  try {
+    await pvPost({ accion: "liquidar", id });
+    if (l.dataset.pvLiquidarYa) { await loadPreventa().catch(() => {}); await pvIrAPagar(id); renderPreventaAvisoCuenta(); }
+    else { await loadPreventa(); const card = document.querySelector(`[data-pv-ap="${CSS.escape(id)}"]`); if (card) card.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  } catch (err) {
+    alert(err.message);
+    l.disabled = false;
+    l.textContent = txt;
+  }
 });
