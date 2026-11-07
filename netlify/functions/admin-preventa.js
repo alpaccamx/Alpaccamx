@@ -18,11 +18,18 @@
 //   marcar_entregado  { id }
 //   cancelar          { id, motivo, avisar }
 //   nota              { id, notaPrivada }
+//   crear_apartado    { email, nombre, telefono, items: [{ id, sku?, qty }], entrega, direccion, pagoCompleto, yaPagoAnticipo, avisar }
+//                     (Mae le agrega un pedido a una clienta; no depende de que la venta esté abierta)
+//   editar_items      { id, items: [{ id, sku?, qty }], avisar }   (la lista completa nueva; recalcula lo que debe/pagó)
+//   reembolsado       { id }   (ya le devolví lo que tocaba)
+// GET ?producto=<id>  → { producto } con todos sus tonos/tamaños
+// GET ?cliente=<correo> → { nombre, telefono } de su cuenta (si ya tiene)
 
 const { randomUUID } = require("crypto");
 const { checkAdminKey } = require("./lib/admin-auth.js");
-const { saveConfig, listProductos, getProducto, saveProducto, deleteProducto, saveProductosLote, listApartados, getApartado, mutateApartado, getFile } = require("./lib/preventa-store.js");
-const { CONFIG_DEFAULT, configActual, productosConCupo, cuenta, aplicarPago, avisar, listaHTML, esc, formatPriceMXN, round2 } = require("./lib/preventa-core.js");
+const { saveConfig, listProductos, getProducto, saveProducto, deleteProducto, saveProductosLote, listApartados, getApartado, saveApartado, mutateApartado, nextFolio, getFile } = require("./lib/preventa-store.js");
+const { CONFIG_DEFAULT, HORAS_PARA_PAGAR, configActual, productosConCupo, productoPublico, pesoDe, pesosEnvio, envioEstimado, cuenta, aplicarPago, avisar, listaHTML, esc, formatPriceMXN, round2 } = require("./lib/preventa-core.js");
+const { getCustomerByEmail, normalizeEmail } = require("./lib/customer-store.js");
 
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
 const now = () => new Date().toISOString();
@@ -42,6 +49,16 @@ exports.handler = async (event) => {
       const f = await getFile(key);
       if (!f) return json(404, { error: "No existe." });
       return { statusCode: 200, headers: { "Content-Type": f.contentType, "Cache-Control": "private, no-store" }, body: f.buffer.toString("base64"), isBase64Encoded: true };
+    }
+    const qsa = event.queryStringParameters || {};
+    if (qsa.producto) {
+      const p = await getProducto(String(qsa.producto)).catch(() => null);
+      if (!p) return json(404, { error: "No existe ese producto." });
+      return json(200, { producto: productoPublico(p, { detalle: true }) });
+    }
+    if (qsa.cliente) {
+      const c = await getCustomerByEmail(String(qsa.cliente)).catch(() => null);
+      return json(200, { existe: !!c, nombre: (c && c.name) || "", telefono: (c && c.phone) || "" });
     }
     if ((event.queryStringParameters || {}).solo === "apartados") {
       try {
@@ -245,23 +262,153 @@ exports.handler = async (event) => {
 
       case "cancelar": {
         const motivo = clip(b.motivo, 500);
+        let aReembolsar = 0;
         const rec = await mutateApartado(id, (a) => {
           if (a.status === "cancelado") return null;
           a.status = "cancelado"; a.motivoCancelacion = motivo; hist(a, "cancelado");
+          // Lo que ya pagó se le reembolsa (queda apuntado como pendiente).
+          aReembolsar = yaPagado(a);
+          if (aReembolsar > 0) a.devuelto = round2((Number(a.devuelto) || 0) + aReembolsar);
+          if (aReembolsar > 0) a.reembolso = { monto: round2(aReembolsar + ((a.reembolso && a.reembolso.status === "pendiente" && Number(a.reembolso.monto)) || 0)), status: "pendiente", at: now() };
           return a;
         });
         if (!rec) return json(404, { error: "No existe ese apartado." });
         if (b.avisar) {
-          await avisar(rec, `${rec.folio}: se canceló tu apartado`, `<h2 style="margin:0 0 8px;font-size:20px;">Se canceló tu apartado</h2>${motivo ? `<p style="font-size:14px;">${esc(motivo)}</p>` : ""}`,
-            `${rec.folio}: se canceló tu apartado${motivo ? `. ${motivo}` : ""}`);
+          await avisar(rec, `${rec.folio}: se canceló tu apartado`, `<h2 style="margin:0 0 8px;font-size:20px;">Se canceló tu apartado</h2>${motivo ? `<p style="font-size:14px;">${esc(motivo)}</p>` : ""}${aReembolsar > 0 ? `<p style="font-size:14px;">Te reembolsamos <b>${formatPriceMXN(aReembolsar)}</b>. Escríbenos por WhatsApp para hacerte tu reembolso.</p>` : ""}`,
+            `${rec.folio}: se canceló tu apartado${motivo ? `. ${motivo}` : ""}${aReembolsar > 0 ? `. Te reembolsamos ${formatPriceMXN(aReembolsar)}, escríbenos por WhatsApp para hacerte tu reembolso` : ""}`);
         }
-        return json(200, { apartado: rec });
+        return json(200, { apartado: rec, reembolso: aReembolsar });
       }
 
       case "nota": {
         const rec = await mutateApartado(id, (a) => { a.notaPrivada = clip(b.notaPrivada, 1000); return a; });
         if (!rec) return json(404, { error: "No existe ese apartado." });
         return json(200, { apartado: rec });
+      }
+
+      case "editar_items": {
+        const a0 = await getApartado(id);
+        if (!a0) return json(404, { error: "No existe ese apartado." });
+        if (!["nuevo", "apartado", "llego"].includes(a0.status)) return json(409, { error: "Solo se pueden cambiar los productos antes de que quede liquidado. Cancela este y haz uno nuevo." });
+        const productos = new Map((await productosConCupo()).map((p) => [p.id, p]));
+        const armado = armarItems(b.items, productos, a0.items || []);
+        if (armado.error) return json(400, { error: armado.error });
+        const { items, avisos } = armado;
+        const totalAntes = a0.total;
+        let reembolsoNuevo = 0;
+        const rec = await mutateApartado(id, (a) => {
+          if (!["nuevo", "apartado", "llego"].includes(a.status)) return null;
+          const total = round2(items.reduce((s, it) => s + it.precio * it.qty, 0));
+          const pesos = pesosEnvio(items);
+          a.items = items; a.total = total; Object.assign(a, pesos);
+          const pagado = yaPagado(a);
+          if (a.status === "nuevo") {
+            // Todavía no paga el anticipo: se recalcula con el mismo porcentaje.
+            const anticipo = Math.ceil(total * (a.anticipoPct || 50) / 100);
+            a.anticipo = { ...a.anticipo, monto: anticipo };
+            a.resto = { ...a.resto, monto: round2(total - anticipo) };
+          } else {
+            const debido = round2(total + (a.status === "llego" ? a.envio || 0 : 0));
+            const falta = round2(debido - pagado);
+            if (falta < 0) reembolsoNuevo = round2(-falta);
+            a.resto = { ...a.resto, monto: Math.max(0, falta) };
+            if (a.status === "llego" && falta <= 0) {
+              a.resto = { ...a.resto, status: "pagado", paidAt: now(), metodo: "ya cubierto" };
+              a.status = "liquidado";
+            }
+          }
+          if (reembolsoNuevo > 0) {
+            const previo = (a.reembolso && a.reembolso.status === "pendiente" && Number(a.reembolso.monto)) || 0;
+            a.reembolso = { monto: round2(previo + reembolsoNuevo), status: "pendiente", at: now() };
+            a.devuelto = round2((Number(a.devuelto) || 0) + reembolsoNuevo);
+          }
+          hist(a, a.status, { edicion: true, totalAntes, total });
+          return a;
+        });
+        if (!rec) return json(409, { error: "Ese apartado ya no se puede editar." });
+        if (rec.entrega === "envio" && rec.status === "apartado") {
+          const est = await envioEstimado(rec.direccion && rec.direccion.cp, rec.pesoCobrableKg);
+          if (est != null) await mutateApartado(id, (a) => { a.envioEstimado = est; return a; });
+        }
+        if (b.avisar !== false) {
+          const resumen = rec.status === "nuevo"
+            ? `Tu anticipo ahora es de <b>${formatPriceMXN(rec.anticipo.monto)}</b>.`
+            : reembolsoNuevo > 0
+              ? `Ya habías pagado más de lo que ahora cuesta: te reembolsamos <b>${formatPriceMXN(reembolsoNuevo)}</b>. Escríbenos por WhatsApp para hacerte tu reembolso.`
+              : rec.status === "llego" && rec.resto.monto > 0
+                ? `Ahora te falta pagar <b>${formatPriceMXN(rec.resto.monto)}</b>. Entra a alpacca.mx > Mis pedidos para pagarlo o subir tu comprobante.`
+                : rec.status === "liquidado" ? "Ya está todo pagado."
+                : `Lo que pagas cuando lleguen tus productos ahora es <b>${formatPriceMXN(rec.resto.monto)}</b>${rec.entrega === "envio" ? " más el envío" : ""}.`;
+          const texto = rec.status === "nuevo"
+            ? `tu anticipo ahora es de ${formatPriceMXN(rec.anticipo.monto)}`
+            : reembolsoNuevo > 0 ? `te reembolsamos ${formatPriceMXN(reembolsoNuevo)}, escríbenos por WhatsApp para hacerte tu reembolso`
+            : rec.status === "llego" && rec.resto.monto > 0 ? `ahora te falta pagar ${formatPriceMXN(rec.resto.monto)}, entra a alpacca.mx > Mis pedidos para pagar o subir tu comprobante`
+            : `lo que pagas cuando lleguen tus productos ahora es ${formatPriceMXN(rec.resto.monto)}`;
+          await avisar(rec, `${rec.folio}: cambió tu apartado`, `
+            <h2 style="margin:0 0 8px;font-size:20px;">Cambió tu apartado</h2>
+            ${listaHTML(rec)}
+            <p style="font-size:14px;">Total: <b>${formatPriceMXN(rec.total)}</b> (antes ${formatPriceMXN(totalAntes)}). ${resumen}</p>`,
+          `${rec.folio}: cambió tu apartado. Ahora el total es ${formatPriceMXN(rec.total)} (antes ${formatPriceMXN(totalAntes)}); ${texto}`);
+        }
+        return json(200, { apartado: rec, avisos, reembolso: reembolsoNuevo });
+      }
+
+      case "reembolsado": {
+        const rec = await mutateApartado(id, (a) => {
+          if (!a.reembolso) return null;
+          a.reembolso = { ...a.reembolso, status: "hecho", hechoAt: now() };
+          return a;
+        });
+        if (!rec) return json(404, { error: "Ese apartado no tiene reembolso pendiente." });
+        return json(200, { apartado: rec });
+      }
+
+      case "crear_apartado": {
+        const email = normalizeEmail(b.email);
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(400, { error: "Pon el correo de la clienta (el mismo con el que entra a alpacca.mx)." });
+        const customer = await getCustomerByEmail(email).catch(() => null);
+        const cfg = await configActual();
+        const productos = new Map((await productosConCupo()).map((p) => [p.id, p]));
+        const armado = armarItems(b.items, productos);
+        if (armado.error) return json(armado.error.startsWith("Elige") ? 400 : armado.error.startsWith("Agrega") ? 400 : 409, { error: armado.error });
+        const { items, avisos } = armado;
+        const entrega = b.entrega === "personal" ? "personal" : "envio";
+        const d = b.direccion || {};
+        const direccion = Object.fromEntries(["nombre", "telefono", "calle", "colonia", "ciudad", "estado", "cp", "referencias"].map((k) => [k, clip(d[k], k === "referencias" ? 200 : 120)]));
+        const nombre = clip(b.nombre, 120) || (customer && customer.name) || "";
+        const telefono = clip(b.telefono, 30) || (customer && customer.phone) || "";
+        if (!nombre) return json(400, { error: "Pon el nombre de la clienta." });
+        if (!direccion.nombre) direccion.nombre = nombre;
+        if (!direccion.telefono) direccion.telefono = telefono;
+        const total = round2(items.reduce((s, it) => s + it.precio * it.qty, 0));
+        const pesos = pesosEnvio(items);
+        const envioEst = entrega === "envio" ? await envioEstimado(direccion.cp, pesos.pesoCobrableKg) : 0;
+        const completo = !!b.pagoCompleto;
+        const pct = completo ? 100 : Math.min(100, Math.max(1, Number(cfg.anticipoPct) || 50));
+        const anticipo = Math.ceil(total * pct / 100);
+        const rec = {
+          id: randomUUID(), folio: await nextFolio(), email, name: nombre, phone: telefono,
+          campana: cfg.titulo, items, total, anticipoPct: pct, ...(completo ? { pagoCompleto: true } : {}),
+          anticipo: { monto: anticipo, status: "pendiente" },
+          resto: { monto: round2(total - anticipo), status: "espera" },
+          envio: 0, ...pesos, envioEstimado: envioEst, entrega, direccion, nota: clip(b.nota, 500), status: "nuevo",
+          creadoPorMae: true,
+          history: [{ at: now(), status: "nuevo", por: "mae" }], createdAt: now(), updatedAt: now(),
+        };
+        await saveApartado(rec);
+        let final = rec;
+        if (b.yaPagoAnticipo) {
+          // Ya pagó por fuera: queda apartado y se le avisa que quedó confirmado.
+          final = (await aplicarPago(rec.id, "anticipo", { metodo: "por fuera" })) || rec;
+        } else if (b.avisar !== false) {
+          await avisar(rec, completo ? `${rec.folio}: paga tu pedido para apartarlo` : `${rec.folio}: aparta pagando tu anticipo`, `
+            <h2 style="margin:0 0 8px;font-size:20px;">¡Ya casi! ${completo ? "Paga tu pedido para apartarlo" : "Paga tu anticipo para apartar"}</h2>
+            ${listaHTML(rec)}
+            <p style="font-size:14px;">${completo ? `Total: <b>${formatPriceMXN(total)}</b>. Es pago completo${entrega === "envio" ? "; cuando lleguen tus productos solo pagas el envío" : ""}.` : `Total: <b>${formatPriceMXN(total)}</b>. Para apartar pagas el ${pct}%: <b>${formatPriceMXN(anticipo)}</b>. El resto lo pagas cuando lleguen tus productos.`}</p>
+            <p style="font-size:14px;">Entra a alpacca.mx con este correo (${esc(email)}), ve a Mis pedidos y ahí pagas o subes tu comprobante. Tienes ${HORAS_PARA_PAGAR} horas; si no, se libera el lugar.</p>`,
+          `${rec.folio}: paga tu anticipo de ${formatPriceMXN(anticipo)} para apartar. Entra a alpacca.mx > Mis pedidos para pagar o subir tu comprobante`);
+        }
+        return json(200, { apartado: final, tieneCuenta: !!customer, avisos });
       }
 
       default:
@@ -272,6 +419,46 @@ exports.handler = async (event) => {
     return json(500, { error: err.message || "No se pudo guardar." });
   }
 };
+
+/* Pasa [{id, sku, qty}] a renglones del apartado. Los renglones que ya tenía
+   conservan su precio (no cambia lo que se le prometió); solo los nuevos
+   toman el precio de hoy. */
+function armarItems(raw, productos, existentes = []) {
+  const pedidos = new Map();
+  for (const it of Array.isArray(raw) ? raw : []) {
+    const qty = parseInt(it && it.qty, 10);
+    const pid = String((it && it.id) || "");
+    const sku = String((it && it.sku) || "");
+    if (pid && qty > 0) { const k = `${pid}|${sku}`; pedidos.set(k, { id: pid, sku, qty: ((pedidos.get(k) || {}).qty || 0) + qty }); }
+  }
+  if (!pedidos.size) return { error: "Agrega al menos un producto." };
+  const items = [];
+  const porProducto = {};
+  const avisos = [];
+  for (const { id: pid, sku, qty } of pedidos.values()) {
+    const ya = existentes.find((x) => x.id === pid && String(x.sku || "") === sku);
+    if (ya) { items.push({ ...ya, qty }); continue; }
+    const p = productos.get(pid);
+    if (!p) return { error: "Uno de los productos ya no existe en la preventa." };
+    let v = null;
+    if ((p.variantes || []).length) {
+      v = p.variantes.find((x) => x.id === sku);
+      if (!v) return { error: `Elige el tono o tamaño de ${p.nombre}.` };
+    }
+    porProducto[pid] = (porProducto[pid] || 0) + qty;
+    if (p.disponibles != null && porProducto[pid] > p.disponibles) avisos.push(`${p.nombre}: pasaste el cupo (quedaban ${p.disponibles}).`);
+    if (v && v.agotado) avisos.push(`${p.nombre} (${v.nombre}) estaba marcado como agotado.`);
+    items.push({
+      id: pid, nombre: p.nombre, marca: p.marca || "", imagen: (v && v.imagen) || p.imagen || "", precio: Number(v ? v.precio : p.precio), qty, peso: pesoDe(p, v), vol: Number(v ? v.vol : p.vol) || 0,
+      ...(v ? { sku: v.id, variante: v.nombre, tamano: v.tamano || "" } : {}),
+    });
+  }
+  return { items, avisos };
+}
+
+/* Lo que la clienta ya pagó de un apartado. */
+// (menos lo que ya se le mandó a reembolsar: "devuelto").
+const yaPagado = (a) => Math.max(0, round2((a.anticipo && a.anticipo.status === "pagado" ? a.anticipo.monto : 0) + (a.resto && a.resto.status === "pagado" ? a.resto.monto : 0) - (Number(a.devuelto) || 0)));
 
 function json(statusCode, obj) {
   return { statusCode, headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) };
