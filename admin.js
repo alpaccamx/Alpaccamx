@@ -5303,7 +5303,7 @@ ${itemLines}
     const d = r.direccion || {};
     // Un envío también se encuentra por el rastreo original o folio de sus paquetes.
     const suyos = (r.paqueteIds || []).map((id) => swmData.paquetes.find((x) => x.id === id)).filter(Boolean);
-    return buscaEnTodo([...suyos.flatMap((x) => [x.folio, x.rastreo, x.tienda]), r.folio, r.name, r.email, r.phone, r.tienda, r.paqueteria, r.rastreo, r.guia, r.contenido, r.contenidoCaja, r.links, cas, r.etiqueta, r.ordenTienda,
+    return buscaEnTodo([...suyos.flatMap((x) => [x.folio, x.rastreo, x.tienda]), r.folio, r.name, r.email, r.phone, r.tienda, r.paqueteria, r.rastreo, r.guia, r.contenido, r.contenidoCaja, r.links, cas, r.etiqueta, r.ordenTienda, ...(r.guiasUSA || []),
       d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp, d.referencias], q);
   }
 
@@ -5913,7 +5913,7 @@ ${itemLines}
     const diasAqui = p.receivedAt ? Math.floor((Date.now() - new Date(p.receivedAt)) / 864e5) : 0;
     const limite = swmData.diasSinDuena || 7;
     return `<div class="swm-card" data-swm-id="${escapeHtml(p.id)}" data-kind="paquete">
-      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.paqueteria ? ` · ${escapeHtml(p.paqueteria)}` : ""}${p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}${p.ordenTienda ? ` · 🧾 orden ${escapeHtml(p.ordenTienda)}` : ""}</span>${swmValorAlto(p) ? swmPillA("⚠️ Valor alto", "new") : ""}${swmPillA(st, ["registrado", "sin_dueña"].includes(p.status) || p.datosPendientes ? "new" : "")}</h4>
+      <h4><span>${escapeHtml(p.folio)} · ${escapeHtml(p.tienda || "Paquete")}${p.paqueteria ? ` · ${escapeHtml(p.paqueteria)}` : ""}${p.guiasUSA && p.guiasUSA.length ? ` · ${p.guiasUSA.map(escapeHtml).join(" · ")}` : p.rastreo ? ` · ${escapeHtml(p.rastreo)}` : ""}${p.ordenTienda ? ` · 🧾 orden ${escapeHtml(p.ordenTienda)}` : ""}</span>${swmValorAlto(p) ? swmPillA("⚠️ Valor alto", "new") : ""}${swmPillA(st, ["registrado", "sin_dueña"].includes(p.status) || p.datosPendientes ? "new" : "")}</h4>
       ${p.pago ? `<div class="meta">💲 Cruce del 15% por adelantado: <b>${formatPrice(p.pago.monto || 0)}</b>${p.crucePagado ? " · ✅ pagado (en su envío solo se cobra la guía)" : ""}</div>${swmPagoBox("paquete", p)}` : ""}
       ${sinDuena ? `<div class="meta">Etiqueta: <b>${escapeHtml(p.etiqueta || "—")}</b> · ${p.cobrable || "?"} kg · llegó ${swmFecha(p.receivedAt)} · <b style="color:${diasAqui >= limite ? "#b33660" : "inherit"}">${diasAqui} día${diasAqui === 1 ? "" : "s"}${diasAqui >= limite ? ` (ya pasaron ${limite}: puedes disponer de él)` : ` de ${limite}`}</b></div>
       <div class="grid" style="grid-template-columns:1fr auto;align-items:end;"><label>Buscar a la dueña (nombre, correo o teléfono)<input data-swm-buscar type="search" placeholder="Ej. Ana López"></label></div>
@@ -5936,7 +5936,7 @@ ${itemLines}
         <div class="meta" style="margin-bottom:4px;">🔒 Notas solo para ti (la clienta no las ve)</div>
         <div class="grid" style="grid-template-columns:1fr 1fr auto;align-items:end;">
           <label>Número de pedido (tienda)<input data-nota-orden type="text" value="${escapeHtml(p.ordenTienda || "")}" placeholder="Ej. W174130258"></label>
-          <label>Guía de USA (con la que te llega)<input data-nota-guia type="text" value="${escapeHtml(p.rastreo || "")}" placeholder="Ej. 1Z999AA10123456784"></label>
+          <label>Guía de USA (con la que te llega)<span data-guias style="display:flex;flex-direction:column;gap:4px;">${(p.guiasUSA && p.guiasUSA.length ? p.guiasUSA : [p.rastreo || ""]).map((g) => `<input data-nota-guia type="text" value="${escapeHtml(g)}" placeholder="Ej. 1Z999AA10123456784">`).join("")}</span><button type="button" class="btn-ghost" data-swm-mas-guia style="margin:4px 0 0;padding:2px 6px;font-size:12px;text-align:left;">+ otra guía (la tienda dividió el pedido)</button></label>
           <button type="button" class="btn-secondary" data-swm-nota-priv style="padding:8px 12px;font-size:13px;">💾 Guardar</button>
         </div></div>` : ""}`}
       ${editable ? `<details class="swm-peso"${(p.status === "recibido" && !p.cobrable) || enUSA ? " open" : ""}>
@@ -6171,7 +6171,7 @@ ${itemLines}
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-compra>${c.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${linkBtns}${swmCancelBtn("compra", c)}</div>`;
     } else if (c.status === "pagado") {
       action = `<div style="margin-top:10px;font-size:13px;font-weight:600;">Ya compré: ¿qué paquetes van a llegar?</div>
-        <div data-swm-pkgs><div class="grid" data-swm-pkg><label>Tienda<input data-k="tienda" type="text" value="${escapeHtml(c.tienda || "")}"></label><label>Número de orden de la tienda (solo para ti)<input data-k="orden" type="text"></label><label>Guía de USA con la que te llegará (solo para ti)<input data-k="rastreo" type="text"></label></div></div>
+        <div data-swm-pkgs><div class="grid" data-swm-pkg><label>Tienda<input data-k="tienda" type="text" value="${escapeHtml(c.tienda || "")}"></label><label>Número de orden de la tienda (solo para ti)<input data-k="orden" type="text"></label><label>Guía de USA con la que te llegará (solo para ti)<span data-guias style="display:flex;flex-direction:column;gap:4px;"><input data-k="rastreo" type="text"></span><button type="button" class="btn-ghost" data-swm-mas-guia style="margin:4px 0 0;padding:2px 6px;font-size:12px;text-align:left;">+ otra guía (la tienda dividió el pedido)</button></label></div></div>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button type="button" class="btn-secondary" data-swm-add-pkg style="padding:6px 12px;font-size:13px;">+ Otro paquete</button><button type="button" class="btn-primary" data-swm-comprada>🛍️ Ya compré (avisarle)</button></div>`;
     }
     return `<div class="swm-card" data-swm-id="${escapeHtml(c.id)}" data-kind="compra">
@@ -6667,16 +6667,26 @@ ${itemLines}
     if (re) { const [kind, id] = re.dataset.swmRechazar.split(":"); const motivo = prompt("¿Por qué lo rechazas? (se lo mandamos a la clienta)", "No encontramos tu transferencia, revisa el comprobante."); if (motivo != null) swmAct({ accion: "rechazar_pago", kind, id, motivo }, re); return; }
     const ca = t.closest("[data-swm-cancel]");
     if (ca) { const [kind, id] = ca.dataset.swmCancel.split(":"); const motivo = prompt("¿Cancelar? Escribe el motivo para la clienta (o deja vacío):", ""); if (motivo != null) swmAct({ accion: "cancelar", kind, id, motivo }, ca); return; }
+    const masGuia = t.closest("[data-swm-mas-guia]");
+    if (masGuia) {
+      const caja = masGuia.parentElement.querySelector("[data-guias]");
+      const nuevo = caja.querySelector("input").cloneNode(true);
+      nuevo.value = "";
+      caja.appendChild(nuevo);
+      nuevo.focus();
+      return;
+    }
     const nota = t.closest("[data-swm-nota-priv]");
     if (nota) {
       const c = nota.closest("[data-swm-id]");
-      swmAct({ accion: "nota_paquete", id: c.dataset.swmId, ordenTienda: c.querySelector("[data-nota-orden]").value, rastreo: c.querySelector("[data-nota-guia]").value }, nota);
+      swmAct({ accion: "nota_paquete", id: c.dataset.swmId, ordenTienda: c.querySelector("[data-nota-orden]").value, rastreos: [...c.querySelectorAll("[data-nota-guia]")].map((i) => i.value.trim()).filter(Boolean) }, nota);
       return;
     }
     const add = t.closest("[data-swm-add-pkg]");
     if (add) {
       const box = add.closest(".swm-card").querySelector("[data-swm-pkgs]");
       const clone = box.querySelector("[data-swm-pkg]").cloneNode(true);
+      clone.querySelectorAll("[data-guias]").forEach((g) => [...g.querySelectorAll("input")].slice(1).forEach((i) => i.remove()));
       clone.querySelectorAll("input").forEach((i) => { i.value = ""; });
       box.appendChild(clone);
       return;
@@ -6707,7 +6717,7 @@ ${itemLines}
       if (!(parseFloat(v("productos")) > 0)) { alert("Pon el costo de los productos."); return; }
       swmAct({ accion: "cotizar_compra", id, productos: v("productos"), cruce: v("cruce"), notaClienta: v("notaClienta") }, btn);
     } else if (t.closest("[data-swm-comprada]")) {
-      const paquetes = [...card.querySelectorAll("[data-swm-pkg]")].map((row) => Object.fromEntries([...row.querySelectorAll("[data-k]")].map((i) => [i.dataset.k, i.value])));
+      const paquetes = [...card.querySelectorAll("[data-swm-pkg]")].map((row) => ({ ...Object.fromEntries([...row.querySelectorAll("[data-k]")].filter((i) => i.dataset.k !== "rastreo").map((i) => [i.dataset.k, i.value])), rastreos: [...row.querySelectorAll('[data-k="rastreo"]')].map((i) => i.value.trim()).filter(Boolean) }));
       swmAct({ accion: "compra_comprada", id, paquetes }, btn);
     } else if (t.closest("[data-swm-envio-personal]")) {
       if (!confirm("¿Cobrarle solo el cruce? Le aviso que se lo entregas en Juárez.")) return;
