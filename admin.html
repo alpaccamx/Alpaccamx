@@ -773,6 +773,12 @@
   .cs-total, .order-card .total, .client-row .sp { color: #c4466e !important; }
   .card-summary:hover { background: #fff7fa; }
   details.help > summary, .edit-hint button, .order-card .customer a { color: #c4466e !important; }
+
+  /* Personal shopper: una sola tarjeta por compra, con sus paquetes y envío adentro. */
+  .ps-wrap > .swm-card[data-kind="compra"] { border: 0; box-shadow: none; padding: 4px 6px; margin: 0; background: transparent; }
+  .ps-sub { margin-top: 10px; padding: 10px 0 0 12px; border-left: 3px solid #f0d5e0; }
+  .ps-sub-t { font-weight: 700; font-size: 14px; color: #8a4a64; margin-bottom: 6px; }
+  .ps-sub .swm-card { background: #fffafc; border: 1px solid #f3e4eb; box-shadow: none; margin: 8px 0; }
 </style>
 </head>
 <body>
