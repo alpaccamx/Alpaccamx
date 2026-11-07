@@ -1310,6 +1310,11 @@ function ceilTo(value, step) {
   return Math.ceil(value / step) * step;
 }
 
+/* Precio con tarjeta cuando el Sheet no lo trae: precio + el % de comisión (igual que en el servidor). */
+function tarjetaAuto(precio) {
+  return ceilTo((precio || 0) * (1 + (shippingSettings.transferDiscountPct || 0) / 100), 1);
+}
+
 function nacionalShippingMXN(cp, pesoKg, useTarjeta = false) {
   const cpNum = parseInt((cp || "").trim(), 10);
   if (isNaN(cpNum) || pesoKg <= 0 || !shippingNacionalRates.length) return null;
@@ -1514,6 +1519,13 @@ async function loadShippingSettings() {
     // no se pisan los datos bancarios si loadBankDetails() (que llega por
     // otro camino, ver más abajo) ya había resuelto primero.
     Object.assign(shippingSettings, csvToShippingSettings(text));
+    // El precio con tarjeta de los productos sin precio de tarjeta en el Sheet depende de este %:
+    // si el stock ya se aplicó antes de que llegara, se vuelve a aplicar.
+    if (typeof stockData !== "undefined" && stockData && stockData.size && products.length) {
+      applyStockData();
+      syncCartWithProducts();
+      renderAll();
+    }
     updateCurrencyToggleButton();
     if (typeof psCalcTc === "function") psCalcTc();
     renderFaqMinOrder();
@@ -1604,7 +1616,8 @@ function csvToStockData(text) {
     const get = (i) => (i >= 0 && r[i] != null ? r[i].trim() : "");
     const piezas = parseInt(get(iPiezas).replace(/[^0-9]/g, ""), 10) || 0;
     const precioMXN = parseFloat(normalizeMoneyCell(get(iPrecio))) || 0;
-    const precioTarjetaMXN = parseFloat(normalizeMoneyCell(get(iPrecioTarjeta))) || precioMXN;
+    // Sin precio de tarjeta en el Sheet: queda en 0 y se calcula solo (precio + el % de comisión).
+    const precioTarjetaMXN = parseFloat(normalizeMoneyCell(get(iPrecioTarjeta))) || 0;
     const pesoKg = parseFloat(get(iPeso).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
     if (piezas > 0) {
       map.set(sku, {
@@ -1673,7 +1686,7 @@ function applyStockData() {
       clone.imagenGeneral = entry.imagenGeneral || "";
       if (entry.descripcion) clone.descripcion = entry.descripcion;
       clone.precio = entry.precioMXN || original.precio;
-      clone.precioTarjeta = entry.precioTarjetaMXN || clone.precio;
+      clone.precioTarjeta = entry.precioTarjetaMXN || tarjetaAuto(clone.precio);
       if (entry.pesoKg) clone.peso = entry.pesoKg;
       return;
     }
@@ -1687,7 +1700,7 @@ function applyStockData() {
     if (existingStockOnly) {
       existingStockOnly.stockPiezas = stockPiezas;
       existingStockOnly.precio = entry.precioMXN || existingStockOnly.precio;
-      existingStockOnly.precioTarjeta = entry.precioTarjetaMXN || existingStockOnly.precio;
+      existingStockOnly.precioTarjeta = entry.precioTarjetaMXN || tarjetaAuto(existingStockOnly.precio);
       if (entry.nombre) existingStockOnly.nombre = entry.nombre;
       if (entry.categoria) existingStockOnly.categoria = entry.categoria;
       if (entry.marca) existingStockOnly.marca = entry.marca;
@@ -1706,7 +1719,7 @@ function applyStockData() {
       categoria: entry.categoria || "General",
       marca: entry.marca || "",
       precio: entry.precioMXN,
-      precioTarjeta: entry.precioTarjetaMXN || entry.precioMXN,
+      precioTarjeta: entry.precioTarjetaMXN || tarjetaAuto(entry.precioMXN),
       peso: entry.pesoKg,
       presentacion: "",
       imagen: entry.imagen,

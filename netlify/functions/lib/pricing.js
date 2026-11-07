@@ -177,7 +177,8 @@ function csvToStockData(text) {
     const get = (i) => (i >= 0 && r[i] != null ? r[i].trim() : "");
     const piezas = parseInt(get(iPiezas).replace(/[^0-9]/g, ""), 10) || 0;
     const precioMXN = parseFloat(normalizeMoneyCell(get(iPrecio))) || 0;
-    const precioTarjetaMXN = parseFloat(normalizeMoneyCell(get(iPrecioTarjeta))) || precioMXN;
+    // Sin precio de tarjeta en el Sheet: queda en 0 y se calcula solo (precio + el % de comisión).
+    const precioTarjetaMXN = parseFloat(normalizeMoneyCell(get(iPrecioTarjeta))) || 0;
     const pesoKg = parseFloat(get(iPeso).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
     if (piezas > 0) {
       map.set(sku, {
@@ -485,7 +486,7 @@ async function priceOrder({ source, items, customer, soldMap, sinMinimo = false,
       // Misma regla que applyStockData() en app.js: el precio de stock
       // sustituye al del catálogo, y el peso también si la hoja lo trae.
       const base = entry.precioMXN || (main && main.precio) || 0;
-      const tarjeta = entry.precioTarjetaMXN || base;
+      const tarjeta = entry.precioTarjetaMXN || ceilTo(base * (1 + (state.settings.transferDiscountPct || 0) / 100), 1);
       const peso = entry.pesoKg || (main && main.peso) || 0;
       lines.push({
         sku,
