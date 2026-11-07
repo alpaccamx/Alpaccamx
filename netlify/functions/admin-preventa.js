@@ -177,7 +177,7 @@ exports.handler = async (event) => {
         const a = await getApartado(id);
         if (!a) return json(404, { error: "No existe ese apartado." });
         if (!a[etapa] || a[etapa].status === "pagado") return json(409, { error: "Ese pago ya está aprobado." });
-        if (etapa === "resto" && a.status !== "llego") return json(409, { error: "Primero marca que llegó." });
+        if (etapa === "resto" && a.status !== "llego" && !(a.status === "apartado" && a.adelantado)) return json(409, { error: "Primero marca que llegó." });
         const rec = await aplicarPago(id, etapa, { metodo: a[etapa].metodo || "transferencia" });
         return json(200, { apartado: rec });
       }
@@ -200,11 +200,14 @@ exports.handler = async (event) => {
       }
 
       case "llego": {
+        const a0 = await getApartado(id);
+        if (a0 && a0.adelantado && a0.resto && a0.resto.status === "revision") return json(409, { error: "Esta clienta subió un comprobante para liquidar antes: apruébalo o recházalo primero." });
         const envio = num(b.envio);
         let ok = false;
         const rec = await mutateApartado(id, (a) => {
           if (a.status !== "apartado") return null;
           ok = true;
+          a.adelantado = false; // pidió liquidar pero no pagó: vuelve al flujo normal
           a.envio = a.entrega === "personal" ? 0 : envio;
           const monto = round2(a.total - a.anticipo.monto + a.envio);
           a.resto = { ...a.resto, monto, status: monto > 0 ? "pendiente" : "pagado", ...(monto > 0 ? {} : { paidAt: now(), metodo: "nada" }) };

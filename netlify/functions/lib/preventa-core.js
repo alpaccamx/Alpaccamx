@@ -148,6 +148,8 @@ function apartadoPublico(a) {
 function etapaPorPagar(a) {
   if (a.status === "nuevo" && !vencido(a) && a.anticipo && a.anticipo.status !== "pagado") return "anticipo";
   if (a.status === "llego" && a.resto && a.resto.status !== "pagado" && a.resto.monto > 0) return "resto";
+  // Liquidación anticipada: la clienta pide pagar el resto de sus productos antes de que lleguen.
+  if (a.status === "apartado" && a.adelantado && a.resto && a.resto.status !== "pagado" && a.resto.monto > 0) return "resto";
   return null;
 }
 
@@ -222,6 +224,14 @@ async function aplicarPago(id, etapa, { metodo, paymentId, monto } = {}) {
     a[etapa] = { ...p, status: "pagado", metodo: metodo || p.metodo, paymentId: paymentId || p.paymentId, paidAt: now(), rechazo: undefined };
     if (etapa === "anticipo" && a.status === "nuevo") a.status = "apartado";
     if (etapa === "resto" && a.status === "llego") a.status = "liquidado";
+    // Liquidó antes de que lleguen: queda como "pago completo" (al llegar solo falta el envío).
+    if (etapa === "resto" && a.status === "apartado" && a.adelantado) {
+      a.anticipo = { ...a.anticipo, monto: round2((Number(a.anticipo.monto) || 0) + (Number(p.monto) || 0)) };
+      a.resto = { monto: 0, status: "espera" };
+      a.pagoCompleto = true;
+      a.adelantado = false;
+      a.liquidadoAntesAt = now();
+    }
     a.history = [...(a.history || []), { at: now(), status: a.status, pago: etapa }];
     return a;
   });
@@ -235,6 +245,11 @@ async function aplicarPago(id, etapa, { metodo, paymentId, monto } = {}) {
           ? `Ya está todo pagado. Cuando lleguen tus productos te aviso${rec.entrega === "envio" ? " para que pagues solo el envío" : " para quedar en la entrega"}.`
           : `Cuando lleguen tus productos te aviso para que pagues el resto (${formatPriceMXN(rec.total - rec.anticipo.monto)}${rec.entrega === "envio" ? " más el envío" : ""}).`}</p>`,
       `${rec.folio}: recibimos tu ${rec.pagoCompleto ? "pago completo" : "anticipo"}, tus productos quedaron apartados`);
+    } else if (rec.status === "apartado") {
+      await avisar(rec, `${rec.folio}: ¡liquidaste tu pedido! ✅`, `
+        <h2 style="margin:0 0 8px;font-size:20px;">¡Pedido liquidado!</h2>
+        <p style="font-size:14px;">Recibimos tu pago. Ya quedó todo pagado${rec.entrega === "envio" ? "; cuando lleguen tus productos solo pagas el envío" : ""}. Te aviso en cuanto lleguen.</p>`,
+      `${rec.folio}: recibimos tu pago, tu pedido quedó liquidado${rec.entrega === "envio" ? " (al llegar solo pagas el envío)" : ""}`);
     } else {
       await avisar(rec, `${rec.folio}: pagaste el resto ✅`, `
         <h2 style="margin:0 0 8px;font-size:20px;">¡Liquidado!</h2>
