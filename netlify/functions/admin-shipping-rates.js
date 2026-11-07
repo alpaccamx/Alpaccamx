@@ -5,9 +5,10 @@
 //
 // Requiere el header "x-admin-key" con el valor de ADMIN_KEY.
 //
-// Body esperado (JSON): { orderId | envioId, weight, destinationZipCode? }
+// Body esperado (JSON): { orderId | envioId | apartadoId, weight, destinationZipCode? }
 // (envioId: un envío de Dirección americana; se usa su dirección.)
 
+const { getApartado } = require("./lib/preventa-store.js");
 const { getOrder } = require("./lib/blob-store.js");
 const { quoteRates: quoteEnviosPerros } = require("./lib/enviosperros.js");
 const { quoteRates: quoteSkydropx } = require("./lib/skydropx.js");
@@ -35,9 +36,9 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "JSON inválido." });
   }
 
-  const { orderId, envioId, weight } = body;
+  const { orderId, envioId, apartadoId, weight } = body;
   const weightNum = Number(weight);
-  if ((!orderId && !envioId) || !weightNum || weightNum <= 0) {
+  if ((!orderId && !envioId && !apartadoId) || !weightNum || weightNum <= 0) {
     return jsonResponse(400, { error: "Faltan el pedido o un peso válido." });
   }
 
@@ -46,6 +47,11 @@ exports.handler = async (event) => {
     const envio = await getRecord("envio", String(envioId));
     if (!envio) return jsonResponse(404, { error: "Envío no encontrado." });
     const d = envio.direccion || {};
+    c = { cp: d.cp, estado: d.estado, municipio: d.ciudad, colonia: d.colonia };
+  } else if (apartadoId && !orderId) {
+    const ap = await getApartado(String(apartadoId));
+    if (!ap) return jsonResponse(404, { error: "Apartado no encontrado." });
+    const d = ap.direccion || {};
     c = { cp: d.cp, estado: d.estado, municipio: d.ciudad, colonia: d.colonia };
   } else {
     const order = await getOrder(orderId);
