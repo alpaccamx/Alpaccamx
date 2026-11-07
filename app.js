@@ -1324,10 +1324,25 @@ function nacionalShippingMXN(cp, pesoKg, useTarjeta = false) {
 
   const sorted = zoneRows.slice().sort((a, b) => a.pesoKg - b.pesoKg);
   const tier = sorted.find((r) => pesoKg <= r.pesoKg);
-  if (!tier) return null;
+  const pct = shippingSettings.transferDiscountPct || 0;
+  if (!tier) {
+    // Más pesado que el último renglón de la tabla (15 kg): se sigue hasta 30 kg con lo
+    // que sube el último kilo de la tabla por cada kilo extra (igual que en el servidor).
+    const last = sorted[sorted.length - 1];
+    const prev = sorted[sorted.length - 2];
+    if (!last || pesoKg > 30) return null;
+    const extraKg = Math.ceil(pesoKg - last.pesoKg);
+    const porKilo = prev && last.costoMXN > prev.costoMXN ? last.costoMXN - prev.costoMXN : 0;
+    const transfer = last.costoMXN + extraKg * porKilo;
+    if (!useTarjeta) return transfer;
+    if (last.costoTarjetaMXN != null) {
+      const porKiloT = prev && prev.costoTarjetaMXN != null && last.costoTarjetaMXN > prev.costoTarjetaMXN ? last.costoTarjetaMXN - prev.costoTarjetaMXN : 0;
+      return last.costoTarjetaMXN + extraKg * porKiloT;
+    }
+    return ceilTo(transfer * (1 + pct / 100), 1);
+  }
   if (!useTarjeta) return tier.costoMXN;
   if (tier.costoTarjetaMXN != null) return tier.costoTarjetaMXN;
-  const pct = shippingSettings.transferDiscountPct || 0;
   return ceilTo(tier.costoMXN * (1 + pct / 100), 1);
 }
 
