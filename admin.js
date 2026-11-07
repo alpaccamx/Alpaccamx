@@ -5699,8 +5699,14 @@ ${itemLines}
       </div>
       ${swmCompraCard(c)}
       ${psSiguienteHTML(c)}
-      ${pk.filter((p) => !enEnvio.has(p.id)).map(swmPaqueteCard).join("")}
-      ${envs.map(swmEnvioCard).join("")}
+      ${(() => {
+        const sueltos = pk.filter((p) => !enEnvio.has(p.id));
+        if (!sueltos.length && !envs.length) return "";
+        swmCompacto = true;
+        try {
+          return `<div class="ps-sub"><div class="ps-sub-t">📦 Paquetes y envío de esta compra</div>${sueltos.map(swmPaqueteCard).join("")}${envs.map(swmEnvioCard).join("")}</div>`;
+        } finally { swmCompacto = false; }
+      })()}
     </div>`;
   }
 
@@ -5851,7 +5857,11 @@ ${itemLines}
     document.getElementById("swm-list").innerHTML = html;
   }
 
+  // En Personal shopper, los paquetes y el envío van dentro de la tarjeta de su
+  // compra: los datos de la clienta y los productos salen una sola vez, arriba.
+  let swmCompacto = false;
   function swmWho(r) {
+    if (swmCompacto) return "";
     const wa = waLinkFromPhone(r.phone);
     const cas = r.email && swmData.casilleros && swmData.casilleros[r.email];
     return `${cas ? `<b>${escapeHtml(cas)}</b> · ` : ""}${escapeHtml(r.name || r.email)} · ${escapeHtml(r.email)}${r.phone ? ` · ${escapeHtml(r.phone)}` : ""}${wa ? ` · <a href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}`;
@@ -5913,7 +5923,7 @@ ${itemLines}
       ${p.parteDe ? `<div class="meta" style="color:#6a45b8;">🧩 Otra caja de la orden <b>${escapeHtml(p.parteDeFolio || "")}</b> (la tienda la dividió). El valor declarado va en ${escapeHtml(p.parteDeFolio || "esa")}.</div>` : ""}
       ${p.ordenDividida && !p.parteDe ? `<div class="meta" style="color:#6a45b8;">🧩 Orden dividida en varias cajas${(() => { const otras = (swmData.paquetes || []).filter((x) => x.parteDe === p.id && x.status !== "cancelado").map((x) => x.folio); return otras.length ? `: también ${otras.map(escapeHtml).join(", ")}` : ""; })()}${p.contenidoCaja ? ` · esta caja trae: ${escapeHtml(p.contenidoCaja)}` : ""}</div>` : ""}
       ${(() => { const c = (p.history || []).filter((h) => h.status === "rastreo_cambiado").pop(); return c ? `<div class="meta" style="color:#8a5a00;">🔁 La clienta cambió el rastreo el ${swmFecha(c.at)} (antes: ${escapeHtml(c.antes || "—")})</div>` : ""; })()}
-      <div class="meta">${swmWho(p)}<br>${p.origen === "sin_registro" ? `⚠️ Llegó sin registrar (cargo ${formatPrice(p.cargoSinRegistro || 0)})${p.datosPendientes ? " · <b>ella todavía no dice qué trae</b>" : ""} · ` : ""}${p.origen === "compra" ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "auto" ? "lo más barato (peso o 15%)" : p.cobro === "comision" ? (p.valorTotal && p.moneda ? `15% de ${Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${escapeHtml(p.moneda)}` : `15% de US$${Number(p.valorUSD || 0).toFixed(2)}`) : "por peso"}${p.contenido ? ` · ${escapeHtml(p.contenido)}` : ""}
+      <div class="meta">${swmWho(p)}${swmCompacto ? "" : "<br>"}${p.origen === "sin_registro" ? `⚠️ Llegó sin registrar (cargo ${formatPrice(p.cargoSinRegistro || 0)})${p.datosPendientes ? " · <b>ella todavía no dice qué trae</b>" : ""} · ` : ""}${p.origen === "compra" && !swmCompacto ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "auto" ? "lo más barato (peso o 15%)" : p.cobro === "comision" ? (p.valorTotal && p.moneda ? `15% de ${Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${escapeHtml(p.moneda)}` : `15% de US$${Number(p.valorUSD || 0).toFixed(2)}`) : "por peso"}${p.contenido && !swmCompacto ? ` · ${escapeHtml(p.contenido)}` : ""}
         ${p.valorTotal ? `<br>Valor declarado (con tax, sin envío): <b>${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}</b>` : ""}${swmValorPesosHTML(p)}
         ${p.factura ? ` <button type="button" class="btn-secondary" data-swm-file="factura/paquete/${escapeHtml(p.id)}" style="padding:4px 10px;font-size:12px;">📄 Ver factura</button>` : ""}
         ${(p.facturas || []).length ? `<br>${p.facturas.map((f, i) => `<button type="button" class="btn-secondary" data-swm-file="factura/paquete/${escapeHtml(p.id)}/${Number(f.n ?? i)}" style="padding:4px 10px;font-size:12px;margin:2px 4px 2px 0;">📄 ${f.tipo === "application/pdf" ? "PDF" : "Captura"} ${i + 1}</button>`).join("")}` : ""}
@@ -6324,7 +6334,7 @@ ${itemLines}
     }
     return `<div class="swm-card" data-swm-id="${escapeHtml(e.id)}" data-kind="envio">
       <h4><span>${escapeHtml(e.folio)} · Envío a México</span>${swmPillA(st, ["solicitado", "pagado", "en_mexico"].includes(e.status) ? "new" : "")}</h4>
-      <div class="meta">${swmWho(e)} · ${swmFecha(e.createdAt)}${e.consolidar ? " · <b>consolidar</b>" : ""}</div>
+      <div class="meta">${swmWho(e)}${swmCompacto ? "" : " · "}${swmFecha(e.createdAt)}${e.consolidar ? " · <b>consolidar</b>" : ""}</div>
       <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;">${pk.map((p) => `<li>${escapeHtml([p.folio, p.tienda].filter(Boolean).join(" · "))}${p.rastreo ? ` · 🔎 rastreo original: <b>${escapeHtml(p.paqueteria ? `${p.paqueteria} ` : "")}${escapeHtml(p.rastreo)}</b>` : ""} · ${p.cobrable || "?"} kg · cruce ${p.crucePagado ? "ya pagado" : p.cobro === "auto" ? "lo más barato" : p.cobro === "comision" ? "15%" : "por peso"}</li>`).join("")}</ul>
       <div class="meta">${e.entrega === "personal" ? `<b>📍 Entrega personal en Ciudad Juárez</b> · ${escapeHtml([d.nombre, d.telefono].filter(Boolean).join(", "))}` : `📍 ${escapeHtml([d.nombre, d.telefono, d.calle, d.colonia, d.ciudad, d.estado, d.cp].filter(Boolean).join(", "))}${d.referencias ? ` (${escapeHtml(d.referencias)})` : ""}`}</div>
       <div class="meta">Sugerido: cruce ${formatPrice(sug.cruce || 0)}${sug.consolidacion ? ` + consolidación ${formatPrice(sug.consolidacion)}` : ""}${sug.sinRegistro ? ` + sin registrar ${formatPrice(sug.sinRegistro)}` : ""}${sug.extras ? ` + extras ${formatPrice(sug.extras)}` : ""} · ${sug.kg || 0} kg en total</div>
