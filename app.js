@@ -2462,15 +2462,15 @@ function cardBadgeHTML(p) {
 const SHADE_VARIANT_RE = /^(.*)\s\((#[^)]*)\)$/;
 const TYPE_VARIANT_RE = /^(.*-\s*\d+\s+[A-Za-zÀ-ÿ]+)\s\(([^)]+)\)$/;
 
-/* Los body mists de Bath & Body Works en Stock no se juntan en un selector:
+/* Los body mists de Bath & Body Works y de Victoria's Secret en Stock no se juntan en un selector:
    cada aroma va en su propia tarjeta (con su foto) para que llamen más la
    atención. El nombre se acorta a "Body Mist · Champagne Toast" (la marca ya
    sale arriba de la tarjeta). */
-const sinAgrupar = (p) => p.enStock && /bath\s*&\s*body/i.test(p.marca || "");
+const sinAgrupar = (p) => p.enStock && /(bath\s*&\s*body|victoria['\u2019]?s\s*secret)/i.test(p.marca || "");
 function nombreSuelto(p) {
   const m = SHADE_VARIANT_RE.exec(p.nombre || "");
   if (!m) return p;
-  const base = m[1].replace(/\s*bath\s*&\s*body\s*works\s*/i, " ").trim();
+  const base = m[1].replace(/\s*(bath\s*&\s*body\s*works|victoria['\u2019]?s\s*secret)\s*/i, " ").trim();
   return { ...p, nombre: `${base} · ${m[2].replace(/^#\s*/, "")}` };
 }
 
