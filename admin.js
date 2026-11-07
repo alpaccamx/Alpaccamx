@@ -5227,7 +5227,7 @@ ${itemLines}
     const ratesEl = card.querySelector("[data-guia-rates]");
     const genBtn = card.querySelector("[data-guia-generar]");
     errEl.textContent = "";
-    const kindKey = card.dataset.guiaKind === "orden" ? "orderId" : "envioId";
+    const kindKey = card.dataset.guiaKind === "orden" ? "orderId" : card.dataset.guiaKind === "apartado" ? "apartadoId" : "envioId";
     const rateEl = t.closest("[data-guia-rate]");
     if (rateEl) {
       swmGuiaState[id].selected = Number(rateEl.dataset.guiaRate);
@@ -5252,7 +5252,7 @@ ${itemLines}
         if (!res.ok || !(data.rates || []).length) { ratesEl.textContent = ""; errEl.textContent = data.error || "No hay opciones de envío para esos datos."; return; }
         swmGuiaState[id] = { rates: data.rates, selected: null, tabla: data.tabla != null ? Number(data.tabla) : null };
         const nota = card.querySelector("[data-guia-tabla]");
-        if (kindKey === "orderId") {
+        if (kindKey !== "envioId") {
           if (nota) nota.innerHTML = "🧾 Su envío ya lo pagó en sus pedidos: la paquetería que elijas es lo que te cuesta a ti la guía.";
         } else {
           const yaPagado = Number((card.dataset.pmPagado)) || 0;
@@ -5269,7 +5269,7 @@ ${itemLines}
     if (!st || st.selected == null) { errEl.textContent = "Elige una paquetería primero."; return; }
     const envio = swmData.envios.find((x) => x.id === id);
     const pagado = envio && ["pagado", "en_mexico"].includes(envio.status);
-    if (kindKey === "orderId" ? !confirm("¿Generar la guía? Se cobra en tu cuenta de la paquetería y sus pedidos se marcan enviados juntos.") : !confirm(pagado ? "¿Generar la guía? Se cobra en tu cuenta de la paquetería y a la clienta le llega el aviso." : "¿Hacer la guía y cobrarle? La guía se paga en tu cuenta de la paquetería ya; a ella le llega lo que tiene que pagar y, en cuanto pague, su guía.")) return;
+    if (kindKey !== "envioId" ? !confirm("¿Generar la guía? Se cobra en tu cuenta de la paquetería y sus pedidos se marcan enviados juntos.") : !confirm(pagado ? "¿Generar la guía? Se cobra en tu cuenta de la paquetería y a la clienta le llega el aviso." : "¿Hacer la guía y cobrarle? La guía se paga en tu cuenta de la paquetería ya; a ella le llega lo que tiene que pagar y, en cuanto pague, su guía.")) return;
     const r = st.rates[st.selected];
     const destination = {
       name: g("nombre").slice(0, 30) || "Cliente", phone: g("telefono").replace(/[^0-9]/g, "").slice(-10),
@@ -5281,15 +5281,15 @@ ${itemLines}
     try {
       const res = await fetch("/.netlify/functions/admin-generate-guide", {
         method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ [kindKey]: id, weight, total: r.total, cobrarEnvio: g("cobrar") !== "" ? Number(g("cobrar")) : null, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
+        body: JSON.stringify({ [kindKey]: id, apartadoIds: kindKey === "envioId" ? [] : (card.dataset.apartadoIds || "").split(",").filter(Boolean), weight, total: r.total, cobrarEnvio: g("cobrar") !== "" ? Number(g("cobrar")) : null, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo generar la guía.");
       if (data.error) alert(data.error);
-      else if (kindKey === "orderId") showToast(`✅ Guía ${data.order.trackingNumber} generada: pedidos marcados enviados`);
+      else if (kindKey !== "envioId") showToast(`✅ Guía ${(data.order || data).trackingNumber} generada: todo marcado enviado`);
       else showToast(data.guiaAnticipada ? `✅ Guía ${data.envio.guia} lista y cobro enviado (${formatPrice(data.envio.cotizacion.total)}). Cuando pague, le llega su guía sola.` : `✅ Guía ${data.envio.guia} generada y aviso enviado`);
       if (card.dataset.pmKey && !data.error) pmTerminar(card, data);
-      if (kindKey === "orderId") await fetchOrders();
+      if (kindKey !== "envioId") { if (kindKey === "orderId") await fetchOrders(); if ((card.dataset.apartadoIds || kindKey === "apartadoId")) await loadPreventaAdmin({ quiet: true }); }
       await loadSwm({ quiet: true });
     } catch (err) {
       errEl.textContent = err.message; genBtn.disabled = false; genBtn.textContent = label;
@@ -5377,6 +5377,24 @@ ${itemLines}
       E({ tipo: "envio", id: e.id, e, email: pmEmail(e.email), tel: pmTel(e.phone), nombre: e.name || "", titulo: `📦 Envío ${e.folio}`, detalle: "su caja a México", estado: "proceso", nota, go: { go: envioEsPs(e, D) ? "ps" : "swm", q: e.folio } });
     });
 
+    // Sephora Sale (preventa): sus apartados también cuentan como cosas por mandar.
+    ((pvData && pvData.apartados) || []).forEach((a) => {
+      if (!a.cuenta || ["cancelado", "enviado", "entregado"].includes(a.status)) return;
+      const piezas = (a.items || []).reduce((t, it) => t + (it.qty || 0), 0);
+      const base = {
+        tipo: "apartado", id: a.id, a, email: pmEmail(a.email), tel: pmTel(a.phone || (a.direccion && a.direccion.telefono)), nombre: a.name || (a.direccion && a.direccion.nombre) || "",
+        kg: Number(a.pesoCobrableKg) || Number(a.pesoKg) || 0,
+        titulo: `🛍️ Sephora Sale ${a.folio}`,
+        detalle: `${piezas} pieza${piezas === 1 ? "" : "s"} · ${(a.items || []).slice(0, 2).map((it) => it.nombre).join(", ")}${(a.items || []).length > 2 ? "…" : ""}`,
+        go: { go: "preventa", q: a.folio, first: a.id },
+      };
+      if (a.status === "nuevo") return E({ ...base, estado: "falta", nota: "💳 falta que pague su anticipo" });
+      if (a.status === "apartado") return E({ ...base, estado: "falta", nota: "🛍️ apartado: esperando a que llegue la mercancía" });
+      if (a.status === "llego") return E({ ...base, estado: "falta", nota: `📦 ya llegó: falta que pague ${formatPrice(a.resto ? a.resto.monto : 0)}` });
+      if (a.entrega === "personal") return E({ ...base, estado: "falta", nota: "📍 se lo entregas en persona (Juárez)" });
+      E({ ...base, estado: "listo" });
+    });
+
     // Una misma clienta puede venir con correo en unas cosas y solo teléfono en otras.
     const padre = new Map();
     const raiz = (k) => { while (padre.get(k) !== k) { padre.set(k, padre.get(padre.get(k))); k = padre.get(k); } return k; };
@@ -5417,7 +5435,7 @@ ${itemLines}
     return { nombre: c.name || g.nombre || "", telefono: c.phone || g.tel || "", calle: c.street || "", colonia: c.colonia || "", ciudad: c.municipio || "", estado: c.estado || "", cp: c.cp || "", referencias: c.referencias || "" };
   }
 
-  const pmBuscar = (g, q) => buscaEnTodo([g.nombre, g.email, g.tel, g.casillero], q) || g.entradas.some((x) => (x.tipo === "pedido" ? matchesSearch(x.o, q) : x.tipo === "paquete" || x.tipo === "envio" ? swmMatches(x.p || x.e, q) : buscaEnTodo([x.titulo, x.detalle], q)));
+  const pmBuscar = (g, q) => buscaEnTodo([g.nombre, g.email, g.tel, g.casillero], q) || g.entradas.some((x) => (x.tipo === "pedido" ? matchesSearch(x.o, q) : x.tipo === "paquete" || x.tipo === "envio" ? swmMatches(x.p || x.e, q) : x.tipo === "apartado" ? buscaEnTodo([x.a.folio, x.a.name, x.a.phone, x.a.email, ...Object.values(x.a.direccion || {}), ...(x.a.items || []).map((it) => `${it.marca || ""} ${it.nombre || ""} ${it.variante || ""}`)], q) : buscaEnTodo([x.titulo, x.detalle], q)));
   const pmPorMandarN = () => pmGrupos().filter((g) => g.listo.length || g.pidio).length;
 
   const pmSeleccion = (g) => g.listo.filter((x) => !pmDesmarcados.has(`${x.tipo}:${x.id}`));
@@ -5430,7 +5448,7 @@ ${itemLines}
         ${x.nota ? `<div style="color:${color};font-size:13px;">${escapeHtml(x.nota)}</div>` : ""}</div>
       <div style="display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end;">
         ${x.estado === "guardado" && x.tipo === "pedido" ? `<button type="button" class="btn-secondary" data-pm-ya="${escapeHtml(x.id)}" style="padding:4px 10px;font-size:12px;">▶️ Ya puede salir</button>` : ""}
-        ${x.go ? `<button type="button" class="btn-secondary" data-global-go="${x.go.go}" data-global-q="${escapeHtml(x.go.q)}" style="padding:4px 10px;font-size:12px;">Abrir</button>` : ""}
+        ${x.go ? `<button type="button" class="btn-secondary" data-global-go="${x.go.go}" data-global-q="${escapeHtml(x.go.q)}"${x.go.first ? ` data-global-first="${escapeHtml(x.go.first)}"` : ""} style="padding:4px 10px;font-size:12px;">Abrir</button>` : ""}
       </div></div>`;
   }
 
@@ -5458,11 +5476,13 @@ ${itemLines}
         <div class="meta">${c.paqueteIds.length} paquete${c.paqueteIds.length === 1 ? "" : "s"}${c.orderIds.length ? ` + ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"}` : ""}. A ella le llega el cobro del envío; cuando pague, sale su guía${c.orderIds.length ? " y sus pedidos se marcan enviados" : ""}.</div>${nota}
         ${swmGuiaForm({ ...e, kgExtra: c.kgOrdenes }, true)}</div>`;
     }
-    const o = allOrders.find((x) => x.id === c.orderId);
-    return `<div class="swm-card" data-swm-id="${escapeHtml(c.orderId)}" data-kind="orden" data-guia-kind="orden" data-pm-key="${escapeHtml(g.id)}" style="margin-top:10px;border:2px solid #f0d5e0;">
-      <h4><span>📦 Caja con ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"}</span><button type="button" class="btn-secondary" data-pm-cancelar style="padding:4px 10px;font-size:12px;">Cerrar</button></h4>
-      <div class="meta">Su envío ya está pagado en sus pedidos. Al hacer la guía, todos se marcan enviados juntos y se le avisa.</div>
-      ${swmGuiaForm({ id: c.orderId, email: g.email, direccion: c.dir, paqueteIds: [], kgExtra: c.kgOrdenes, sugerido: {} }, "orden")}</div>`;
+    const nCaja = c.orderIds.length + (c.apartadoIds || []).length;
+    const soloApartados = !c.orderId;
+    const primario = c.orderId || c.apartadoId;
+    return `<div class="swm-card" data-swm-id="${escapeHtml(primario)}" data-kind="orden" data-guia-kind="${soloApartados ? "apartado" : "orden"}" data-apartado-ids="${escapeHtml((c.apartadoIds || []).join(","))}" data-pm-key="${escapeHtml(g.id)}" style="margin-top:10px;border:2px solid #f0d5e0;">
+      <h4><span>📦 Caja con ${nCaja} ${(c.apartadoIds || []).length && !c.orderIds.length ? "apartado" : "pedido"}${nCaja === 1 ? "" : "s"}${(c.apartadoIds || []).length && c.orderIds.length ? ` (${(c.apartadoIds || []).length} del Sephora Sale)` : ""}</span><button type="button" class="btn-secondary" data-pm-cancelar style="padding:4px 10px;font-size:12px;">Cerrar</button></h4>
+      <div class="meta">Su envío ya está pagado. Al hacer la guía, todo se marca enviado junto y se le avisa.</div>
+      ${swmGuiaForm({ id: primario, email: g.email, direccion: c.dir, paqueteIds: [], kgExtra: c.kgOrdenes, sugerido: {} }, "orden")}</div>`;
   }
 
   function pmCardHTML(g) {
@@ -5484,7 +5504,7 @@ ${itemLines}
     </div>`;
   }
 
-  const PM_AYUDA = "Aquí está todo lo de cada clienta junto, venga de donde venga (tienda, Corea, su casillero o Personal shopper). 1) Abre “✅ Listas para mandar”: cada tarjeta es una clienta con lo que ya puedes mandar. 2) Quita la palomita a lo que no vaya en esa caja y toca “📦 Armar caja”. 3) Revisa la dirección, elige paquetería y se hace UNA sola guía. Si lleva cosas de su casillero, a ella le llega el cobro del envío y, cuando paga, sale su guía y sus pedidos se marcan enviados solos; si solo son pedidos de la tienda, se marcan enviados al momento. Lo que le falta (Corea, cruzar, pago) sale abajo, en gris, para que no se te olvide.";
+  const PM_AYUDA = "Aquí está todo lo de cada clienta junto, venga de donde venga (tienda, Corea, Sephora Sale, su casillero o Personal shopper). 1) Abre “✅ Listas para mandar”: cada tarjeta es una clienta con lo que ya puedes mandar. 2) Quita la palomita a lo que no vaya en esa caja y toca “📦 Armar caja”. 3) Revisa la dirección, elige paquetería y se hace UNA sola guía. Si lleva cosas de su casillero, a ella le llega el cobro del envío y, cuando paga, sale su guía y sus pedidos se marcan enviados solos; si solo son pedidos de la tienda, se marcan enviados al momento. Lo que le falta (Corea, cruzar, pago) sale abajo, en gris, para que no se te olvide.";
 
   function renderPmAdmin() {
     const label = document.querySelector("#swm-panel .filters-label");
@@ -5518,9 +5538,10 @@ ${itemLines}
     const c = pmCaja;
     if (!c) return;
     const wa = c.tel ? true : false;
-    if (card.dataset.guiaKind === "orden") {
-      const o = data.order || {};
-      pmAviso = { nombre: c.nombre, tel: c.tel, html: `✅ Caja de ${escapeHtml(c.nombre || "la clienta")} lista: guía ${escapeHtml(o.trackingNumber || "")}${o.carrier ? ` (${escapeHtml(o.carrier)})` : ""}. Sus ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"} ya están marcados enviados.${data.whatsappSent ? " Ya se le avisó por WhatsApp." : ""}`,
+    if (card.dataset.guiaKind === "orden" || card.dataset.guiaKind === "apartado") {
+      const o = data.order || { trackingNumber: data.trackingNumber, carrier: data.carrier };
+      const nCaja = c.orderIds.length + (c.apartadoIds || []).length;
+      pmAviso = { nombre: c.nombre, tel: c.tel, html: `✅ Caja de ${escapeHtml(c.nombre || "la clienta")} lista: guía ${escapeHtml(o.trackingNumber || "")}${o.carrier ? ` (${escapeHtml(o.carrier)})` : ""}. ${nCaja === 1 ? "Su pedido ya está marcado enviado" : `Sus ${nCaja} pedidos ya están marcados enviados`} y se le avisó.${data.whatsappSent ? " Ya se le avisó por WhatsApp." : ""}`,
         texto: `Hola${c.nombre ? ` ${String(c.nombre).split(/\s+/)[0]}` : ""} 💕 ¡Ya salió tu caja! 📦 Paquetería: ${o.carrier || ""} · Guía: ${o.trackingNumber || ""}. Incluye todos tus pedidos. Cualquier cosa aquí estoy 🌸` };
     } else {
       const e = data.envio || {};
@@ -5577,16 +5598,20 @@ ${itemLines}
       if (!sel.length) return;
       const ords = sel.filter((x) => x.tipo === "pedido");
       const paqs = sel.filter((x) => x.tipo === "paquete");
-      const kgOrdenes = ords.reduce((s, x) => s + (x.kg || 0), 0);
-      pmCaja = { key: g.id, nombre: g.nombre, tel: g.tel, email: g.email, orderIds: ords.map((x) => x.id), paqueteIds: paqs.map((x) => x.id), kgOrdenes,
-        pagado: paqs.length ? ords.reduce((s, x) => s + (Number(x.o.shippingNacionalMXN) || 0), 0) : 0, dir: pmDireccion(g), paso: "dir", envioId: "", orderId: "" };
+      const aps = sel.filter((x) => x.tipo === "apartado");
+      if (paqs.length && aps.length) { alert("Los del Sephora Sale no se mezclan con paquetes del casillero. Quita la palomita a unos o a otros y arma dos cajas."); return; }
+      const kgOrdenes = [...ords, ...aps].reduce((s, x) => s + (x.kg || 0), 0);
+      const dirBase = pmDireccion(g);
+      const dirAp = aps[0] && aps[0].a.direccion && aps[0].a.direccion.cp ? { ...dirBase, ...aps[0].a.direccion } : dirBase;
+      pmCaja = { key: g.id, nombre: g.nombre, tel: g.tel, email: g.email, orderIds: ords.map((x) => x.id), apartadoIds: aps.map((x) => x.id), paqueteIds: paqs.map((x) => x.id), kgOrdenes,
+        pagado: paqs.length ? ords.reduce((s, x) => s + (Number(x.o.shippingNacionalMXN) || 0), 0) : 0, dir: ords.length ? dirBase : dirAp, paso: "dir", envioId: "", orderId: "", apartadoId: "" };
       if (!paqs.length) {
         // Solo pedidos de la tienda: se ligan (para que salgan juntos) y se pasa directo a la guía.
         armar.disabled = true;
         try {
           if (ords.length > 1) pmActualizaOrdenes(await pmApi("admin-link-orders", { orderIds: ords.map((x) => x.id) }));
         } catch (err) { alert(err.message); pmCaja = null; armar.disabled = false; return; }
-        pmCaja.orderId = ords[0].id; pmCaja.paso = "guia";
+        pmCaja.orderId = ords[0] ? ords[0].id : ""; pmCaja.apartadoId = aps[0] ? aps[0].id : ""; pmCaja.paso = "guia";
       }
       renderSwmAdmin();
       const el = document.querySelector(`[data-pm-card="${CSS.escape(g.id)}"] [data-swm-id], [data-pm-card="${CSS.escape(g.id)}"] [data-pmf]`);
@@ -6781,6 +6806,14 @@ ${itemLines}
       if (!res.ok) throw new Error(data.error || "No se pudo cargar.");
       pvData = data;
       renderPreventaAdmin();
+      // Los apartados liquidados también salen en "Por mandar".
+      if (typeof pmPorMandarN === "function" && swmLoaded) {
+        const pmN = pmPorMandarN();
+        pmCount = pmN;
+        const pmBadge = document.getElementById("pm-nav-badge");
+        if (pmBadge) { pmBadge.textContent = pmN ? String(pmN) : ""; pmBadge.style.display = pmN ? "inline-flex" : "none"; }
+      }
+      if (currentView === "pm") renderSwmAdmin();
     } catch (err) {
       if (!quiet) box.innerHTML = `<p class="guide-error">${escapeHtml(err.message)}</p>`;
     }
@@ -7511,6 +7544,7 @@ ${itemLines}
     if (view === "revision") loadRevision();
     if (view === "cupones") loadCoupons();
     if (view === "preventa") loadPreventaAdmin();
+    if (view === "pm" && !pvData) loadPreventaAdmin({ quiet: true });
     if (view === "mas") renderNotifyToggle();
     if (view !== "catalogo" && catalogEditing) closeCatalogEditor();
     if (view === "inventario" && !inventoryLoaded) loadInventory();

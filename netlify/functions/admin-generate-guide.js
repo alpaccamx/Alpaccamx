@@ -6,7 +6,7 @@
 //
 // Body esperado (JSON):
 //   {
-//     orderId | envioId, weight, provider: "enviosperros" | "skydropx",
+//     orderId | envioId | apartadoId, weight, provider: "enviosperros" | "skydropx",
 //     destination,                          -- datos del destinatario
 //     // solo si provider === "enviosperros":
 //     courier, service,
@@ -29,7 +29,8 @@ const { sendEmail, orderShippedEmailHTML } = require("./lib/email.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { getRecord, mutateRecord } = require("./lib/swm-store.js");
 const { avisar, cotizarEnvio, marcarOrdenesDeCaja } = require("./lib/swm-core.js");
-const { envioEstimado } = require("./lib/preventa-core.js");
+const { envioEstimado, avisar: avisarApartado, esc: escHtml } = require("./lib/preventa-core.js");
+const { getApartado, mutateApartado } = require("./lib/preventa-store.js");
 // CP fuera de la tabla de Mae: se le cobra la paquetería + esto (sin desglose).
 const FUERA_TABLA_EXTRA = 100;
 
@@ -54,8 +55,10 @@ exports.handler = async (event) => {
   }
 
   const { orderId, envioId, weight, provider, destination } = body;
+  // Apartados de la Preventa (Sephora Sale) que salen en esta misma guía.
+  const apartadoIds = [...new Set([...(Array.isArray(body.apartadoIds) ? body.apartadoIds : []), ...(body.apartadoId ? [body.apartadoId] : [])].map(String))];
   const weightNum = Number(weight);
-  if ((!orderId && !envioId) || !weightNum || weightNum <= 0 || !provider || !destination) {
+  if ((!orderId && !envioId && !apartadoIds.length) || !weightNum || weightNum <= 0 || !provider || !destination) {
     return jsonResponse(400, { error: "Faltan datos para generar la guía." });
   }
 
@@ -66,9 +69,14 @@ exports.handler = async (event) => {
     if (!["solicitado", "cotizado", "pagado", "en_mexico"].includes(envio.status)) return jsonResponse(409, { error: "Ese envío ya se mandó o está cancelado." });
     if (envio.guia) return jsonResponse(409, { error: `Ese envío ya tiene guía (${envio.guia}).` });
     envioPagado = ["pagado", "en_mexico"].includes(envio.status);
-  } else {
+  } else if (orderId) {
     const existing = await getOrder(orderId);
     if (!existing) return jsonResponse(404, { error: "Pedido no encontrado." });
+  }
+  for (const aid of apartadoIds) {
+    const ap = await getApartado(aid);
+    if (!ap) return jsonResponse(404, { error: "Apartado no encontrado." });
+    if (!["liquidado", "enviado"].includes(ap.status)) return jsonResponse(409, { error: `El apartado ${ap.folio} todavía no está liquidado.` });
   }
 
   try {
@@ -150,6 +158,12 @@ exports.handler = async (event) => {
       return jsonResponse(200, { envio: rec });
     }
 
+    // Solo apartados de la preventa: se marcan enviados con esta guía.
+    if (!orderId) {
+      const aps = await marcarApartadosEnviados(apartadoIds, carrierLabel, trackingNumber);
+      return jsonResponse(200, { apartados: aps, trackingNumber, carrier: carrierLabel });
+    }
+
     const order = await updateOrderFields(orderId, {
       trackingNumber,
       carrier: carrierLabel,
@@ -168,8 +182,9 @@ exports.handler = async (event) => {
       });
     }
     const whatsappSent = await notifyCustomerOrderShipped(order);
+    const aps = apartadoIds.length ? await marcarApartadosEnviados(apartadoIds, carrierLabel, trackingNumber) : [];
 
-    return jsonResponse(200, { order, whatsappSent, ligados });
+    return jsonResponse(200, { order, whatsappSent, ligados, apartados: aps });
   } catch (err) {
     console.error(`Error generando guía con ${provider}:`, err.status, JSON.stringify(err.body || err.message));
     // Se muestra lo que respondió la paquetería (antes solo salía "No se
@@ -180,6 +195,25 @@ exports.handler = async (event) => {
     return jsonResponse(502, { error: `No se pudo generar la guía${err.status ? ` (HTTP ${err.status})` : ""}: ${String(texto || "").slice(0, 400)}` });
   }
 };
+
+/* Marca enviados (con la guía) los apartados de la preventa y le avisa a la clienta. */
+async function marcarApartadosEnviados(ids, paqueteria, guia) {
+  const out = [];
+  for (const id of ids) {
+    const rec = await mutateApartado(id, (a) => {
+      if (!["liquidado", "enviado"].includes(a.status)) return null;
+      Object.assign(a, { status: "enviado", paqueteria, guia, enviadoAt: new Date().toISOString() });
+      a.history = [...(a.history || []), { at: new Date().toISOString(), status: "enviado", por: "mae" }];
+      return a;
+    });
+    if (!rec) continue;
+    out.push(rec);
+    await avisarApartado(rec, `${rec.folio}: tu preventa va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu preventa va en camino!</h2>
+      <p style="font-size:14px;">Paquetería: <b>${escHtml(paqueteria)}</b><br>Guía: <b>${escHtml(guia)}</b></p>`,
+    `${rec.folio}: tu preventa va en camino. ${paqueteria}, guía ${guia}`).catch((err) => console.error("guía apartado aviso:", err));
+  }
+  return out;
+}
 
 function jsonResponse(statusCode, obj) {
   return {
