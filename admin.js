@@ -6935,7 +6935,8 @@ ${itemLines}
       acciones.push(`<button type="button" class="btn-secondary" data-pv-entregado="${id}">🎁 Ya se entregó</button>`);
     }
     if (a.status === "enviado") acciones.push(`<button type="button" class="btn-secondary" data-pv-entregado="${id}">🎁 Marcar entregado</button>`);
-    if (a.status !== "cancelado" && a.status !== "entregado") acciones.push(`<button type="button" class="btn-ghost" data-pv-cancelar="${id}" style="margin-left:0;padding:8px 10px;">Cancelar</button>`);
+    if (a.cuenta && ["nuevo", "apartado", "llego"].includes(a.status)) acciones.push(`<button type="button" class="btn-secondary" data-pve-abrir="${id}">✏️ Cambiar productos</button>`);
+    if (a.status !== "cancelado" && a.status !== "entregado") acciones.push(`<button type="button" class="btn-ghost" data-pv-cancelar="${id}" style="margin-left:0;padding:8px 10px;">Cancelar${pvYaPago(a) > 0 ? " (con reembolso)" : ""}</button>`);
     return `<div class="swm-card" id="pv-ap-${id}">
       <h4><span>${escapeHtml(a.folio)} · ${escapeHtml(a.name || a.email)}</span><span class="badge" style="background:${bg};color:${fg};">${txt}</span></h4>
       <div class="meta">${escapeHtml(a.email)}${tel ? ` · <a href="https://wa.me/52${tel}" target="_blank" rel="noopener">📱 ${tel}</a>` : ""} · ${formatFecha(a.createdAt)}</div>
@@ -6945,13 +6946,301 @@ ${itemLines}
       ${a.nota ? `<div class="meta">📝 ${escapeHtml(a.nota)}</div>` : ""}
       ${a.guia ? `<div class="meta">🚚 ${escapeHtml(a.paqueteria || "")} · guía <b>${escapeHtml(a.guia)}</b></div>` : ""}
       ${[a.anticipo, a.resto].some((p) => p && p.rechazo && p.status !== "pagado") ? `<div class="meta" style="color:#b42318;">Rechazaste un comprobante: ${escapeHtml((a.resto.rechazo && a.resto.status !== "pagado" ? a.resto : a.anticipo).rechazo)}</div>` : ""}
+      ${pvReembolsoHTML(a)}
       ${acciones.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">${acciones.join("")}</div>` : ""}
+      ${pvEdit && pvEdit.id === a.id ? pvEditHTML(a) : ""}
     </div>`;
   }
+
+  /* Lo que la clienta ya pagó de este apartado. */
+  const pvYaPago = (a) => Math.max(0, (a.anticipo && a.anticipo.status === "pagado" ? Number(a.anticipo.monto) || 0 : 0) + (a.resto && a.resto.status === "pagado" ? Number(a.resto.monto) || 0 : 0) - (Number(a.devuelto) || 0));
+
+  function pvReembolsoHTML(a) {
+    const r = a.reembolso;
+    if (!r || r.status !== "pendiente") return "";
+    const tel = String(a.phone || (a.direccion && a.direccion.telefono) || "").replace(/\D/g, "").slice(-10);
+    const txt = `Hola ${String(a.name || "").split(/\s+/)[0]} 💕 sobre tu apartado ${a.folio} del Sephora Sale: te reembolso ${formatPrice(r.monto)}. ¿Me pasas tu CLABE o cuenta para depositártelo?`;
+    return `<div style="background:#fff3f3;border:1px solid #f3c9c9;border-radius:12px;padding:10px 12px;margin:10px 0;">
+      <div style="font-weight:700;font-size:14px;">💸 Reembolso pendiente: ${formatPrice(r.monto)}</div>
+      <div class="meta">${(a.anticipo && a.anticipo.metodo === "mercadopago") || (a.resto && a.resto.metodo === "mercadopago") ? "Pagó (al menos en parte) con tarjeta: esa parte hazla desde Mercado Pago." : "Pagó por transferencia."} El reembolso lo haces tú.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+        ${tel ? `<a class="btn-secondary" style="text-decoration:none;" target="_blank" rel="noopener" href="https://wa.me/52${tel}?text=${encodeURIComponent(txt)}">💬 Escribirle por WhatsApp</a>` : ""}
+        <button type="button" class="btn-secondary" data-pv-reembolsado="${escapeHtml(a.id)}">✅ Ya le reembolsé</button>
+      </div></div>`;
+  }
+
+  /* Cambiar los productos de un apartado: mismo buscador que el apartado nuevo. */
+  function pvEditHTML(a) {
+    return `<div id="pve" style="margin-top:12px;border:2px solid #c4466e;border-radius:14px;padding:12px;background:#fffafc;">
+      <b>✏️ Cambiar los productos de ${escapeHtml(a.folio)}</b>
+      <p class="meta">Busca para agregar, o quita con la ✕. Se conserva el precio de lo que ya tenía; lo nuevo va a precio de hoy.</p>
+      <input type="search" data-pvn-buscar placeholder="🔍 Busca un producto para agregar" style="width:100%;">
+      <div id="pvn-res" style="margin-top:6px;"></div>
+      <div id="pvn-items" style="margin-top:8px;"></div>
+      <p id="pve-resumen" style="font-weight:700;margin:8px 0;"></p>
+      <label class="swm-check"><input type="checkbox" data-pve-avisar checked> Avisarle por correo y WhatsApp lo que cambió</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+        <button type="button" class="btn-primary" data-pve-guardar>💾 Guardar cambios</button>
+        <button type="button" class="btn-secondary" data-pve-cerrar>Cancelar</button>
+      </div></div>`;
+  }
+
+  /* Qué pasa con el dinero si se guarda como está. */
+  function pvEditResumen() {
+    const el = document.getElementById("pve-resumen");
+    const a = pvEdit && pvData.apartados.find((x) => x.id === pvEdit.id);
+    if (!el || !a) return;
+    const total = Math.round(pvNuevoTotal() * 100) / 100;
+    const pagado = pvYaPago(a);
+    let txt = `Total nuevo ${formatPrice(total)} (antes ${formatPrice(a.total)}). `;
+    if (a.status === "nuevo") {
+      txt += `Su anticipo sería de ${formatPrice(Math.ceil(total * (a.anticipoPct || 50) / 100))}.`;
+    } else {
+      const falta = Math.round((total + (a.status === "llego" ? a.envio || 0 : 0) - pagado) * 100) / 100;
+      txt += falta < 0 ? `💸 Ya pagó ${formatPrice(pagado)}: le debes reembolsar ${formatPrice(-falta)}.`
+        : a.status === "llego" ? (falta > 0 ? `💳 Le falta pagar ${formatPrice(falta)}.` : "Ya queda todo pagado.")
+        : `Cuando lleguen paga ${formatPrice(Math.max(0, falta))}${a.entrega === "envio" ? " + envío" : ""}.`;
+    }
+    el.textContent = txt;
+  }
+
+
+  /* ----- ➕ Agregar un apartado a una clienta (por su correo) ----- */
+  let pvNuevo = null; // null = cerrado
+  let pvEdit = null; // { id, items, prod, buscar } cuando Mae cambia los productos de un apartado
+  const pvSel = () => pvEdit || pvNuevo;
+  const pvNuevoVacio = () => ({ items: [], prod: null, buscar: "" });
+
+  function pvNuevoHTML() {
+    if (!pvNuevo) return `<button type="button" class="btn-primary" data-pvn-abrir style="margin-bottom:12px;">➕ Agregar apartado a una clienta</button>`;
+    const campo = (k, t, tipo = "text", ph = "") => `<label>${t}<input data-pvn="${k}" type="${tipo}" placeholder="${ph}" ${tipo === "email" ? 'autocapitalize="off" inputmode="email"' : ""}></label>`;
+    return `<div class="swm-card" id="pvn" style="border:2px solid #c4466e;">
+      <h4><span>➕ Apartado nuevo para una clienta</span><button type="button" class="btn-ghost" data-pvn-cerrar style="margin-left:0;">✕ Cerrar</button></h4>
+      <p class="meta">1) Pon su correo (el mismo con el que entra a alpacca.mx). 2) Busca y agrega sus productos. 3) Guardar: le llega el aviso para pagar.</p>
+      <div class="grid">
+        ${campo("email", "Correo de la clienta *", "email", "ejemplo@gmail.com")}
+        ${campo("nombre", "Nombre", "text", "Se llena solo si ya tiene cuenta")}
+        ${campo("telefono", "WhatsApp (10 dígitos)", "tel")}
+      </div>
+      <p class="meta" data-pvn-cuenta></p>
+      <h4 style="margin:12px 0 6px;font-size:15px;">🛍️ Productos</h4>
+      <input type="search" data-pvn-buscar placeholder="🔍 Busca el producto (marca o nombre)" style="width:100%;">
+      <div id="pvn-res" style="margin-top:6px;"></div>
+      <div id="pvn-items" style="margin-top:8px;"></div>
+      <h4 style="margin:12px 0 6px;font-size:15px;">📦 Entrega</h4>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <label class="swm-check"><input type="radio" name="pvn-entrega" value="envio" data-pvn-entrega checked> Envío a domicilio</label>
+        <label class="swm-check"><input type="radio" name="pvn-entrega" value="personal" data-pvn-entrega> Entrega personal en Juárez</label>
+      </div>
+      <div class="grid" data-pvn-dir style="margin-top:6px;">
+        ${campo("calle", "Calle y número")}${campo("colonia", "Colonia")}${campo("ciudad", "Ciudad")}${campo("estado", "Estado")}${campo("cp", "Código postal", "text", "5 dígitos")}${campo("referencias", "Referencias")}
+      </div>
+      <p class="meta" data-pvn-dir-nota>La dirección es opcional: puedes dejarla vacía y poner el envío cuando llegue.</p>
+      <h4 style="margin:12px 0 6px;font-size:15px;">💳 Pago</h4>
+      <label class="swm-check"><input type="checkbox" data-pvn-completo> Va a pagar todo ahora (al llegar solo paga el envío)</label>
+      <label class="swm-check"><input type="checkbox" data-pvn-ya> Ya me pagó el anticipo (por fuera) · queda apartado de una vez</label>
+      <label class="swm-check"><input type="checkbox" data-pvn-avisar checked> Avisarle por correo y WhatsApp</label>
+      <label style="margin-top:6px;">Nota (opcional)<input data-pvn="nota" type="text" style="width:100%;"></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <button type="button" class="btn-primary" data-pvn-guardar>💾 Guardar apartado</button>
+        <button type="button" class="btn-secondary" data-pvn-cerrar>Cancelar</button>
+      </div>
+    </div>`;
+  }
+
+  const pvNuevoTotal = (st = pvSel()) => st.items.reduce((s, it) => s + it.precio * it.qty, 0);
+
+  function pvNuevoPintar() {
+    const st = pvSel();
+    if (!st) return;
+    const items = document.getElementById("pvn-items");
+    if (items) {
+      items.innerHTML = st.items.length
+        ? `<div style="border:1px solid #eee;border-radius:12px;padding:8px 10px;">${st.items.map((it, i) => `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:4px 0;font-size:14px;">
+            <span>${it.qty} × ${escapeHtml(it.marca ? `${it.marca} · ` : "")}${escapeHtml(it.nombre)}${it.variante ? ` · <b>${escapeHtml(it.variante)}</b>` : ""} <span style="color:#6b6b6b;">(${formatPrice(it.precio)} c/u)</span></span>
+            <button type="button" class="btn-ghost" data-pvn-quitar="${i}" style="margin-left:0;padding:4px 8px;">✕</button></div>`).join("")}
+          <div style="text-align:right;font-weight:700;margin-top:4px;">Total ${formatPrice(pvNuevoTotal())}</div></div>`
+        : `<p class="meta">Todavía no agregas productos.</p>`;
+    }
+    if (pvEdit) pvEditResumen();
+    const res = document.getElementById("pvn-res");
+    if (!res) return;
+    if (st.prod) {
+      const p = st.prod;
+      const vs = p.variantes || [];
+      res.innerHTML = `<div style="background:#fff6f9;border-radius:12px;padding:10px;">
+        <b>${escapeHtml(p.marca ? `${p.marca} · ` : "")}${escapeHtml(p.nombre)}</b>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;">
+          ${vs.length ? `<select data-pvn-var style="max-width:100%;">${vs.map((v) => `<option value="${escapeHtml(v.id)}">${escapeHtml(v.nombre)}${v.tamano ? ` (${escapeHtml(v.tamano)})` : ""} · ${formatPrice(v.precio)}${v.agotado ? " · agotado" : ""}</option>`).join("")}</select>` : `<span>${formatPrice(p.precio)}</span>`}
+          <input type="number" data-pvn-qty min="1" max="20" value="1" style="width:70px;">
+          <button type="button" class="btn-primary" data-pvn-poner>Agregar</button>
+          <button type="button" class="btn-ghost" data-pvn-otro style="margin-left:0;">Elegir otro</button>
+        </div></div>`;
+      return;
+    }
+    const q = (st.buscar || "").trim().toLowerCase();
+    if (!q) { res.innerHTML = ""; return; }
+    const lista = pvData.productos.filter((p) => `${p.marca} ${p.nombre}`.toLowerCase().includes(q)).slice(0, 8);
+    res.innerHTML = lista.length
+      ? lista.map((p) => `<button type="button" class="btn-secondary" data-pvn-elegir="${escapeHtml(p.id)}" style="display:block;width:100%;text-align:left;margin-bottom:4px;">${escapeHtml(p.marca ? `${p.marca} · ` : "")}${escapeHtml(p.nombre)} <span style="color:#6b6b6b;">${p.numVariantes > 1 ? `desde ${formatPrice(p.precio)} · ${p.numVariantes} opciones` : formatPrice(p.precio)}</span></button>`).join("")
+      : `<p class="meta">No encontré ese producto en la preventa.</p>`;
+  }
+
+  /* Si la pantalla se vuelve a pintar (llegan datos nuevos), lo que Mae ya
+     escribió en el formulario no se pierde. */
+  function pvNuevoGuardarCampos() {
+    const box = document.getElementById("pvn");
+    if (!pvNuevo || !box) return;
+    const vals = {};
+    box.querySelectorAll("[data-pvn]").forEach((i) => { vals[i.dataset.pvn] = i.value; });
+    vals._entrega = (box.querySelector("[data-pvn-entrega]:checked") || {}).value || "envio";
+    ["completo", "ya", "avisar"].forEach((k) => { const c = box.querySelector(`[data-pvn-${k}]`); if (c) vals["_" + k] = c.checked; });
+    pvNuevo.vals = vals;
+  }
+  function pvNuevoRestaurarCampos() {
+    const box = document.getElementById("pvn");
+    if (!pvNuevo || !box || !pvNuevo.vals) return;
+    const vals = pvNuevo.vals;
+    box.querySelectorAll("[data-pvn]").forEach((i) => { if (vals[i.dataset.pvn] != null) i.value = vals[i.dataset.pvn]; });
+    const r = box.querySelector(`[data-pvn-entrega][value="${vals._entrega}"]`);
+    if (r) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }
+    ["completo", "ya", "avisar"].forEach((k) => { const c = box.querySelector(`[data-pvn-${k}]`); if (c && vals["_" + k] != null) c.checked = vals["_" + k]; });
+  }
+
+  let pvnTimer = null;
+  document.getElementById("pv-admin").addEventListener("input", (e) => {
+    const t = e.target;
+    if (t.matches("[data-pvn-buscar]")) {
+      clearTimeout(pvnTimer);
+      pvnTimer = setTimeout(() => { const st = pvSel(); if (!st) return; st.buscar = t.value; st.prod = null; pvNuevoPintar(); }, 200);
+    }
+  });
+  document.getElementById("pv-admin").addEventListener("change", async (e) => {
+    const t = e.target;
+    if (t.matches('[data-pvn="email"]')) {
+      const em = t.value.trim();
+      const nota = document.querySelector("[data-pvn-cuenta]");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { if (nota) nota.textContent = ""; return; }
+      try {
+        const res = await fetch(`/.netlify/functions/admin-preventa?cliente=${encodeURIComponent(em)}`, { headers: { "x-admin-key": adminKey } });
+        const d = await res.json();
+        const n = document.querySelector('[data-pvn="nombre"]');
+        const tel = document.querySelector('[data-pvn="telefono"]');
+        if (d.existe) {
+          if (n && !n.value) n.value = d.nombre || "";
+          if (tel && !tel.value) tel.value = d.telefono || "";
+        }
+        if (nota) nota.innerHTML = d.existe ? `✅ Ya tiene cuenta${d.nombre ? ` (${escapeHtml(d.nombre)})` : ""}: verá su apartado al entrar.` : `⚠️ Todavía no tiene cuenta con este correo. Pídele que se registre con este mismo correo para ver y pagar su apartado.`;
+      } catch (err) { /* sin aviso */ }
+    }
+    if (t.matches("[data-pvn-entrega]")) {
+      const dir = document.querySelector("[data-pvn-dir]");
+      const nota = document.querySelector("[data-pvn-dir-nota]");
+      const personal = t.value === "personal" && t.checked;
+      if (dir) dir.style.display = personal ? "none" : "";
+      if (nota) nota.style.display = personal ? "none" : "";
+    }
+  });
+  document.getElementById("pv-admin").addEventListener("click", async (e) => {
+    const t = e.target;
+    if (t.closest("[data-pvn-abrir]")) { pvEdit = null; pvNuevo = pvNuevoVacio(); renderPreventaAdmin(); const b = document.getElementById("pvn"); if (b) b.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+    if (t.closest("[data-pvn-cerrar]")) {
+      if (pvNuevo && pvNuevo.items.length && !confirm("¿Cerrar sin guardar? Se pierde lo que llevas.")) return;
+      pvNuevo = null; renderPreventaAdmin(); return;
+    }
+    const abrirEd = t.closest("[data-pve-abrir]");
+    if (abrirEd) {
+      const a = pvData.apartados.find((x) => x.id === abrirEd.dataset.pveAbrir);
+      if (!a) return;
+      pvNuevo = null;
+      pvEdit = { id: a.id, prod: null, buscar: "", items: (a.items || []).map((it) => ({ k: `${it.id}|${it.sku || ""}`, id: it.id, sku: it.sku || "", marca: it.marca || "", nombre: it.nombre, variante: it.variante || "", precio: Number(it.precio) || 0, qty: it.qty })) };
+      renderPreventaAdmin();
+      const box = document.getElementById("pve"); if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (t.closest("[data-pve-cerrar]")) { pvEdit = null; renderPreventaAdmin(); return; }
+    if (t.closest("[data-pve-guardar]") && pvEdit) {
+      const btn = t.closest("button");
+      if (!pvEdit.items.length) { alert("Deja al menos un producto, o mejor cancela el apartado."); return; }
+      const r = await pvAct({ accion: "editar_items", id: pvEdit.id, items: pvEdit.items.map((it) => ({ id: it.id, sku: it.sku, qty: it.qty })), avisar: document.querySelector("[data-pve-avisar]").checked }, btn);
+      if (r) {
+        pvEdit = null;
+        renderPreventaAdmin();
+        if (r.avisos && r.avisos.length) alert(`Listo, pero ojo:\n- ${r.avisos.join("\n- ")}`);
+        if (r.reembolso > 0) alert(`Ya había pagado más: le debes reembolsar ${formatPrice(r.reembolso)}. Quedó apuntado en su apartado.`);
+      }
+      return;
+    }
+    const reemb = t.closest("[data-pv-reembolsado]");
+    if (reemb) { if (confirm("¿Ya le hiciste su reembolso?")) await pvAct({ accion: "reembolsado", id: reemb.dataset.pvReembolsado }, reemb); return; }
+    const st = pvSel();
+    if (!st) return;
+    const elegir = t.closest("[data-pvn-elegir]");
+    if (elegir) {
+      const base = pvData.productos.find((p) => p.id === elegir.dataset.pvnElegir);
+      if (!base) return;
+      st.prod = { ...base, variantes: [] };
+      if (base.numVariantes) {
+        elegir.textContent = "Cargando…";
+        try {
+          const res = await fetch(`/.netlify/functions/admin-preventa?producto=${encodeURIComponent(base.id)}`, { headers: { "x-admin-key": adminKey } });
+          const d = await res.json();
+          if (!res.ok) throw new Error(d.error || "No se pudo cargar.");
+          st.prod = { ...base, ...d.producto, marca: base.marca };
+        } catch (err) { alert(err.message); st.prod = null; }
+      }
+      pvNuevoPintar();
+      return;
+    }
+    if (t.closest("[data-pvn-otro]")) { st.prod = null; pvNuevoPintar(); return; }
+    if (t.closest("[data-pvn-poner]")) {
+      const p = st.prod;
+      const qty = Math.max(1, Math.min(20, parseInt(document.querySelector("[data-pvn-qty]").value, 10) || 1));
+      let v = null;
+      if ((p.variantes || []).length) { const sel = document.querySelector("[data-pvn-var]").value; v = p.variantes.find((x) => x.id === sel); }
+      const precio = Number(v ? v.precio : p.precio) || 0;
+      const k = `${p.id}|${v ? v.id : ""}`;
+      const ya = st.items.find((it) => it.k === k);
+      if (ya) ya.qty += qty;
+      else st.items.push({ k, id: p.id, sku: v ? v.id : "", marca: p.marca || "", nombre: p.nombre, variante: v ? v.nombre : "", precio, qty });
+      st.prod = null;
+      const b = document.querySelector("[data-pvn-buscar]"); if (b) { b.value = ""; st.buscar = ""; }
+      pvNuevoPintar();
+      return;
+    }
+    const quitar = t.closest("[data-pvn-quitar]");
+    if (quitar) { st.items.splice(Number(quitar.dataset.pvnQuitar), 1); pvNuevoPintar(); return; }
+    if (t.closest("[data-pvn-guardar]") && pvNuevo) {
+      const btn = t.closest("button");
+      const box = document.getElementById("pvn");
+      const v = (k) => (box.querySelector(`[data-pvn="${k}"]`) || {}).value || "";
+      const email = v("email").trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert("Pon el correo de la clienta."); return; }
+      if (!v("nombre").trim() && !confirm("No pusiste nombre. Si la clienta ya tiene cuenta se usa el de su cuenta; si no, no se puede guardar. ¿Seguir?")) return;
+      if (!pvNuevo.items.length) { alert("Agrega al menos un producto."); return; }
+      const entrega = (box.querySelector("[data-pvn-entrega]:checked") || {}).value || "envio";
+      const direccion = {};
+      ["calle", "colonia", "ciudad", "estado", "cp", "referencias"].forEach((k) => { direccion[k] = v(k); });
+      const ya = box.querySelector("[data-pvn-ya]").checked;
+      const r = await pvAct({
+        accion: "crear_apartado", email, nombre: v("nombre"), telefono: v("telefono"), nota: v("nota"), entrega, direccion,
+        items: pvNuevo.items.map((it) => ({ id: it.id, sku: it.sku, qty: it.qty })),
+        pagoCompleto: box.querySelector("[data-pvn-completo]").checked, yaPagoAnticipo: ya, avisar: box.querySelector("[data-pvn-avisar]").checked,
+      }, btn);
+      if (r) {
+        pvNuevo = null;
+        if (r.avisos && r.avisos.length) alert(`Listo, pero ojo:\n- ${r.avisos.join("\n- ")}`);
+        if (!r.tieneCuenta) alert("Ojo: esa clienta todavía no tiene cuenta con ese correo. Pídele que se registre en alpacca.mx con ese mismo correo para ver y pagar su apartado.");
+        pvFiltro = ya ? "apartado" : "anticipo";
+        renderPreventaAdmin();
+      }
+    }
+  });
 
   function renderPreventaAdmin() {
     pvBadge();
     if (!pvData) return;
+    pvNuevoGuardarCampos();
     const aps = pvData.apartados;
     const chips = PV_FILTROS.map(([k, t, fn]) => `<button type="button" class="tab ${pvFiltro === k ? "active" : ""}" data-pv-filtro="${k}">${t} (${aps.filter(fn).length})</button>`).join("");
     if (!pvFiltro) pvFiltro = aps.some(pvPorRevisar) ? "revisar" : "activos";
@@ -6960,6 +7249,7 @@ ${itemLines}
     const llegaTodo = pvFiltro === "apartado" && lista.length > 1
       ? `<p class="meta" style="margin-bottom:6px;">El envío de cada clienta ya viene calculado por peso y código postal; cámbialo en su cuadrito si hace falta y luego avísales a todas juntas:</p><button type="button" class="btn-primary" data-pv-llego-todo style="margin-bottom:8px;">📦 Llegó todo: avisar a las ${lista.length} y cobrar el resto + su envío</button>` : "";
     document.getElementById("pv-admin").innerHTML = `
+      ${pvNuevoHTML()}
       <h4 style="margin:4px 0 8px;font-size:16px;">💗 Apartados (${aps.length})</h4>
       <div class="tabs" style="flex-wrap:wrap;">${chips}</div>
       <div style="margin-top:12px;">${llegaTodo}${lista.map(pvApartadoHTML).join("") || `<p class="abw-intro">No hay apartados aquí.</p>`}</div>
@@ -6970,6 +7260,8 @@ ${itemLines}
         <h4 style="margin:18px 0 8px;font-size:16px;">🛍️ Productos (${pvData.productos.length})</h4>
         <div style="display:flex;flex-direction:column;gap:8px;">${pvProductosHTML()}</div>
       </details>`;
+    pvNuevoRestaurarCampos();
+    pvNuevoPintar();
   }
 
   async function pvOpenFile(key) {
@@ -7099,7 +7391,7 @@ ${itemLines}
     if (entregado) { await pvAct({ accion: "marcar_entregado", id: entregado.dataset.pvEntregado }, btn); return; }
     const cancelar = t.closest("[data-pv-cancelar]");
     if (cancelar) {
-      const motivo = prompt("¿Por qué se cancela? (déjalo vacío si no quieres decirle nada). Si ya había pagado, la devolución la haces tú aparte.", "");
+      const motivo = prompt("¿Por qué se cancela? (déjalo vacío si no quieres decirle nada). Si ya había pagado, queda apuntado su reembolso pendiente.", "");
       if (motivo == null) return;
       const avisarle = confirm("¿Le aviso a la clienta por correo y WhatsApp?");
       await pvAct({ accion: "cancelar", id: cancelar.dataset.pvCancelar, motivo, avisar: avisarle }, btn);
