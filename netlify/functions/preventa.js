@@ -77,6 +77,22 @@ exports.handler = async (event) => {
         if (!limit.allowed) return json(429, { error: "Hiciste muchos apartados seguidos. Intenta en un rato." });
         const cfg = await configActual();
         if (!abierta(cfg)) return json(409, { error: "La venta ya cerró." });
+        // Cómo va a pagar: con transferencia el comprobante VIENE EN ESTA MISMA
+        // petición y es obligatorio (no se crea un apartado por transferencia sin
+        // comprobante); con tarjeta se manda directo a Mercado Pago.
+        const metodo = b.metodo === "mercadopago" ? "mercadopago" : b.metodo === "transferencia" ? "transferencia" : null;
+        if (!metodo) return json(400, { error: "Elige cómo vas a pagar (transferencia o tarjeta). Si no te sale, recarga la página e inténtalo otra vez." });
+        let comprobante = null;
+        if (metodo === "transferencia") {
+          const c = b.comprobante || {};
+          if (!c.dataBase64) return json(400, { error: "Sube la captura de tu transferencia para apartar." });
+          let buf;
+          try { buf = Buffer.from(String(c.dataBase64), "base64"); } catch { return json(400, { error: "El comprobante no se pudo leer." }); }
+          if (!buf.length || buf.length > MAX_BYTES) return json(400, { error: "El comprobante debe pesar menos de 5 MB." });
+          const real = detectFileType(buf);
+          if (!real) return json(400, { error: "El comprobante debe ser una imagen o un PDF." });
+          comprobante = { buf, ct: real === "pdf" ? "application/pdf" : /^image\/[a-z0-9.+-]+$/i.test(c.contentType || "") ? c.contentType : "image/jpeg" };
+        }
         // Un renglón por producto + tono/tamaño (sku).
         const pedidos = new Map();
         for (const it of Array.isArray(b.items) ? b.items : []) {
@@ -130,14 +146,36 @@ exports.handler = async (event) => {
           envio: 0, ...pesos, envioEstimado: envioEst, entrega, direccion, nota: clip(b.nota, 500), status: "nuevo",
           history: [{ at: now(), status: "nuevo" }], createdAt: now(), updatedAt: now(),
         };
+        if (comprobante) {
+          // El comprobante se guarda ANTES que el apartado: si falla, no se crea nada.
+          await saveFile(`comprobante/${rec.id}/anticipo`, comprobante.buf, comprobante.ct);
+          rec.anticipo = { ...rec.anticipo, metodo: "transferencia", status: "revision", comprobanteAt: now(), comprobanteTipo: comprobante.ct };
+        } else {
+          rec.anticipo = { ...rec.anticipo, metodo: "mercadopago", elegidoAt: now() };
+        }
         await saveApartado(rec);
+        if (comprobante) {
+          await avisar(rec, `${rec.folio}: recibimos tu comprobante`, `
+            <h2 style="margin:0 0 8px;font-size:20px;">¡Recibimos tu comprobante!</h2>
+            ${listaHTML(rec)}
+            <p style="font-size:14px;">Total: <b>${formatPriceMXN(total)}</b>. ${completo ? "Elegiste pagar todo ahora." : `Anticipo (${pct}%): <b>${formatPriceMXN(anticipo)}</b>.`} Lo estamos revisando y te avisamos en cuanto se confirme tu apartado.</p>`,
+          `${rec.folio}: recibimos tu comprobante, lo estamos revisando y te avisamos en cuanto se confirme tu apartado`);
+          return json(200, { apartado: apartadoPublico(rec) });
+        }
+        let redirectUrl;
+        try {
+          redirectUrl = await crearPreferenciaMP(rec, "anticipo", event);
+        } catch (err) {
+          await mutateApartado(rec.id, (r) => { r.status = "cancelado"; r.motivoCancelacion = "No se pudo abrir Mercado Pago"; return r; });
+          return json(502, { error: err.message || "No se pudo conectar con Mercado Pago. Intenta de nuevo." });
+        }
         await avisar(rec, completo ? `${rec.folio}: paga tu pedido para apartarlo` : `${rec.folio}: aparta pagando tu anticipo`, `
           <h2 style="margin:0 0 8px;font-size:20px;">¡Ya casi! ${completo ? "Paga tu pedido para apartarlo" : "Paga tu anticipo para apartar"}</h2>
           ${listaHTML(rec)}
           <p style="font-size:14px;">${completo ? `Total: <b>${formatPriceMXN(total)}</b>. Elegiste pagar todo ahora${entrega === "envio" ? "; cuando lleguen tus productos solo pagas el envío" : ""}.` : `Total: <b>${formatPriceMXN(total)}</b>. Para apartar pagas el ${pct}%: <b>${formatPriceMXN(anticipo)}</b>. El resto lo pagas cuando lleguen tus productos.`}</p>
           <p style="font-size:14px;">Tienes ${HORAS_PARA_PAGAR} horas para pagarlo; si no, se libera el lugar.</p>`,
         `${rec.folio}: paga tu anticipo de ${formatPriceMXN(anticipo)} para apartar`);
-        return json(200, { apartado: apartadoPublico(rec) });
+        return json(200, { apartado: apartadoPublico(rec), redirectUrl });
       }
 
       case "pagar": {

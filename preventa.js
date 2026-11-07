@@ -554,6 +554,18 @@ function pvCheckoutHTML() {
       <label class="flex items-center gap-3 rounded-xl border-2 border-ink/15 bg-white px-3 py-2.5 cursor-pointer has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20">
         <input type="radio" name="pv-pago" value="completo" ${completo ? "checked" : ""} data-pv-pago class="accent-[#c4466e] w-5 h-5 shrink-0"><span><b class="block text-sm">💳 Pagar todo ahora: ${pvMXN(total)}</b><span class="block text-xs text-ink/70">Te olvidas de pagos después${pv.entrega === "envio" ? "; al llegar solo pagas el envío" : ""}.</span></span></label>
     </fieldset>
+    <fieldset class="space-y-2"><legend class="text-sm font-semibold mb-1">¿Cómo vas a pagar hoy?</legend>
+      <label class="flex items-center gap-3 rounded-xl border-2 border-ink/15 bg-white px-3 py-2.5 cursor-pointer has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20">
+        <input type="radio" name="pv-metodo" value="tr" ${pv.metodo === "mp" ? "" : "checked"} data-pv-metodo class="accent-[#c4466e] w-5 h-5 shrink-0"><span><b class="block text-sm">🏦 Transferencia o depósito</b><span class="block text-xs text-ink/70">Transfieres y subes aquí la captura (es obligatoria para apartar).</span></span></label>
+      <label class="flex items-center gap-3 rounded-xl border-2 border-ink/15 bg-white px-3 py-2.5 cursor-pointer has-[:checked]:border-rose-deep has-[:checked]:bg-blush/20">
+        <input type="radio" name="pv-metodo" value="mp" ${pv.metodo === "mp" ? "checked" : ""} data-pv-metodo class="accent-[#c4466e] w-5 h-5 shrink-0"><span><b class="block text-sm">💳 Tarjeta (Mercado Pago)</b><span class="block text-xs text-ink/70">Pagas en línea, sin subir comprobante.</span></span></label>
+      <div data-pv-metodo-box="tr" class="rounded-xl bg-pill p-3 text-sm space-y-2 ${pv.metodo === "mp" ? "hidden" : ""}">
+        <p><b>1.</b> Transfiere exactamente <b>${pvMXN(anticipo)}</b></p>
+        ${pvBancoHTML()}
+        <label class="flex flex-col gap-1"><span><b>2.</b> Sube la captura de tu transferencia (foto o PDF) *</span>
+          <input type="file" accept="image/*,application/pdf" data-pv-apartar-proof class="text-xs font-normal" /></label>
+      </div>
+    </fieldset>
     <fieldset class="space-y-2"><legend class="text-sm font-semibold mb-1">¿Cómo te lo entrego?</legend>
       ${opt("envio", "📦 Envío a mi domicilio", completo ? "El envío depende del peso y lo pagas cuando lleguen tus productos." : "El envío depende del peso y lo pagas al liquidar, junto con el resto.")}
       ${opt("personal", "📍 Entrega personal en Ciudad Juárez", "Sin costo de envío.")}
@@ -576,6 +588,15 @@ function pvCheckoutHTML() {
     <p class="text-xs text-ink/70 text-center">Tienes ${(pv.config && pv.config.horasParaPagar) || 24} horas para pagar${completo ? "" : " el anticipo"}; si no, se libera el lugar.</p>
     <p class="text-xs text-ink/70 text-center">${completo ? "La fecha de llegada es aproximada (puede cambiar por logística y aduanas)." : "Una vez pagado, el anticipo no es reembolsable y la fecha de llegada es aproximada (puede cambiar por logística y aduanas)."} <a href="./reembolsos.html#preventas" target="_blank" rel="noopener" class="underline">Ver política</a></p>
   </form>`;
+}
+
+/* Datos de la cuenta para transferir (los mismos de la tienda). */
+function pvBancoHTML(concepto = "tu nombre") {
+  const s = typeof shippingSettings !== "undefined" ? shippingSettings : {};
+  const bank = [s.bankName && `<div>Banco: <b>${escapeHtml(s.bankName)}</b></div>`, s.bankHolder && `<div>Titular: <b>${escapeHtml(s.bankHolder)}</b></div>`,
+    s.bankClabe && `<div>CLABE: <b>${escapeHtml(s.bankClabe)}</b> <button type="button" data-pv-copy="${escapeHtml(s.bankClabe)}" class="ml-1 text-xs underline">Copiar</button></div>`,
+    s.bankAccount && `<div>Cuenta: <b>${escapeHtml(s.bankAccount)}</b> <button type="button" data-pv-copy="${escapeHtml(s.bankAccount)}" class="ml-1 text-xs underline">Copiar</button></div>`].filter(Boolean).join("");
+  return `<div class="rounded-lg bg-white/70 px-3 py-2 space-y-0.5">${bank || '<p class="text-xs text-ink/70">Cargando datos bancarios...</p>'}<div>Concepto: <b>${escapeHtml(concepto)}</b></div></div>`;
 }
 
 function pvPagoHTML(a) {
@@ -668,11 +689,31 @@ async function pvApartar(form) {
   if (!direccion.nombre || direccion.telefono.replace(/\D/g, "").length < 10) return fail("Pon tu nombre y un teléfono de 10 dígitos.");
   if (pv.entrega === "envio" && (!direccion.calle || !direccion.ciudad || !/^\d{5}$/.test(direccion.cp))) return fail("Completa tu dirección: calle y número, ciudad y código postal de 5 dígitos.");
   const items = Object.values(pv.bag).map((x) => ({ id: x.id, sku: x.sku, qty: x.qty }));
+  const metodo = (form.querySelector("[data-pv-metodo]:checked") || {}).value === "mp" ? "mercadopago" : "transferencia";
+  pv.metodo = metodo === "mercadopago" ? "mp" : "tr";
+  let archivo = null;
+  if (metodo === "transferencia") {
+    archivo = (form.querySelector("[data-pv-apartar-proof]").files || [])[0];
+    if (!archivo) return fail("Sube la captura de tu transferencia para apartar (o elige pagar con tarjeta).");
+    if (!(archivo.type.startsWith("image/") || archivo.type === "application/pdf")) return fail("El comprobante debe ser una imagen o un PDF.");
+  }
   btn.disabled = true;
   const label = btn.textContent;
   btn.textContent = "Apartando...";
   try {
-    const data = await pvPost({ accion: "apartar", items, entrega: pv.entrega, direccion, nota: form.querySelector("[data-pv-nota]").value, pagoCompleto: pv.pago === "completo" });
+    let comprobante;
+    if (archivo) {
+      const listo = await pvAchicarImagen(archivo);
+      if (listo.size > 4 * 1024 * 1024) throw new Error("Tu comprobante pesa demasiado. Súbelo como captura de pantalla o foto.");
+      comprobante = { filename: listo.name, contentType: listo.type, dataBase64: await pvFileToBase64(listo) };
+    }
+    const data = await pvPost({ accion: "apartar", items, entrega: pv.entrega, direccion, nota: form.querySelector("[data-pv-nota]").value, pagoCompleto: pv.pago === "completo", metodo, comprobante });
+    if (data.redirectUrl) {
+      pv.bag = {};
+      pvGuardarBolsa();
+      window.location.href = data.redirectUrl;
+      return;
+    }
     if (pv.entrega === "envio" && typeof guardarDireccionUsada === "function") guardarDireccionUsada(direccion);
     pv.bag = {};
     pvGuardarBolsa();
@@ -874,6 +915,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const llega = form.querySelector("[data-pv-al-llegar]");
       if (llega && pv.pago === "completo") llega.textContent = pv.entrega === "envio" ? "solo el envío" : "nada 🎉";
       else if (llega) { const { total, anticipo } = pvTotales(); llega.textContent = `${pvMXN(total - anticipo)}${pv.entrega === "envio" ? " + envío" : ""}`; }
+      return;
+    }
+    if (t.matches("[data-pv-metodo]")) {
+      pv.metodo = t.value;
+      const caja = t.closest("form").querySelector('[data-pv-metodo-box="tr"]');
+      if (caja) caja.classList.toggle("hidden", t.value !== "tr");
       return;
     }
     if (t.matches("[data-pv-pm]")) {
