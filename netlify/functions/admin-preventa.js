@@ -207,6 +207,8 @@ exports.handler = async (event) => {
         const rec = await mutateApartado(id, (a) => {
           if (a.status !== "apartado") return null;
           ok = true;
+          // Cómo estaba antes, por si Mae lo marcó por error (deshacer_llego).
+          a.antesDeLlegar = { resto: a.resto || null, envio: a.envio == null ? null : a.envio, adelantado: !!a.adelantado };
           a.adelantado = false; // pidió liquidar pero no pagó: vuelve al flujo normal
           a.envio = a.entrega === "personal" ? 0 : envio;
           const monto = round2(a.total - a.anticipo.monto + a.envio);
@@ -231,6 +233,40 @@ exports.handler = async (event) => {
             ${listaHTML(rec)}
             <p style="font-size:14px;">Ya está todo pagado. ${rec.entrega === "personal" ? "Te escribo para quedar en la entrega." : "Ya preparo tu envío; te mando la guía en cuanto salga."}</p>`,
           `${rec.folio}: ya llegaron tus productos, ${rec.entrega === "personal" ? "te escribo para la entrega" : "ya preparo tu envío"}`);
+        }
+        return json(200, { apartado: rec });
+      }
+
+      // Mae le dio "Ya llegó" por error: regresa el apartado a como estaba.
+      case "deshacer_llego": {
+        let motivo = "";
+        const rec = await mutateApartado(id, (a) => {
+          if (!a.llegoAt || !["llego", "liquidado"].includes(a.status)) { motivo = "Este apartado no está marcado como llegado."; return null; }
+          const r = a.resto || {};
+          if (r.status === "revision") { motivo = "La clienta ya subió un comprobante del pago de llegada: recházalo primero."; return null; }
+          if (r.status === "pagado" && r.metodo !== "nada") { motivo = "La clienta ya pagó lo de la llegada; no se puede deshacer."; return null; }
+          const antes = a.antesDeLlegar;
+          if (antes) {
+            a.resto = antes.resto || { monto: round2((Number(a.total) || 0) - (Number(a.anticipo && a.anticipo.monto) || 0)), status: "espera" };
+            if (antes.envio == null) delete a.envio; else a.envio = antes.envio;
+            a.adelantado = !!antes.adelantado;
+          } else {
+            a.resto = { monto: round2(Math.max(0, (Number(a.total) || 0) - (Number(a.anticipo && a.anticipo.monto) || 0))), status: "espera" };
+            delete a.envio;
+            a.adelantado = false;
+          }
+          delete a.antesDeLlegar;
+          delete a.llegoAt;
+          a.status = "apartado";
+          hist(a, "apartado", { deshizoLlego: true });
+          return a;
+        });
+        if (!rec) return json(motivo ? 409 : 404, { error: motivo || "No existe ese apartado." });
+        if (b.avisar) {
+          await avisar(rec, `${rec.folio}: perdón, tus productos todavía no llegan`, `
+            <h2 style="margin:0 0 8px;font-size:20px;">Perdón, fue un error 🙏</h2>
+            <p style="font-size:14px;">Te llegó un aviso de que tus productos del ${esc(rec.campana || "Sephora Sale")} ya habían llegado, pero todavía no llegan. <b>No tienes que pagar nada por ahora.</b> Te aviso en cuanto lleguen.</p>`,
+          `${rec.folio}: perdón, fue un error, tus productos todavía no llegan. No tienes que pagar nada por ahora; te aviso en cuanto lleguen`);
         }
         return json(200, { apartado: rec });
       }
