@@ -7192,6 +7192,7 @@ ${itemLines}
       acciones.push(`<button type="button" class="btn-secondary" data-pv-entregado="${id}">🎁 Ya se entregó</button>`);
     }
     if (a.status === "enviado") acciones.push(`<button type="button" class="btn-secondary" data-pv-entregado="${id}">🎁 Marcar entregado</button>`);
+    if (a.llegoAt && (a.status === "llego" || (a.status === "liquidado" && a.resto && a.resto.metodo === "nada")) && !(a.resto && a.resto.status === "revision")) acciones.push(`<button type="button" class="btn-secondary" data-pv-deshacer-llego="${id}">↩️ Deshacer "Ya llegó"</button>`);
     if (a.cuenta && ["nuevo", "apartado", "llego"].includes(a.status)) acciones.push(`<button type="button" class="btn-secondary" data-pve-abrir="${id}">✏️ Cambiar productos</button>`);
     if (a.status !== "cancelado" && a.status !== "entregado") acciones.push(`<button type="button" class="btn-ghost" data-pv-cancelar="${id}" style="margin-left:0;padding:8px 10px;">Cancelar${pvYaPago(a) > 0 ? " (con reembolso)" : ""}</button>`);
     return `<div class="swm-card" id="pv-ap-${id}">
@@ -7645,11 +7646,23 @@ ${itemLines}
       if (motivo != null) await pvAct({ accion: "rechazar_pago", id, etapa, motivo }, btn);
       return;
     }
+    const deshacer = t.closest("[data-pv-deshacer-llego]");
+    if (deshacer) {
+      const id = deshacer.dataset.pvDeshacerLlego;
+      const a = pvData.apartados.find((x) => x.id === id);
+      if (!a || !confirm(`¿Regresar ${a.folio} a "apartado"? Se quita el cobro de la llegada${a.envio ? ` (envío ${formatPrice(a.envio)})` : ""} y queda como si todavía no llegara.`)) return;
+      const avisarle = confirm(`¿Le aviso a ${a.name || "la clienta"} por WhatsApp y correo que fue un error y que todavía no paga nada?\n\nAceptar = sí le aviso · Cancelar = no le aviso`);
+      const r = await pvAct({ accion: "deshacer_llego", id, avisar: avisarle }, deshacer);
+      if (r) showToast(`↩️ ${a.folio} regresó a apartado${avisarle ? " y se le avisó" : ""}.`);
+      return;
+    }
     const llego = t.closest("[data-pv-llego]");
     if (llego) {
       const id = llego.dataset.pvLlego;
       const input = document.querySelector(`[data-pv-envio="${CSS.escape(id)}"]`);
       const envio = input ? input.value : 0;
+      const ap = pvData.apartados.find((x) => x.id === id);
+      if (!confirm(`¿Ya llegaron los productos de ${ap ? ap.folio : "este apartado"}? Se le avisa a la clienta por WhatsApp y correo para que pague.`)) return;
       if (input && envio === "" && !confirm("No pusiste envío. ¿Cobrar solo el resto, sin envío?")) return;
       await pvAct({ accion: "llego", id, envio }, btn);
       return;
