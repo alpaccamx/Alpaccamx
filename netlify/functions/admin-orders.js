@@ -6,7 +6,7 @@
 // Requiere el header "x-admin-key" con el valor de la variable de
 // entorno ADMIN_KEY configurada en Netlify.
 
-const { listOrders } = require("./lib/blob-store.js");
+const { listOrders, reconcileReservations } = require("./lib/blob-store.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 
 exports.handler = async (event) => {
@@ -24,6 +24,7 @@ exports.handler = async (event) => {
 
   try {
     const orders = await listOrders({});
+    await reconcileReservations(orders).catch((err) => console.error("No se pudo revisar lo apartado:", err));
     return jsonResponse(200, { orders });
   } catch (err) {
     console.error("Error listando pedidos:", err);

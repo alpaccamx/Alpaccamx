@@ -13,6 +13,10 @@ process.env.CUSTOMER_JWT_SECRET = process.env.CUSTOMER_JWT_SECRET || "test-secre
 // toma estas funciones al cargar el módulo.
 const blobStore = require("../netlify/functions/lib/blob-store.js");
 blobStore.getEffectiveSoldMap = async () => ({});
+blobStore.getReservedTotals = async () => ({});
+blobStore.reserveOrderStock = async () => {};
+blobStore.releaseOrderStock = async () => {};
+blobStore.withLock = async (_n, fn) => fn();
 // Las pruebas de idempotencia cambian claimImpl; el resto usa la reserva libre.
 let claimImpl = async () => ({ claimed: true, existing: null });
 blobStore.claimIdempotencyKey = (...args) => claimImpl(...args);

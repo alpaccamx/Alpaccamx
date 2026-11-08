@@ -2,7 +2,7 @@
 // confirmados), para que el sitio le reste ese número a "Piezas
 // Disponibles" de la hoja de Stock y no se sobrevenda.
 
-const { getEffectiveSoldMap } = require("./lib/blob-store.js");
+const { getEffectiveSoldMap, getReservedTotals } = require("./lib/blob-store.js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
@@ -10,7 +10,11 @@ exports.handler = async (event) => {
   }
 
   try {
+    // Vendido + apartado por pedidos que Mae todavía no confirma: la tienda
+    // le resta las dos cosas a las piezas de la hoja.
     const sold = await getEffectiveSoldMap();
+    const apartado = await getReservedTotals().catch(() => ({}));
+    for (const [sku, qty] of Object.entries(apartado)) sold[sku] = (sold[sku] || 0) + qty;
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },

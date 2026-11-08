@@ -3255,7 +3255,7 @@ ${itemLines}
     return String(str ?? "").replace(/[^0-9+]/g, "");
   }
 
-  async function confirmOrCancel(orderId, action) {
+  async function confirmOrCancel(orderId, action, forzar = false) {
     if (action === "cancel") {
       const o = allOrders.find((x) => x.id === orderId);
       const who = o && o.customer && o.customer.name ? ` de ${o.customer.name}` : "";
@@ -3272,9 +3272,18 @@ ${itemLines}
       const res = await fetch("/.netlify/functions/admin-confirm-order", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ orderId, action }),
+        body: JSON.stringify({ orderId, action, ...(forzar ? { forzar: true } : {}) }),
       });
       const data = await res.json();
+      // Ya no alcanzan las piezas (otra clienta se las llevó): Mae decide.
+      if (res.status === 409 && Array.isArray(data.sinStock) && data.sinStock.length) {
+        setStatus("");
+        const lista = data.sinStock.map((f) => `• ${f.nombre}: pide ${f.qty}, ${f.quedan ? `solo queda${f.quedan === 1 ? "" : "n"} ${f.quedan}` : "ya no queda ninguna"}`).join("\n");
+        if (window.confirm(`⚠️ Ya no alcanza el stock para este pedido:\n\n${lista}\n\nSi lo confirmas vas a vender de más. Mejor cancélalo o cámbiale el producto.\n\n¿Confirmarlo de todos modos?`)) {
+          return confirmOrCancel(orderId, action, true);
+        }
+        return;
+      }
       if (!res.ok) {
         setStatus(data.error || "Error al actualizar el pedido.");
         return;
