@@ -1,0 +1,34 @@
+{
+ "nombre": "Dolce & Gabbana: Mini Deluxe Perfume Sampler Gift Set",
+ "productos": [
+  {
+   "id": "sep-P526386",
+   "nombre": "Mini Deluxe Perfume Sampler Gift Set",
+   "marca": "Dolce&Gabbana",
+   "grupo": "Dolce & Gabbana",
+   "imagen": "https://www.sephora.com/productimages/sku/s3009586-main-zoom.jpg?imwidth=500",
+   "descripcion": "A limited-edition gift set with four 5 mL Dolce&Gabbana fragrances: Light Blue Eau de Toilette, My Devotion Eau de Parfum Intense, L'Imperatrice Eau de Toilette, and The One Eau de Parfum.",
+   "precio": 986,
+   "precioAntes": 1233,
+   "piezas": null,
+   "variacion": "None",
+   "variantes": [
+    {
+     "id": "3009586",
+     "nombre": "Único",
+     "desc": "",
+     "tamano": "4 x 5 mL",
+     "precio": 986,
+     "precioAntes": 1233,
+     "imagen": "https://www.sephora.com/productimages/sku/s3009586-main-zoom.jpg?imwidth=500",
+     "swatch": "",
+     "peso": 0.3,
+     "vol": 1000,
+     "agotado": false
+    }
+   ],
+   "peso": 0,
+   "origen": "https://www.sephora.com/product/mini-deluxe-perfume-sampler-gift-set-P526386"
+  }
+ ]
+}
