@@ -34,7 +34,7 @@ const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
 const { detectFileType } = require("./lib/file-signature.js");
 const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, casilleroDe } = require("./lib/swm-store.js");
-const { ALMACENAJE_DIAS, cotizacionSugerida, crearPreferenciaMP, publico, todoDe, tiposDeCambio, lealtadDe, codigoReferido, premiosDe, ponerCruceAnticipado, porPagar, envioAutomatico } = require("./lib/swm-core.js");
+const { ALMACENAJE_DIAS, ALMACENAJE_ANTES, cotizacionSugerida, crearPreferenciaMP, publico, todoDe, tiposDeCambio, lealtadDe, codigoReferido, premiosDe, ponerCruceAnticipado, porPagar, envioAutomatico } = require("./lib/swm-core.js");
 const { REVISION_FOTOS, SEPARAR, COMISION_PCT, REFERIDO_MXN } = require("./lib/swm-pricing.js");
 const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/coupons.js");
 
@@ -190,7 +190,7 @@ exports.handler = async (event) => {
         lealtad: lealtadDe(all.envios), referido: referido ? { code: referido, monto: REFERIDO_MXN } : null, premios,
         casillero,
         paquetes: all.paquetes.map(publico), compras: all.compras.map(publico), envios: all.envios.map(publico),
-        name: customer.name || "", phone: customer.phone || "", almacenajeDias: ALMACENAJE_DIAS,
+        name: customer.name || "", phone: customer.phone || "", almacenajeDias: ALMACENAJE_DIAS, almacenajeAntes: ALMACENAJE_ANTES,
         tiposCambio: await tiposDeCambio(), comisionPct: COMISION_PCT,
         precios: { revision: REVISION_FOTOS, separar: SEPARAR },
       });

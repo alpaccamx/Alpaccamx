@@ -13,7 +13,11 @@ const { getCustomerByEmail } = require("./customer-store.js");
 const { listOrders, updateOrderFields } = require("./blob-store.js");
 
 const MP_API = "https://api.mercadopago.com";
-const ALMACENAJE_DIAS = 30;
+const ALMACENAJE_DIAS = 15;
+/* Antes eran 30 días. A los paquetes que ya estaban en México cuando
+   cambió se les respetan los 30 que se les prometieron. */
+const ALMACENAJE_ANTES = { dias: 30, hasta: "2026-11-08T07:00:00.000Z" };
+const diasAlmacenaje = (enMexicoAt) => (enMexicoAt && String(enMexicoAt) < ALMACENAJE_ANTES.hasta ? ALMACENAJE_ANTES.dias : ALMACENAJE_DIAS);
 const TOLERANCIA_MXN = 1;
 
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
@@ -433,6 +437,6 @@ async function todoDe(email) {
 
 module.exports = {
   lealtadDe, codigoReferido, premiosDe,
-  ALMACENAJE_DIAS, round2, compraEnMano, marcarOrdenesDeCaja, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, cotizarEnvio, despacharConGuia, ponerCruceAnticipado, porPagar, envioAutomatico, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
+  ALMACENAJE_DIAS, ALMACENAJE_ANTES, diasAlmacenaje, round2, compraEnMano, marcarOrdenesDeCaja, tipoDeCambio, tiposDeCambio, valorEnPesos, crucePaquete, cotizacionSugerida, cotizarEnvio, despacharConGuia, ponerCruceAnticipado, porPagar, envioAutomatico, crearPreferenciaMP, aplicarPago, avisar, publico, todoDe, getRecord,
   formatPriceMXN,
 };
