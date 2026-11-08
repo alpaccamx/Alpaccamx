@@ -5433,6 +5433,7 @@ ${itemLines}
   let pmCaja = null; // { key, nombre, tel, orderIds, paqueteIds, kg, kgOrdenes, pagado, paso: "dir" | "guia", envioId, orderId }
   let pmAviso = null; // { nombre, tel, html, texto }
   const pmDesmarcados = new Set(); // cosas listas que Mae sacó de la caja
+  const pmAbiertos = new Set(); // filas con su lista de productos desplegada ahí mismo
 
   const pmEmail = (x) => String(x || "").trim().toLowerCase();
   const pmTel = (x) => String(x || "").replace(/\D/g, "").slice(-10);
@@ -5558,14 +5559,32 @@ ${itemLines}
 
   function pmFila(x, { check = false, marcada = true } = {}) {
     const color = { listo: "#17803d", guardado: "#6a45b8", falta: "#8a5a00", proceso: "#1b6fb3" }[x.estado];
-    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-top:1px solid #f6eef2;">
+    return `<div data-pm-fila style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-top:1px solid #f6eef2;">
       ${check ? `<input type="checkbox" data-pm-chk="${x.tipo}:${escapeHtml(x.id)}" ${marcada ? "checked" : ""} style="width:22px;height:22px;margin-top:2px;flex:none;accent-color:#c4466e;">` : ""}
       <div style="flex:1;min-width:0;font-size:14px;"><b>${escapeHtml(x.titulo)}</b> <span class="meta">${escapeHtml(x.detalle || "")}${x.kg ? ` · ${x.kg.toFixed(x.kg < 1 ? 2 : 1)} kg` : ""}</span>
         ${x.nota ? `<div style="color:${color};font-size:13px;">${escapeHtml(x.nota)}</div>` : ""}</div>
       <div style="display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end;">
         ${x.estado === "guardado" && x.tipo === "pedido" ? `<button type="button" class="btn-secondary" data-pm-ya="${escapeHtml(x.id)}" style="padding:4px 10px;font-size:12px;">▶️ Ya puede salir</button>` : ""}
-        ${x.go ? `<button type="button" class="btn-secondary" data-global-go="${x.go.go}" data-global-q="${escapeHtml(x.go.q)}"${x.go.first ? ` data-global-first="${escapeHtml(x.go.first)}"` : ""} style="padding:4px 10px;font-size:12px;">Abrir</button>` : ""}
-      </div></div>`;
+        ${pmProductos(x) ? `<button type="button" class="btn-secondary" data-pm-ver="${x.tipo}:${escapeHtml(x.id)}" aria-expanded="${pmAbiertos.has(`${x.tipo}:${x.id}`)}" style="padding:4px 10px;font-size:12px;">${pmAbiertos.has(`${x.tipo}:${x.id}`) ? "Ocultar ▴" : "Ver productos ▾"}</button>`
+          : x.go ? `<button type="button" class="btn-secondary" data-global-go="${x.go.go}" data-global-q="${escapeHtml(x.go.q)}"${x.go.first ? ` data-global-first="${escapeHtml(x.go.first)}"` : ""} style="padding:4px 10px;font-size:12px;">Abrir</button>` : ""}
+      </div></div>${pmAbiertos.has(`${x.tipo}:${x.id}`) ? pmProductosHTML(x) : ""}`;
+  }
+
+  /* Lista de productos de un pedido o apartado, para verla ahí mismo en
+     Por mandar sin irse a otra pantalla. */
+  function pmProductos(x) {
+    if (x.tipo === "pedido") return (x.o && x.o.items) || null;
+    if (x.tipo === "apartado") return (x.a && x.a.items) || null;
+    return null;
+  }
+  function pmProductosHTML(x) {
+    const items = pmProductos(x) || [];
+    const total = items.reduce((t, it) => t + (Number(it.qty) || 0), 0);
+    const fila = (it) => `<li style="padding:3px 0;"><b>${Number(it.qty) || 0} ×</b> ${it.marca ? `<span class="meta">${escapeHtml(it.marca)} ·</span> ` : ""}${escapeHtml(it.nombre || it.sku || "")}${it.variante ? ` · ${escapeHtml(it.variante)}` : ""}${it.tamano ? ` <span class="meta">(${escapeHtml(it.tamano)})</span>` : ""}${it.enStock === false && x.tipo === "pedido" ? ` <span class="meta">🇰🇷</span>` : ""}</li>`;
+    return `<div data-pm-prod style="margin:2px 0 8px ${x.estado === "listo" ? "30px" : "0"};background:#faf7fb;border-radius:10px;padding:8px 12px;">
+      <ul style="margin:0;padding-left:18px;font-size:14px;">${items.map(fila).join("")}</ul>
+      <div class="meta" style="margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">${total} pieza${total === 1 ? "" : "s"} en total${x.go ? ` · <button type="button" class="link-btn" data-global-go="${x.go.go}" data-global-q="${escapeHtml(x.go.q)}"${x.go.first ? ` data-global-first="${escapeHtml(x.go.first)}"` : ""} style="background:none;border:0;padding:0;color:#a33a63;text-decoration:underline;cursor:pointer;font-size:13px;">Ir al ${x.tipo === "apartado" ? "apartado" : "pedido"} completo ›</button>` : ""}</div>
+    </div>`;
   }
 
   function pmCajaHTML(g) {
@@ -5682,6 +5701,20 @@ ${itemLines}
     if (f) { e.stopPropagation(); pmFiltro = f.dataset.pmFiltro; swmSearch = ""; renderSwmAdmin(); return; }
     if (t.closest("[data-pm-aviso-cerrar]")) { e.stopPropagation(); pmAviso = null; renderSwmAdmin(); return; }
     if (t.closest("[data-pm-cancelar]")) { e.stopPropagation(); pmCaja = null; renderSwmAdmin(); return; }
+    const ver = t.closest("[data-pm-ver]");
+    if (ver) { e.stopPropagation();
+      // Sin volver a pintar todo (no se pierde lo que Mae haya escrito en la caja).
+      const k = ver.dataset.pmVer;
+      const fila = ver.closest("[data-pm-fila]");
+      const abierto = fila && fila.nextElementSibling && fila.nextElementSibling.matches("[data-pm-prod]") ? fila.nextElementSibling : null;
+      if (abierto) { abierto.remove(); pmAbiertos.delete(k); ver.textContent = "Ver productos ▾"; ver.setAttribute("aria-expanded", "false"); return; }
+      const [tipo, ...rest] = k.split(":");
+      const x = pmGrupos().flatMap((g) => g.entradas).find((y) => y.tipo === tipo && y.id === rest.join(":"));
+      if (!x || !fila) return;
+      fila.insertAdjacentHTML("afterend", pmProductosHTML(x));
+      pmAbiertos.add(k); ver.textContent = "Ocultar ▴"; ver.setAttribute("aria-expanded", "true");
+      return;
+    }
     const chk = t.closest("[data-pm-chk]");
     if (chk) { e.stopPropagation();
       if (chk.checked) pmDesmarcados.delete(chk.dataset.pmChk); else pmDesmarcados.add(chk.dataset.pmChk);
