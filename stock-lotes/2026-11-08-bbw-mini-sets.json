@@ -1,0 +1,55 @@
+{
+ "nombre": "Sets mini de Bath & Body Works (9 piezas a $250)",
+ "productos": [
+  {
+   "sku": "STOCK-BBW-MINISET-CHAMPAGNE-TOAST",
+   "nombre": "Mini Gift Set Bath & Body Works (#Champagne Toast)",
+   "marca": "Bath & Body Works",
+   "categoria": "Cuidado corporal",
+   "descripcion": "Set mini de regalo de Bath & Body Works aroma Champagne Toast, con productos en tamaño de viaje. Perfecto para regalar o para llevar en la bolsa. Original, traído de Estados Unidos.",
+   "piezas": 4,
+   "precio": 250,
+   "peso": 0.4,
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mini-set-champagne-toast.jpg",
+   "precioTarjeta": 265
+  },
+  {
+   "sku": "STOCK-BBW-MINISET-A-THOUSAND-WISHES",
+   "nombre": "Mini Gift Set Bath & Body Works (#A Thousand Wishes)",
+   "marca": "Bath & Body Works",
+   "categoria": "Cuidado corporal",
+   "descripcion": "Set mini de regalo de Bath & Body Works aroma A Thousand Wishes, con productos en tamaño de viaje. Perfecto para regalar o para llevar en la bolsa. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 250,
+   "peso": 0.4,
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mini-set-a-thousand-wishes.jpg",
+   "precioTarjeta": 265
+  },
+  {
+   "sku": "STOCK-BBW-MINISET-STRAWBERRY-POUND-CAKE",
+   "nombre": "Mini Gift Set Bath & Body Works (#Strawberry Pound Cake)",
+   "marca": "Bath & Body Works",
+   "categoria": "Cuidado corporal",
+   "descripcion": "Set mini de regalo de Bath & Body Works aroma Strawberry Pound Cake, con productos en tamaño de viaje. Perfecto para regalar o para llevar en la bolsa. Original, traído de Estados Unidos.",
+   "piezas": 3,
+   "precio": 250,
+   "peso": 0.4,
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mini-set-strawberry-pound-cake.jpg",
+   "precioTarjeta": 265
+  },
+  {
+   "sku": "STOCK-BBW-MINISET-WARM-VANILLA-SUGAR",
+   "nombre": "Mini Gift Set Bath & Body Works (#Warm Vanilla Sugar)",
+   "marca": "Bath & Body Works",
+   "categoria": "Cuidado corporal",
+   "descripcion": "Set mini de regalo de Bath & Body Works aroma Warm Vanilla Sugar, con productos en tamaño de viaje. Perfecto para regalar o para llevar en la bolsa. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 250,
+   "peso": 0.4,
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-mini-set-warm-vanilla-sugar.jpg",
+   "precioTarjeta": 265
+  }
+ ],
+ "mezclas": [],
+ "ajustes": []
+}
