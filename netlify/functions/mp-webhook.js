@@ -10,7 +10,7 @@
 //
 // Variable de entorno necesaria: MP_ACCESS_TOKEN
 
-const { getOrder, transitionOrder, transitionOrderFrom, applyStockDecrement, adjustStockSold, updateOrderFields } = require("./lib/blob-store.js");
+const { getOrder, transitionOrder, transitionOrderFrom, applyStockDecrement, adjustStockSold, updateOrderFields, holdAfterPayment } = require("./lib/blob-store.js");
 const { notifySellerOrderPaid, notifyCustomerOrderConfirmed, notifySellerPaymentNeedsReview } = require("./lib/whatsapp.js");
 const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
 const { TOLERANCE_MXN } = require("./lib/pricing.js");
@@ -131,6 +131,9 @@ exports.handler = async (event) => {
       await applySheetStockDelta(deltaFromItems(order.items));
       await updateOrderFields(orderId, { sheetAppliedAt: new Date().toISOString() });
     }
+    // Mientras el CSV publicado de la hoja se pone al día, esas piezas se
+    // siguen contando como ocupadas (ver holdAfterPayment).
+    await holdAfterPayment(order).catch((err) => console.error("No se pudo apartar tras el pago:", err));
     if (!order.notifiedAt) {
       await notifySellerOrderPaid(order);
       await notifyCustomerOrderConfirmed(order);

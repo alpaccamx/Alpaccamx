@@ -129,6 +129,121 @@ async function adjustStockSold(deltaBySku) {
   throw new Error("No se pudo ajustar el stock vendido (conflicto de concurrencia).");
 }
 
+/* ---------- Piezas apartadas por pedidos que aún no se confirman ----------
+   Un pedido por transferencia (con su comprobante) aparta sus piezas de
+   stock desde que se registra: así otra clienta no puede pedir la misma
+   pieza mientras Mae revisa el pago. Se guarda por pedido
+   ({ [orderId]: { items: { sku: qty }, at, hastaMs? } }) para que liberar
+   sea simplemente borrar la entrada (no se descuadra si se llama dos veces).
+   Al confirmar un pago la entrada se queda unos minutos más ("hastaMs"):
+   la hoja de Stock ya se descontó, pero el CSV publicado de Google tarda
+   en actualizarse y mientras tanto se seguiría viendo la pieza. */
+const RESERVED_KEY = "reserved-map";
+const HOLD_TRAS_PAGO_MS = 8 * 60 * 1000;
+
+function vigentes(map, now = Date.now()) {
+  const out = {};
+  for (const [id, r] of Object.entries(map || {})) {
+    if (!r || !r.items) continue;
+    if (r.hastaMs && r.hastaMs < now) continue;
+    out[id] = r;
+  }
+  return out;
+}
+
+async function getReservedMap() {
+  const data = await getStockSoldStore().get(RESERVED_KEY, { type: "json" });
+  return vigentes(data || {});
+}
+
+/* Total apartado por SKU (sin contar el pedido exceptOrderId). */
+async function getReservedTotals({ exceptOrderId } = {}) {
+  const map = await getReservedMap();
+  const tot = {};
+  for (const [id, r] of Object.entries(map)) {
+    if (id === exceptOrderId) continue;
+    for (const [sku, qty] of Object.entries(r.items)) tot[sku] = (tot[sku] || 0) + (Number(qty) || 0);
+  }
+  return tot;
+}
+
+async function mutateReserved(fn) {
+  const store = getStockSoldStore();
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const existing = await store.getWithMetadata(RESERVED_KEY, { type: "json" });
+    const map = vigentes((existing && existing.data) || {});
+    const changed = fn(map);
+    if (changed === false) return map;
+    const options = existing && existing.etag ? { onlyIfMatch: existing.etag } : { onlyIfNew: true };
+    const result = await store.setJSON(RESERVED_KEY, map, options);
+    if (result.modified) return map;
+  }
+  throw new Error("No se pudieron apartar las piezas (conflicto de concurrencia).");
+}
+
+const itemsDeStock = (items) => {
+  const out = {};
+  (items || []).forEach((it) => { if (it && it.enStock && it.sku && it.qty > 0) out[it.sku] = (out[it.sku] || 0) + Number(it.qty); });
+  return out;
+};
+
+/* Aparta las piezas de stock del pedido (o reemplaza lo apartado si se
+   editó). holdMs: solo por un rato (ej. justo después de pagar). */
+async function reserveOrderStock(order, { holdMs } = {}) {
+  const items = itemsDeStock(order && order.items);
+  if (!order || !order.id) return;
+  await mutateReserved((map) => {
+    if (!Object.keys(items).length) {
+      if (!map[order.id]) return false;
+      delete map[order.id];
+      return true;
+    }
+    map[order.id] = { items, at: new Date().toISOString(), ...(holdMs ? { hastaMs: Date.now() + holdMs } : {}) };
+    return true;
+  });
+}
+
+/* El pedido ya no aparta nada (se canceló o se rechazó). */
+async function releaseOrderStock(orderId) {
+  await mutateReserved((map) => {
+    if (!map[orderId]) return false;
+    delete map[orderId];
+    return true;
+  });
+}
+
+/* Se confirmó el pago: lo apartado se vuelve "vendido" en la hoja; se deja
+   un rato más apartado mientras el CSV publicado se pone al día. */
+async function holdAfterPayment(order) {
+  return reserveOrderStock(order, { holdMs: HOLD_TRAS_PAGO_MS });
+}
+
+/* Pone al día lo apartado con la lista real de pedidos (se llama cuando
+   Mae abre sus pedidos): libera lo de pedidos que ya no están pendientes y
+   aparta lo de pedidos por transferencia pendientes que no lo tenían (ej.
+   los que se hicieron antes de que existiera el apartado). */
+async function reconcileReservations(orders) {
+  const pend = new Map();
+  (orders || []).forEach((o) => {
+    if (o && o.status === "pending" && (o.source === "transferencia" || o.source === "whatsapp")) {
+      const items = itemsDeStock(o.items);
+      if (Object.keys(items).length) pend.set(o.id, items);
+    }
+  });
+  const ids = new Set((orders || []).map((o) => o && o.id));
+  await mutateReserved((map) => {
+    let changed = false;
+    for (const id of Object.keys(map)) {
+      if (map[id].hastaMs) continue; // retenido unos minutos tras pagar
+      if (!pend.has(id) && ids.has(id)) { delete map[id]; changed = true; }
+    }
+    for (const [id, items] of pend) {
+      if (JSON.stringify(map[id] && map[id].items) !== JSON.stringify(items)) { map[id] = { items, at: (map[id] && map[id].at) || new Date().toISOString() }; changed = true; }
+    }
+    return changed;
+  });
+}
+
 /* Clave de idempotencia de un intento de pedido. Evita que una recarga o un
    reintento de red registre el mismo pedido dos veces: la primera petición
    reserva la clave; las siguientes reciben el resultado ya guardado (o un
@@ -369,6 +484,12 @@ async function deleteRestockRequest(id) {
 
 module.exports = {
   blobsClientOptions,
+  getReservedMap,
+  getReservedTotals,
+  reserveOrderStock,
+  releaseOrderStock,
+  holdAfterPayment,
+  reconcileReservations,
   getSoldMap,
   getEffectiveSoldMap,
   applyStockDecrement,

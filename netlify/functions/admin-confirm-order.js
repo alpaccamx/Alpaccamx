@@ -10,9 +10,10 @@
 //   cancel_paid = cancelar completo un pedido YA pagado: regresa al stock lo
 //   vendido y le avisa a la clienta que escriba para su reembolso.
 
-const { transitionOrder, transitionOrderFrom, applyStockDecrement, adjustStockSold, getOrder } = require("./lib/blob-store.js");
+const { transitionOrder, transitionOrderFrom, applyStockDecrement, adjustStockSold, getOrder, getReservedMap, holdAfterPayment, releaseOrderStock, getEffectiveSoldMap } = require("./lib/blob-store.js");
 const { notifySellerOrderPaid, notifyCustomerOrderConfirmed } = require("./lib/whatsapp.js");
-const { applySheetStockDelta, deltaFromItems } = require("./lib/google-sheets.js");
+const { applySheetStockDelta, deltaFromItems, listStockProducts } = require("./lib/google-sheets.js");
+const { loadPricingData } = require("./lib/pricing.js");
 const { getCustomerByPhone } = require("./lib/customer-store.js");
 const { sendEmail, orderConfirmedEmailHTML, orderCancelledEmailHTML } = require("./lib/email.js");
 const { avisarPedido, numeroPedido, cuentaDelPedido, avisoCancelacionPagada, conDetalle } = require("./lib/order-notify.js");
@@ -46,6 +47,17 @@ exports.handler = async (event) => {
   try {
     if (action === "confirm") {
       const before = await getOrder(orderId);
+      // Antes de confirmar: ¿todavía alcanzan las piezas de stock? Si otra
+      // clienta ya se las llevó, se avisa a Mae y ella decide (forzar).
+      if (before && before.status === "pending" && !body.forzar) {
+        const faltan = await piezasQueFaltan(before).catch((err) => { console.error("No se pudo revisar el stock:", err); return []; });
+        if (faltan.length) {
+          return jsonResponse(409, {
+            sinStock: faltan,
+            error: `Ya no alcanzan las piezas de: ${faltan.map((f) => `${f.nombre} (pide ${f.qty}, quedan ${f.quedan})`).join(", ")}.`,
+          });
+        }
+      }
       const { order, transitioned } = await transitionOrder(orderId, "paid", {
         paidAt: new Date().toISOString(),
         confirmedBy: "admin",
@@ -55,6 +67,7 @@ exports.handler = async (event) => {
       if (transitioned) {
         await applyStockDecrement(order.items);
         await applySheetStockDelta(deltaFromItems(order.items)).catch((err) => console.error("Sheet de stock no actualizado (revisar a mano):", err));
+        await holdAfterPayment(order).catch((err) => console.error("No se pudo actualizar lo apartado:", err));
         await notifySellerOrderPaid(order);
         await notifyCustomerOrderConfirmed(order);
 
@@ -81,6 +94,7 @@ exports.handler = async (event) => {
       });
       if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
       if (!transitioned) return jsonResponse(409, { error: "Ese pedido ya no está pagado." });
+      await releaseOrderStock(orderId).catch(() => {});
       const devolver = {};
       (order.items || []).forEach((it) => { if (it.enStock && it.sku && it.qty > 0) devolver[it.sku] = (devolver[it.sku] || 0) - it.qty; });
       await adjustStockSold(devolver).catch((err) => console.error("No se pudo regresar el stock vendido:", err));
@@ -93,6 +107,8 @@ exports.handler = async (event) => {
       cancelledAt: new Date().toISOString(),
     });
     if (!order) return jsonResponse(404, { error: "Pedido no encontrado." });
+    // Cancelado: sus piezas apartadas regresan al stock.
+    if (order.status === "cancelled") await releaseOrderStock(orderId).catch((err) => console.error("No se pudieron liberar las piezas:", err));
     const n = numeroPedido(order);
     await avisarPedido(order, { asunto: `Tu pedido ${n} se canceló`, texto: `tu pedido ${n} se canceló. Si tienes dudas, escríbenos por WhatsApp`, soloWhatsApp: true });
 
@@ -120,4 +136,48 @@ function jsonResponse(statusCode, obj) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(obj),
   };
+}
+
+/* Piezas de stock del pedido que ya no alcanzan: lo que hay en la hoja de
+   Stock (leída directo, sin esperar al CSV publicado) menos lo que tienen
+   apartado OTROS pedidos pendientes. Si no hay acceso a la hoja, usa el CSV
+   publicado menos lo vendido y lo apartado. */
+async function piezasQueFaltan(order) {
+  const pide = {};
+  const nombres = {};
+  (order.items || []).forEach((it) => {
+    if (!it.enStock || !it.sku || !(it.qty > 0)) return;
+    pide[it.sku] = (pide[it.sku] || 0) + Number(it.qty);
+    nombres[it.sku] = it.nombre || it.sku;
+  });
+  if (!Object.keys(pide).length) return [];
+
+  const piezas = new Map();
+  let directo = false;
+  const hoja = await listStockProducts().catch(() => null);
+  if (hoja && hoja.ok !== false && Array.isArray(hoja.products)) {
+    hoja.products.forEach((p) => piezas.set(p.sku, Number(p.piezas) || 0));
+    directo = true;
+  } else {
+    const { stock } = await loadPricingData();
+    const vendidas = await getEffectiveSoldMap();
+    for (const sku of Object.keys(pide)) {
+      const e = stock.get(sku);
+      piezas.set(sku, Math.max(0, (e ? e.piezas : 0) - (vendidas[sku] || 0)));
+    }
+  }
+  // Lo apartado por otros pedidos. Con la hoja leída directo, lo que se
+  // aparta "un rato" después de pagar ya está restado en la hoja: no se cuenta.
+  const otros = {};
+  for (const [id, r] of Object.entries(await getReservedMap())) {
+    if (id === order.id || (directo && r.hastaMs)) continue;
+    for (const [sku, qty] of Object.entries(r.items)) otros[sku] = (otros[sku] || 0) + (Number(qty) || 0);
+  }
+  const faltan = [];
+  for (const [sku, qty] of Object.entries(pide)) {
+    if (!piezas.has(sku)) continue; // no está en la hoja: no se puede revisar
+    const quedan = Math.max(0, piezas.get(sku) - (otros[sku] || 0));
+    if (qty > quedan) faltan.push({ sku, nombre: nombres[sku], qty, quedan });
+  }
+  return faltan;
 }

@@ -32,7 +32,7 @@
 // reembolsar tú misma desde tu cuenta de Mercado Pago, y luego ajustar
 // aquí el campo "Total cobrado" para que quede el registro correcto.
 
-const { getOrder, updateOrderFields, adjustStockSold } = require("./lib/blob-store.js");
+const { getOrder, updateOrderFields, adjustStockSold, reserveOrderStock } = require("./lib/blob-store.js");
 const { applySheetStockDelta } = require("./lib/google-sheets.js");
 const { checkAdminKey } = require("./lib/admin-auth.js");
 const { avisarPedido, montoPagado, avisoCambioPedido, conDetalle } = require("./lib/order-notify.js");
@@ -131,6 +131,10 @@ exports.handler = async (event) => {
       ...(order.status === "paid" && order.montoPagado == null ? { montoPagado: Number(order.grandTotal) || 0 } : {}),
     });
     if (!updated) return jsonResponse(404, { error: "Pedido no encontrado." });
+    // Pedido por transferencia aún sin confirmar: lo apartado sigue a los productos nuevos.
+    if (updated.status === "pending" && (updated.source === "transferencia" || updated.source === "whatsapp")) {
+      await reserveOrderStock(updated).catch((err) => console.error("No se pudo actualizar lo apartado:", err));
+    }
     // Avisarle a la clienta qué cambió en su pedido (solo si cambió algo),
     // con sus cuentas: lo que pagó, el total nuevo y si se le reembolsa o
     // le falta pagar (ver avisoCambioPedido en lib/order-notify.js).

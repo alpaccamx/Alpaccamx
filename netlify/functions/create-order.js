@@ -37,6 +37,7 @@
 const { randomUUID } = require("crypto");
 const {
   saveNewOrder, savePaymentProof, transitionOrder, getEffectiveSoldMap,
+  getReservedTotals, reserveOrderStock, releaseOrderStock, withLock,
   claimIdempotencyKey, completeIdempotencyKey, releaseIdempotencyKey,
 } = require("./lib/blob-store.js");
 const { priceOrder, matchesClientTotals } = require("./lib/pricing.js");
@@ -146,9 +147,16 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "Hay una cantidad inválida en tu carrito." });
   }
 
+  // Lo vendido + lo que otras clientas ya apartaron (pedidos por
+  // transferencia que Mae todavía no confirma): eso ya no está disponible.
+  const leerOcupado = async () => {
+    const m = new Map(Object.entries(await getEffectiveSoldMap()));
+    for (const [sku, qty] of Object.entries(await getReservedTotals())) m.set(sku, (m.get(sku) || 0) + qty);
+    return m;
+  };
   let soldMap;
   try {
-    soldMap = new Map(Object.entries(await getEffectiveSoldMap()));
+    soldMap = await leerOcupado();
   } catch (err) {
     console.error("No se pudo leer el stock vendido:", err);
     return jsonResponse(503, { error: "No pudimos revisar el stock en este momento. Intenta de nuevo en un momento." });
@@ -278,6 +286,33 @@ exports.handler = async (event) => {
     exchangeRate: priced.exchangeRate,
   };
 
+  // Pedido por transferencia: aparta sus piezas de stock YA. Se vuelve a
+  // revisar el stock dentro de un candado, para que dos clientas que piden
+  // la última pieza al mismo tiempo no se la lleven las dos.
+  const apartaStock = (source === "transferencia" || source === "whatsapp") && order.items.some((it) => it.enStock);
+  if (apartaStock) {
+    let sinPiezas = null;
+    try {
+      await withLock("stock-apartado", async () => {
+        const fresco = await priceOrder({
+          source, items: requested, customer, soldMap: await leerOcupado(),
+          sinMinimo: !!(couponDoc && couponDoc.sinMinimo),
+          koreaPorKgMXN: couponDoc && couponDoc.sinMinimo ? Number(couponDoc.envioKg) || 0 : 0,
+        });
+        if (!fresco.ok) { sinPiezas = fresco; return; }
+        await reserveOrderStock(order);
+      });
+    } catch (err) {
+      console.error("No se pudieron apartar las piezas:", err);
+      if (idemKey) await releaseIdempotencyKey(idemKey);
+      return jsonResponse(503, { error: "No pudimos apartar tus productos en este momento. Intenta de nuevo en un momento." });
+    }
+    if (sinPiezas) {
+      if (idemKey) await releaseIdempotencyKey(idemKey);
+      return jsonResponse(sinPiezas.status || 409, { error: sinPiezas.error });
+    }
+  }
+
   try {
     // El comprobante se guarda ANTES que el pedido: si falla, no se crea nada.
     if (proofs) {
@@ -290,6 +325,7 @@ exports.handler = async (event) => {
     await saveNewOrder(order);
   } catch (err) {
     console.error("Error guardando el pedido:", err);
+    if (apartaStock) await releaseOrderStock(order.id).catch(() => {});
     if (idemKey) await releaseIdempotencyKey(idemKey);
     return jsonResponse(500, { error: "No se pudo guardar el pedido." });
   }
