@@ -5191,7 +5191,7 @@ ${itemLines}
      misma que lib/swm-pricing.js y swm.js.
      ==================================================================== */
   const SWM_TARIFA = { 1: 250, 2: 350, 3: 450, 4: 450, 5: 550, 6: 900, 7: 900, 8: 1000, 9: 1000, 10: 1000, 11: 1000, 12: 1200, 13: 1200, 14: 1400, 15: 2000 };
-  let swmData = { paquetes: [], compras: [], envios: [], almacenajeDias: 30 };
+  let swmData = { paquetes: [], compras: [], envios: [], almacenajeDias: 15 };
   let swmTab = "acciones";
   let swmSearch = "";
   let swmSinRegistroOpen = false;
@@ -6052,7 +6052,7 @@ ${itemLines}
   function swmPaqueteCard(p) {
     const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : p.enMexicoAt ? "🇲🇽 En México" : "🇺🇸 En dirección americana", en_envio: "📦 En un envío", en_mexico: "🇲🇽 En México", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
     // El almacenaje gratis corre desde que el paquete llega a México.
-    const hasta = p.enMexicoAt ? new Date(new Date(p.enMexicoAt).getTime() + swmData.almacenajeDias * 864e5) : null;
+    const hasta = p.enMexicoAt ? new Date(new Date(p.enMexicoAt).getTime() + (swmData.almacenajeAntes && String(p.enMexicoAt) < swmData.almacenajeAntes.hasta ? swmData.almacenajeAntes.dias : swmData.almacenajeDias) * 864e5) : null;
     const vence = hasta ? Math.ceil((hasta - Date.now()) / 864e5) : null;
     const fotos = (p.fotos || []).map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:4px 10px;font-size:12px;">📷 Foto</button>`).join(" ");
     const editable = ["registrado", "recibido"].includes(p.status);

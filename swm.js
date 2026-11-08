@@ -54,7 +54,7 @@ const SWM_ENVIO_STATUS = {
   cancelado: ["Cancelado", "bg-pill text-ink/50"],
 };
 
-let swm = { loaded: false, loading: false, error: "", name: "", phone: "", casillero: "", precios: { revision: 50, separar: 50 }, paquetes: [], compras: [], envios: [], tab: "paquetes", form: "", almacenajeDias: 30, tiposCambio: {}, comisionPct: 15, editando: "", abiertas: {} };
+let swm = { loaded: false, loading: false, error: "", name: "", phone: "", casillero: "", precios: { revision: 50, separar: 50 }, paquetes: [], compras: [], envios: [], tab: "paquetes", form: "", almacenajeDias: 15, almacenajeAntes: null, tiposCambio: {}, comisionPct: 15, editando: "", abiertas: {} };
 
 const swmMXN = (n) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
 const swmDate = (iso, opts = { day: "numeric", month: "short" }) => (iso ? new Date(iso).toLocaleDateString("es-MX", opts) : "");
@@ -364,7 +364,7 @@ function swmPendientes() {
   swm.paquetes.filter((p) => p.correccion && p.correccion.estado === "pedida").forEach((p) => out.push(["✏️", `Corrige los datos de ${p.folio}`, ir("paquete", p)]));
   const listos = swm.paquetes.filter((p) => p.status === "recibido" && !p.datosPendientes);
   const mx = listos.filter((p) => p.enMexicoAt);
-  const vence = mx.filter((p) => (new Date(p.enMexicoAt).getTime() + swm.almacenajeDias * 864e5 - Date.now()) / 864e5 <= 5);
+  const vence = mx.filter((p) => (new Date(p.enMexicoAt).getTime() + swmDiasAlmacenaje(p) * 864e5 - Date.now()) / 864e5 <= 5);
   if (vence.length) out.push(["⏰", `Se acaba el almacenaje gratis de ${vence.map((p) => p.folio).join(", ")}: pide tu envío`, 'data-swm-form="envio"']);
   else if (mx.length) out.push(["🚚", `${mx.length === 1 ? "Tu paquete ya está" : `Tus ${mx.length} paquetes ya están`} en México: pide tu envío`, 'data-swm-form="envio" data-swm-solo-mx']);
   return out;
@@ -482,12 +482,19 @@ function swmCotSiguiente(r, cotizando, pagado) {
   return r.status === "solicitud" || r.status === "solicitado" ? [cotizando, false] : [pagado[r.status] || "", false];
 }
 
+/* Días de almacenaje gratis de un paquete (los que ya estaban en México
+   cuando bajó de 30 a 15 conservan sus 30). */
+function swmDiasAlmacenaje(p) {
+  const a = swm.almacenajeAntes;
+  return a && p.enMexicoAt && String(p.enMexicoAt) < a.hasta ? a.dias : swm.almacenajeDias;
+}
+
 function swmPaqueteCardHTML(p) {
   const desc = [p.tienda, p.paqueteria, p.rastreo && `rastreo ${p.rastreo}`].filter(Boolean).join(" · ");
   let extra = "";
   // El almacenaje gratis corre desde que el paquete llega a México.
   if (p.status === "recibido" && p.enMexicoAt) {
-    const hasta = new Date(new Date(p.enMexicoAt).getTime() + swm.almacenajeDias * 864e5);
+    const hasta = new Date(new Date(p.enMexicoAt).getTime() + swmDiasAlmacenaje(p) * 864e5);
     const dias = Math.ceil((hasta - Date.now()) / 864e5);
     extra = `<p class="text-xs ${dias <= 5 ? "text-sale font-semibold" : "text-ink/65"} mt-1">Almacenaje gratis hasta el ${swmDate(hasta.toISOString(), { day: "numeric", month: "long" })}${dias > 0 ? ` (${dias} día${dias === 1 ? "" : "s"})` : " · ya venció"}</p>`;
   }
@@ -1131,7 +1138,7 @@ async function loadSwm() {
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) swm.error = "Tu sesión venció. Vuelve a iniciar sesión.";
     else if (!res.ok) swm.error = data.error || "No se pudo cargar tu casillero.";
-    else Object.assign(swm, { lealtad: data.lealtad || null, referido: data.referido || null, premios: data.premios || [], paquetes: data.paquetes || [], compras: data.compras || [], envios: data.envios || [], name: data.name || "", phone: data.phone || "", casillero: data.casillero || "", precios: data.precios || swm.precios, almacenajeDias: data.almacenajeDias || 30, tiposCambio: data.tiposCambio || {}, comisionPct: data.comisionPct || 15, error: "" });
+    else Object.assign(swm, { lealtad: data.lealtad || null, referido: data.referido || null, premios: data.premios || [], paquetes: data.paquetes || [], compras: data.compras || [], envios: data.envios || [], name: data.name || "", phone: data.phone || "", casillero: data.casillero || "", precios: data.precios || swm.precios, almacenajeDias: data.almacenajeDias || 15, almacenajeAntes: data.almacenajeAntes || null, tiposCambio: data.tiposCambio || {}, comisionPct: data.comisionPct || 15, error: "" });
   } catch (err) {
     swm.error = "No se pudo cargar tu casillero. Revisa tu conexión.";
   }

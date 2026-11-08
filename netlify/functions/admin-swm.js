@@ -50,7 +50,7 @@ const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, g
 const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, SEPARAR, COMISION_PCT, LEALTAD_PCT } = require("./lib/swm-pricing.js");
 const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
 const { getCoupon, discountFor } = require("./lib/coupons.js");
-const { ALMACENAJE_DIAS, round2, compraEnMano, marcarOrdenesDeCaja, cotizacionSugerida, cotizarEnvio, despacharConGuia, envioAutomatico, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
+const { ALMACENAJE_DIAS, ALMACENAJE_ANTES, diasAlmacenaje, round2, compraEnMano, marcarOrdenesDeCaja, cotizacionSugerida, cotizarEnvio, despacharConGuia, envioAutomatico, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
 
 const num = (v) => Math.max(0, parseFloat(v) || 0);
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
@@ -71,7 +71,7 @@ function correoLlego(rec, yaEstaba, nFotos, envio) {
 }
 
 function correoEnMexico(rec, envio) {
-  const hasta = new Date(new Date(rec.enMexicoAt).getTime() + ALMACENAJE_DIAS * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+  const hasta = new Date(new Date(rec.enMexicoAt).getTime() + diasAlmacenaje(rec.enMexicoAt) * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
   return [`tu paquete ${rec.folio} ya está en México 🇲🇽`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu paquete ya cruzó a México!</h2><p style="font-size:14px;">${esc([rec.tienda, rec.rastreo && `rastreo ${rec.rastreo}`].filter(Boolean).join(" · ") || rec.folio)}</p>
     <p style="font-size:14px;">${envio ? "Ya estoy preparando tu envío a casa. En cuanto tenga tu guía te llega lo que tienes que pagar." : `Lo guardamos gratis hasta el <b>${hasta}</b>. Entra a tu casillero y pide tu envío a casa (puedes juntarlo con otros paquetes).`}</p>`];
 }
@@ -110,7 +110,7 @@ exports.handler = async (event) => {
     try {
       const juntar = (await listRecords("juntar").catch(() => [])).filter((j) => j.status === "pendiente");
       const [paquetes, compras, envios, casilleros, tiposCambio] = await Promise.all([listRecords("paquete"), listRecords("compra"), listRecords("envio"), todosLosCasilleros(), tiposDeCambio()]);
-      return json(200, { paquetes, compras, envios, juntar, casilleros, tiposCambio, comisionPct: COMISION_PCT, almacenajeDias: ALMACENAJE_DIAS, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
+      return json(200, { paquetes, compras, envios, juntar, casilleros, tiposCambio, comisionPct: COMISION_PCT, almacenajeDias: ALMACENAJE_DIAS, almacenajeAntes: ALMACENAJE_ANTES, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
     } catch (err) {
       console.error("admin-swm GET:", err);
       return json(500, { error: "No se pudo cargar la dirección americana." });
