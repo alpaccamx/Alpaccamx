@@ -7455,6 +7455,7 @@ ${itemLines}
     const llegaTodo = pvFiltro === "apartado" && lista.length > 1
       ? `<p class="meta" style="margin-bottom:6px;">El envío de cada clienta ya viene calculado por peso y código postal; cámbialo en su cuadrito si hace falta y luego avísales a todas juntas:</p><button type="button" class="btn-primary" data-pv-llego-todo style="margin-bottom:8px;">📦 Llegó todo: avisar a las ${lista.length} y cobrar el resto + su envío</button>` : "";
     document.getElementById("pv-admin").innerHTML = `
+      <div id="pv-lotes-box"></div>
       ${pvNuevoHTML()}
       <h4 style="margin:4px 0 8px;font-size:16px;">💗 Apartados (${aps.length})</h4>
       <div class="tabs" style="flex-wrap:wrap;">${chips}</div>
@@ -7468,6 +7469,42 @@ ${itemLines}
       </details>`;
     pvNuevoRestaurarCampos();
     pvNuevoPintar();
+    renderPvLotes();
+  }
+
+  /* Productos nuevos para la preventa que Claude deja en
+     /preventa-lotes/*.json (ej. una marca completa). Sale una tarjeta con
+     un botón para subirlos; los que ya están en el catálogo se saltan. */
+  let pvLotes = null;
+  let pvLotesMsg = "";
+  async function renderPvLotes() {
+    const box = document.getElementById("pv-lotes-box");
+    if (!box || !pvData) return;
+    try {
+      if (!pvLotes) {
+        const idx = await (await fetch("/preventa-lotes/index.json", { cache: "no-store" })).json();
+        pvLotes = await Promise.all(idx.map(async (f) => ({ f, ...(await (await fetch(`/preventa-lotes/${f}`, { cache: "no-store" })).json()) })));
+      }
+    } catch (err) { return; }
+    const ids = new Set(pvData.productos.map((p) => p.id));
+    const pendientes = pvLotes.map((l) => ({ ...l, falta: (l.productos || []).filter((p) => !ids.has(p.id)) })).filter((l) => l.falta.length);
+    const caja = document.getElementById("pv-lotes-box");
+    if (!caja) return;
+    if (!pendientes.length) {
+      caja.innerHTML = pvLotesMsg ? `<div class="swm-card" style="border:2px solid #17803d;margin-bottom:12px;"><div style="font-size:14px;">${pvLotesMsg}</div></div>` : "";
+      return;
+    }
+    caja.innerHTML = pendientes.map((l) => `<div class="swm-card" style="border:2px solid #c4466e;margin-bottom:12px;">
+      <h4><span>🛍️ Productos nuevos para la preventa</span></h4>
+      <div class="meta">${escapeHtml(l.nombre || l.f)}</div>
+      <ul style="margin:6px 0 8px;padding-left:20px;font-size:14px;">${l.falta.map((p) => `<li>${escapeHtml(p.nombre)} · desde ${formatPrice(p.precio)}${(p.variantes || []).length > 1 ? ` (${p.variantes.length} tamaños)` : ""}</li>`).join("")}</ul>
+      <button type="button" class="btn-primary" data-pv-lote="${escapeHtml(l.f)}">📥 Subir ${l.falta.length} producto${l.falta.length === 1 ? "" : "s"} a la preventa</button></div>`).join("");
+    caja.querySelectorAll("[data-pv-lote]").forEach((btn) => btn.addEventListener("click", async () => {
+      const l = pendientes.find((x) => x.f === btn.dataset.pvLote);
+      if (!l) return;
+      const r = await pvAct({ accion: "importar", productos: l.falta }, btn);
+      if (r) { pvLotesMsg = `✅ Listo: se subieron ${r.importados} productos a la preventa. Ya los ven tus clientas.`; renderPvLotes(); }
+    }));
   }
 
   async function pvOpenFile(key) {
