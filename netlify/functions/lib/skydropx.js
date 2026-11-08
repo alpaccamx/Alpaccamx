@@ -143,6 +143,7 @@ async function quoteRates({ weight, destination }) {
       service: r.provider_service_name,
       total: Number(r.total),
       days: r.days,
+      raw: r, // para detectar zona extendida (ver admin-shipping-rates.js)
     }));
 }
 

@@ -1048,10 +1048,10 @@
       }
       guideState[orderId] = { rates, selected: null };
       const providerBadge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
-      ratesEl.innerHTML = rates.map((r, i) => `
+      ratesEl.innerHTML = zonaExtAviso(rates) + rates.map((r, i) => `
         <label class="rate-option" data-rate-option="${orderId}" data-rate-index="${i}">
           <input type="radio" name="rate-${orderId}" value="${i}" />
-          ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""}
+          ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""}${zonaExtTag(r)}
           <span style="font-size: 13px;color:#6b6370;">(${providerBadge[r.provider] || r.provider})</span>
           <span class="price">${formatPrice(r.total)}</span>
         </label>`).join("");
@@ -3255,6 +3255,16 @@ ${itemLines}
     return String(str ?? "").replace(/[^0-9+]/g, "");
   }
 
+  /* Zona extendida: la paquetería cobra de más por ese código postal. */
+  const zonaExtTag = (r) => r.zonaExtendida ? ` <span style="display:inline-block;background:#fff3cd;color:#8a5a00;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700;">⚠️ Zona extendida${r.zonaExtendidaCargo ? ` +${formatPrice(r.zonaExtendidaCargo)}` : ""}</span>` : "";
+  function zonaExtAviso(rates) {
+    const ext = (rates || []).filter((r) => r.zonaExtendida);
+    if (!ext.length) return "";
+    const normales = (rates || []).filter((r) => !r.zonaExtendida);
+    const quien = [...new Set(ext.map((r) => r.carrier || r.label))].join(", ");
+    return `<div style="background:#fff3cd;border:1px solid #f0c36d;color:#6b4a00;border-radius:10px;padding:8px 10px;margin:6px 0;font-size:14px;">⚠️ <b>Zona extendida:</b> este código postal le cuesta más a ${escapeHtml(quien)}${ext.some((r) => r.zonaExtendidaCargo) ? " (el cargo extra sale junto a cada opción)" : ""}. ${normales.length ? `Sin cargo extra: ${escapeHtml([...new Set(normales.map((r) => r.carrier || r.label))].join(", "))}.` : "Todas las paqueterías lo marcan como zona extendida."} El envío también puede tardar más.</div>`;
+  }
+
   async function confirmOrCancel(orderId, action, forzar = false) {
     if (action === "cancel") {
       const o = allOrders.find((x) => x.id === orderId);
@@ -5367,7 +5377,7 @@ ${itemLines}
           <label style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-weight:600;">💲 Cóbrale de envío <input data-g="cobrar" type="number" min="0" step="1" value="${sugerido}" placeholder="${data.tabla != null ? Math.round(data.tabla) : "tabla"}" style="width:110px;padding:6px 8px;"> <span style="font-weight:400;color:#6b6370;">(${yaPagado > 0 && data.tabla != null ? `tabla ${formatPrice(data.tabla)} − ${formatPrice(yaPagado)} que ya pagó en sus pedidos` : `vacío = ${data.tabla != null ? "lo de tu tabla" : "paquetería + $100"}`})</span></label>`;
         }
         const badge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
-        ratesEl.innerHTML = data.rates.map((r, i) => `<label class="rate-option" data-guia-rate="${i}"><input type="radio" name="guia-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}</span></label>`).join("");
+        ratesEl.innerHTML = zonaExtAviso(data.rates) + data.rates.map((r, i) => `<label class="rate-option" data-guia-rate="${i}"><input type="radio" name="guia-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""}${zonaExtTag(r)} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}</span></label>`).join("");
       } catch (err) { ratesEl.textContent = ""; errEl.textContent = "No se pudo conectar con el servidor."; }
       return;
     }

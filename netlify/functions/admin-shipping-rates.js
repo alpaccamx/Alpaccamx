@@ -82,6 +82,7 @@ exports.handler = async (event) => {
       .forEach((r) => {
         rates.push({
           provider: "enviosperros",
+          ...zonaExtendida(r),
           label: r.summary,
           carrier: r.details && r.details.courier,
           service: r.details && r.details.service,
@@ -97,6 +98,7 @@ exports.handler = async (event) => {
     (sdResult.value || []).forEach((r) => {
       rates.push({
         provider: "skydropx",
+        ...zonaExtendida(r.raw),
         label: `${r.carrier} ${r.service}`,
         carrier: r.carrier,
         service: r.service,
@@ -113,6 +115,18 @@ exports.handler = async (event) => {
   }
 
   rates.sort((a, b) => (Number(a.total) || Infinity) - (Number(b.total) || Infinity));
+
+  // Solo los NOMBRES de los campos que mandan las paqueterías (sin datos de
+  // la clienta), para ver en los logs cómo marcan la zona extendida.
+  try {
+    const campos = (lista) => [...new Set((lista || []).flatMap((x) => clavesDe(x)))].sort();
+    console.log("cotizacion-campos", JSON.stringify({
+      cp: destinationZipCode.slice(0, 2) + "xxx",
+      enviosperros: epResult.status === "fulfilled" ? campos(epResult.value) : null,
+      skydropx: sdResult.status === "fulfilled" ? campos((sdResult.value || []).map((r) => r.raw)) : null,
+      extendida: rates.filter((r) => r.zonaExtendida).map((r) => `${r.label}${r.zonaExtendidaCargo ? ` +${r.zonaExtendidaCargo}` : ""} [${r.zonaExtendidaPor}]`),
+    }));
+  } catch (err) { /* solo es diagnóstico */ }
 
   // Motivo corto de por qué falló cada paquetería, para mostrarlo en el
   // panel (solo lo ve la admin) y saber si es la cuenta, el origen o el CP.
@@ -134,6 +148,7 @@ exports.handler = async (event) => {
   return jsonResponse(200, {
     rates,
     tabla,
+    zonaExtendida: rates.some((r) => r.zonaExtendida),
     providerErrors: {
       enviosperros: epResult.status === "rejected",
       skydropx: sdResult.status === "rejected",
@@ -141,6 +156,60 @@ exports.handler = async (event) => {
     providerErrorDetail,
   });
 };
+
+/* ¿La paquetería marca este destino como zona extendida (cobra de más)?
+   Envíos Perros y Skydropx no documentan el nombre exacto del campo, así
+   que se revisa toda la tarifa: campos cuyo nombre habla de zona
+   extendida / reexpedición / área remota con valor verdadero o un monto, y
+   textos que lo digan (ej. "Zona extendida" en el resumen). */
+const RX_CLAVE = /extend|reexped|re_exped|out_?of_?area|remote_?area|zona_?ext|ext_?zone/i;
+const RX_TEXTO = /zona\s+extendida|extended\s+(zone|area)|reexpedici[oó]n|re-expedici[oó]n|out of (delivery )?area|área remota|area remota/i;
+const RX_MONTO = /amount|cost|price|precio|fee|cargo|monto|importe|total|valor|value/i;
+
+function zonaExtendida(rate) {
+  let si = false;
+  let cargo = 0;
+  const por = [];
+  const visto = new Set();
+  const walk = (v, clave, padre, depth) => {
+    if (v == null || depth > 5) return;
+    if (typeof v === "object") {
+      if (visto.has(v)) return;
+      visto.add(v);
+      // Objeto tipo cargo extra: { name|concept|type: "extended_zone", amount: 85 }
+      const nombre = ["name", "concept", "concepto", "type", "tipo", "code", "codigo", "description", "descripcion", "label"]
+        .map((k) => v[k]).find((x) => typeof x === "string" && (RX_CLAVE.test(x) || RX_TEXTO.test(x)));
+      if (nombre) {
+        si = true; por.push(nombre);
+        const m = Object.entries(v).find(([k, x]) => RX_MONTO.test(k) && Number(x) > 0);
+        if (m) cargo += Number(m[1]);
+      }
+      for (const [k, x] of Object.entries(v)) walk(x, k, v, depth + 1);
+      return;
+    }
+    if (clave && RX_CLAVE.test(clave)) {
+      if (v === true || /^(true|si|sí|yes|1)$/i.test(String(v))) { si = true; por.push(clave); }
+      else if (typeof v === "number" || /^\d+(\.\d+)?$/.test(String(v))) {
+        if (Number(v) > 0) { si = true; por.push(clave); if (RX_MONTO.test(clave) || typeof v === "number") cargo += Number(v); }
+      } else if (typeof v === "string" && RX_TEXTO.test(v)) { si = true; por.push(clave); }
+      return;
+    }
+    if (typeof v === "string" && RX_TEXTO.test(v)) { si = true; por.push(clave || "texto"); }
+  };
+  try { walk(rate, "", null, 0); } catch (err) { /* nada */ }
+  return si ? { zonaExtendida: true, zonaExtendidaCargo: cargo > 0 ? Math.round(cargo * 100) / 100 : null, zonaExtendidaPor: [...new Set(por)].join(", ").slice(0, 80) } : {};
+}
+
+/* Nombres de campos (con su ruta) de una tarifa, para el diagnóstico. */
+function clavesDe(obj, pre = "", depth = 0, out = []) {
+  if (!obj || typeof obj !== "object" || depth > 3) return out;
+  for (const [k, v] of Object.entries(obj)) {
+    const ruta = Array.isArray(obj) ? `${pre}[]` : pre ? `${pre}.${k}` : k;
+    if (v && typeof v === "object") clavesDe(Array.isArray(v) ? v[0] : v, Array.isArray(v) ? `${ruta}[]` : ruta, depth + 1, out);
+    else out.push(ruta);
+  }
+  return out;
+}
 
 function errorDetail(err) {
   if (!err) return "Error desconocido";
