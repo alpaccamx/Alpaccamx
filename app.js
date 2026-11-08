@@ -4392,7 +4392,9 @@ function compareByMarcaThenNombre(a, b) {
 }
 
 function renderStockGrid(restore = true) {
-  mountListing("stock", products.filter((p) => p.enStock), { restore, id: "stock" });
+  // Lo agotado no se muestra en Stock en México (regresa solo cuando Mae le
+  // vuelve a poner piezas en su hoja de Stock).
+  mountListing("stock", products.filter((p) => p.enStock && p.disponible && !(p.stockPiezas <= 0)), { restore, id: "stock" });
 }
 
 function openStockSection({ restore = false } = {}) {
