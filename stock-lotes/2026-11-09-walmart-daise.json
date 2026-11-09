@@ -1,0 +1,41 @@
+{
+ "nombre": "Walmart (8 nov): DAISE body mists y Blind Box",
+ "productos": [
+  {
+   "sku": "STOCK-WMT-DAISE-MIST-GLAZE",
+   "nombre": "DAISE Glaze Daise · Body Mist (100 mL)",
+   "marca": "DAISE",
+   "categoria": "Cuidado corporal",
+   "descripcion": "Fragrance body mist de DAISE, 100 mL, aroma Glaze Daise: vainilla y caramelo con toques de malvavisco y miel. Para cuerpo y cabello. Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "precio": 189,
+   "peso": 0.25,
+   "imagen": "https://alpacca.mx/assets/products/stock/wmt-daise-mist-glaze.jpg",
+   "precioTarjeta": 201
+  },
+  {
+   "sku": "STOCK-WMT-DAISE-MIST-HELLO",
+   "nombre": "DAISE Hello Daise · Body Mist (100 mL)",
+   "marca": "DAISE",
+   "categoria": "Cuidado corporal",
+   "descripcion": "Fragrance body mist de DAISE, 100 mL, aroma Hello Daise: frambuesa y menta, fresco y frutal. Para cuerpo y cabello. Original, traído de Estados Unidos.",
+   "piezas": 3,
+   "precio": 189,
+   "peso": 0.25,
+   "imagen": "https://alpacca.mx/assets/products/stock/wmt-daise-mist-hello.jpg",
+   "precioTarjeta": 201
+  },
+  {
+   "sku": "STOCK-WMT-DAISE-BLIND-BOX",
+   "nombre": "DAISE Blind Box · Dollface sorpresa + perfume sólido",
+   "marca": "DAISE",
+   "categoria": "Perfumes",
+   "descripcion": "Caja sorpresa de DAISE: trae 1 Dollface coleccionable (charm para colgar en tu bolsa o llavero) al azar de una colección de 7, con uno ultra raro secreto, más un mini perfume sólido de 1 g. Original, traído de Estados Unidos.",
+   "piezas": 3,
+   "precio": 550,
+   "peso": 0.15,
+   "imagen": "https://alpacca.mx/assets/products/stock/wmt-daise-blind-box.jpg",
+   "precioTarjeta": 583
+  }
+ ]
+}
