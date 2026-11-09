@@ -1,0 +1,55 @@
+{
+ "nombre": "Real Techniques de Marshalls (10 piezas)",
+ "productos": [
+  {
+   "sku": "STOCK-RT-CALENDARIO-ADVIENTO",
+   "nombre": "Real Techniques Calendario de Adviento (25 días)",
+   "marca": "Real Techniques",
+   "categoria": "Maquillaje",
+   "descripcion": "Calendario de adviento edición limitada de Real Techniques con 25 sorpresas de brochas y accesorios de maquillaje, una para cada día hasta Navidad. Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "precio": 789,
+   "peso": 1.0,
+   "imagen": "https://alpacca.mx/assets/products/stock/rt-calendario-adviento.jpg",
+   "precioTarjeta": 837
+  },
+  {
+   "sku": "STOCK-RT-SWEETEST-TREAT",
+   "nombre": "Real Techniques The Sweetest Treat (11 pzs)",
+   "marca": "Real Techniques",
+   "categoria": "Maquillaje",
+   "descripcion": "Set de regalo edición limitada de 11 piezas: brocha de contorno, brocha para polvo, brocha para fijar, brocha para base, brocha para corrector, 4 brochas densas para ojos, mini Miracle Deep Cleansing Gel para limpiar brochas y cosmetiquera café. Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "precio": 659,
+   "peso": 1.05,
+   "imagen": "https://alpacca.mx/assets/products/stock/rt-sweetest-treat.jpg",
+   "precioTarjeta": 699
+  },
+  {
+   "sku": "STOCK-RT-BLENDED-BRIGHT",
+   "nombre": "Real Techniques Blended & Bright Brush & Sponge Set",
+   "marca": "Real Techniques",
+   "categoria": "Maquillaje",
+   "descripcion": "Set edición limitada con 7 brochas para rostro y ojos más una esponja para difuminar, en cosmetiquera azul con cierre. Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "precio": 449,
+   "peso": 0.85,
+   "imagen": "https://alpacca.mx/assets/products/stock/rt-blended-bright.jpg",
+   "precioTarjeta": 476
+  },
+  {
+   "sku": "STOCK-RT-MIDI-BRUSH-DUO",
+   "nombre": "Real Techniques Skin Perfecting Midi Brush Duo",
+   "marca": "Real Techniques",
+   "categoria": "Maquillaje",
+   "descripcion": "Dúo edición limitada: brocha para corrector (Spot Concealer Brush) y brocha para skin tint (Skin Tint Brush, RT271), tamaño midi. Original, traído de Estados Unidos.",
+   "piezas": 4,
+   "precio": 149,
+   "peso": 0.3,
+   "imagen": "https://alpacca.mx/assets/products/stock/rt-midi-brush-duo.jpg",
+   "precioTarjeta": 158
+  }
+ ],
+ "mezclas": [],
+ "ajustes": []
+}
