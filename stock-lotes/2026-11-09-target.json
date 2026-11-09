@@ -1,0 +1,132 @@
+{
+ "nombre": "Target El Paso West (9 nov): 9 productos nuevos y 3 que vuelven",
+ "productos": [
+  {
+   "sku": "STOCK-TGT-SPA-ADVENT-12PC",
+   "nombre": "The Ultimate Spa Advent Calendar (12 pzs)",
+   "marca": "Target",
+   "categoria": "Cuidado corporal",
+   "descripcion": "Calendario de adviento de 12 días con sorpresas de spa y cuidado personal de marcas como Hero Cosmetics, Pixi, Palmer's, Aquaphor y La Roche-Posay. Original, traído de Estados Unidos.",
+   "piezas": 7,
+   "precio": 529,
+   "peso": 1.65,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-spa-advent.jpg",
+   "precioTarjeta": 561
+  },
+  {
+   "sku": "STOCK-TGT-PIXI-HEROES-KIT",
+   "nombre": "Pixi Heroes Kit Minis (4 pzs + bolsa)",
+   "marca": "Pixi",
+   "categoria": "Skincare",
+   "descripcion": "Kit edición limitada con 4 favoritos de Pixi en tamaño mini para exfoliar, hidratar, refrescar y dar color, en bolsita de regalo. Original, traído de Estados Unidos.",
+   "piezas": 5,
+   "precio": 659,
+   "peso": 0.65,
+   "imagen": "https://alpacca.mx/assets/products/stock/pixi-heroes-kit.jpg",
+   "precioTarjeta": 699
+  },
+  {
+   "sku": "STOCK-TGT-DAISE-LIP-BERRY-VANILLA",
+   "nombre": "DAISE Tinted Lip Balm · Berry & Vanilla",
+   "marca": "DAISE",
+   "categoria": "Maquillaje",
+   "descripcion": "Bálsamo labial con color (Peptide Lip Butter Balm) de DAISE, 15 ml, sabor Berry & Vanilla. Con péptidos, manteca de karité y aceite de meadowfoam; da un tinte ligero que puedes ir subiendo. Original, traído de Estados Unidos.",
+   "piezas": 5,
+   "precio": 189,
+   "peso": 0.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-daise-lip-berry-vanilla.jpg",
+   "precioTarjeta": 201
+  },
+  {
+   "sku": "STOCK-TGT-DAISE-LIP-VERY-VANILLA",
+   "nombre": "DAISE Tinted Lip Balm · Very Vanilla",
+   "marca": "DAISE",
+   "categoria": "Maquillaje",
+   "descripcion": "Bálsamo labial con color (Peptide Lip Butter Balm) de DAISE, 15 ml, sabor Very Vanilla. Con péptidos, manteca de karité y aceite de meadowfoam; da un tinte ligero que puedes ir subiendo. Original, traído de Estados Unidos.",
+   "piezas": 5,
+   "precio": 189,
+   "peso": 0.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-daise-lip-very-vanilla.jpg",
+   "precioTarjeta": 201
+  },
+  {
+   "sku": "STOCK-TGT-DAISE-LIP-CAKE-POP",
+   "nombre": "DAISE Tinted Lip Balm · Cake Pop",
+   "marca": "DAISE",
+   "categoria": "Maquillaje",
+   "descripcion": "Bálsamo labial con color (Peptide Lip Butter Balm) de DAISE, 15 ml, sabor Cake Pop. Con péptidos, manteca de karité y aceite de meadowfoam; da un tinte ligero que puedes ir subiendo. Original, traído de Estados Unidos.",
+   "piezas": 5,
+   "precio": 189,
+   "peso": 0.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-daise-lip-cake-pop.jpg",
+   "precioTarjeta": 201
+  },
+  {
+   "sku": "STOCK-TGT-MORPHE-ALONG-FOR-THE-GLIDE",
+   "nombre": "Morphe Along For The Glide · Set de brochas de viaje (6 pzs)",
+   "marca": "Morphe",
+   "categoria": "Maquillaje",
+   "descripcion": "Set de viaje con 6 brochas para rostro y ojos (base, polvo, rubor, sombras y cejas) en estuche de silicón fácil de limpiar. Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "precio": 789,
+   "peso": 0.2,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-morphe-along-for-the-glide.jpg",
+   "precioTarjeta": 837
+  },
+  {
+   "sku": "STOCK-TGT-BEST-OF-CLASSICS-10PC",
+   "nombre": "The Best of Classics Beauty Gift Set (10 pzs)",
+   "marca": "Target",
+   "categoria": "Skincare",
+   "descripcion": "Set de regalo con 10 básicos de cuidado de la piel de marcas como Cetaphil, CeraVe, La Roche-Posay, Neutrogena, Jergens y Pixi. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 529,
+   "peso": 0.7,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-best-of-classics.jpg",
+   "precioTarjeta": 561
+  },
+  {
+   "sku": "STOCK-TGT-BEST-OF-GLAM-10PC",
+   "nombre": "The Best of Glam Beauty Gift Set (10 pzs)",
+   "marca": "Target",
+   "categoria": "Maquillaje",
+   "descripcion": "Set de regalo con 10 productos de maquillaje y uñas de marcas como Morphe y KISS (valor de más de US$70). Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 529,
+   "peso": 0.7,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-best-of-glam.jpg",
+   "precioTarjeta": 561
+  },
+  {
+   "sku": "STOCK-TGT-BEST-OF-K-BEAUTY-8PC",
+   "nombre": "The Best of K-Beauty Gift Set (8 pzs)",
+   "marca": "Target",
+   "categoria": "Skincare",
+   "descripcion": "Set de regalo con 8 productos de skincare coreano de marcas como Round Lab, Haruharu Wonder y Sungboon Editor (valor de más de US$35). Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 529,
+   "peso": 0.6,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-best-of-k-beauty.jpg",
+   "precioTarjeta": 561
+  }
+ ],
+ "mezclas": [],
+ "ajustes": [],
+ "reabastecer": [
+  {
+   "id": "2026-11-09-tgt2-lip-trio",
+   "sku": "STOCK-TGT-DAISE-TINTED-LIP-TRIO",
+   "sumar": 10
+  },
+  {
+   "id": "2026-11-09-tgt2-mini-mist",
+   "sku": "STOCK-TGT-DAISE-MINI-MIST-TRIO",
+   "sumar": 7
+  },
+  {
+   "id": "2026-11-09-tgt2-advent",
+   "sku": "STOCK-TGT-DAISE-ADVENT-8PC",
+   "sumar": 8
+  }
+ ]
+}

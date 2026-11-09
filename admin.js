@@ -2106,6 +2106,15 @@ ${itemLines}
       const idx = await (await fetch("/stock-lotes/index.json", { cache: "no-store" })).json();
       const lotes = await Promise.all(idx.map(async (f) => ({ f, ...(await (await fetch(`/stock-lotes/${f}`, { cache: "no-store" })).json()) })));
       const porSku = new Map(inventoryProducts.map((p) => [String(p.sku || "").trim(), p]));
+      // Reabastecer (sumar piezas a lo que ya existe) se aplica UNA sola vez: el servidor recuerda cuáles ya.
+      let aplicados = new Set();
+      if (lotes.some((l) => (l.reabastecer || []).length)) {
+        try {
+          const ra = await fetch("/.netlify/functions/admin-stock-lotes", { headers: { "x-admin-key": adminKey }, cache: "no-store" });
+          if (ra.ok) aplicados = new Set((await ra.json()).aplicados || []);
+          else throw new Error("sin lista");
+        } catch (err) { box.style.display = "none"; return; } // sin saber qué ya se sumó, mejor no ofrecerlo
+      }
       // Mezclas: juntar piezas de un producto en otro (ej. lotes de 3 → lotes de 10).
       const calcMezcla = (m, inv) => {
         const o = inv.get(m.origen); const d = inv.get(m.destino);
@@ -2123,7 +2132,8 @@ ${itemLines}
         mezclas: (l.mezclas || []).map((m) => ({ m, c: calcMezcla(m, porSku) })).filter((x) => x.c && !x.c.hecho),
         // Ajustes: cambiar campos (ej. la foto) de productos que ya están en el Stock.
         ajustes: (l.ajustes || []).filter((a) => porSku.has(a.sku) && Object.entries(a.campos).some(([k, v]) => String(porSku.get(a.sku)[k] || "") !== String(v))),
-      })).filter((l) => l.falta.length || l.mezclas.length || l.ajustes.length);
+        reabastecer: (l.reabastecer || []).filter((r) => porSku.has(r.sku) && !aplicados.has(r.id)),
+      })).filter((l) => l.falta.length || l.mezclas.length || l.ajustes.length || l.reabastecer.length);
       if (!pendientes.length) {
         if (stockLotesMsg) { box.style.display = "block"; box.innerHTML = `<div class="swm-card" style="border:2px solid #17803d;"><div style="font-size:14px;">${stockLotesMsg}</div><button type="button" class="btn-secondary" data-stock-lote-cerrar style="margin-top:8px;">Cerrar</button></div>`; box.querySelector("[data-stock-lote-cerrar]").addEventListener("click", () => { stockLotesMsg = ""; box.style.display = "none"; box.innerHTML = ""; }); }
         else { box.style.display = "none"; box.innerHTML = ""; }
@@ -2134,6 +2144,7 @@ ${itemLines}
         <h4><span>📥 Cambios de Stock listos para aplicar</span></h4>
         <div class="meta">${escapeHtml(l.nombre || l.f)}</div>
         ${l.falta.length ? `<div style="font-weight:700;margin-top:6px;">Productos nuevos</div><ul style="margin:4px 0 8px;padding-left:20px;font-size:14px;">${l.falta.map((p) => `<li><b>${p.piezas}</b> × ${escapeHtml(p.nombre)} · ${formatPrice(p.precio)}</li>`).join("")}</ul>` : ""}
+        ${l.reabastecer.length ? `<div style="font-weight:700;margin-top:6px;">🔄 Volver a surtir (se suman a lo que ya hay)</div><ul style="margin:4px 0 8px;padding-left:20px;font-size:14px;">${l.reabastecer.map((r) => { const p = porSku.get(r.sku); return `<li><b>+${r.sumar}</b> × ${escapeHtml(p.nombre || r.sku)} <span class="meta">(ahora ${Number(p.piezas) || 0} → ${(Number(p.piezas) || 0) + Number(r.sumar)})</span></li>`; }).join("")}</ul>` : ""}
         ${l.ajustes.length ? `<div style="margin-top:6px;font-size:14px;">🖼️ ${escapeHtml(l.ajustesTexto || "Ajustes")}: <b>${l.ajustes.length}</b> producto${l.ajustes.length === 1 ? "" : "s"}</div>` : ""}
         ${l.mezclas.map(({ m, c }) => `<div style="margin-top:6px;font-size:14px;">🔀 ${escapeHtml(m.texto || "Juntar piezas")}: <b>${c.o.piezas}</b> lote${c.o.piezas === 1 ? "" : "s"} de ${m.porOrigen} + <b>${c.d.piezas}</b> de ${m.porDestino} → <b>${c.nuevos} lotes de ${m.porDestino}</b>${c.sobran ? ` <span style="color:#8a5a00;">(sobran ${c.sobran} pieza${c.sobran === 1 ? "" : "s"} sueltas)</span>` : ""}</div>`).join("")}
         <button type="button" class="btn-primary" data-stock-lote="${escapeHtml(l.f)}" style="margin-top:10px;">📥 Aplicar al Stock</button>
@@ -2149,6 +2160,26 @@ ${itemLines}
             const r = await addStockProductRequest(p);
             if (r.ok || /ya existe/i.test((r.data && r.data.error) || "")) ok++; else fallas.push(`${p.nombre}: ${(r.data && r.data.error) || "error"}`);
           } catch (err) { fallas.push(`${p.nombre}: sin conexión`); }
+        }
+        if (lote.reabastecer.length) {
+          msg.textContent = "Sumando piezas…";
+          let fresco = null;
+          try {
+            const res = await fetch("/.netlify/functions/admin-list-stock", { headers: { "x-admin-key": adminKey } });
+            fresco = new Map(((await res.json()).products || []).map((p) => [String(p.sku || "").trim(), p]));
+          } catch (err) { fallas.push("No se pudo leer tu Stock para sumar piezas"); }
+          for (const r of (fresco ? lote.reabastecer : [])) {
+            try {
+              // Primero se anota como aplicado (si ya estaba, otro celular ya lo sumó y no se repite).
+              const m = await fetch("/.netlify/functions/admin-stock-lotes", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ id: r.id }) });
+              const md = await m.json().catch(() => ({}));
+              if (!m.ok) throw new Error(md.error || "error");
+              if (md.ya) { ok++; continue; }
+              const actual = Number((fresco.get(r.sku) || {}).piezas) || 0;
+              const u = await fetch("/.netlify/functions/admin-update-stock-product", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ sku: r.sku, piezas: actual + Number(r.sumar), ...(r.campos || {}) }) });
+              if (u.ok) ok++; else fallas.push(`${r.sku}: ${((await u.json().catch(() => ({}))).error) || "error"} (avísale a Claude: quedó marcado como sumado)`);
+            } catch (err) { fallas.push(`${r.sku}: ${err.message || "sin conexión"}`); }
+          }
         }
         for (const a of lote.ajustes) {
           msg.textContent = "Cambiando fotos…";
