@@ -1,5 +1,5 @@
 {
- "nombre": "Target El Paso West (9 nov): 9 productos nuevos y 3 que vuelven",
+ "nombre": "Target El Paso West (9 nov): 10 productos nuevos y 3 que vuelven",
  "productos": [
   {
    "sku": "STOCK-TGT-SPA-ADVENT-12PC",
@@ -11,6 +11,18 @@
    "precio": 599,
    "peso": 1.65,
    "imagen": "https://alpacca.mx/assets/products/stock/target-spa-advent.jpg",
+   "precioTarjeta": 635
+  },
+  {
+   "sku": "STOCK-TGT-SKINCARE-ADVENT-12PC",
+   "nombre": "The Ultimate Skincare Advent Calendar (12 pzs)",
+   "marca": "Target",
+   "categoria": "Skincare",
+   "descripcion": "Calendario de adviento de 12 días con sorpresas de skincare de marcas como La Roche-Posay, BYOMA, TONYMOLY, Cocokind, Rael y más (valor de más de US$60). Original, traído de Estados Unidos.",
+   "piezas": 10,
+   "precio": 599,
+   "peso": 1.65,
+   "imagen": "https://alpacca.mx/assets/products/stock/target-skincare-advent.jpg",
    "precioTarjeta": 635
   },
   {
