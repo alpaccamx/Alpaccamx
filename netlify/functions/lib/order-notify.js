@@ -41,6 +41,17 @@ async function avisarPedido(order, { asunto, titulo, texto, html = "", soloWhats
 }
 
 const WHATSAPP_MAE = "5216571920559";
+
+/* Aviso por WhatsApp a Mae (plantilla "aviso_pedido", la misma de "mándame
+   todo junto"). Nunca revienta: si falla, lo que pasó ya quedó guardado y
+   se ve en el admin. */
+async function avisarMae(texto) {
+  const { notifyCustomerTemplate } = require("./whatsapp.js");
+  try {
+    const r = await notifyCustomerTemplate("aviso_pedido", { phone: WHATSAPP_MAE, name: "Mae", texto });
+    if (r && !r.ok) console.error("Aviso a Mae no enviado:", r.error);
+  } catch (err) { console.error("Aviso a Mae:", err); }
+}
 const fmtMXN = (v) => (Number(v) || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 
 /* Cuánto pagó la clienta: lo que se guardó al confirmar el pago; si es un
@@ -258,4 +269,4 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 }
 
-module.exports = { avisarPedido, numeroPedido, cuentaDelPedido, esc, fmtMXN, montoPagado, cambiosProductos, avisoCambioPedido, avisoCancelacionPagada, conDetalle, describirArticulo, WHATSAPP_MAE };
+module.exports = { avisarPedido, numeroPedido, cuentaDelPedido, esc, fmtMXN, montoPagado, cambiosProductos, avisoCambioPedido, avisoCancelacionPagada, conDetalle, describirArticulo, WHATSAPP_MAE, avisarMae };

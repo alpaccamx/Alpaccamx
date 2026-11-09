@@ -13,6 +13,7 @@
 
 const { getOrder, updateOrderFields, savePaymentProof } = require("./lib/blob-store.js");
 const { leerComprobantes } = require("./lib/comprobantes.js");
+const { avisarMae, numeroPedido } = require("./lib/order-notify.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit, getClientIp } = require("./lib/rate-limit.js");
 
@@ -69,6 +70,7 @@ exports.handler = async (event) => {
         extras.push({ n, filename: f.filename, contentType: f.contentType, at: new Date().toISOString(), monto: debe, status: "revision" });
       }
       await updateOrderFields(orderId, { proofsExtra: extras });
+      await avisarMae(`🔎 ${(order.customer && order.customer.name) || "Una clienta"} subió el comprobante de lo que faltaba del pedido ${numeroPedido(order)} (${debe.toLocaleString("es-MX", { style: "currency", currency: "MXN" })}). Revísalo en Pedidos del admin: alpacca.mx/admin`);
       return jsonResponse(200, { ok: true, extra: extras.length - 1 });
     }
     if (order.status !== "pending") {
@@ -88,6 +90,7 @@ exports.handler = async (event) => {
       proofUploadedAt: new Date().toISOString(),
       proofsMore: mas.map((f, i) => ({ n: i + 1, filename: f.filename, contentType: f.contentType })),
     });
+    await avisarMae(`🔎 ${(order.customer && order.customer.name) || "Una clienta"} subió su comprobante del pedido ${numeroPedido(order)} por ${Number(order.grandTotal || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}. Revísalo en Pedidos del admin: alpacca.mx/admin`);
 
     return jsonResponse(200, { ok: true });
   } catch (err) {
