@@ -3588,6 +3588,22 @@ ${itemLines}
     const grupo = [o, ...pedidosJuntos(o).filter((x) => packArmable(x) && !x.enEspera)];
     pack = { ids: grupo.map((x) => x.id), prog: {}, timers: {}, paso: "lista" };
     grupo.forEach((x) => { pack.prog[x.id] = { ...((x.armado && x.armado.progreso) || {}) }; });
+    packMostrar();
+  }
+
+  /* Por mandar: una sola lista con TODOS los productos de los pedidos (y
+     apartados del Sephora Sale) que van en la caja, juntando los iguales. */
+  const PACK_AP_KEY = "alpacca_pack_apartados";
+  const packApGuardado = () => { try { return JSON.parse(localStorage.getItem(PACK_AP_KEY) || "{}"); } catch (e) { return {}; } };
+  function packOpenCaja({ orderIds = [], apartadoIds = [], nombre = "" }) {
+    pack = { ids: orderIds.filter((id) => allOrders.some((x) => x.id === id)), aps: apartadoIds, prog: {}, apProg: {}, timers: {}, paso: "lista", junto: true, nombre };
+    pack.ids.forEach((id) => { const o = allOrders.find((x) => x.id === id); pack.prog[id] = { ...((o.armado && o.armado.progreso) || {}) }; });
+    const g = packApGuardado();
+    pack.aps.forEach((id) => { pack.apProg[id] = { ...(g[id] || {}) }; });
+    packMostrar();
+  }
+
+  function packMostrar() {
     let el = document.getElementById("pack-modal");
     if (!el) {
       el = document.createElement("div");
@@ -3611,12 +3627,38 @@ ${itemLines}
   }
 
   const packOrders = () => pack.ids.map((id) => allOrders.find((x) => x.id === id)).filter(Boolean);
+  const packAps = () => (pack.aps || []).map((id) => ((pvData && pvData.apartados) || pvApartadosLigeros || []).find((a) => a.id === id)).filter(Boolean);
+  // Renglones juntos: el mismo producto de varios pedidos va en uno solo.
+  function packFilas() {
+    const m = new Map();
+    const add = (t, id, i, it) => {
+      const k = [it.sku || "", (itemMarca(it) || "").toLowerCase(), it.nombre || "", it.variante || "", it.tamano || ""].join("|");
+      const r = m.get(k) || { it, partes: [] };
+      r.partes.push({ t, id, i: String(i), qty: Number(it.qty) || 0 });
+      m.set(k, r);
+    };
+    packOrders().forEach((o) => (o.items || []).forEach((it, i) => add("o", o.id, i, it)));
+    packAps().forEach((a) => (a.items || []).forEach((it, i) => add("a", a.id, i, it)));
+    return [...m.values()].map((r) => {
+      const n = (p) => Math.min(p.qty, ((p.t === "o" ? pack.prog : pack.apProg)[p.id] || {})[p.i] || 0);
+      return { ...r, qty: r.partes.reduce((t, p) => t + p.qty, 0), n: r.partes.reduce((t, p) => t + n(p), 0), nParte: n };
+    }).sort((a, b) => `${itemMarca(a.it)} ${a.it.nombre}`.localeCompare(`${itemMarca(b.it)} ${b.it.nombre}`));
+  }
+  function packApSave() {
+    const g = packApGuardado();
+    Object.entries(pack.apProg || {}).forEach(([id, prog]) => { g[id] = prog; });
+    try { localStorage.setItem(PACK_AP_KEY, JSON.stringify(g)); } catch (e) { /* sin almacenamiento */ }
+  }
   const packImg = (it) => {
-    const src = (skuToInfo.get(it.sku) || {}).imagen;
+    const src = (skuToInfo.get(it.sku) || {}).imagen || it.imagen;
     return src ? `<img src="${escapeHtml(catalogImgSrc(src))}" alt="" loading="lazy">` : `<span class="pack-noimg">🛍️</span>`;
   };
 
   function packTotals() {
+    if (pack.junto) {
+      const f = packFilas();
+      return { total: f.reduce((t, r) => t + r.qty, 0), listos: f.reduce((t, r) => t + r.n, 0) };
+    }
     let total = 0, listos = 0;
     packOrders().forEach((o) => (o.items || []).forEach((it, i) => { total += it.qty; listos += Math.min(it.qty, pack.prog[o.id][i] || 0); }));
     return { total, listos };
@@ -3643,6 +3685,36 @@ ${itemLines}
     const quien = orders[0] && orders[0].customer && orders[0].customer.name ? orders[0].customer.name : "";
 
     if (pack.paso === "faltan") return packRenderFaltan(el, orders);
+    if (pack.junto) {
+      const filas = packFilas();
+      const folios = [...orders.map((o) => "#" + orderNumber(o)), ...packAps().map((a) => a.folio)];
+      el.innerHTML = `<div class="pack-sheet">
+      <div class="pack-head">
+        <div><b>📦 Caja de ${escapeHtml(pack.nombre || quien || "la clienta")}</b><small>${folios.length} pedido${folios.length === 1 ? "" : "s"}: ${escapeHtml(folios.join(" + "))}</small></div>
+        <button type="button" class="pack-x" data-pack-close aria-label="Cerrar">✕</button>
+      </div>
+      <div class="pack-progress"><i style="width:${pct}%"></i></div>
+      <div class="pack-count">${completo ? "🎉 ¡Todo está en la caja!" : `${listos} de ${total} piezas en la caja · toca cada producto cuando lo eches`}</div>
+      <div class="pack-list">
+        ${filas.map((r, k) => {
+          const ok = r.n >= r.qty;
+          return `<div class="pack-row${ok ? " ok" : r.n ? " half" : ""}" data-pack-jrow="${k}" role="button" tabindex="0">
+            <span class="pack-pic">${packImg(r.it)}<span class="pack-qty${r.qty > 1 ? " multi" : ""}">×${r.qty}</span></span>
+            <span class="pack-name"><b>${escapeHtml(itemMarca(r.it))}</b>${escapeHtml(r.it.nombre)}${r.it.variante ? ` · ${escapeHtml(r.it.variante)}` : ""}${r.it.tamano ? ` (${escapeHtml(r.it.tamano)})` : ""}<em class="pack-cant">${r.qty > 1 ? `${r.qty} piezas · llevas ${r.n}` : "1 pieza"}${r.partes.length > 1 ? ` · de ${r.partes.length} pedidos` : ""}</em></span>
+            ${r.qty > 1 && r.n > 0 && !ok ? `<button type="button" class="pack-minus" data-pack-jminus="${k}" aria-label="Quitar una">−</button>` : ""}
+            <span class="pack-check">${ok ? "✓" : r.qty > 1 ? `${r.n}/${r.qty}` : ""}</span>
+          </div>`;
+        }).join("")}
+      </div>
+      <div class="pack-foot">
+        ${completo
+          ? `<button type="button" class="btn-primary" data-pack-close>✅ Listo, ya está todo</button>`
+          : orders.length ? `<button type="button" class="btn-secondary pack-falta" data-pack-faltan>⚠️ No encontré algo / me falta</button>` : ""}
+        <span class="meta">Se guarda solo: puedes cerrar y seguir después.</span>
+      </div>
+    </div>`;
+      return;
+    }
 
     el.innerHTML = `<div class="pack-sheet">
       <div class="pack-head">
@@ -3817,6 +3889,32 @@ ${itemLines}
       packRender();
       return;
     }
+    const jminus = t.closest("[data-pack-jminus]");
+    const jrow = t.closest("[data-pack-jrow]");
+    if (pack.junto && (jminus || jrow)) {
+      const r = packFilas()[Number((jminus || jrow).dataset[jminus ? "packJminus" : "packJrow"])];
+      if (!r) return;
+      const poner = (p, v) => {
+        const tabla = p.t === "o" ? pack.prog : pack.apProg;
+        tabla[p.id] = tabla[p.id] || {};
+        if (v > 0) tabla[p.id][p.i] = v; else delete tabla[p.id][p.i];
+      };
+      const tocados = [];
+      if (jminus) {
+        const p = [...r.partes].reverse().find((x) => r.nParte(x) > 0);
+        if (p) { poner(p, r.nParte(p) - 1); tocados.push(p); }
+      } else if (r.n >= r.qty) {
+        r.partes.forEach((p) => { poner(p, 0); tocados.push(p); }); // ya estaba completo: se reinicia
+      } else {
+        const p = r.partes.find((x) => r.nParte(x) < x.qty);
+        if (p) { poner(p, r.nParte(p) + 1); tocados.push(p); }
+      }
+      if (navigator.vibrate) try { navigator.vibrate(15); } catch (err) { /* nada */ }
+      packRender();
+      [...new Set(tocados.filter((p) => p.t === "o").map((p) => p.id))].forEach(packSave);
+      if (tocados.some((p) => p.t === "a")) packApSave();
+      return;
+    }
     const minus = t.closest("[data-pack-minus]");
     const row = t.closest("[data-pack-row]");
     if (!minus && !row) return;
@@ -3834,7 +3932,7 @@ ${itemLines}
   document.addEventListener("keydown", (e) => {
     if (!pack) return;
     if (e.key === "Escape") packClose();
-    if ((e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest("[data-pack-row]")) { e.preventDefault(); e.target.click(); }
+    if ((e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest("[data-pack-row], [data-pack-jrow]")) { e.preventDefault(); e.target.click(); }
   });
 
   // El botón grande del siguiente paso, según la etapa.
@@ -5661,6 +5759,7 @@ ${itemLines}
       return `<div style="background:#fdf6f9;border:2px solid #f0d5e0;border-radius:14px;padding:12px;margin-top:10px;">
         <div style="font-weight:700;">📦 Armar la caja: ${c.paqueteIds.length ? `${c.paqueteIds.length} paquete${c.paqueteIds.length > 1 ? "s" : ""}` : ""}${c.paqueteIds.length && c.orderIds.length ? " + " : ""}${c.orderIds.length ? `${c.orderIds.length} pedido${c.orderIds.length > 1 ? "s" : ""}` : ""}</div>
         <div class="meta">¿A dónde va? Revisa la dirección; en el siguiente paso eliges paquetería y se hace la guía.</div>
+        ${c.orderIds.length || (c.apartadoIds || []).length ? `<button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist para armar la caja</button>` : ""}
         <div class="grid" style="margin-top:8px;">${inp("nombre", "Nombre de quien recibe", d.nombre)}${inp("telefono", "Teléfono", d.telefono)}${inp("calle", "Calle y número", d.calle)}${inp("colonia", "Colonia", d.colonia)}${inp("ciudad", "Ciudad", d.ciudad)}${inp("estado", "Estado", d.estado)}${inp("cp", "Código postal", d.cp, 'maxlength="5" inputmode="numeric"')}${inp("referencias", "Referencias", d.referencias)}</div>
         <div data-pm-err style="color:#b33660;font-size:13px;margin-top:6px;"></div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-pm-dir-seguir>Seguir: elegir paquetería ›</button><button type="button" class="btn-secondary" data-pm-cancelar>Cancelar</button></div>
@@ -5674,6 +5773,7 @@ ${itemLines}
       return `<div class="swm-card" data-swm-id="${escapeHtml(e.id)}" data-kind="envio" data-pm-key="${escapeHtml(g.id)}" data-pm-pagado="${c.pagado || 0}" style="margin-top:10px;border:2px solid #f0d5e0;">
         <h4><span>📦 Caja ${escapeHtml(e.folio)}</span><button type="button" class="btn-secondary" data-pm-cancelar style="padding:4px 10px;font-size:12px;">Cerrar</button></h4>
         <div class="meta">${c.paqueteIds.length} paquete${c.paqueteIds.length === 1 ? "" : "s"}${c.orderIds.length ? ` + ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"}` : ""}. A ella le llega el cobro del envío; cuando pague, sale su guía${c.orderIds.length ? " y sus pedidos se marcan enviados" : ""}.</div>${nota}
+        ${c.orderIds.length ? `<button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist de los productos de sus pedidos</button>` : ""}
         ${swmGuiaForm({ ...e, kgExtra: c.kgOrdenes }, true)}</div>`;
     }
     const nCaja = c.orderIds.length + (c.apartadoIds || []).length;
@@ -5682,6 +5782,7 @@ ${itemLines}
     return `<div class="swm-card" data-swm-id="${escapeHtml(primario)}" data-kind="orden" data-guia-kind="${soloApartados ? "apartado" : "orden"}" data-apartado-ids="${escapeHtml((c.apartadoIds || []).join(","))}" data-pm-key="${escapeHtml(g.id)}" style="margin-top:10px;border:2px solid #f0d5e0;">
       <h4><span>📦 Caja con ${nCaja} ${(c.apartadoIds || []).length && !c.orderIds.length ? "apartado" : "pedido"}${nCaja === 1 ? "" : "s"}${(c.apartadoIds || []).length && c.orderIds.length ? ` (${(c.apartadoIds || []).length} del Sephora Sale)` : ""}</span><button type="button" class="btn-secondary" data-pm-cancelar style="padding:4px 10px;font-size:12px;">Cerrar</button></h4>
       <div class="meta">Su envío ya está pagado. Al hacer la guía, todo se marca enviado junto y se le avisa.</div>
+      <button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist para armar la caja</button>
       ${swmGuiaForm({ id: primario, email: g.email, direccion: c.dir, paqueteIds: [], kgExtra: c.kgOrdenes, sugerido: {} }, "orden")}</div>`;
   }
 
@@ -5766,6 +5867,7 @@ ${itemLines}
     if (f) { e.stopPropagation(); pmFiltro = f.dataset.pmFiltro; swmSearch = ""; renderSwmAdmin(); return; }
     if (t.closest("[data-pm-aviso-cerrar]")) { e.stopPropagation(); pmAviso = null; renderSwmAdmin(); return; }
     if (t.closest("[data-pm-cancelar]")) { e.stopPropagation(); pmCaja = null; renderSwmAdmin(); return; }
+    if (t.closest("[data-pm-checklist]")) { e.stopPropagation(); if (pmCaja) packOpenCaja({ orderIds: pmCaja.orderIds || [], apartadoIds: pmCaja.apartadoIds || [], nombre: pmCaja.nombre }); return; }
     const ver = t.closest("[data-pm-ver]");
     if (ver) { e.stopPropagation();
       // Sin volver a pintar todo (no se pierde lo que Mae haya escrito en la caja).
