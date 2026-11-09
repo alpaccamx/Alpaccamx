@@ -36,6 +36,7 @@ const { detectFileType } = require("./lib/file-signature.js");
 const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, casilleroDe } = require("./lib/swm-store.js");
 const { ALMACENAJE_DIAS, ALMACENAJE_ANTES, cotizacionSugerida, crearPreferenciaMP, publico, todoDe, tiposDeCambio, lealtadDe, codigoReferido, premiosDe, ponerCruceAnticipado, porPagar, envioAutomatico } = require("./lib/swm-core.js");
 const { REVISION_FOTOS, SEPARAR, COMISION_PCT, REFERIDO_MXN } = require("./lib/swm-pricing.js");
+const { avisarMae } = require("./lib/order-notify.js");
 const { getCoupon, checkCoupon, discountFor, redeemCoupon } = require("./lib/coupons.js");
 
 // "auto": se cobra lo más barato entre por peso y el 15% (lo de ahora).
@@ -429,6 +430,9 @@ exports.handler = async (event) => {
           r.pago = { ...(r.pago || {}), status: "revision", metodo: "transferencia", monto: r.cotizacion.total, comprobanteAt: now(), comprobanteTipo: ct };
           return r;
         });
+        const queEs = { compra: rec.ps ? "su factura" : "su compra", envio: "su envío", paquete: "su paquete" }[kind];
+        const donde = kind === "compra" || (kind === "envio" && rec.ps) ? "Personal shopper" : "Dirección americana";
+        await avisarMae(`🔎 ${rec.name || me} subió su comprobante de transferencia de ${queEs} ${rec.folio || ""} por ${Number(updated.pago.monto || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}. Revísalo en ${donde} del admin: alpacca.mx/admin`);
         return json(200, { [kind]: publico(updated) });
       }
 

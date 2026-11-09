@@ -15,6 +15,7 @@ const { getCustomerByEmail } = require("./lib/customer-store.js");
 const { verifyCustomerToken } = require("./lib/customer-auth.js");
 const { checkRateLimit } = require("./lib/rate-limit.js");
 const { leerComprobantes } = require("./lib/comprobantes.js");
+const { avisarMae } = require("./lib/order-notify.js");
 const { listApartados, getApartado, saveApartado, mutateApartado, nextFolio, saveFile } = require("./lib/preventa-store.js");
 const { configActual, abierta, productosConCupo, productoPublico, pesoDe, pesosEnvio, envioEstimado, apartadoPublico, etapaPorPagar, crearPreferenciaMP, avisar, listaHTML, formatPriceMXN, HORAS_PARA_PAGAR, round2 } = require("./lib/preventa-core.js");
 
@@ -154,6 +155,7 @@ exports.handler = async (event) => {
         }
         await saveApartado(rec);
         if (comprobantes) {
+          await avisarMae(`🔎 ${rec.name || me} apartó en el ${rec.campana || "Sephora Sale"} (${rec.folio}) y subió su comprobante de ${completo ? "pago completo" : "anticipo"} por ${formatPriceMXN(anticipo)}. Revísalo en Preventa del admin: alpacca.mx/admin`);
           await avisar(rec, `${rec.folio}: recibimos tu comprobante`, `
             <h2 style="margin:0 0 8px;font-size:20px;">¡Recibimos tu comprobante!</h2>
             ${listaHTML(rec)}
@@ -223,6 +225,7 @@ exports.handler = async (event) => {
           r[etapa] = { ...r[etapa], status: "revision", metodo: "transferencia", comprobanteAt: now(), comprobanteTipo: leidos.files[0].contentType, comprobanteN: leidos.files.length, rechazo: undefined };
           return r;
         });
+        await avisarMae(`🔎 ${a.name || me} subió su comprobante del ${etapa === "anticipo" ? (a.pagoCompleto ? "pago completo" : "anticipo") : a.pagoCompleto ? "envío" : "resto"} de ${a.folio} (${a.campana || "Sephora Sale"}) por ${formatPriceMXN(updated[etapa].monto || 0)}. Revísalo en Preventa del admin: alpacca.mx/admin`);
         return json(200, { apartado: apartadoPublico(updated) });
       }
 

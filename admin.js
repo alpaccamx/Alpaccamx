@@ -3953,6 +3953,28 @@ ${itemLines}
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
+  /* Todos los comprobantes que las clientas subieron y Mae no ha revisado:
+     tienda (pedido nuevo o lo que faltaba de uno ya pagado), Personal
+     shopper / Dirección americana y Sephora Sale. */
+  function comprobantesPorRevisar() {
+    const tienda = allOrders.filter((o) => (o.status === "pending" && o.hasPaymentProof) || (o.proofsExtra || []).some((x) => x.status === "revision"));
+    const enRev = (r) => r.pago && r.pago.status === "revision";
+    const compras = swmLoaded ? swmData.compras.filter(enRev) : [];
+    const envios = swmLoaded ? swmData.envios.filter(enRev) : [];
+    const paquetes = swmLoaded ? swmData.paquetes.filter(enRev) : [];
+    const swPs = [...compras, ...envios.filter((e) => envioEsPs(e, swmData))];
+    const swDa = [...paquetes, ...envios.filter((e) => !envioEsPs(e, swmData))];
+    const sw = [...swPs, ...swDa];
+    const pv = pvApartadosLigeros ? pvResumen().revisar : 0;
+    const partes = [];
+    if (tienda.length) partes.push(`${tienda.length} de la tienda`);
+    if (swPs.length) partes.push(`${swPs.length} de Personal shopper`);
+    if (swDa.length) partes.push(`${swDa.length} de Dirección americana`);
+    if (pv) partes.push(`${pv} del Sephora Sale`);
+    const go = tienda.length ? "pending" : swPs.length ? "ps" : swDa.length ? "swm" : pv ? "preventa" : "pending";
+    return { total: tienda.length + sw.length + pv, partes, go, ids: [...tienda.map((o) => `o:${o.id}:${(o.proofsExtra || []).length}`), ...sw.map((r) => `s:${r.id}:${r.pago.comprobanteAt || ""}`)] };
+  }
+
   function renderHome() {
     const todoEl = document.getElementById("home-todo");
     if (!todoEl) return;
@@ -3961,7 +3983,9 @@ ${itemLines}
       `Hola Mae · ${now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}`;
     const count = (b) => allOrders.filter((o) => orderBucket(o) === b).length;
     const pending = allOrders.filter((o) => o.status === "pending").length;
+    const rev = comprobantesPorRevisar();
     const cards = [
+      ...(rev.total ? [{ n: rev.total, label: "🔎 Comprobantes por revisar", hint: rev.partes.join(" · "), go: rev.go, cls: "hot" }] : []),
       { n: pending, label: "Por confirmar pago", hint: "Revisa comprobantes", go: "pending", cls: "hot" },
       { n: count("por_abw"), label: "Por pedir a ABW", hint: "Ver lista de compra", go: "abw", cls: "pink" },
       { n: count("esperando_abw"), label: "Esperando ABW", hint: "Ya pedidos, en camino", go: "esperando_abw" },
@@ -5147,9 +5171,50 @@ ${itemLines}
     }
   }
 
+  /* Comprobantes nuevos de Personal shopper, Dirección americana y Sephora
+     Sale (los de la tienda ya los avisa pollOrders como pedido nuevo). Se
+     consulta aparte, sin repintar pantallas donde Mae podría estar escribiendo. */
+  let knownRev = null;
+  async function pollComprobantes() {
+    if (!adminKey) return;
+    try {
+      const [rs] = await Promise.all([
+        fetch("/.netlify/functions/admin-swm", { headers: { "x-admin-key": adminKey } }),
+        loadPvResumen(),
+      ]);
+      if (!rs.ok) return;
+      const d = await rs.json();
+      const enRev = (r) => r.pago && r.pago.status === "revision";
+      const sw = [...(d.compras || []), ...(d.envios || []), ...(d.paquetes || [])].filter(enRev);
+      const pv = (pvApartadosLigeros || []).filter(pvPorRevisar);
+      const ahora = new Map([
+        ...sw.map((r) => [`s:${r.id}:${r.pago.comprobanteAt || ""}`, `🔎 ${r.name || "Una clienta"} subió su comprobante (${r.folio || ""})`]),
+        ...pv.map((a) => [`p:${a.id}:${(a.anticipo && a.anticipo.comprobanteAt) || ""}:${(a.resto && a.resto.comprobanteAt) || ""}`, `🔎 ${a.name || "Una clienta"} subió su comprobante del Sephora Sale (${a.folio})`]),
+      ]);
+      const primera = knownRev == null;
+      const nuevos = primera ? [] : [...ahora.keys()].filter((k) => !knownRev.has(k));
+      knownRev = new Set(ahora.keys());
+      if (!nuevos.length) return;
+      if (!["swm", "ps", "pm", "preventa"].includes(currentView)) { swmData = d; swmLoaded = true; }
+      if (currentView === "inicio") renderHome();
+      const msgs = nuevos.map((k) => ahora.get(k));
+      const text = msgs.length === 1 ? msgs[0] : `${msgs[0]} (+${msgs.length - 1} más)`;
+      const dest = nuevos.some((k) => k.startsWith("s:")) ? (sw.some((r) => (d.compras || []).includes(r)) ? "ps" : "swm") : "preventa";
+      showToast(text, "Ver", () => showView(dest));
+      if (document.hidden) { unseenCount += msgs.length; document.title = `(${unseenCount}) ${baseTitle}`; }
+      if (notifyEnabled()) {
+        beep();
+        if ("Notification" in window && Notification.permission === "granted") {
+          try { new Notification("Alpacca", { body: text, icon: "/favicon.ico", tag: "alpacca-admin-comprobante" }); } catch (e) { /* sin notificación */ }
+        }
+      }
+    } catch (e) { /* se reintenta en la siguiente vuelta */ }
+  }
+
   function startPolling() {
     if (pollTimer) return;
-    pollTimer = setInterval(pollOrders, POLL_MS);
+    pollTimer = setInterval(() => { pollOrders(); pollComprobantes(); }, POLL_MS);
+    pollComprobantes();
   }
 
   function stopPolling() {
