@@ -2126,12 +2126,15 @@ ${itemLines}
         const hecho = !(Number(o.piezas) > 0) && camposListos;
         return { o, d, nuevos, sobran, hecho };
       };
+      const sinPiezas = (c) => { const { piezas, ...resto } = c || {}; return resto; };
       const pendientes = lotes.map((l) => ({
         ...l,
         falta: l.productos.filter((p) => !porSku.has(p.sku)),
         mezclas: (l.mezclas || []).map((m) => ({ m, c: calcMezcla(m, porSku) })).filter((x) => x.c && !x.c.hecho),
         // Ajustes: cambiar campos (ej. la foto) de productos que ya están en el Stock.
-        ajustes: (l.ajustes || []).filter((a) => porSku.has(a.sku) && Object.entries(a.campos).some(([k, v]) => String(porSku.get(a.sku)[k] || "") !== String(v))),
+        // Las piezas NO se comparan: después de aplicar se venden y volvería a salir el aviso (y regresaría piezas ya vendidas).
+        // Para sumar piezas se usa "reabastecer", que se aplica una sola vez.
+        ajustes: (l.ajustes || []).map((a) => ({ ...a, campos: sinPiezas(a.campos) })).filter((a) => porSku.has(a.sku) && Object.entries(a.campos).some(([k, v]) => String(porSku.get(a.sku)[k] || "") !== String(v))),
         reabastecer: (l.reabastecer || []).filter((r) => porSku.has(r.sku) && !aplicados.has(r.id)),
       })).filter((l) => l.falta.length || l.mezclas.length || l.ajustes.length || l.reabastecer.length);
       if (!pendientes.length) {
