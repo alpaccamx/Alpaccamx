@@ -3651,8 +3651,21 @@ ${itemLines}
   }
   const packImg = (it) => {
     const src = (skuToInfo.get(it.sku) || {}).imagen || it.imagen;
-    return src ? `<img src="${escapeHtml(catalogImgSrc(src))}" alt="" loading="lazy">` : `<span class="pack-noimg">🛍️</span>`;
+    // Sin loading="lazy": dentro de la ventana del checklist Safari (iPad /
+    // iPhone) a veces no cargaba las fotos. Si una falla, sale la bolsita.
+    return src ? `<img src="${escapeHtml(catalogImgSrc(src))}" alt="" decoding="async">` : `<span class="pack-noimg">🛍️</span>`;
   };
+
+  // Foto que no carga en el checklist: en su lugar sale la bolsita (con el
+  // CSP no se pueden usar onerror en línea).
+  document.addEventListener("error", (e) => {
+    const t = e.target;
+    if (!t || t.tagName !== "IMG" || !t.closest || !t.closest(".pack-pic")) return;
+    const s = document.createElement("span");
+    s.className = "pack-noimg";
+    s.textContent = "🛍️";
+    t.replaceWith(s);
+  }, true);
 
   function packTotals() {
     if (pack.junto) {
