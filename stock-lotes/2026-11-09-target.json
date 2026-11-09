@@ -8,10 +8,10 @@
    "categoria": "Cuidado corporal",
    "descripcion": "Calendario de adviento de 12 días con sorpresas de spa y cuidado personal de marcas como Hero Cosmetics, Pixi, Palmer's, Aquaphor y La Roche-Posay. Original, traído de Estados Unidos.",
    "piezas": 7,
-   "precio": 529,
+   "precio": 599,
    "peso": 1.65,
    "imagen": "https://alpacca.mx/assets/products/stock/target-spa-advent.jpg",
-   "precioTarjeta": 561
+   "precioTarjeta": 635
   },
   {
    "sku": "STOCK-TGT-PIXI-HEROES-KIT",
@@ -111,7 +111,15 @@
   }
  ],
  "mezclas": [],
- "ajustes": [],
+ "ajustes": [
+  {
+   "sku": "STOCK-TGT-SPA-ADVENT-12PC",
+   "campos": {
+    "precio": 599,
+    "precioTarjeta": 635
+   }
+  }
+ ],
  "reabastecer": [
   {
    "id": "2026-11-09-tgt2-lip-trio",
@@ -128,5 +136,6 @@
    "sku": "STOCK-TGT-DAISE-ADVENT-8PC",
    "sumar": 8
   }
- ]
+ ],
+ "ajustesTexto": "Cambiar el precio del Spa Advent Calendar a $599"
 }
