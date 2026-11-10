@@ -1,0 +1,124 @@
+{
+ "nombre": "Compra del 10 nov: rhode, Benefit, DIOR, DAISE y medicube (costo USD × 1.0825 × 18.5 + 30%)",
+ "productos": [
+  {
+   "sku": "STOCK-RHODE-LIP-TINT-SALTY-TAN",
+   "nombre": "rhode Peptide Lip Tint · Salty Tan (0.3 oz)",
+   "marca": "rhode",
+   "descripcion": "Peptide Lip Tint de rhode en tono Salty Tan, 0.3 oz. Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "costoUSD": 20.0,
+   "precio": 529,
+   "precioTarjeta": 561,
+   "pendientes": [
+    "peso",
+    "foto",
+    "categoría"
+   ]
+  },
+  {
+   "sku": "STOCK-BENEFIT-HOTEL-BENEVILLE-ADVENT",
+   "nombre": "The Hotel Beneville · Calendario de adviento de maquillaje (24 días)",
+   "marca": "Benefit Cosmetics",
+   "descripcion": "Calendario de adviento de maquillaje de 24 días The Hotel Beneville. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "costoUSD": 168.0,
+   "precio": 4379,
+   "precioTarjeta": 4642,
+   "pendientes": [
+    "peso",
+    "foto",
+    "categoría"
+   ]
+  },
+  {
+   "sku": "STOCK-DIOR-ROSY-GLOW-STICK-106",
+   "nombre": "DIOR Rosy Glow Blush Stick · 106 Pomelo (0.2 oz)",
+   "marca": "DIOR",
+   "descripcion": "Rubor en barra DIOR Rosy Glow, tono 106 Pomelo, 0.2 oz. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "costoUSD": 44.0,
+   "precio": 1149,
+   "precioTarjeta": 1218,
+   "pendientes": [
+    "peso",
+    "foto",
+    "categoría"
+   ]
+  },
+  {
+   "sku": "STOCK-DIOR-BACKSTAGE-GLOW-005",
+   "nombre": "DIOR Backstage Glow Maximizer Face Palette · 005 Sunlit Amber Glow (0.4 oz)",
+   "marca": "DIOR",
+   "descripcion": "Paleta de rostro DIOR Backstage Glow Maximizer, tono 005 Sunlit Amber Glow, 0.4 oz. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "costoUSD": 55.0,
+   "precio": 1439,
+   "precioTarjeta": 1526,
+   "pendientes": [
+    "peso",
+    "foto",
+    "categoría"
+   ]
+  },
+  {
+   "sku": "STOCK-DIOR-ROSY-GLOW-POWDER-015",
+   "nombre": "DIOR Rosy Glow Powder Blush · 015 Cherry (0.2 oz)",
+   "marca": "DIOR",
+   "descripcion": "Rubor en polvo DIOR Rosy Glow, tono 015 Cherry, 0.2 oz. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "costoUSD": 42.0,
+   "precio": 1099,
+   "precioTarjeta": 1165,
+   "pendientes": [
+    "peso",
+    "foto",
+    "categoría"
+   ]
+  },
+  {
+   "sku": "STOCK-DAISE-SUGAR-RUSH-COLLECTION",
+   "nombre": "DAISE Sugar Rush Collection",
+   "marca": "DAISE",
+   "descripcion": "Set DAISE Sugar Rush Collection. Original, traído de Estados Unidos.",
+   "piezas": 3,
+   "costoUSD": 24.99,
+   "precio": 659,
+   "precioTarjeta": 699,
+   "pendientes": [
+    "peso",
+    "foto",
+    "categoría"
+   ]
+  },
+  {
+   "sku": "STOCK-DAISE-VANILLA-VIBES-COLLECTION",
+   "nombre": "DAISE Vanilla Vibes Collection",
+   "marca": "DAISE",
+   "descripcion": "Set DAISE Vanilla Vibes Collection. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "costoUSD": 0.0,
+   "pendientes": [
+    "peso",
+    "foto",
+    "categoría",
+    "precio (costó $0)"
+   ]
+  },
+  {
+   "sku": "STOCK-MEDICUBE-RIBBON-CHERRY-BRUSH",
+   "nombre": "medicube Ribbon Cherry Hair Brush",
+   "marca": "medicube",
+   "descripcion": "Cepillo para el cabello medicube Ribbon Cherry. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "costoUSD": 30.0,
+   "precio": 789,
+   "precioTarjeta": 837,
+   "pendientes": [
+    "peso",
+    "foto",
+    "categoría"
+   ]
+  }
+ ]
+}

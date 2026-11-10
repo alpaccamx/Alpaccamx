@@ -2129,14 +2129,17 @@ ${itemLines}
       const sinPiezas = (c) => { const { piezas, ...resto } = c || {}; return resto; };
       const pendientes = lotes.map((l) => ({
         ...l,
-        falta: l.productos.filter((p) => !porSku.has(p.sku)),
+        // Productos con datos "pendientes" (peso, foto, categoría, precio...) se muestran pero NO se cargan
+        // hasta que el archivo los tenga completos.
+        falta: l.productos.filter((p) => !porSku.has(p.sku) && !(p.pendientes || []).length),
+        incompletos: l.productos.filter((p) => !porSku.has(p.sku) && (p.pendientes || []).length),
         mezclas: (l.mezclas || []).map((m) => ({ m, c: calcMezcla(m, porSku) })).filter((x) => x.c && !x.c.hecho),
         // Ajustes: cambiar campos (ej. la foto) de productos que ya están en el Stock.
         // Las piezas NO se comparan: después de aplicar se venden y volvería a salir el aviso (y regresaría piezas ya vendidas).
         // Para sumar piezas se usa "reabastecer", que se aplica una sola vez.
         ajustes: (l.ajustes || []).map((a) => ({ ...a, campos: sinPiezas(a.campos) })).filter((a) => porSku.has(a.sku) && Object.entries(a.campos).some(([k, v]) => String(porSku.get(a.sku)[k] || "") !== String(v))),
         reabastecer: (l.reabastecer || []).filter((r) => porSku.has(r.sku) && !aplicados.has(r.id)),
-      })).filter((l) => l.falta.length || l.mezclas.length || l.ajustes.length || l.reabastecer.length);
+      })).filter((l) => l.falta.length || l.incompletos.length || l.mezclas.length || l.ajustes.length || l.reabastecer.length);
       if (!pendientes.length) {
         if (stockLotesMsg) { box.style.display = "block"; box.innerHTML = `<div class="swm-card" style="border:2px solid #17803d;"><div style="font-size:14px;">${stockLotesMsg}</div><button type="button" class="btn-secondary" data-stock-lote-cerrar style="margin-top:8px;">Cerrar</button></div>`; box.querySelector("[data-stock-lote-cerrar]").addEventListener("click", () => { stockLotesMsg = ""; box.style.display = "none"; box.innerHTML = ""; }); }
         else { box.style.display = "none"; box.innerHTML = ""; }
@@ -2147,10 +2150,11 @@ ${itemLines}
         <h4><span>📥 Cambios de Stock listos para aplicar</span></h4>
         <div class="meta">${escapeHtml(l.nombre || l.f)}</div>
         ${l.falta.length ? `<div style="font-weight:700;margin-top:6px;">Productos nuevos</div><ul style="margin:4px 0 8px;padding-left:20px;font-size:14px;">${l.falta.map((p) => `<li><b>${p.piezas}</b> × ${escapeHtml(p.nombre)} · ${formatPrice(p.precio)}</li>`).join("")}</ul>` : ""}
+        ${l.incompletos.length ? `<div style="font-weight:700;margin-top:6px;color:#8a5a00;">⏳ Faltan datos (todavía no se pueden cargar)</div><ul style="margin:4px 0 8px;padding-left:20px;font-size:14px;color:#8a5a00;">${l.incompletos.map((p) => `<li><b>${p.piezas}</b> × ${escapeHtml(p.nombre)}${p.precio ? ` · ${formatPrice(p.precio)}` : ""} <span class="meta">(falta: ${escapeHtml(p.pendientes.join(", "))})</span></li>`).join("")}</ul>` : ""}
         ${l.reabastecer.length ? `<div style="font-weight:700;margin-top:6px;">${l.reabastecer.every((r) => Number(r.sumar) < 0) ? "➖ Descontar piezas (se restan a lo que ya hay)" : "🔄 Volver a surtir (se suman a lo que ya hay)"}</div><ul style="margin:4px 0 8px;padding-left:20px;font-size:14px;">${l.reabastecer.map((r) => { const p = porSku.get(r.sku); const n = Number(r.sumar); return `<li><b>${n < 0 ? "−" + Math.abs(n) : "+" + n}</b> × ${escapeHtml(p.nombre || r.sku)} <span class="meta">(ahora ${Number(p.piezas) || 0} → ${Math.max(0, (Number(p.piezas) || 0) + n)})</span></li>`; }).join("")}</ul>` : ""}
         ${l.ajustes.length ? `<div style="margin-top:6px;font-size:14px;">🖼️ ${escapeHtml(l.ajustesTexto || "Ajustes")}: <b>${l.ajustes.length}</b> producto${l.ajustes.length === 1 ? "" : "s"}</div>` : ""}
         ${l.mezclas.map(({ m, c }) => `<div style="margin-top:6px;font-size:14px;">🔀 ${escapeHtml(m.texto || "Juntar piezas")}: <b>${c.o.piezas}</b> lote${c.o.piezas === 1 ? "" : "s"} de ${m.porOrigen} + <b>${c.d.piezas}</b> de ${m.porDestino} → <b>${c.nuevos} lotes de ${m.porDestino}</b>${c.sobran ? ` <span style="color:#8a5a00;">(sobran ${c.sobran} pieza${c.sobran === 1 ? "" : "s"} sueltas)</span>` : ""}</div>`).join("")}
-        <button type="button" class="btn-primary" data-stock-lote="${escapeHtml(l.f)}" style="margin-top:10px;">📥 Aplicar al Stock</button>
+        ${l.falta.length || l.mezclas.length || l.ajustes.length || l.reabastecer.length ? `<button type="button" class="btn-primary" data-stock-lote="${escapeHtml(l.f)}" style="margin-top:10px;">📥 Aplicar al Stock</button>` : ""}
         <div data-stock-lote-msg style="margin-top:8px;font-size:14px;"></div></div>`).join("");
       box.querySelectorAll("[data-stock-lote]").forEach((btn) => btn.addEventListener("click", async () => {
         const lote = pendientes.find((l) => l.f === btn.dataset.stockLote);
