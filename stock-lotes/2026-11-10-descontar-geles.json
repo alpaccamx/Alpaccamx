@@ -1,0 +1,7 @@
+{
+ "nombre": "Descontar 500 geles navideños del lote de 10 (50 lotes de 10)",
+ "productos": [],
+ "reabastecer": [
+  { "id": "2026-11-10-descontar-500-geles", "sku": "STOCK-BBW-GEL-LOTE10", "sumar": -50 }
+ ]
+}

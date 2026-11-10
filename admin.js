@@ -2147,7 +2147,7 @@ ${itemLines}
         <h4><span>📥 Cambios de Stock listos para aplicar</span></h4>
         <div class="meta">${escapeHtml(l.nombre || l.f)}</div>
         ${l.falta.length ? `<div style="font-weight:700;margin-top:6px;">Productos nuevos</div><ul style="margin:4px 0 8px;padding-left:20px;font-size:14px;">${l.falta.map((p) => `<li><b>${p.piezas}</b> × ${escapeHtml(p.nombre)} · ${formatPrice(p.precio)}</li>`).join("")}</ul>` : ""}
-        ${l.reabastecer.length ? `<div style="font-weight:700;margin-top:6px;">🔄 Volver a surtir (se suman a lo que ya hay)</div><ul style="margin:4px 0 8px;padding-left:20px;font-size:14px;">${l.reabastecer.map((r) => { const p = porSku.get(r.sku); return `<li><b>+${r.sumar}</b> × ${escapeHtml(p.nombre || r.sku)} <span class="meta">(ahora ${Number(p.piezas) || 0} → ${(Number(p.piezas) || 0) + Number(r.sumar)})</span></li>`; }).join("")}</ul>` : ""}
+        ${l.reabastecer.length ? `<div style="font-weight:700;margin-top:6px;">${l.reabastecer.every((r) => Number(r.sumar) < 0) ? "➖ Descontar piezas (se restan a lo que ya hay)" : "🔄 Volver a surtir (se suman a lo que ya hay)"}</div><ul style="margin:4px 0 8px;padding-left:20px;font-size:14px;">${l.reabastecer.map((r) => { const p = porSku.get(r.sku); const n = Number(r.sumar); return `<li><b>${n < 0 ? "−" + Math.abs(n) : "+" + n}</b> × ${escapeHtml(p.nombre || r.sku)} <span class="meta">(ahora ${Number(p.piezas) || 0} → ${Math.max(0, (Number(p.piezas) || 0) + n)})</span></li>`; }).join("")}</ul>` : ""}
         ${l.ajustes.length ? `<div style="margin-top:6px;font-size:14px;">🖼️ ${escapeHtml(l.ajustesTexto || "Ajustes")}: <b>${l.ajustes.length}</b> producto${l.ajustes.length === 1 ? "" : "s"}</div>` : ""}
         ${l.mezclas.map(({ m, c }) => `<div style="margin-top:6px;font-size:14px;">🔀 ${escapeHtml(m.texto || "Juntar piezas")}: <b>${c.o.piezas}</b> lote${c.o.piezas === 1 ? "" : "s"} de ${m.porOrigen} + <b>${c.d.piezas}</b> de ${m.porDestino} → <b>${c.nuevos} lotes de ${m.porDestino}</b>${c.sobran ? ` <span style="color:#8a5a00;">(sobran ${c.sobran} pieza${c.sobran === 1 ? "" : "s"} sueltas)</span>` : ""}</div>`).join("")}
         <button type="button" class="btn-primary" data-stock-lote="${escapeHtml(l.f)}" style="margin-top:10px;">📥 Aplicar al Stock</button>
@@ -2165,7 +2165,7 @@ ${itemLines}
           } catch (err) { fallas.push(`${p.nombre}: sin conexión`); }
         }
         if (lote.reabastecer.length) {
-          msg.textContent = "Sumando piezas…";
+          msg.textContent = "Actualizando piezas…";
           let fresco = null;
           try {
             const res = await fetch("/.netlify/functions/admin-list-stock", { headers: { "x-admin-key": adminKey } });
@@ -2179,7 +2179,7 @@ ${itemLines}
               if (!m.ok) throw new Error(md.error || "error");
               if (md.ya) { ok++; continue; }
               const actual = Number((fresco.get(r.sku) || {}).piezas) || 0;
-              const u = await fetch("/.netlify/functions/admin-update-stock-product", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ sku: r.sku, piezas: actual + Number(r.sumar), ...(r.campos || {}) }) });
+              const u = await fetch("/.netlify/functions/admin-update-stock-product", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ sku: r.sku, piezas: Math.max(0, actual + Number(r.sumar)), ...(r.campos || {}) }) });
               if (u.ok) ok++; else fallas.push(`${r.sku}: ${((await u.json().catch(() => ({}))).error) || "error"} (avísale a Claude: quedó marcado como sumado)`);
             } catch (err) { fallas.push(`${r.sku}: ${err.message || "sin conexión"}`); }
           }
