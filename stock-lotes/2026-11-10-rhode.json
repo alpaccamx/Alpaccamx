@@ -1,0 +1,29 @@
+{
+ "nombre": "rhode Pocket Pair (Sephora): sets de blush + lip tint edición limitada",
+ "productos": [
+  {
+   "sku": "STOCK-RHODE-POCKET-PAIR-MAUVE",
+   "nombre": "rhode Pocket Pair · Mauve Pair (Sleepy Girl + Pretzel)",
+   "marca": "rhode",
+   "categoria": "Maquillaje",
+   "descripcion": "Set edición limitada de rhode: Pocket Blush en tono Sleepy Girl + Peptide Lip Tint en Pretzel, en tamaño mini perfecto para la bolsa. Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "precio": 799,
+   "peso": 0.2,
+   "imagen": "https://alpacca.mx/assets/products/stock/rhode-pocket-pair-mauve.jpg",
+   "precioTarjeta": 847
+  },
+  {
+   "sku": "STOCK-RHODE-POCKET-PAIR-PINK",
+   "nombre": "rhode Pocket Pair · Pink Pair (Sprinkle + Ribbon)",
+   "marca": "rhode",
+   "categoria": "Maquillaje",
+   "descripcion": "Set edición limitada de rhode: Pocket Blush en tono Sprinkle + Peptide Lip Tint en Ribbon, en tamaño mini perfecto para la bolsa. Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "precio": 799,
+   "peso": 0.2,
+   "imagen": "https://alpacca.mx/assets/products/stock/rhode-pocket-pair-pink.jpg",
+   "precioTarjeta": 847
+  }
+ ]
+}
