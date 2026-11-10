@@ -8373,6 +8373,21 @@ ${itemLines}
     });
   });
 
+  /* Clave de solo lectura para Muse (OPS_READ_KEY): se genera aquí, en el
+     celular de Mae, para que nunca pase por el chat. */
+  document.getElementById("ops-key-gen").addEventListener("click", () => {
+    const bytes = new Uint8Array(30);
+    crypto.getRandomValues(bytes);
+    const clave = "ops_" + Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    document.getElementById("ops-key-val").value = clave;
+    document.getElementById("ops-key-box").style.display = "block";
+  });
+  document.getElementById("ops-key-copy").addEventListener("click", async () => {
+    const el = document.getElementById("ops-key-val");
+    try { await navigator.clipboard.writeText(el.value); showToast("Clave copiada 📋"); }
+    catch (e) { el.select(); document.execCommand("copy"); showToast("Clave copiada 📋"); }
+  });
+
   /* Actualizar el admin sin cerrar la app: botón 🔄 o jalar hacia abajo
      estando hasta arriba. Recarga la página y regresa a la misma sección. */
   const VISTA_KEY = "alpacca_admin_vista";

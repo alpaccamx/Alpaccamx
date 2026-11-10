@@ -883,6 +883,23 @@
     <div id="settings-list"></div>
     <div class="guide-error" id="settings-error"></div>
     <div class="filters-row"><button type="button" class="btn-primary" id="settings-save" style="display:none;">Guardar ajustes</button></div>
+    <div class="swm-card" style="margin-top:18px;">
+      <h4><span>🔑 Clave de solo lectura para Muse</span></h4>
+      <p class="meta">Con esta clave Muse puede <b>consultar</b> pedidos, paquetes y pendientes (folio, etapa, guía, primer nombre y casillero), pero <b>no puede cambiar nada</b> ni ver pagos, direcciones, correos ni teléfonos. Es distinta de tu clave de admin.</p>
+      <p class="meta">La clave se crea aquí en tu celular: no pasa por Claude ni por el chat.</p>
+      <button type="button" class="btn-secondary" id="ops-key-gen" style="margin-top:8px;">Generar clave nueva</button>
+      <div id="ops-key-box" style="display:none;margin-top:10px;">
+        <input id="ops-key-val" type="text" readonly aria-label="Clave nueva" style="width:100%;font-family:monospace;font-size:13px;">
+        <button type="button" class="btn-primary" id="ops-key-copy" style="margin-top:8px;">📋 Copiar</button>
+        <ol class="meta" style="padding-left:20px;margin-top:10px;">
+          <li>En Netlify: tu sitio → <b>Site configuration</b> → <b>Environment variables</b> → <b>Add a variable</b>.</li>
+          <li>Nombre: <b>OPS_READ_KEY</b>. Valor: pega la clave. Marca "Contains secret values".</li>
+          <li>Guarda y en <b>Deploys</b> dale <b>Trigger deploy</b> → <b>Deploy site</b> para que la tome.</li>
+          <li>Dale la clave a Muse por un lugar seguro (su configuración de claves), <b>no</b> en un chat.</li>
+        </ol>
+        <p class="meta">Si generas otra, la anterior deja de servir en cuanto cambies el valor en Netlify.</p>
+      </div>
+    </div>
   </div>
 
   <!-- Papelera -->
