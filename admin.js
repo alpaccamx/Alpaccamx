@@ -8018,6 +8018,7 @@ ${itemLines}
     loginBox.style.display = on ? "none" : "block";
     toolbar.style.display = on ? "flex" : "none";
     document.getElementById("logout-btn").style.display = on ? "inline-flex" : "none";
+    document.getElementById("refresh-btn").style.display = on ? "inline-flex" : "none";
     if (on) { showView("inicio"); startPolling(); loadSwm({ quiet: true }); loadRevision(); loadPreventaAdmin({ quiet: true }); }
     else stopPolling();
     if (!on) Object.values(VIEWS).forEach((v) => { document.getElementById(v.el).style.display = "none"; });
@@ -8372,10 +8373,37 @@ ${itemLines}
     });
   });
 
+  /* Actualizar el admin sin cerrar la app: botón 🔄 o jalar hacia abajo
+     estando hasta arriba. Recarga la página y regresa a la misma sección. */
+  const VISTA_KEY = "alpacca_admin_vista";
+  function refrescarAdmin() {
+    try { sessionStorage.setItem(VISTA_KEY, currentView); } catch (e) {}
+    window.location.reload();
+  }
+  document.getElementById("refresh-btn").addEventListener("click", refrescarAdmin);
+  (() => {
+    const ptr = document.getElementById("ptr");
+    let y0 = null; let listo = false;
+    document.addEventListener("touchstart", (e) => {
+      y0 = (window.scrollY <= 0 && adminKey && e.touches.length === 1) ? e.touches[0].clientY : null; listo = false;
+    }, { passive: true });
+    document.addEventListener("touchmove", (e) => {
+      if (y0 === null) return;
+      if (window.scrollY > 0) { y0 = null; ptr.classList.remove("show"); return; }
+      listo = e.touches[0].clientY - y0 > 110;
+      ptr.classList.toggle("show", listo);
+    }, { passive: true });
+    document.addEventListener("touchend", () => {
+      if (y0 !== null && listo) { ptr.textContent = "🔄 Actualizando…"; refrescarAdmin(); }
+      y0 = null; listo = false; if (ptr.textContent.indexOf("Actualizando") < 0) ptr.classList.remove("show");
+    });
+  })();
+
   const savedKey = sessionStorage.getItem(KEY_STORAGE);
   if (savedKey) {
     adminKey = savedKey;
     setLoggedInUI(true);
+    try { const v = sessionStorage.getItem(VISTA_KEY); sessionStorage.removeItem(VISTA_KEY); if (v && v !== "inicio" && VIEWS[v]) showView(v); } catch (e) {}
     fetchOrders();
     loadSkuMarcaMap();
     loadCardSurchargePct();
