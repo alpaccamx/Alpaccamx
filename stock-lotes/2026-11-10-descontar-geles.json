@@ -1,7 +1,8 @@
 {
- "nombre": "Descontar 500 geles navideños del lote de 10 (50 lotes de 10)",
+ "nombre": "Venta de 500 geles navideños: se restan 50 lotes de 10 y el lote de 500 queda vendido",
  "productos": [],
  "reabastecer": [
-  { "id": "2026-11-10-descontar-500-geles", "sku": "STOCK-BBW-GEL-LOTE10", "sumar": -50 }
+  { "id": "2026-11-10-descontar-500-geles", "sku": "STOCK-BBW-GEL-LOTE10", "sumar": -50 },
+  { "id": "2026-11-10-lote500-vendido", "sku": "STOCK-BBW-GEL-LOTE500", "sumar": -1 }
  ]
 }
