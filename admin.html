@@ -779,14 +779,26 @@
   .ps-sub { margin-top: 10px; padding: 10px 0 0 12px; border-left: 3px solid #f0d5e0; }
   .ps-sub-t { font-weight: 700; font-size: 14px; color: #8a4a64; margin-bottom: 6px; }
   .ps-sub .swm-card { background: #fffafc; border: 1px solid #f3e4eb; box-shadow: none; margin: 8px 0; }
+  /* Campos de archivo: en celular no deben empujar la pantalla hacia los lados. */
+  .swm-card .grid > * { min-width: 0; }
+  .swm-card input, .swm-card select, .swm-card textarea, input[type="file"] { max-width: 100%; min-width: 0; }
+  .swm-card input[type="file"] { width: 100%; font-size: 13px; }
+  @media (max-width: 600px) { .swm-card .grid[style*="1fr 1fr"] { grid-template-columns: 1fr !important; } }
+  /* Jalar hacia abajo para actualizar (en la app del celular no hay botón de recargar). */
+  #ptr { position: fixed; top: 0; left: 50%; transform: translate(-50%, -60px); background: #c4466e; color: #fff; font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 0 0 14px 14px; z-index: 9999; transition: transform .15s; pointer-events: none; }
+  #ptr.show { transform: translate(-50%, 0); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="adm-head">
     <h1 id="view-title">🌸 Admin Alpacca</h1>
-    <button class="btn-ghost" id="logout-btn" type="button" style="display:none;">Salir</button>
+    <span style="display:flex;gap:4px;align-items:center;">
+      <button class="btn-ghost" id="refresh-btn" type="button" style="display:none;" aria-label="Actualizar" title="Actualizar">🔄</button>
+      <button class="btn-ghost" id="logout-btn" type="button" style="display:none;">Salir</button>
+    </span>
   </header>
+  <div id="ptr" aria-hidden="true">⬇️ Suelta para actualizar</div>
 
   <div class="login-box" id="login-box">
     <input aria-label="Clave de administrador" id="admin-key-input" type="password" placeholder="Tu clave secreta" />
