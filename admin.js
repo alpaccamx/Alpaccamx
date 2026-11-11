@@ -3721,12 +3721,37 @@ ${itemLines}
      apartados del Sephora Sale) que van en la caja, juntando los iguales. */
   const PACK_AP_KEY = "alpacca_pack_apartados";
   const packApGuardado = () => { try { return JSON.parse(localStorage.getItem(PACK_AP_KEY) || "{}"); } catch (e) { return {}; } };
-  function packOpenCaja({ orderIds = [], apartadoIds = [], nombre = "" }) {
-    pack = { ids: orderIds.filter((id) => allOrders.some((x) => x.id === id)), aps: apartadoIds, prog: {}, apProg: {}, timers: {}, paso: "lista", junto: true, nombre };
+  function packOpenCaja({ orderIds = [], apartadoIds = [], paqueteIds = [], nombre = "" }) {
+    pack = { ids: orderIds.filter((id) => allOrders.some((x) => x.id === id)), aps: apartadoIds, paqs: paqueteIds, prog: {}, apProg: {}, timers: {}, paso: "lista", junto: true, nombre };
     pack.ids.forEach((id) => { const o = allOrders.find((x) => x.id === id); pack.prog[id] = { ...((o.armado && o.armado.progreso) || {}) }; });
     const g = packApGuardado();
     pack.aps.forEach((id) => { pack.apProg[id] = { ...(g[id] || {}) }; });
+    packPaqGrupos().forEach((x) => { pack.apProg[x.id] = { ...(g[x.id] || {}) }; });
     packMostrar();
+  }
+
+  /* Lo que trae cada paquete del casillero que va en la caja: si es de una
+     compra de Personal shopper, los artículos de esa compra (una sola vez
+     aunque venga en varios paquetes); si lo registró ella, lo que declaró.
+     Su avance se guarda en este celular, igual que el de los apartados. */
+  function packPaqGrupos() {
+    if (!pack || !(pack.paqs || []).length || typeof swmData === "undefined") return [];
+    const out = new Map();
+    pack.paqs.forEach((pid) => {
+      const p = swmData.paquetes.find((x) => x.id === pid);
+      if (!p) return;
+      const c = swmData.compras.find((x) => x.id === p.compraId || (x.paqueteIds || []).includes(pid));
+      const its = c && c.cotizacion && (c.cotizacion.items || []).filter((x) => !x.envio);
+      if (c && its && its.length) {
+        if (!out.has(`c:${c.id}`)) out.set(`c:${c.id}`, { id: `c:${c.id}`, folio: c.folio, items: its.map((x) => ({ nombre: x.nombre || "", variante: x.tono || "", qty: Number(x.cantidad) || 1, marca: c.tienda || "", imagen: x.imagen || "" })) });
+        return;
+      }
+      const arts = (p.articulos || []).filter((a) => a && (a.desc || a.nombre));
+      out.set(`p:${p.id}`, { id: `p:${p.id}`, folio: p.folio, items: arts.length
+        ? arts.map((a) => ({ nombre: a.desc || a.nombre, qty: Number(a.cant) || 1, marca: p.tienda || "" }))
+        : [{ nombre: `Paquete ${p.folio}${p.contenido ? ` · ${p.contenido}` : ""}`, qty: 1, marca: p.tienda || "" }] });
+    });
+    return [...out.values()];
   }
 
   function packMostrar() {
@@ -3765,6 +3790,7 @@ ${itemLines}
     };
     packOrders().forEach((o) => (o.items || []).forEach((it, i) => add("o", o.id, i, it)));
     packAps().forEach((a) => (a.items || []).forEach((it, i) => add("a", a.id, i, it)));
+    packPaqGrupos().forEach((g) => g.items.forEach((it, i) => add("a", g.id, i, it)));
     return [...m.values()].map((r) => {
       const n = (p) => Math.min(p.qty, ((p.t === "o" ? pack.prog : pack.apProg)[p.id] || {})[p.i] || 0);
       return { ...r, qty: r.partes.reduce((t, p) => t + p.qty, 0), n: r.partes.reduce((t, p) => t + n(p), 0), nParte: n };
@@ -3826,10 +3852,10 @@ ${itemLines}
     if (pack.paso === "faltan") return packRenderFaltan(el, orders);
     if (pack.junto) {
       const filas = packFilas();
-      const folios = [...orders.map((o) => "#" + orderNumber(o)), ...packAps().map((a) => a.folio)];
+      const folios = [...orders.map((o) => "#" + orderNumber(o)), ...packAps().map((a) => a.folio), ...packPaqGrupos().map((g) => g.folio)];
       el.innerHTML = `<div class="pack-sheet">
       <div class="pack-head">
-        <div><b>📦 Caja de ${escapeHtml(pack.nombre || quien || "la clienta")}</b><small>${folios.length} pedido${folios.length === 1 ? "" : "s"}: ${escapeHtml(folios.join(" + "))}</small></div>
+        <div><b>📦 Caja de ${escapeHtml(pack.nombre || quien || "la clienta")}</b><small>${(pack.paqs || []).length ? "Lleva" : `${folios.length} pedido${folios.length === 1 ? "" : "s"}`}: ${escapeHtml(folios.join(" + "))}</small></div>
         <button type="button" class="pack-x" data-pack-close aria-label="Cerrar">✕</button>
       </div>
       <div class="pack-progress"><i style="width:${pct}%"></i></div>
@@ -5910,7 +5936,7 @@ ${itemLines}
       return `<div style="background:#fdf6f9;border:2px solid #f0d5e0;border-radius:14px;padding:12px;margin-top:10px;">
         <div style="font-weight:700;">📦 Armar la caja: ${c.paqueteIds.length ? `${c.paqueteIds.length} paquete${c.paqueteIds.length > 1 ? "s" : ""}` : ""}${c.paqueteIds.length && c.orderIds.length ? " + " : ""}${c.orderIds.length ? `${c.orderIds.length} pedido${c.orderIds.length > 1 ? "s" : ""}` : ""}${(c.apartadoIds || []).length ? ` + ${c.apartadoIds.length} del Sephora Sale` : ""}</div>
         <div class="meta">¿A dónde va? Revisa la dirección; en el siguiente paso eliges paquetería y se hace la guía.</div>
-        ${c.orderIds.length || (c.apartadoIds || []).length ? `<button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist para armar la caja</button>` : ""}
+        <button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist para armar la caja</button>
         <div class="grid" style="margin-top:8px;">${inp("nombre", "Nombre de quien recibe", d.nombre)}${inp("telefono", "Teléfono", d.telefono)}${inp("calle", "Calle y número", d.calle)}${inp("colonia", "Colonia", d.colonia)}${inp("ciudad", "Ciudad", d.ciudad)}${inp("estado", "Estado", d.estado)}${inp("cp", "Código postal", d.cp, 'maxlength="5" inputmode="numeric"')}${inp("referencias", "Referencias", d.referencias)}</div>
         <div data-pm-err style="color:#b33660;font-size:13px;margin-top:6px;"></div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-pm-dir-seguir>Seguir: elegir paquetería ›</button><button type="button" class="btn-secondary" data-pm-cancelar>Cancelar</button></div>
@@ -5924,7 +5950,7 @@ ${itemLines}
       return `<div class="swm-card" data-swm-id="${escapeHtml(e.id)}" data-kind="envio" data-pm-key="${escapeHtml(g.id)}" data-pm-pagado="${c.pagado || 0}" style="margin-top:10px;border:2px solid #f0d5e0;">
         <h4><span>📦 Caja ${escapeHtml(e.folio)}</span><button type="button" class="btn-secondary" data-pm-cancelar style="padding:4px 10px;font-size:12px;">Cerrar</button></h4>
         <div class="meta">${c.paqueteIds.length} paquete${c.paqueteIds.length === 1 ? "" : "s"}${c.orderIds.length ? ` + ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"}` : ""}${(c.apartadoIds || []).length ? ` + ${c.apartadoIds.length} del Sephora Sale` : ""}. A ella le llega el cobro del envío; cuando pague, sale su guía${c.orderIds.length || (c.apartadoIds || []).length ? " y lo demás se marca enviado" : ""}.</div>${nota}
-        ${c.orderIds.length || (c.apartadoIds || []).length ? `<button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist de los productos de sus pedidos</button>` : ""}
+        <button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist para armar la caja</button>
         ${swmGuiaForm({ ...e, kgExtra: c.kgOrdenes }, true)}</div>`;
     }
     const nCaja = c.orderIds.length + (c.apartadoIds || []).length;
@@ -6036,7 +6062,7 @@ ${itemLines}
     if (f) { e.stopPropagation(); pmFiltro = f.dataset.pmFiltro; swmSearch = ""; renderSwmAdmin(); return; }
     if (t.closest("[data-pm-aviso-cerrar]")) { e.stopPropagation(); pmAviso = null; renderSwmAdmin(); return; }
     if (t.closest("[data-pm-cancelar]")) { e.stopPropagation(); pmCaja = null; renderSwmAdmin(); return; }
-    if (t.closest("[data-pm-checklist]")) { e.stopPropagation(); if (pmCaja) packOpenCaja({ orderIds: pmCaja.orderIds || [], apartadoIds: pmCaja.apartadoIds || [], nombre: pmCaja.nombre }); return; }
+    if (t.closest("[data-pm-checklist]")) { e.stopPropagation(); if (pmCaja) packOpenCaja({ orderIds: pmCaja.orderIds || [], apartadoIds: pmCaja.apartadoIds || [], paqueteIds: pmCaja.paqueteIds || [], nombre: pmCaja.nombre }); return; }
     const ver = t.closest("[data-pm-ver]");
     if (ver) { e.stopPropagation();
       // Sin volver a pintar todo (no se pierde lo que Mae haya escrito en la caja).
