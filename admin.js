@@ -423,7 +423,7 @@
       syncFilterTabs();
       filterSearchEl.value = q;
       applyFilters();
-    } else if (go === "swm" || go === "ps") {
+    } else if (go === "swm" || go === "ps" || go === "pm") {
       showView(go);
       swmSearch = q;
       renderSwmAdmin();
@@ -5963,14 +5963,34 @@ ${itemLines}
       ${swmGuiaForm({ id: primario, email: g.email, direccion: c.dir, paqueteIds: [], kgExtra: c.kgOrdenes, sugerido: {} }, "orden")}</div>`;
   }
 
+  /* "👉 Qué hacer" con cada clienta en Por mandar. */
+  function pmQueHacer(g) {
+    const out = [];
+    const envListo = g.listo.find((x) => x.tipo === "envio");
+    const otrosListos = g.listo.filter((x) => x.tipo !== "envio");
+    const cotizada = envListo && envListo.e.status === "cotizado";
+    if (envListo && otrosListos.length) out.push({ txt: `👉 Junta todo en su caja <b>${escapeHtml(envListo.e.folio)}</b>: deja las palomitas de abajo y dale <b>“📦 Armar caja”</b>. Luego pésala y ${cotizada ? "vuelve a cotizarla (ya estaba cotizada sin lo nuevo)" : "cotízala"}.` });
+    else if (cotizada) out.push({ txt: `⏳ Su caja <b>${escapeHtml(envListo.e.folio)}</b> ya está cotizada${envListo.e.cotizacion ? ` (${formatPrice(envListo.e.cotizacion.total)})` : ""}: esperando su pago. Si ya te pagó por fuera, márcalo como pagado.` });
+    else if (envListo) out.push({ txt: `👉 Su caja <b>${escapeHtml(envListo.e.folio)}</b> ya está en México: dale <b>“📦 Armar caja”</b>, pésala y cotízala.` });
+    else if (g.listo.length > 1) out.push({ txt: `👉 Tiene ${g.listo.length} cosas listas: deja las palomitas y dale <b>“📦 Armar caja”</b> para mandarle todo en una sola caja.` });
+    else if (g.listo.length) out.push({ txt: `👉 Ya puedes mandarle ${escapeHtml(g.listo[0].titulo.replace(/^\S+\s/, ""))}: dale <b>“📦 Armar caja”</b>.` });
+    if (g.listo.length && g.falta.some((x) => /Corea|cruzar|camino/.test(x.nota || ""))) out.push({ txt: "💡 Todavía le falta algo que viene en camino (abajo). Si prefieres mandarle todo junto, espera a que llegue." });
+    // Cajas en proceso (esperando pago, guía, etc.)
+    const envsProc = g.proceso.filter((x) => x.tipo === "envio").map((x) => x.e);
+    if (envsProc.length) swmQueHacer({ email: g.email, envs: envsProc, sueltos: [] }, { sinPm: true }).forEach((x) => out.push(x));
+    return out;
+  }
+
   function pmCardHTML(g) {
     const sel = pmSeleccion(g);
+    const pasos = pmQueHacer(g);
     const chips = [g.listo.length ? `✅ ${g.listo.length} lista${g.listo.length === 1 ? "" : "s"}` : "", g.guardado.length ? `🧺 ${g.guardado.length} guardada${g.guardado.length === 1 ? "" : "s"}` : "", (g.falta.length + g.proceso.length) ? `⏳ ${g.falta.length + g.proceso.length} en proceso` : ""].filter(Boolean).join(" · ");
     const wa = waLinkFromPhone(g.tel);
     const abierta = pmCaja && pmCaja.key === g.id;
     return `<div class="swm-card" data-pm-card="${escapeHtml(g.id)}" style="margin:12px 0;border:2px solid #f6dfe7;">
       <h4><span>👤 ${escapeHtml(g.nombre || g.email || g.tel || "Clienta")}${g.casillero ? ` · ${escapeHtml(g.casillero)}` : ""}</span><span class="meta" style="font-weight:600;">${chips}</span></h4>
       <div class="meta">${[g.email, g.tel].filter(Boolean).map(escapeHtml).join(" · ")}${wa ? ` · <a href="${escapeHtml(wa)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div>
+      ${pasos.length && !abierta ? `<div style="background:#fff7e8;border:1px solid #f3dca8;border-radius:12px;padding:10px 12px;margin-top:8px;font-size:14px;"><div style="font-weight:800;margin-bottom:4px;">Qué hacer</div>${pasos.map((x) => `<div style="padding:3px 0;">${x.txt}</div>`).join("")}</div>` : ""}
       ${g.pidio ? `<div style="background:#fff1f6;border:2px solid #f4b8cc;border-radius:12px;padding:8px 12px;margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between;">
         <b style="font-size:14px;">💬 Pidió que le juntes todo en una sola caja <span class="meta" style="font-weight:400;">(${new Date(g.pidio.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" })})</span></b>
         <button type="button" class="btn-secondary" data-pm-atendida="${escapeHtml(g.email)}" style="padding:4px 10px;font-size:12px;">✅ Ya lo atendí</button></div>` : ""}
@@ -6114,10 +6134,14 @@ ${itemLines}
       if (envs.length) {
         // Juntar sus pedidos en el envío de su dirección americana que ya existe.
         if (envs.length > 1) { alert("Solo se puede juntar con un envío a la vez. Quita la palomita a uno."); return; }
-        if (paqs.length) { alert("Hay paquetes sueltos marcados. Quítales la palomita: este envío ya trae sus paquetes."); return; }
         const env = envs[0].e;
         armar.disabled = true;
         try {
+          if (paqs.length) {
+            const r = await pmApi("admin-swm", { accion: "agregar_a_envio", id: env.id, paqueteIds: paqs.map((x) => x.id) });
+            if (r.envio) Object.assign(env, r.envio);
+            await loadSwm({ quiet: true });
+          }
           if (ords.length) pmActualizaOrdenes(await pmApi("admin-link-orders", { orderIds: ords.map((x) => x.id), cajaEnvioId: env.id }));
           if (aps.length) pmActualizaApartados(await pmApi("admin-preventa", { accion: "caja_envio", ids: aps.map((x) => x.id), cajaEnvioId: env.id }));
         } catch (err) { alert(err.message); armar.disabled = false; return; }
@@ -6385,15 +6409,14 @@ ${itemLines}
     } else if (swmTab === "almacen") {
       html = lista(P.filter((p) => p.status === "recibido" && !p.enMexicoAt && swmMatches(p)), swmPaqueteCard, "No hay paquetes en el almacén.");
     } else if (swmTab === "mexico" || swmTab === "envios") {
-      // Primero los envíos (cajas) por mandar; abajo, los paquetes en México que todavía no van en ningún envío.
+      // Una tarjeta por clienta con "👉 Qué hacer" arriba: sus cajas (envíos)
+      // y sus paquetes en México que todavía no van en ninguna caja.
       const envs = swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status) && swmMatches(e));
-      const mx = ord(P.filter((p) => p.status === "recibido" && p.enMexicoAt && swmMatches(p)));
+      const mx = P.filter((p) => p.status === "recibido" && p.enMexicoAt && swmMatches(p));
       const porClienta = new Map();
-      mx.forEach((p) => { const k = p.email || "—"; if (!porClienta.has(k)) porClienta.set(k, []); porClienta.get(k).push(p); });
-      const sueltos = [...porClienta.entries()].map(([email, ps]) => swmMexicoGrupo(email, ps)).join("");
-      html = (envs.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">📦 Envíos por mandar (${envs.length})</h4>${swmPorClienta(ord(envs), swmEnvioCard, "envios")}` : "")
-        + (sueltos ? `<h4 style="margin:18px 0 8px;font-size:15px;">🇲🇽 Paquetes en México sin envío (${mx.length})</h4>${sueltos}` : "")
-        || `<p style="color:#5f5866;font-size:14px;">No hay nada en México por mandar.</p>`;
+      const meter = (r, k) => { const e = r.email || `sin:${r.id}`; if (!porClienta.has(e)) porClienta.set(e, { email: r.email || "", envs: [], sueltos: [], r0: r }); porClienta.get(e)[k].push(r); };
+      ord([...envs, ...mx]).forEach((r) => meter(r, r.folio && r.folio.startsWith("E-") ? "envs" : "sueltos"));
+      html = [...porClienta.values()].map(swmMexicoClienta).join("") || `<p style="color:#5f5866;font-size:14px;">No hay nada en México por mandar.</p>`;
     } else if (swmTab === "compras") {
       html = lista(swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status) && swmMatches(c)), swmCompraCard, "No hay compras activas.");
     } else if (swmTab === "enviados") {
@@ -6741,6 +6764,57 @@ ${itemLines}
 
   /* Pestaña "En México": paquetes por clienta, con la opción de juntar
      varios en una sola caja (un envío con una sola guía). */
+  /* "👉 Qué hacer" con una clienta en la pestaña En México / por mandar.
+     Regresa renglones { txt, btn } en el orden en que conviene hacerlos. */
+  function swmQueHacer(c, { sinPm = false } = {}) {
+    const out = [];
+    const fol = (xs) => xs.map((p) => p.folio).join(" + ");
+    const listos = c.sueltos.filter((p) => !p.datosPendientes && !(p.separar && p.separar.estado === "pedida"));
+    const atorados = c.sueltos.filter((p) => !listos.includes(p));
+    const abierta = c.envs.find((e) => ["solicitado", "cotizado"].includes(e.status) && !e.guia && !(e.pago && ["revision", "pagado"].includes(e.pago.status)));
+    if (listos.length && abierta) {
+      out.push({ txt: `👉 Mete ${listos.length === 1 ? "el paquete" : "los paquetes"} <b>${escapeHtml(fol(listos))}</b> en su caja <b>${escapeHtml(abierta.folio)}</b>, que todavía no está cobrada. Así le mandas todo junto en un solo envío.`,
+        btn: `<button type="button" class="btn-primary" data-swm-agregar="${escapeHtml(abierta.id)}" data-ids="${escapeHtml(listos.map((p) => p.id).join(","))}" style="padding:8px 14px;font-size:13px;">📦 Meter en ${escapeHtml(abierta.folio)}</button>` });
+    } else if (listos.length) {
+      out.push({ txt: `👉 Arma una caja con <b>${escapeHtml(fol(listos))}</b> y créale su envío.`,
+        btn: `<button type="button" class="btn-primary" data-cons-toggle="${escapeHtml(c.email)}" style="padding:8px 14px;font-size:13px;">📦 Armar su caja</button>` });
+    }
+    atorados.forEach((p) => out.push({ txt: `✏️ <b>${escapeHtml(p.folio)}</b>: todavía no se puede mandar (${p.datosPendientes ? "falta que diga qué trae" : "tiene una separación pendiente"}).` }));
+    c.envs.forEach((e) => {
+      const f = `<b>${escapeHtml(e.folio)}</b>`;
+      const pago = e.pago && e.pago.status;
+      if (pago === "revision") out.push({ txt: `🔎 Revisa el comprobante que subió para la caja ${f} y apruébalo.` });
+      else if (e.status === "solicitado") out.push({ txt: `👉 Cotiza la caja ${f}: pésala, ponle el peso, dale <b>“Ver precios de envío”</b> y luego <b>“Hacer guía y cobrarle”</b>.` });
+      else if (e.status === "cotizado" && e.guia) out.push({ txt: `⏳ La guía de ${f} ya está hecha. Sale en cuanto pague ${e.cotizacion ? formatPrice(e.cotizacion.total) : ""}.` });
+      else if (e.status === "cotizado") out.push({ txt: `⏳ Esperando que pague la caja ${f}${e.cotizacion ? ` (${formatPrice(e.cotizacion.total)})` : ""}. Si ya te pagó por fuera, márcalo como pagado.` });
+      else if (["pagado", "en_mexico"].includes(e.status) && !e.guia) out.push({ txt: `👉 Ya pagó la caja ${f}: hazle su guía.` });
+      else if (e.guia) out.push({ txt: `🚚 ${f} ya tiene guía: cuando la entregues a la paquetería, márcala como enviada.` });
+    });
+    // Lo que tiene listo en la tienda o en el Sephora Sale: se junta desde Por mandar.
+    if (!sinPm && c.email && typeof pmGrupos === "function") {
+      const g = pmGrupos().find((x) => x.email === c.email);
+      const otros = g ? g.listo.filter((x) => x.tipo === "pedido" || x.tipo === "apartado") : [];
+      if (otros.length) out.push({ txt: `🧾 También tiene listo ${otros.map((x) => escapeHtml(x.titulo.replace(/^\S+\s/, ""))).join(", ")}. Júntalo en la misma caja desde <b>Por mandar</b>.`,
+        btn: `<button type="button" class="btn-secondary" data-global-go="pm" data-global-q="${escapeHtml(c.email)}" style="padding:8px 14px;font-size:13px;">Ir a Por mandar ›</button>` });
+    }
+    return out;
+  }
+
+  function swmMexicoClienta(c) {
+    const r0 = c.r0;
+    const cas = c.email && swmData.casilleros && swmData.casilleros[c.email];
+    const pasos = swmQueHacer(c);
+    return `<div class="swm-card" style="margin:12px 0;border:2px solid #f6dfe7;">
+      <h4><span>👤 ${escapeHtml(r0.name || c.email || "Sin dueña")}${cas ? ` · ${escapeHtml(cas)}` : ""}</span><span class="meta" style="font-weight:600;">${c.envs.length ? `📦 ${c.envs.length} caja${c.envs.length === 1 ? "" : "s"}` : ""}${c.envs.length && c.sueltos.length ? " · " : ""}${c.sueltos.length ? `🇲🇽 ${c.sueltos.length} paquete${c.sueltos.length === 1 ? "" : "s"} sin caja` : ""}</span></h4>
+      ${pasos.length ? `<div style="background:#fff7e8;border:1px solid #f3dca8;border-radius:12px;padding:10px 12px;margin-top:8px;">
+        <div style="font-weight:800;font-size:14px;margin-bottom:4px;">Qué hacer</div>
+        ${pasos.map((x) => `<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:4px 0;font-size:14px;"><span style="flex:1;min-width:220px;">${x.txt}</span>${x.btn || ""}</div>`).join("")}
+      </div>` : ""}
+      ${c.envs.map(swmEnvioCard).join("")}
+      ${c.sueltos.length ? swmMexicoGrupo(c.email || "—", c.sueltos) : ""}
+    </div>`;
+  }
+
   function swmMexicoGrupo(email, ps) {
     const libres = ps.filter((p) => p.status === "recibido" && !p.datosPendientes);
     const p0 = ps[0];
@@ -7012,6 +7086,12 @@ ${itemLines}
       if (!confirm("¿Pasarla a “Por mandar”?")) return;
       const data = await swmAct({ accion: "compra_en_mano", id: psM.dataset.psEnMano }, psM);
       if (data) { psTab = "envio"; renderSwmAdmin(); showToast("📦 Listo. Cuando la cruces toca “🇲🇽 Ya cruzó a México” y su envío se arma solo."); }
+      return;
+    }
+    const agregar = t.closest("[data-swm-agregar]");
+    if (agregar) {
+      const ok = await swmAct({ accion: "agregar_a_envio", id: agregar.dataset.swmAgregar, paqueteIds: agregar.dataset.ids.split(",").filter(Boolean) }, agregar);
+      if (ok) { renderSwmAdmin(); showToast(`📦 Listo: ya van en ${ok.envio ? ok.envio.folio : "su caja"}. Ahora cotízala.`); }
       return;
     }
     const consToggle = t.closest("[data-cons-toggle]");
