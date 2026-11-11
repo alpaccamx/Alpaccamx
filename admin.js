@@ -397,6 +397,36 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
+  /* Orden de las listas de pedidos (se recuerda en este celular). */
+  const ORDEN_KEY = "alpacca_admin_orden_pedidos";
+  let ordenPedidos = "reciente";
+  try { ordenPedidos = localStorage.getItem(ORDEN_KEY) || "reciente"; } catch (e) {}
+  const ordenSelectEl = document.getElementById("order-sort");
+  if (ordenSelectEl) {
+    if (![...ordenSelectEl.options].some((op) => op.value === ordenPedidos)) ordenPedidos = "reciente";
+    ordenSelectEl.value = ordenPedidos;
+    ordenSelectEl.addEventListener("change", () => {
+      ordenPedidos = ordenSelectEl.value;
+      try { localStorage.setItem(ORDEN_KEY, ordenPedidos); } catch (e) {}
+      applyFilters();
+    });
+  }
+  function ordenarPedidos(list) {
+    const fecha = (o) => String(o.createdAt || "");
+    const total = (o) => Number(o.grandTotal) || 0;
+    const piezas = (o) => (o.items || []).reduce((t, it) => t + (Number(it.qty) || 0), 0);
+    const nombre = (o) => normalizeForSearch((o.customer && o.customer.name) || "");
+    const cmp = {
+      reciente: (a, b) => fecha(b).localeCompare(fecha(a)),
+      antiguo: (a, b) => fecha(a).localeCompare(fecha(b)),
+      grande: (a, b) => total(b) - total(a) || fecha(b).localeCompare(fecha(a)),
+      chico: (a, b) => total(a) - total(b) || fecha(b).localeCompare(fecha(a)),
+      piezas: (a, b) => piezas(b) - piezas(a) || fecha(b).localeCompare(fecha(a)),
+      nombre: (a, b) => nombre(a).localeCompare(nombre(b), "es") || fecha(b).localeCompare(fecha(a)),
+    }[ordenPedidos] || ((a, b) => fecha(b).localeCompare(fecha(a)));
+    return [...list].sort(cmp);
+  }
+
   function applyFilters() {
     const search = filterSearchEl.value.trim().toLowerCase();
     currentSearchTerm = search;
@@ -423,14 +453,14 @@
     // (aparece un pedido que no tiene nada que ver con lo que se buscó).
     const pendingOrders = delTipo.filter((o) => o.status === "pending");
     renderPending(
-      currentBucket ? [] : (search ? pendingOrders.filter((o) => matchesSearch(o, search)) : pendingOrders),
+      ordenarPedidos(currentBucket ? [] : (search ? pendingOrders.filter((o) => matchesSearch(o, search)) : pendingOrders)),
       Boolean(search) && pendingOrders.length > 0
     );
 
     // Los "por confirmar" ya salen arriba con sus botones; si también se
     // pintan en "Todos tus pedidos", cada uno aparece dos veces.
     renderHistory(
-      filteredOrders.filter((o) => o.status !== "pending"),
+      ordenarPedidos(filteredOrders.filter((o) => o.status !== "pending")),
       filteredOrders.some((o) => o.status === "pending")
     );
     renderGlobalHitsPedidos(search);
@@ -8051,7 +8081,7 @@ ${itemLines}
     loginBox.style.display = on ? "none" : "block";
     toolbar.style.display = on ? "flex" : "none";
     document.getElementById("logout-btn").style.display = on ? "inline-flex" : "none";
-    document.getElementById("refresh-btn").style.display = on ? "inline-flex" : "none";
+    document.getElementById("app-refresh-btn").style.display = on ? "inline-flex" : "none";
     if (on) { showView("inicio"); startPolling(); loadSwm({ quiet: true }); loadRevision(); loadPreventaAdmin({ quiet: true }); }
     else stopPolling();
     if (!on) Object.values(VIEWS).forEach((v) => { document.getElementById(v.el).style.display = "none"; });
@@ -8428,7 +8458,7 @@ ${itemLines}
     try { sessionStorage.setItem(VISTA_KEY, currentView); } catch (e) {}
     window.location.reload();
   }
-  document.getElementById("refresh-btn").addEventListener("click", refrescarAdmin);
+  document.getElementById("app-refresh-btn").addEventListener("click", refrescarAdmin);
   (() => {
     const ptr = document.getElementById("ptr");
     let y0 = null; let listo = false;

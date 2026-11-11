@@ -794,7 +794,7 @@
   <header class="adm-head">
     <h1 id="view-title">🌸 Admin Alpacca</h1>
     <span style="display:flex;gap:4px;align-items:center;">
-      <button class="btn-ghost" id="refresh-btn" type="button" style="display:none;" aria-label="Actualizar" title="Actualizar">🔄</button>
+      <button class="btn-ghost" id="app-refresh-btn" type="button" style="display:none;" aria-label="Actualizar" title="Actualizar">🔄</button>
       <button class="btn-ghost" id="logout-btn" type="button" style="display:none;">Salir</button>
     </span>
   </header>
@@ -1011,6 +1011,17 @@
       </div>
     </div>
     <input aria-label="Buscar pedidos" id="filter-search" type="text" placeholder="🔍 Busca lo que sea: nombre, calle y número, ciudad, estado, CP, teléfono, producto, # de orden…" />
+    <div>
+      <label class="filters-label" for="order-sort">Ordenar por</label>
+      <select id="order-sort" style="margin-top:8px;width:100%;max-width:340px;padding:10px 12px;border-radius:10px;border:1px solid #e6d3dc;font-size:15px;background:#fff;">
+        <option value="reciente">🆕 Más reciente primero</option>
+        <option value="antiguo">📅 Más antiguo primero</option>
+        <option value="grande">💰 Pedido más grande primero ($)</option>
+        <option value="chico">🪙 Pedido más chico primero ($)</option>
+        <option value="piezas">📦 Más piezas primero</option>
+        <option value="nombre">🔤 Clienta (A → Z)</option>
+      </select>
+    </div>
     <div class="filters-row">
       <button class="btn-secondary" id="refresh-btn" type="button">🔄 Actualizar</button>
       <button class="btn-secondary" id="export-btn" type="button">⬇️ Descargar en Excel</button>
