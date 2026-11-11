@@ -6349,9 +6349,9 @@ ${itemLines}
       ["acciones", `⚡ Por hacer (${swmNewCount})`],
       ["llegar", `⏳ Por llegar (${P.filter((p) => p.status === "registrado").length})`],
       ["almacen", `📥 En almacén (${P.filter((p) => p.status === "recibido" && !p.enMexicoAt).length})`],
-      ["mexico", `🇲🇽 En México (${P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt).length})`],
+      // Una sola pestaña para lo que ya está en México: sus envíos por mandar y los paquetes que todavía no tienen envío.
+      ["mexico", `🇲🇽 En México / por mandar (${swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status)).length + P.filter((p) => p.status === "recibido" && p.enMexicoAt).length})`],
       ["sindueña", `❓ Sin dueña (${P.filter((p) => p.status === "sin_dueña").length})`],
-      ["envios", `📦 Por mandar (${swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status)).length})`],
       ["enviados", `✈️ Enviados (${swmData.envios.filter((e) => e.status === "enviado").length})`],
       ["entregados", `✅ Entregados (${swmData.envios.filter((e) => e.status === "entregado").length})`],
       ["historial", "🗂️ Historial"],
@@ -6384,15 +6384,18 @@ ${itemLines}
       html = ord(P.filter((p) => p.status === "sin_dueña")).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes sin dueña.</p>`;
     } else if (swmTab === "almacen") {
       html = lista(P.filter((p) => p.status === "recibido" && !p.enMexicoAt && swmMatches(p)), swmPaqueteCard, "No hay paquetes en el almacén.");
-    } else if (swmTab === "mexico") {
-      const mx = ord(P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt && swmMatches(p)));
+    } else if (swmTab === "mexico" || swmTab === "envios") {
+      // Primero los envíos (cajas) por mandar; abajo, los paquetes en México que todavía no van en ningún envío.
+      const envs = swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status) && swmMatches(e));
+      const mx = ord(P.filter((p) => p.status === "recibido" && p.enMexicoAt && swmMatches(p)));
       const porClienta = new Map();
       mx.forEach((p) => { const k = p.email || "—"; if (!porClienta.has(k)) porClienta.set(k, []); porClienta.get(k).push(p); });
-      html = [...porClienta.entries()].map(([email, ps]) => swmMexicoGrupo(email, ps)).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes cruzados a México.</p>`;
+      const sueltos = [...porClienta.entries()].map(([email, ps]) => swmMexicoGrupo(email, ps)).join("");
+      html = (envs.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">📦 Envíos por mandar (${envs.length})</h4>${swmPorClienta(ord(envs), swmEnvioCard, "envios")}` : "")
+        + (sueltos ? `<h4 style="margin:18px 0 8px;font-size:15px;">🇲🇽 Paquetes en México sin envío (${mx.length})</h4>${sueltos}` : "")
+        || `<p style="color:#5f5866;font-size:14px;">No hay nada en México por mandar.</p>`;
     } else if (swmTab === "compras") {
       html = lista(swmData.compras.filter((c) => !["comprado", "cancelado"].includes(c.status) && swmMatches(c)), swmCompraCard, "No hay compras activas.");
-    } else if (swmTab === "envios") {
-      html = lista(swmData.envios.filter((e) => !["enviado", "entregado", "cancelado"].includes(e.status) && swmMatches(e)), swmEnvioCard, "No hay envíos por mandar.");
     } else if (swmTab === "enviados") {
       html = lista(swmData.envios.filter((e) => e.status === "enviado" && swmMatches(e)), swmEnvioCard, "No hay envíos en camino. Cuando anotes una guía aparecen aquí hasta que los marques entregados.");
     } else if (swmTab === "entregados") {
@@ -6751,7 +6754,7 @@ ${itemLines}
         <div class="meta" style="font-weight:700;margin-top:8px;">Dirección de entrega${ultimo ? " (la de su último envío)" : ""}</div>
         <div class="grid">${inp("nombre", "Nombre de quien recibe")}${inp("telefono", "Teléfono")}${inp("calle", "Calle y número")}${inp("colonia", "Colonia")}${inp("ciudad", "Ciudad")}${inp("estado", "Estado")}${inp("cp", "Código postal", 'maxlength="5" inputmode="numeric"')}${inp("referencias", "Referencias")}</div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-cons-save>📦 Crear envío en una sola caja</button><button type="button" class="btn-secondary" data-cons-toggle="">Cancelar</button></div>
-        <div class="meta">Después lo cotizas en "Por mandar" como siempre y a ella le llega para pagar.</div>
+        <div class="meta">Después lo cotizas arriba, en "Envíos por mandar", y a ella le llega para pagar.</div>
       </div>` : "";
     // "Ya lo mandé": paquetes sueltos o que ya tienen envío; se anota la guía a mano y pasan a Enviados.
     const mandables = ps.filter((p) => (p.status === "recibido" && !p.datosPendientes) || p.status === "en_envio");
@@ -7019,7 +7022,7 @@ ${itemLines}
       if (!paqueteIds.length) { alert("Elige al menos un paquete."); return; }
       const direccion = Object.fromEntries([...box.querySelectorAll("[data-dir]")].map((i) => [i.dataset.dir, i.value.trim()]));
       const ok = await swmAct({ accion: "crear_envio", email: box.dataset.swmConsolidar, paqueteIds, direccion }, t.closest("button"));
-      if (ok) { swmConsolidarEmail = ""; swmTab = "envios"; renderSwmAdmin(); }
+      if (ok) { swmConsolidarEmail = ""; swmTab = "mexico"; renderSwmAdmin(); }
       return;
     }
     const envToggle = t.closest("[data-env-toggle]");
