@@ -5822,6 +5822,7 @@ ${itemLines}
       if (a.status === "apartado") return E({ ...base, estado: "falta", nota: "🛍️ apartado: esperando a que llegue la mercancía" });
       if (a.status === "llego") return E({ ...base, estado: "falta", nota: `📦 ya llegó: falta que pague ${formatPrice(a.resto ? a.resto.monto : 0)}` });
       if (a.entrega === "personal") return E({ ...base, estado: "falta", nota: "📍 se lo entregas en persona (Juárez)" });
+      if (a.cajaEnvioId) return E({ ...base, estado: "proceso", nota: `📦 ya va en la caja del envío ${(D.envios.find((x) => x.id === a.cajaEnvioId) || {}).folio || ""}` });
       E({ ...base, estado: "listo" });
     });
 
@@ -5907,7 +5908,7 @@ ${itemLines}
       const d = c.dir;
       const inp = (k, l, v, extra = "") => `<label>${l}<input data-pmf="${k}" type="text" value="${escapeHtml(v || "")}" ${extra}></label>`;
       return `<div style="background:#fdf6f9;border:2px solid #f0d5e0;border-radius:14px;padding:12px;margin-top:10px;">
-        <div style="font-weight:700;">📦 Armar la caja: ${c.paqueteIds.length ? `${c.paqueteIds.length} paquete${c.paqueteIds.length > 1 ? "s" : ""}` : ""}${c.paqueteIds.length && c.orderIds.length ? " + " : ""}${c.orderIds.length ? `${c.orderIds.length} pedido${c.orderIds.length > 1 ? "s" : ""}` : ""}</div>
+        <div style="font-weight:700;">📦 Armar la caja: ${c.paqueteIds.length ? `${c.paqueteIds.length} paquete${c.paqueteIds.length > 1 ? "s" : ""}` : ""}${c.paqueteIds.length && c.orderIds.length ? " + " : ""}${c.orderIds.length ? `${c.orderIds.length} pedido${c.orderIds.length > 1 ? "s" : ""}` : ""}${(c.apartadoIds || []).length ? ` + ${c.apartadoIds.length} del Sephora Sale` : ""}</div>
         <div class="meta">¿A dónde va? Revisa la dirección; en el siguiente paso eliges paquetería y se hace la guía.</div>
         ${c.orderIds.length || (c.apartadoIds || []).length ? `<button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist para armar la caja</button>` : ""}
         <div class="grid" style="margin-top:8px;">${inp("nombre", "Nombre de quien recibe", d.nombre)}${inp("telefono", "Teléfono", d.telefono)}${inp("calle", "Calle y número", d.calle)}${inp("colonia", "Colonia", d.colonia)}${inp("ciudad", "Ciudad", d.ciudad)}${inp("estado", "Estado", d.estado)}${inp("cp", "Código postal", d.cp, 'maxlength="5" inputmode="numeric"')}${inp("referencias", "Referencias", d.referencias)}</div>
@@ -5922,8 +5923,8 @@ ${itemLines}
       if (!e) return `<div class="meta">Cargando el envío…</div>`;
       return `<div class="swm-card" data-swm-id="${escapeHtml(e.id)}" data-kind="envio" data-pm-key="${escapeHtml(g.id)}" data-pm-pagado="${c.pagado || 0}" style="margin-top:10px;border:2px solid #f0d5e0;">
         <h4><span>📦 Caja ${escapeHtml(e.folio)}</span><button type="button" class="btn-secondary" data-pm-cancelar style="padding:4px 10px;font-size:12px;">Cerrar</button></h4>
-        <div class="meta">${c.paqueteIds.length} paquete${c.paqueteIds.length === 1 ? "" : "s"}${c.orderIds.length ? ` + ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"}` : ""}. A ella le llega el cobro del envío; cuando pague, sale su guía${c.orderIds.length ? " y sus pedidos se marcan enviados" : ""}.</div>${nota}
-        ${c.orderIds.length ? `<button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist de los productos de sus pedidos</button>` : ""}
+        <div class="meta">${c.paqueteIds.length} paquete${c.paqueteIds.length === 1 ? "" : "s"}${c.orderIds.length ? ` + ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"}` : ""}${(c.apartadoIds || []).length ? ` + ${c.apartadoIds.length} del Sephora Sale` : ""}. A ella le llega el cobro del envío; cuando pague, sale su guía${c.orderIds.length || (c.apartadoIds || []).length ? " y lo demás se marca enviado" : ""}.</div>${nota}
+        ${c.orderIds.length || (c.apartadoIds || []).length ? `<button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist de los productos de sus pedidos</button>` : ""}
         ${swmGuiaForm({ ...e, kgExtra: c.kgOrdenes }, true)}</div>`;
     }
     const nCaja = c.orderIds.length + (c.apartadoIds || []).length;
@@ -6026,6 +6027,7 @@ ${itemLines}
     if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
     return data;
   }
+  const pmActualizaApartados = (data) => (data.apartados || []).forEach((u) => { const l = pvData && pvData.apartados; if (!l) return; const i = l.findIndex((x) => x.id === u.id); if (i >= 0) l[i] = { ...l[i], ...u }; });
   const pmActualizaOrdenes = (data) => (data.orders || []).forEach((u) => { const i = allOrders.findIndex((x) => x.id === u.id); if (i >= 0) allOrders[i] = u; });
 
   document.getElementById("swm-panel").addEventListener("click", async (e) => {
@@ -6087,16 +6089,18 @@ ${itemLines}
         // Juntar sus pedidos en el envío de su dirección americana que ya existe.
         if (envs.length > 1) { alert("Solo se puede juntar con un envío a la vez. Quita la palomita a uno."); return; }
         if (paqs.length) { alert("Hay paquetes sueltos marcados. Quítales la palomita: este envío ya trae sus paquetes."); return; }
-        if (aps.length) { alert("Los del Sephora Sale no se mezclan con paquetes del casillero. Quítales la palomita y ármalos en otra caja."); return; }
         const env = envs[0].e;
         armar.disabled = true;
         try {
           if (ords.length) pmActualizaOrdenes(await pmApi("admin-link-orders", { orderIds: ords.map((x) => x.id), cajaEnvioId: env.id }));
+          if (aps.length) pmActualizaApartados(await pmApi("admin-preventa", { accion: "caja_envio", ids: aps.map((x) => x.id), cajaEnvioId: env.id }));
         } catch (err) { alert(err.message); armar.disabled = false; return; }
-        // También los pedidos que ya se habían metido antes a esta caja (para que su peso cuente al cotizar).
+        // También lo que ya se había metido antes a esta caja (para que su peso cuente al cotizar).
         const enCaja = [...ords, ...g.entradas.filter((x) => x.tipo === "pedido" && x.o.cajaEnvioId === env.id && !ords.some((y) => y.id === x.id))];
-        pmCaja = { key: g.id, nombre: g.nombre, tel: g.tel, email: g.email, orderIds: enCaja.map((x) => x.id), apartadoIds: [], paqueteIds: [...(env.paqueteIds || [])],
-          kgOrdenes: enCaja.reduce((s, x) => s + (x.kg || 0), 0), pagado: enCaja.reduce((s, x) => s + (Number(x.o.shippingNacionalMXN) || 0), 0),
+        const apsCaja = [...aps, ...g.entradas.filter((x) => x.tipo === "apartado" && x.a.cajaEnvioId === env.id && !aps.some((y) => y.id === x.id))];
+        pmCaja = { key: g.id, nombre: g.nombre, tel: g.tel, email: g.email, orderIds: enCaja.map((x) => x.id), apartadoIds: apsCaja.map((x) => x.id), paqueteIds: [...(env.paqueteIds || [])],
+          kgOrdenes: [...enCaja, ...apsCaja].reduce((s, x) => s + (x.kg || 0), 0),
+          pagado: enCaja.reduce((s, x) => s + (Number(x.o.shippingNacionalMXN) || 0), 0) + apsCaja.reduce((s, x) => s + (Number(x.a.envio) || 0), 0),
           dir: env.direccion || pmDireccion(g), paso: "guia", envioId: env.id, orderId: "", apartadoId: "" };
         applyFilters();
         renderSwmAdmin();
@@ -6104,12 +6108,11 @@ ${itemLines}
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
-      if (paqs.length && aps.length) { alert("Los del Sephora Sale no se mezclan con paquetes del casillero. Quita la palomita a unos o a otros y arma dos cajas."); return; }
       const kgOrdenes = [...ords, ...aps].reduce((s, x) => s + (x.kg || 0), 0);
       const dirBase = pmDireccion(g);
       const dirAp = aps[0] && aps[0].a.direccion && aps[0].a.direccion.cp ? { ...dirBase, ...aps[0].a.direccion } : dirBase;
       pmCaja = { key: g.id, nombre: g.nombre, tel: g.tel, email: g.email, orderIds: ords.map((x) => x.id), apartadoIds: aps.map((x) => x.id), paqueteIds: paqs.map((x) => x.id), kgOrdenes,
-        pagado: paqs.length ? ords.reduce((s, x) => s + (Number(x.o.shippingNacionalMXN) || 0), 0) : 0, dir: ords.length ? dirBase : dirAp, paso: "dir", envioId: "", orderId: "", apartadoId: "" };
+        pagado: paqs.length ? ords.reduce((s, x) => s + (Number(x.o.shippingNacionalMXN) || 0), 0) + aps.reduce((s, x) => s + (Number(x.a.envio) || 0), 0) : 0, dir: ords.length ? dirBase : dirAp, paso: "dir", envioId: "", orderId: "", apartadoId: "" };
       if (!paqs.length) {
         // Solo pedidos de la tienda: se ligan (para que salgan juntos) y se pasa directo a la guía.
         armar.disabled = true;
@@ -6134,6 +6137,7 @@ ${itemLines}
       try {
         const r = await pmApi("admin-swm", { accion: "crear_envio", email: pmCaja.email, paqueteIds: pmCaja.paqueteIds, direccion: dir });
         if (pmCaja.orderIds.length) pmActualizaOrdenes(await pmApi("admin-link-orders", { orderIds: pmCaja.orderIds, cajaEnvioId: r.envio.id }));
+        if ((pmCaja.apartadoIds || []).length) pmActualizaApartados(await pmApi("admin-preventa", { accion: "caja_envio", ids: pmCaja.apartadoIds, cajaEnvioId: r.envio.id }));
         pmCaja.dir = dir; pmCaja.envioId = r.envio.id; pmCaja.paso = "guia";
         await loadSwm({ quiet: true });
         applyFilters();

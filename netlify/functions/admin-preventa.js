@@ -271,6 +271,34 @@ exports.handler = async (event) => {
         return json(200, { apartado: rec });
       }
 
+      // Mandar apartados liquidados dentro de la caja de un envío de la
+      // dirección americana (Por mandar). Salen enviados con la guía de ese
+      // envío (ver marcarOrdenesDeCaja en lib/swm-core.js).
+      //   { ids: [...], cajaEnvioId: "id del envío" }  -> los mete
+      //   { ids: [...], cajaEnvioId: null }            -> los saca
+      case "caja_envio": {
+        const ids = [...new Set((Array.isArray(b.ids) ? b.ids : [id]).map(String).filter(Boolean))].slice(0, 20);
+        if (!ids.length) return json(400, { error: "Faltan los apartados." });
+        const cajaEnvioId = b.cajaEnvioId ? String(b.cajaEnvioId) : null;
+        if (cajaEnvioId) {
+          const env = await require("./lib/swm-store.js").getRecord("envio", cajaEnvioId);
+          if (!env || ["enviado", "entregado", "cancelado"].includes(env.status)) return json(409, { error: "Ese envío ya no se puede usar para juntar." });
+        }
+        const out = [];
+        for (const aid of ids) {
+          let error = "";
+          const rec = await mutateApartado(aid, (a) => {
+            if (cajaEnvioId && (a.status !== "liquidado" || a.entrega === "personal")) { error = `El apartado ${a.folio} todavía no está liquidado o es entrega en persona.`; return null; }
+            if (cajaEnvioId) { a.cajaEnvioId = cajaEnvioId; hist(a, a.status, { caja: cajaEnvioId }); } else { delete a.cajaEnvioId; hist(a, a.status, { caja: null }); }
+            return a;
+          });
+          if (error) return json(409, { error });
+          if (!rec) return json(404, { error: "No existe ese apartado." });
+          out.push(rec);
+        }
+        return json(200, { apartados: out });
+      }
+
       case "marcar_enviado": {
         const guia = clip(b.guia, 80);
         const paqueteria = clip(b.paqueteria, 40) || "Estafeta";
