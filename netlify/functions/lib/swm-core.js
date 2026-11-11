@@ -222,10 +222,30 @@ async function marcarOrdenesDeCaja(envio) {
         stageHistory: [...(Array.isArray(o.stageHistory) ? o.stageHistory.slice(-30) : []), { stage: "enviado", at, caja: envio.folio }],
       }));
     }
+    await marcarApartadosDeCaja(envio, at);
     return out.filter(Boolean);
   } catch (err) {
     console.error("swm marcarOrdenesDeCaja:", err);
     return [];
+  }
+}
+
+/* Apartados del Sephora Sale que Mae metió en la caja de este envío: salen
+   enviados con la misma guía. No se le avisa aparte: el aviso del envío ya
+   le llega con la guía de la caja. */
+async function marcarApartadosDeCaja(envio, at) {
+  try {
+    const { listApartados, mutateApartado } = require("./preventa-store.js");
+    for (const a of (await listApartados()).filter((x) => x.cajaEnvioId === envio.id && x.status === "liquidado")) {
+      await mutateApartado(a.id, (r) => {
+        if (r.status !== "liquidado") return null;
+        Object.assign(r, { status: "enviado", paqueteria: envio.paqueteria || "", guia: envio.guia, enviadoAt: at });
+        r.history = [...(r.history || []), { at, status: "enviado", por: "mae", caja: envio.folio }];
+        return r;
+      });
+    }
+  } catch (err) {
+    console.error("swm marcarApartadosDeCaja:", err);
   }
 }
 
