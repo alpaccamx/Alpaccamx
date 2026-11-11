@@ -1,0 +1,31 @@
+{
+ "nombre": "DAISE Sugar Rush y Vanilla Vibes (costo USD × 1.0825 × 19.8 + 30% / 15% gratis)",
+ "productos": [
+  {
+   "categoria": "Cosmético",
+   "costoUSD": 24.99,
+   "descripcion": "Set DAISE Sugar Rush Collection: body mist Hello DAISE Raspberry & Mint de 100 ml, Cake Pop Peptide Lip Butter Balm, Watermelon Crush Lip Balm Phone Pod y sticker sheet. Aromas: Cake Pop, frambuesa, menta y sandía. Original, traído de Estados Unidos.",
+   "imagen": "https://p16-oec-general-useast5.ttcdn-us.com/tos-useast5-i-omjb5zjo8w-tx/8d7014d4ad254b3a87f72fc1f24ea7a5~tplv-fhlh96nyum-crop-webp:1500:1500.webp?dr=12190&t=555f072d&ps=933b5bde&shp=8dbd94bf&shcp=a6e80448&idc=useast5&from=2378011839",
+   "marca": "DAISE",
+   "nombre": "DAISE Sugar Rush Collection",
+   "peso": 0.2,
+   "piezas": 3,
+   "precio": 699,
+   "precioTarjeta": 741,
+   "sku": "STOCK-DAISE-SUGAR-RUSH-COLLECTION"
+  },
+  {
+   "categoria": "Cosmético",
+   "costoUSD": 24.99,
+   "descripcion": "Set DAISE Vanilla Vibes Collection: body mist Sunny DAISE Vanilla & Coconut, Peptide Lip Butter Balm, Lip Balm Phone Pod, lip gloss con charm y sticker sheet. Aromas: vainilla y coco. Original, traído de Estados Unidos.",
+   "imagen": "https://p16-oec-general-useast5.ttcdn-us.com/tos-useast5-i-omjb5zjo8w-tx/a6cb61d239c146c2880a38b5fbfaf208~tplv-fhlh96nyum-crop-webp:1500:1500.webp?dr=12190&t=555f072d&ps=933b5bde&shp=8dbd94bf&shcp=a6e80448&idc=useast5&from=2378011839",
+   "marca": "DAISE",
+   "nombre": "DAISE Vanilla Vibes Collection",
+   "peso": 0.2,
+   "piezas": 1,
+   "precio": 619,
+   "precioTarjeta": 656,
+   "sku": "STOCK-DAISE-VANILLA-VIBES-COLLECTION"
+  }
+ ]
+}
