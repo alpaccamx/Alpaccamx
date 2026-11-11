@@ -117,6 +117,53 @@
     return (s || "").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   }
 
+  /* ---------- "Ordenar por" de cada sección (Por mandar, Dirección
+     americana, Personal shopper, Preventa, Inventario). Lo que elige Mae se
+     recuerda por sección en este celular. ---------- */
+  const ordenElegido = {};
+  function ordenDe(sec, opciones, def) {
+    if (!(sec in ordenElegido)) {
+      let v = def;
+      try { v = localStorage.getItem(`alpacca_orden_${sec}`) || def; } catch (e) {}
+      ordenElegido[sec] = v;
+    }
+    if (!(ordenElegido[sec] in opciones)) ordenElegido[sec] = def;
+    return ordenElegido[sec];
+  }
+  function ordenSelectHTML(sec, opciones, def) {
+    const v = ordenDe(sec, opciones, def);
+    return `<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#5f5866;flex:none;">Ordenar:
+      <select data-orden="${sec}" aria-label="Ordenar por" style="padding:9px 10px;border-radius:8px;border:1px solid #ddd;font-size:14px;background:#fff;max-width:240px;">
+        ${Object.entries(opciones).map(([k, [l]]) => `<option value="${k}"${k === v ? " selected" : ""}>${l}</option>`).join("")}
+      </select></label>`;
+  }
+  function ordenarCon(sec, list, opciones, def) {
+    const cmp = opciones[ordenDe(sec, opciones, def)][1];
+    return cmp ? [...list].sort(cmp) : list;
+  }
+  /* Opciones comunes para registros con fecha, monto, piezas y nombre. */
+  function ordenOpciones(get) {
+    const f = (x) => String(get.fecha(x) || "");
+    const fMin = (x) => String((get.fechaMin || get.fecha)(x) || "");
+    return {
+      reciente: ["🆕 Más reciente primero", (a, b) => f(b).localeCompare(f(a))],
+      antiguo: ["📅 Más antiguo primero", (a, b) => fMin(a).localeCompare(fMin(b))],
+      grande: [get.grandeTxt || "💰 Más grande primero", (a, b) => (get.total(b) - get.total(a)) || ((get.kg ? get.kg(b) - get.kg(a) : 0)) || f(b).localeCompare(f(a))],
+      chico: [get.chicoTxt || "🪙 Más chico primero", (a, b) => (get.total(a) - get.total(b)) || ((get.kg ? get.kg(a) - get.kg(b) : 0)) || f(b).localeCompare(f(a))],
+      piezas: [get.piezasTxt || "📦 Más piezas primero", (a, b) => (get.piezas(b) - get.piezas(a)) || f(b).localeCompare(f(a))],
+      nombre: ["🔤 Clienta (A → Z)", (a, b) => normalizeForSearch(get.nombre(a)).localeCompare(normalizeForSearch(get.nombre(b)), "es") || f(b).localeCompare(f(a))],
+    };
+  }
+  const ordenRender = {}; // sección -> cómo volver a pintarla
+  document.addEventListener("change", (e) => {
+    const sel = e.target && e.target.closest ? e.target.closest("select[data-orden]") : null;
+    if (!sel) return;
+    const sec = sel.dataset.orden;
+    ordenElegido[sec] = sel.value;
+    try { localStorage.setItem(`alpacca_orden_${sec}`, sel.value); } catch (err) {}
+    if (ordenRender[sec]) ordenRender[sec]();
+  });
+
   function parseCSVForMarca(text) {
     const rows = [];
     let row = [], field = "", inQuotes = false;
@@ -2487,12 +2534,23 @@ ${itemLines}
     return (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
   }
 
+  const invNum = (v) => Number(v) || 0;
+  const INV_ORDEN = {
+    marca: ["🏷️ Marca y nombre (A → Z)", compareByMarcaThenNombre],
+    muchas: ["📦 Más piezas primero", (a, b) => invNum(b.piezas) - invNum(a.piezas) || compareByMarcaThenNombre(a, b)],
+    pocas: ["⚠️ Menos piezas primero", (a, b) => invNum(a.piezas) - invNum(b.piezas) || compareByMarcaThenNombre(a, b)],
+    caro: ["💰 Precio más alto primero", (a, b) => invNum(b.precio) - invNum(a.precio) || compareByMarcaThenNombre(a, b)],
+    barato: ["🪙 Precio más bajo primero", (a, b) => invNum(a.precio) - invNum(b.precio) || compareByMarcaThenNombre(a, b)],
+    nombre: ["🔤 Nombre (A → Z)", (a, b) => normalizeForSearch(a.nombre).localeCompare(normalizeForSearch(b.nombre), "es")],
+  };
+  ordenRender.inv = () => renderInventoryList();
+
   function renderInventoryList() {
+    const ordenBox = document.getElementById("inventory-sort-box");
+    if (ordenBox && !ordenBox.dataset.listo) { ordenBox.innerHTML = ordenSelectHTML("inv", INV_ORDEN, "marca"); ordenBox.dataset.listo = "1"; }
     const listEl = document.getElementById("inventory-list");
     const emptyEl = document.getElementById("inventory-empty");
-    const filtered = inventoryProducts
-      .filter((p) => matchesInventorySearch(p, inventorySearchTerm))
-      .sort(compareByMarcaThenNombre);
+    const filtered = ordenarCon("inv", inventoryProducts.filter((p) => matchesInventorySearch(p, inventorySearchTerm)), INV_ORDEN, "marca");
 
     if (!inventoryProducts.length) {
       listEl.innerHTML = "";
@@ -5729,7 +5787,7 @@ ${itemLines}
     D.compras.forEach((c) => {
       if (!c.email || ["comprado", "cancelado"].includes(c.status)) return;
       const nota = c.status === "solicitud" ? "🆕 hay que cotizarle" : c.status === "cotizado" ? `💳 falta su pago (${formatPrice(c.cotizacion ? c.cotizacion.total : 0)})` : "🛒 ya pagó: hay que comprarlo";
-      E({ tipo: "compra", id: c.id, email: pmEmail(c.email), tel: pmTel(c.phone), nombre: c.name || "", titulo: `🛍️ Compra ${c.folio}`, detalle: c.tienda || "compra por ella", estado: "falta", nota, go: { go: "ps", q: c.folio } });
+      E({ tipo: "compra", id: c.id, c, email: pmEmail(c.email), tel: pmTel(c.phone), nombre: c.name || "", titulo: `🛍️ Compra ${c.folio}`, detalle: c.tienda || "compra por ella", estado: "falta", nota, go: { go: "ps", q: c.folio } });
     });
 
     D.envios.forEach((e) => {
@@ -5899,6 +5957,22 @@ ${itemLines}
 
   const PM_AYUDA = "Aquí está todo lo de cada clienta junto, venga de donde venga (tienda, Corea, Sephora Sale, su casillero o Personal shopper). 1) Abre “✅ Listas para mandar”: cada tarjeta es una clienta con lo que ya puedes mandar. 2) Quita la palomita a lo que no vaya en esa caja y toca “📦 Armar caja”. 3) Revisa la dirección, elige paquetería y se hace UNA sola guía. Si lleva cosas de su casillero, a ella le llega el cobro del envío y, cuando paga, sale su guía y sus pedidos se marcan enviados solos; si solo son pedidos de la tienda, se marcan enviados al momento. Lo que le falta (Corea, cruzar, pago) sale abajo, en gris, para que no se te olvide.";
 
+  // Fechas, dinero, peso y cantidad de cosas de cada clienta en Por mandar.
+  const pmFechas = (g) => g.entradas.map((x) => String(((x.o || x.p || x.e || x.a || x.c) || {}).createdAt || "")).filter(Boolean).sort();
+  const pmMonto = (x) => Number(x.o ? x.o.grandTotal : x.a ? x.a.total : (x.e || x.c) && (x.e || x.c).cotizacion ? (x.e || x.c).cotizacion.total : 0) || 0;
+  const PM_ORDEN = {
+    prioridad: ["⭐ Lo listo primero", (a, b) => (!!b.pidio - !!a.pidio) || (b.listo.length - a.listo.length) || String(a.nombre).localeCompare(String(b.nombre), "es")],
+    ...ordenOpciones({
+      fecha: (g) => pmFechas(g).slice(-1)[0], fechaMin: (g) => pmFechas(g)[0],
+      total: (g) => g.entradas.reduce((t, x) => t + pmMonto(x), 0),
+      kg: (g) => g.entradas.reduce((t, x) => t + (Number(x.kg) || 0), 0),
+      piezas: (g) => g.entradas.length,
+      nombre: (g) => g.nombre || g.email || "",
+      piezasTxt: "📦 Más cosas primero",
+    }),
+  };
+  PM_ORDEN.antiguo[0] = "⏳ Lleva más tiempo esperando";
+
   function renderPmAdmin() {
     const label = document.querySelector("#swm-panel .filters-label");
     if (label) label.textContent = "📦 Por mandar";
@@ -5912,11 +5986,12 @@ ${itemLines}
       ["todas", "Todas", () => true],
     ];
     document.getElementById("swm-filters").innerHTML = `${FILTROS.map(([k, l, fn]) => `<button type="button" class="btn-secondary ${pmFiltro === k ? "on" : ""}" data-pm-filtro="${k}">${l} (${todos.filter(fn).length})</button>`).join("")}
-      <input type="search" id="swm-search" placeholder="🔍 Busca una clienta, pedido, calle, ciudad…" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">`;
+      <input type="search" id="swm-search" placeholder="🔍 Busca una clienta, pedido, calle, ciudad…" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
+      ${ordenSelectHTML("pm", PM_ORDEN, "prioridad")}`;
     const q = swmSearch.trim();
     const fn = FILTROS.find(([k]) => k === pmFiltro)[2];
     let lista = todos.filter((g) => (q ? pmBuscar(g, q) : fn(g)) || (pmCaja && pmCaja.key === g.id));
-    lista.sort((a, b) => (!!b.pidio - !!a.pidio) || (b.listo.length - a.listo.length) || String(a.nombre).localeCompare(String(b.nombre), "es"));
+    lista = ordenarCon("pm", lista, PM_ORDEN, "prioridad");
     const vacio = { listas: "Nada listo por ahora 🎉. Cuando una clienta tenga algo para mandar, aparece aquí.", guardadas: "Nadie te pidió que le guardes su pedido.", faltan: "No hay nada en proceso.", todas: "Todavía no hay nada." }[pmFiltro];
     document.getElementById("swm-empty").style.display = "none";
     const aviso = pmAviso ? `<div style="background:#eaf8f0;border:1px solid #bfe6cf;border-radius:14px;padding:12px;margin:10px 0;">
@@ -6149,14 +6224,14 @@ ${itemLines}
     const cuenta = (k) => compras.filter((c) => psEtapa(c) === k).length;
     document.getElementById("swm-filters").innerHTML = `${PS_TABS.filter(([k]) => k !== "pagadas" || cuenta(k) || psTab === k).map(([k, l]) => `<button type="button" class="btn-secondary ${psTab === k ? "on" : ""}" data-ps-tab="${k}">${l} (${cuenta(k)})</button>`).join("")}
       <input type="search" id="swm-search" placeholder="🔍 Busca por clienta, folio, tienda, producto…" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
+      ${ordenSelectHTML("ps", SWM_ORDEN, "reciente")}
       <button type="button" class="btn-primary" data-swm-nc-toggle data-ps-tipo="tienda">🧾 Nueva factura (compra en tienda)</button>
       <button type="button" class="btn-secondary" data-swm-nc-toggle data-ps-tipo="linea">🛒 Nueva cotización (compra en línea)</button>
       <div id="swm-nc-box" style="width:100%;">${swmNuevaCompraOpen ? swmNuevaCompraForm(null, { ps: psNuevaTipo !== "linea" }) : ""}</div>`;
     const q = swmSearch.trim();
     const match = (c) => !q || swmMatches(c, q) || buscaEnTodo((c.cotizacion && c.cotizacion.items || []).map((x) => x.nombre), q)
       || psPaquetes(c).some((p) => swmMatches(p, q)) || psEnvios(c).some((e) => swmMatches(e, q));
-    const lista = q ? compras.filter(match) : compras.filter((c) => psEtapa(c) === psTab);
-    lista.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    const lista = ordenarCon("ps", q ? compras.filter(match) : compras.filter((c) => psEtapa(c) === psTab), SWM_ORDEN, "reciente");
     const vacio = { cobrar: "No hay facturas por cobrar. Toca “🧾 Nueva factura” para hacer una.", pagadas: "No hay compras pagadas pendientes de comprar.", envio: "No hay compras por mandar.", terminadas: "Todavía no hay compras terminadas." }[psTab];
     document.getElementById("swm-empty").style.display = "none";
     document.getElementById("swm-list").innerHTML = (q ? globalHitsHTML(q, "ps") : "")
@@ -6216,6 +6291,19 @@ ${itemLines}
 </body></html>`;
   }
 
+  const swmRec = (x) => (Array.isArray(x) ? x[1] : x) || {};
+  const SWM_ORDEN = ordenOpciones({
+    fecha: (x) => swmRec(x).createdAt,
+    total: (x) => { const r = swmRec(x); return Number((r.cotizacion && r.cotizacion.total) || (r.pago && r.pago.monto)) || 0; },
+    kg: (x) => { const r = swmRec(x); return Number(r.cobrable) || Number(r.kg) || 0; },
+    piezas: (x) => { const r = swmRec(x); return (r.articulos || []).reduce((t, a) => t + (Number(a.cant) || 1), 0) || (r.items || []).reduce((t, a) => t + (Number(a.cantidad) || 1), 0) || (r.paqueteIds || []).length; },
+    nombre: (x) => swmRec(x).name || swmRec(x).email || "",
+    grandeTxt: "💰 Más grande primero ($ o kg)", chicoTxt: "🪙 Más chico primero ($ o kg)",
+  });
+  ordenRender.da = () => renderSwmAdmin();
+  ordenRender.ps = () => renderSwmAdmin();
+  ordenRender.pm = () => renderSwmAdmin();
+
   function renderSwmAdmin() {
     if (swmModo === "ps") { renderPsAdmin(); return; }
     if (swmModo === "pm") { renderPmAdmin(); return; }
@@ -6240,11 +6328,13 @@ ${itemLines}
     ];
     document.getElementById("swm-filters").innerHTML = `${tabs.map(([k, l]) => `<button type="button" class="btn-secondary ${swmTab === k ? "on" : ""}" data-swm-tab="${k}">${l}</button>`).join("")}
       <input type="search" id="swm-search" placeholder="🔍 Busca por nombre, folio, rastreo, calle, ciudad, estado, CP…" value="${escapeHtml(swmSearch)}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;">
+      ${ordenSelectHTML("da", SWM_ORDEN, "reciente")}
       <button type="button" class="btn-primary" data-swm-sinreg-toggle>📦 Llegó un paquete sin registrar</button>
       <div id="swm-sinreg-box" style="width:100%;">${swmSinRegistroOpen ? swmSinRegistroForm() : ""}</div>`;
     let html = "";
-    const sec = (title, items, fn) => (items.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">${title} (${items.length})</h4>${swmPorClienta(items, fn, title)}` : "");
-    const lista = (items, fn, vacio) => (items.length ? swmPorClienta(items, fn, swmTab) : `<p style="color:#5f5866;font-size:14px;">${vacio}</p>`);
+    const ord = (items) => ordenarCon("da", items, SWM_ORDEN, "reciente");
+    const sec = (title, items, fn) => (items.length ? `<h4 style="margin:14px 0 8px;font-size:15px;">${title} (${items.length})</h4>${swmPorClienta(ord(items), fn, title)}` : "");
+    const lista = (items, fn, vacio) => (items.length ? swmPorClienta(ord(items), fn, swmTab) : `<p style="color:#5f5866;font-size:14px;">${vacio}</p>`);
     if (swmSearch.trim()) {
       html = globalHitsHTML(swmSearch.trim(), "swm") + (sec("Paquetes", P.filter((r) => swmMatches(r)), swmPaqueteCard) + sec("Compras", swmData.compras.filter((r) => swmMatches(r)), swmCompraCard) + sec("Envíos", swmData.envios.filter((r) => swmMatches(r)), swmEnvioCard)
         || `<p style="color:#5f5866;font-size:14px;">No encontré nada con "${escapeHtml(swmSearch)}" en Dirección americana.</p>`);
@@ -6261,11 +6351,11 @@ ${itemLines}
     } else if (swmTab === "llegar") {
       html = lista(P.filter((p) => p.status === "registrado" && swmMatches(p)), swmPaqueteCard, "No hay paquetes por llegar.");
     } else if (swmTab === "sindueña") {
-      html = P.filter((p) => p.status === "sin_dueña").map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes sin dueña.</p>`;
+      html = ord(P.filter((p) => p.status === "sin_dueña")).map(swmPaqueteCard).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes sin dueña.</p>`;
     } else if (swmTab === "almacen") {
       html = lista(P.filter((p) => p.status === "recibido" && !p.enMexicoAt && swmMatches(p)), swmPaqueteCard, "No hay paquetes en el almacén.");
     } else if (swmTab === "mexico") {
-      const mx = P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt && swmMatches(p));
+      const mx = ord(P.filter((p) => ["recibido", "en_envio"].includes(p.status) && p.enMexicoAt && swmMatches(p)));
       const porClienta = new Map();
       mx.forEach((p) => { const k = p.email || "—"; if (!porClienta.has(k)) porClienta.set(k, []); porClienta.get(k).push(p); });
       html = [...porClienta.entries()].map(([email, ps]) => swmMexicoGrupo(email, ps)).join("") || `<p style="color:#5f5866;font-size:14px;">No hay paquetes cruzados a México.</p>`;
@@ -7777,6 +7867,13 @@ ${itemLines}
     }
   });
 
+  const PV_ORDEN = ordenOpciones({
+    fecha: (a) => a.createdAt, total: (a) => Number(a.total) || 0,
+    piezas: (a) => (a.items || []).reduce((t, it) => t + (Number(it.qty) || 0), 0),
+    nombre: (a) => a.name || (a.direccion && a.direccion.nombre) || "",
+  });
+  ordenRender.pv = () => renderPreventaAdmin();
+
   function renderPreventaAdmin() {
     pvBadge();
     if (!pvData) return;
@@ -7785,7 +7882,7 @@ ${itemLines}
     const chips = PV_FILTROS.map(([k, t, fn]) => `<button type="button" class="tab ${pvFiltro === k ? "active" : ""}" data-pv-filtro="${k}">${t} (${aps.filter(fn).length})</button>`).join("");
     if (!pvFiltro) pvFiltro = aps.some(pvPorRevisar) ? "revisar" : "activos";
     const fn = (PV_FILTROS.find(([k]) => k === pvFiltro) || PV_FILTROS[0])[2];
-    const lista = aps.filter(fn);
+    const lista = ordenarCon("pv", aps.filter(fn), PV_ORDEN, "reciente");
     const llegaTodo = pvFiltro === "apartado" && lista.length > 1
       ? `<p class="meta" style="margin-bottom:6px;">El envío de cada clienta ya viene calculado por peso y código postal; cámbialo en su cuadrito si hace falta y luego avísales a todas juntas:</p><button type="button" class="btn-primary" data-pv-llego-todo style="margin-bottom:8px;">📦 Llegó todo: avisar a las ${lista.length} y cobrar el resto + su envío</button>` : "";
     document.getElementById("pv-admin").innerHTML = `
@@ -7793,6 +7890,7 @@ ${itemLines}
       ${pvNuevoHTML()}
       <h4 style="margin:4px 0 8px;font-size:16px;">💗 Apartados (${aps.length})</h4>
       <div class="tabs" style="flex-wrap:wrap;">${chips}</div>
+      <div style="margin-top:8px;">${ordenSelectHTML("pv", PV_ORDEN, "reciente")}</div>
       <div style="margin-top:12px;">${llegaTodo}${lista.map(pvApartadoHTML).join("") || `<p class="abw-intro">No hay apartados aquí.</p>`}</div>
       <details data-pv-ajustes ${pvAjustesAbierto || pvEditando ? "open" : ""} style="margin-top:22px;">
         <summary style="cursor:pointer;font-weight:600;font-size:16px;padding:8px 0;">⚙️ Productos y ajustes de la preventa (${pvData.productos.length} productos)</summary>
