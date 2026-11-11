@@ -13,6 +13,7 @@
 //   asignar_paquete   { id, email }   (un paquete sin dueña ya tiene dueña)
 //   probar_avisos     {} (manda aviso_casillero y aviso_pedido de prueba al WhatsApp de Mae)
 //   crear_envio       { email, paqueteIds[], direccion } (Mae junta paquetes de una clienta en una caja)
+//   agregar_a_envio   { id, paqueteIds[] } (mete más paquetes en una caja sin cobrar ni guía; si ya estaba cotizada, se vuelve a cotizar)
 //   editar_paquete    { id, tienda?, rastreo?, contenido?, valorUSD?, cobro?, kg?, alto?, ancho?, largo?, notaClienta?, notaPrivada? }
 //   cotizar_compra    { id, productos, cruce?, notaClienta? }   (MXN)
 //   crear_compra      { email, name?, phone?, tienda, items: [{ nombre, tono?, cantidad, precioUSD }], taxPct?, envioUSD?, cobro, cruce?, notaClienta?, fotos? }
@@ -490,6 +491,43 @@ exports.handler = async (event) => {
         await Promise.all(ids.map((x) => mutateRecord("paquete", x, (p) => {
           if (p.status !== "recibido") return null;
           p.status = "en_envio"; p.envioId = rec.id; return p;
+        })));
+        return json(200, { envio: rec });
+      }
+
+      // Meter más paquetes de la clienta en una caja que ya existe (todavía
+      // sin cobrar ni guía). Si ya estaba cotizada, se vuelve a cotizar.
+      //   { id: envioId, paqueteIds: [...] }
+      case "agregar_a_envio": {
+        const ids = [...new Set((Array.isArray(b.paqueteIds) ? b.paqueteIds : []).map(String))].slice(0, 40);
+        if (!ids.length) return json(400, { error: "Elige al menos un paquete." });
+        const env0 = await getRecord("envio", id);
+        if (!env0) return json(404, { error: "No existe ese envío." });
+        if (!["solicitado", "cotizado"].includes(env0.status) || env0.guia || (env0.pago && ["revision", "pagado"].includes(env0.pago.status))) {
+          return json(409, { error: `La caja ${env0.folio} ya tiene pago o guía: arma una caja nueva.` });
+        }
+        const nuevos = await Promise.all(ids.map((x) => getRecord("paquete", x)));
+        if (nuevos.some((p) => !p || p.email !== env0.email || p.status !== "recibido")) return json(409, { error: "Solo se pueden agregar paquetes de la misma clienta que estén en el almacén o en México (sin envío)." });
+        const pendiente = nuevos.find((p) => p.datosPendientes || (p.separar && p.separar.estado === "pedida"));
+        if (pendiente) return json(409, { error: `${pendiente.folio} tiene datos o una separación pendiente.` });
+        const todosIds = [...new Set([...(env0.paqueteIds || []), ...ids])];
+        const todos = (await Promise.all(todosIds.map((x) => getRecord("paquete", x)))).filter(Boolean);
+        const consolidar = todos.length > 1;
+        const sug = await cotizacionSugerida(todos, consolidar);
+        let error = "";
+        const rec = await mutateRecord("envio", id, (e) => {
+          if (!["solicitado", "cotizado"].includes(e.status) || e.guia || (e.pago && ["revision", "pagado"].includes(e.pago.status))) { error = `La caja ${e.folio} ya tiene pago o guía: arma una caja nueva.`; return null; }
+          const recotizar = e.status === "cotizado";
+          e.paqueteIds = todosIds; e.consolidar = consolidar;
+          e.sugerido = { cruce: sug.cruce, consolidacion: sug.consolidacion, sinRegistro: sug.sinRegistro, extras: sug.extras, kg: sug.kg };
+          if (recotizar) { e.status = "solicitado"; e.cotizacion = null; e.pago = null; }
+          e.history = [...(e.history || []), { at: now(), status: e.status, por: "mae", agregados: nuevos.map((p) => p.folio) }];
+          return e;
+        });
+        if (error) return json(409, { error });
+        await Promise.all(ids.map((x) => mutateRecord("paquete", x, (p) => {
+          if (p.status !== "recibido") return null;
+          p.status = "en_envio"; p.envioId = id; return p;
         })));
         return json(200, { envio: rec });
       }
