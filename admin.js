@@ -5705,6 +5705,17 @@ ${itemLines}
     D.envios.forEach((e) => {
       if (!e.email || ["enviado", "entregado", "cancelado"].includes(e.status)) return;
       const nota = e.guia && e.status !== "pagado" ? "guía lista, esperando su pago" : { solicitado: "hay que cotizarle", cotizado: "esperando su pago", pagado: "ya pagó: falta hacerle su guía", en_mexico: "ya pagó: falta hacerle su guía" }[e.status] || e.status;
+      // Envío que ella pidió, todavía sin cobrar ni guía, con TODOS sus
+      // paquetes ya en México: se puede juntar en la misma caja con sus
+      // pedidos de la tienda (se le cotiza todo junto).
+      const paqs = (e.paqueteIds || []).map((id) => D.paquetes.find((p) => p.id === id));
+      const pagoEnCurso = e.pago && ["pagado", "revision"].includes(e.pago.status);
+      if (["solicitado", "cotizado"].includes(e.status) && !e.guia && !pagoEnCurso && paqs.length && paqs.every((p) => p && p.enMexicoAt)) {
+        const kgE = paqs.reduce((t, p) => t + (Number(p.cobrable) || Number(p.kg) || 0), 0);
+        return E({ tipo: "envio", id: e.id, e, email: pmEmail(e.email), tel: pmTel(e.phone), nombre: e.name || "", kg: kgE, titulo: `📦 Envío ${e.folio}`,
+          detalle: `su caja de la dirección americana · ${paqs.map((p) => p.folio).join(", ")}`, estado: "listo",
+          nota: `🇲🇽 sus paquetes ya están en México (${e.status === "cotizado" ? "ya cotizado; se vuelve a cotizar con lo que agregues" : "falta cotizarle"})`, go: { go: envioEsPs(e, D) ? "ps" : "swm", q: e.folio } });
+      }
       E({ tipo: "envio", id: e.id, e, email: pmEmail(e.email), tel: pmTel(e.phone), nombre: e.name || "", titulo: `📦 Envío ${e.folio}`, detalle: "su caja a México", estado: "proceso", nota, go: { go: envioEsPs(e, D) ? "ps" : "swm", q: e.folio } });
     });
 
@@ -5966,6 +5977,28 @@ ${itemLines}
       const ords = sel.filter((x) => x.tipo === "pedido");
       const paqs = sel.filter((x) => x.tipo === "paquete");
       const aps = sel.filter((x) => x.tipo === "apartado");
+      const envs = sel.filter((x) => x.tipo === "envio");
+      if (envs.length) {
+        // Juntar sus pedidos en el envío de su dirección americana que ya existe.
+        if (envs.length > 1) { alert("Solo se puede juntar con un envío a la vez. Quita la palomita a uno."); return; }
+        if (paqs.length) { alert("Hay paquetes sueltos marcados. Quítales la palomita: este envío ya trae sus paquetes."); return; }
+        if (aps.length) { alert("Los del Sephora Sale no se mezclan con paquetes del casillero. Quítales la palomita y ármalos en otra caja."); return; }
+        const env = envs[0].e;
+        armar.disabled = true;
+        try {
+          if (ords.length) pmActualizaOrdenes(await pmApi("admin-link-orders", { orderIds: ords.map((x) => x.id), cajaEnvioId: env.id }));
+        } catch (err) { alert(err.message); armar.disabled = false; return; }
+        // También los pedidos que ya se habían metido antes a esta caja (para que su peso cuente al cotizar).
+        const enCaja = [...ords, ...g.entradas.filter((x) => x.tipo === "pedido" && x.o.cajaEnvioId === env.id && !ords.some((y) => y.id === x.id))];
+        pmCaja = { key: g.id, nombre: g.nombre, tel: g.tel, email: g.email, orderIds: enCaja.map((x) => x.id), apartadoIds: [], paqueteIds: [...(env.paqueteIds || [])],
+          kgOrdenes: enCaja.reduce((s, x) => s + (x.kg || 0), 0), pagado: enCaja.reduce((s, x) => s + (Number(x.o.shippingNacionalMXN) || 0), 0),
+          dir: env.direccion || pmDireccion(g), paso: "guia", envioId: env.id, orderId: "", apartadoId: "" };
+        applyFilters();
+        renderSwmAdmin();
+        const el = document.querySelector(`[data-pm-card="${CSS.escape(g.id)}"] [data-swm-id]`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
       if (paqs.length && aps.length) { alert("Los del Sephora Sale no se mezclan con paquetes del casillero. Quita la palomita a unos o a otros y arma dos cajas."); return; }
       const kgOrdenes = [...ords, ...aps].reduce((s, x) => s + (x.kg || 0), 0);
       const dirBase = pmDireccion(g);
