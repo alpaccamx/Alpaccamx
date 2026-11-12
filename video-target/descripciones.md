@@ -38,17 +38,17 @@ Horario: 7 a 9 pm, hora de México.
 
 ---
 
-## 2 · «Llené un carrito ENTERO de esto» (Target-daise-voz.mp4, portada-daise.jpg, 46 s)
+## 2 · «Llené un carrito ENTERO de esto» (Target-daise-voz.mp4, portada-daise.jpg, 56 s)
 
 **Neuromarketing:**
 - **Imagen que frena el scroll:** el carrito lleno, en el primer cuadro.
 - **Curiosidad («te explico por qué»):** la gente se queda para saber qué es.
 - **Precio del paquete:** suelto $189 contra $133 cada uno en el trío. El trío se siente como ganga y $399 parece poco.
-- **Pregunta de dos opciones («¿labios o mists?»):** cuesta poco contestar, así que comentan más.
+- **Pregunta de tres opciones («¿labios, mists o calendario?»):** cuesta poco contestar, así que comentan más.
 
 **TikTok**
 > Llené un carrito ENTERO de DAISE 🌼 y te explico por qué
-> Suelto cada bálsamo es $189… en el trío te sale en $133 💸 ¿Labios o mists? 👇
+> Suelto cada bálsamo es $189… en el trío te sale en $133 💸 Y también tengo su calendario 🏠 ¿Labios, mists o calendario? 👇
 > #daise #target #bodymist #regalosnavidad #alpacca
 
 **Instagram**
@@ -56,11 +56,12 @@ Horario: 7 a 9 pm, hora de México.
 >
 > 💋 **Trío de bálsamos:** con péptidos y manteca de karité, dan un color ligerito que vas subiendo (Berry & Vanilla, Cake Pop y Sugar Bear)
 > 🌼 **Trío de mini mists:** Sunny (vainilla y coco), Hello (frambuesa y menta) y Glaze (vainilla y caramelo)
+> 🏠 **Calendario de adviento Dreamhouse:** 7 sorpresas de baño y cuerpo · $789
 >
 > 💸 El truco: suelto, cada bálsamo cuesta $189; en el trío te sale en $133 cada uno.
 > Cada trío está a $399 en alpacca.mx. Ya están en México y te los mando de inmediato 📦 (me quedan 4 de labios y 5 de mists)
 >
-> ¿Tú te llevarías el de labios o el de mists? 👇
+> ¿Tú cuál te llevarías: el de labios, el de mists o el calendario? 👇
 >
 > #daise #target #bodymist #regalosnavidad #alpacca
 

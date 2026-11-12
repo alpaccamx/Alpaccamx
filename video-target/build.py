@@ -39,46 +39,40 @@ def marca(e, m=None): return INI[e] + (0 if m is None else T[e]["marcas"][m])
 OUT = os.path.join(AQUI, f"Target-{VAR}.mp4")
 
 # ---------------- tomas: por frase, a velocidad normal (cada una dura lo que le toca de la frase) ----------------
-TOMAS = {  # "189f" = ese cuadro congelado con un acercamiento lento, en el momento en que el producto se ve de frente
-    "haul": [[("189", 64.5), ("189", 22.0)], [("189", 6.8), ("189f", 9.0)], [("189", 21.5), ("189f", 24.0)],
-             [("189", 36.4), ("189f", 38.5)], [("189", 64.0), ("189f", 65.5)], [("189", 7.5), ("189f", 9.0)],
-             [("189", 151.0), ("5861", 0.5)]],
-    "daise": [[("5861", 2.5)], [("189", 106.0), ("189", 112.0)], [("189", 113.0), ("189f", 116.5)],
-              [("189f", 107.0), ("5861", 0.0), ("189", 105.5)], [("189", 113.5), ("5861", 3.5), ("189f", 117.0)],
-              [("5861", 5.8), ("189f", 107.5)], [("5861", 4.4)]],
-    "adviento": [[("5861", 6.6), ("189", 0.0)], [("189", 42.0), ("189", 52.0)], [("189", 88.0), ("189", 96.0)],
-                 [("189", 13.0), ("189", 140.0)], [("189", 155.0), ("189", 162.0)], [("189", 0.5)], [("189", 168.0)]],
+# tomas por frase: (fuente, inicio, segundos o None = lo que sobre de la frase, centro x, centro y, acercamiento).
+# Pantalla completa, sin franjas ni cuadros congelados. Cuando Mae sostiene un producto, la ventana se acerca a él
+# (centro y acercamiento), recortada del video de los lentes en su resolución original (1376x1840) para que se vea nítido.
+P = (0.5, 0.74, 1.3)   # producto en la mano: abajo al centro
+A = (0.5, 0.5, 1.0)    # toma abierta
+TOMAS = {
+    "haul": [[("189", 64.0, 3.3, *P), ("189", 22.0, None, *P)],
+             [("189", 6.5, 4.0, 0.55, 0.74, 1.25), ("189", 40.5, None, *A)],
+             [("189", 20.5, None, *P)], [("189", 36.3, None, 0.5, 0.8, 1.2)], [("189", 63.8, None, *P)],
+             [("189", 5.0, None, 0.55, 0.74, 1.25)], [("189", 151.0, 4.5, *A), ("5861", 0.5, None, *A)]],
+    "daise": [[("5861", 2.5, None, *A)], [("189", 105.5, 2.5, *P), ("189", 112.5, None, *P)], [("189", 112.0, None, *P)],
+              [("189", 103.5, 6.0, *P), ("5861", 0.0, None, *A)], [("189", 77.0, None, 0.5, 0.72, 1.2)],
+              [("189", 113.0, 4.5, *P), ("5861", 3.5, None, *A)], [("5861", 5.8, 3.2, *A), ("189", 106.0, None, *P)],
+              [("5861", 2.0, None, *A)]],
+    "adviento": [[("5861", 6.6, 2.4, *A), ("189", 0.0, None, *A)],
+                 [("189", 42.0, 3.6, *A), ("189", 52.0, None, *A)], [("189", 88.0, 4.8, *A), ("189", 96.0, None, *A)],
+                 [("189", 151.0, 4.4, *A), ("189", 155.4, None, *A)], [("189", 160.0, 4.3, *A), ("189", 164.3, None, *A)],
+                 [("189", 0.5, None, *A)], [("189", 168.7, None, *A)]],  # 151-172.5: saliendo del estacionamiento, sin productos
 }[VAR]
 
-Y_ANCHO = 110  # video de los lentes (3:4): va completo a lo ancho desde aquí, con fondo difuminado arriba y abajo
-
-
-def video(fuente, ini, n):
-    """las tomas de los lentes (189) son 3:4 y los productos quedan abajo: si se recortan a 9:16 se pierden los lados
-    y el subtítulo los tapa. Por eso van completas a lo ancho (1080x1444) en y=110, con la misma toma difuminada de
-    fondo. La del iPhone (5861) ya es vertical y llena la pantalla."""
-    if fuente.endswith("f"):  # cuadro congelado con acercamiento lento (el producto de frente, bien enfocado)
-        base = next(video(fuente[:-1], ini, 1))
-        for k in range(n):
-            z = 1 + 0.07 * k / max(1, n - 1); w, h = int(W / z), int(H / z)
-            x0, y0 = (W - w) // 2, int((H - h) * 0.62)  # el acercamiento va hacia el producto (abajo)
-            yield base.crop((x0, y0, x0 + w, y0 + h)).resize((W, H), Image.BILINEAR)
-        return
-    ancho = fuente == "189"
-    vf = f"fps={FPS},scale={W}:-2:flags=lanczos" if ancho else f"fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}"
-    p = subprocess.Popen(["ffmpeg", "-nostdin", "-v", "error", "-ss", str(ini), "-i", os.path.join(CRUDO, f"est_{fuente}.mp4"),
-                          "-t", f"{n / FPS + 0.3:.2f}", "-an", "-vf", vf, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
-    hh = 1444 if ancho else H
+def video(fuente, ini, n, cx=0.5, cy=0.5, z=1.0):
+    """ventana 9:16 de la toma, centrada en (cx, cy) y acercada z veces; llena la pantalla (sin franjas)"""
+    src = os.path.join(CRUDO, "estf_189.mp4" if fuente == "189" else f"est_{fuente}.mp4")
+    sw, sh = (1376, 1840) if fuente == "189" else (W, H)
+    h = sh / z; w = h * 9 / 16
+    if w > sw: w = sw; h = w * 16 / 9
+    x0 = min(max(cx * sw - w / 2, 0), sw - w); y0 = min(max(cy * sh - h / 2, 0), sh - h)
+    vf = f"fps={FPS},crop={int(w) // 2 * 2}:{int(h) // 2 * 2}:{int(x0)}:{int(y0)},scale={W}:{H}:flags=lanczos"
+    p = subprocess.Popen(["ffmpeg", "-nostdin", "-v", "error", "-ss", str(ini), "-i", src, "-t", f"{n / FPS + 0.3:.2f}",
+                          "-an", "-vf", vf, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
     last = None
     for _ in range(n):
-        x = p.stdout.read(W * hh * 3)
-        if len(x) == W * hh * 3:
-            im = Image.frombytes("RGB", (W, hh), x)
-            if ancho:
-                fondo = im.resize((54, 72), Image.BILINEAR).filter(ImageFilter.GaussianBlur(2)).resize((W, H), Image.BICUBIC)
-                fondo = Image.blend(fondo, Image.new("RGB", (W, H), (20, 10, 16)), 0.35)
-                fondo.paste(im, (0, Y_ANCHO)); im = fondo
-            last = im.convert("RGBA")
+        x = p.stdout.read(W * H * 3)
+        if len(x) == W * H * 3: last = Image.frombytes("RGB", (W, H), x).convert("RGBA")
         yield last.copy()
     p.stdout.close(); p.wait()
 
@@ -87,7 +81,7 @@ def degradado():
     """oscurece un poco arriba (títulos) y abajo (subtítulo) para que se lea sin bordes en el texto"""
     g = Image.new("L", (1, H))
     for y in range(H):
-        a = max(0, 1 - y / 560) * 120 + max(0, (y - 1250) / 670) * 150
+        a = max(0, 1 - y / 620) * 130  # solo arriba: abajo va el producto y no se oscurece
         g.putpixel((0, y), int(min(255, a)))
     im = Image.new("RGBA", (W, H), (15, 8, 12, 255)); im.putalpha(g.resize((W, H))); return im
 SOMBRA = degradado()
@@ -146,7 +140,7 @@ def interrupcion(L, t, t0, texto, dur=0.9):
 CLAVE = {"cuatro", "Target", "pieza", "Adivina", "medicube", "colágeno", "SKIN1004", "Starface", "barritos", "BYOMA",
          "barrera", "adivinaste", "uno", "México", "DAISE", "entero", "flor", "péptidos", "karité", "Sunny", "Hello",
          "Glaze", "truco", "Navidad", "labios", "mists", "calendario", "diciembre", "tarde", "sorpresa", "skincare",
-         "spa", "cincuenta", "Real", "Techniques", "veinticinco", "rendidor", "dos", "Cuál", "siete", "carrito"}
+         "spa", "cincuenta", "Real", "Techniques", "Dreamhouse", "setecientos", "veinticinco", "rendidor", "dos", "Cuál", "siete", "carrito"}
 
 def _palabras():
     v = open(os.path.join(AQUI, "voz.py")).read()
@@ -168,7 +162,8 @@ def _palabras():
 PAL = _palabras()
 
 
-def subtitulo(L, t, y=1720):  # debajo de la toma de los lentes, para no tapar el producto
+def subtitulo(L, t, y=None):  # arriba del producto (que va abajo en la toma); en adviento no hay producto en la mano
+    if y is None: y = 1500 if VAR == "adviento" else 900
     act = [(t0, w) for t0, w in PAL if t0 <= t]
     if not act or t > PAL[-1][0] + 0.8: return
     t0, w = act[-1]
@@ -273,12 +268,12 @@ def capa_haul(L, t):
     if e in sets:
         f, nom, que, precio = sets[e]
         b.pon(L, _sombra(bagel(f"{e}/4", 120, WHITE), 12, 170), 150, 330, *b.entra(t, INI[e], 0.3))
-        pon_tarjeta(L, tarjeta(f, nom, que, ancho=340), W - 220, 640, t, marca(e, 0) - 0.2, 3)
+        pon_tarjeta(L, tarjeta(f, nom, que, ancho=310), W - 205, 590, t, marca(e, 0) - 0.2, 3)
         sello(L, precio, t, marca(e, 1), cy=600, cx=330)
     if e == 5:
         pas(L, "¿Ya adivinaste? 🥁", 330, t, INI[5], sz=64)
         if t >= marca(5, 1):
-            pon_tarjeta(L, tarjeta("spa", "medicube Night Spa", "Queda 1", ancho=360, color_abajo=NEGRO), W / 2, 680, t, marca(5, 1))
+            pon_tarjeta(L, tarjeta("spa", "medicube Night Spa", "Queda 1", ancho=320, color_abajo=NEGRO), W / 2, 620, t, marca(5, 1))
     if e == 6:
         pas(L, "🇲🇽 Todos ya están en México", 330, t, INI[6], sz=56)
         pas(L, "alpacca.mx", 450, t, marca(6, 1), sz=64, bg=WHITE, fg=ROSA)
@@ -293,27 +288,32 @@ def capa_daise(L, t):
         b.pon(L, _sombra(bagel("DAISE", 170, WHITE), 12, 170), W / 2, 340, *b.entra(t, marca(1, 0), 0.3))
         chips(L, ["💋 bálsamos", "🌼 mists en forma de flor"], 500, t, marca(1, 1) - 0.4)
     if e == 2:
-        pon_tarjeta(L, tarjeta("daise-lip", "Tinted Lip Balm Trio", "3 bálsamos", ancho=320), W - 210, 600, t, INI[2] + 0.2, 3)
+        pon_tarjeta(L, tarjeta("daise-lip", "Tinted Lip Balm Trio", "3 bálsamos", ancho=300), W - 200, 560, t, INI[2] + 0.2, 3)
         for j, txt in enumerate(["🧪 péptidos", "🧈 manteca de karité", "💋 color que subes"]):
-            pas(L, txt, 470 + 90 * j, t, marca(2, j), sz=44, bg=WHITE, fg=NEGRO, cx=330, maxw=560)
+            pas(L, txt, 420 + 90 * j, t, marca(2, j), sz=44, bg=WHITE, fg=NEGRO, cx=330, maxw=560)
     if e == 3:
-        pon_tarjeta(L, tarjeta("daise-mist", "Mini Body Mist Trio", "3 mists de 30 ml", ancho=320), W - 210, 600, t, INI[3] + 0.2, 3)
+        pon_tarjeta(L, tarjeta("daise-mist", "Mini Body Mist Trio", "3 mists de 30 ml", ancho=300), W - 200, 560, t, INI[3] + 0.2, 3)
         for j, txt in enumerate(["☀️ Sunny: vainilla y coco", "👋 Hello: frambuesa y menta", "🍩 Glaze: vainilla y caramelo"]):
-            pas(L, txt, 470 + 90 * j, t, marca(3, j), sz=40, bg=WHITE, fg=NEGRO, cx=345, maxw=640)
-    if e == 4:
-        interrupcion(L, t, marca(4, 0) - 0.1, "TRUCO")
-        if t >= marca(4, 1):
-            for j, (f, x, g) in enumerate([("lip-bv", 230, -4), ("lip-cp", 540, 0), ("lip-vv", 850, 4)]):
-                pon_tarjeta(L, tarjeta(f, " ", None, ancho=220), x, 560, t, marca(4, 1) + 0.12 * j, g)
-            pas(L, "Suelto: $189 c/u", 850, t, marca(4, 1), sz=56, bg=WHITE, fg=NEGRO)
-        if t >= marca(4, 2):
-            sello(L, "En trío: $133 c/u", t, marca(4, 2), cy=960)
+            pas(L, txt, 420 + 90 * j, t, marca(3, j), sz=40, bg=WHITE, fg=NEGRO, cx=345, maxw=640)
+    if e == 4:  # el calendario de adviento de DAISE (Dreamhouse)
+        b.pon(L, _sombra(bagel("Calendario", 120, WHITE), 12, 170), W / 2, 330, *b.entra(t, marca(4, 0) - 0.2, 0.3))
+        pon_tarjeta(L, tarjeta("daise-advent", "DAISE Dreamhouse", "7 sorpresas", ancho=280), W - 190, 720, t, marca(4, 0), 3)
+        pas(L, "🛁 baño y cuerpo", 560, t, marca(4, 1), sz=48, bg=WHITE, fg=NEGRO, cx=320, maxw=540)
+        sello(L, "$789", t, marca(4, 2), cy=700, cx=330)
     if e == 5:
-        pon_tarjeta(L, tarjeta("daise-lip", "Trío de labios", "Quedan 4", ancho=300, color_abajo=NEGRO), 300, 600, t, INI[5], -3)
-        pon_tarjeta(L, tarjeta("daise-mist", "Trío de mists", "Quedan 5", ancho=300, color_abajo=NEGRO), 780, 600, t, INI[5] + 0.25, 3)
-        pas(L, "$399 cada trío 🎁", 990, t, marca(5, 0), sz=64)
-    if e == 6: cierre(L, t, INI[6], "¿Labios o mists? 💋🌼", "Te leo en los comentarios 👇")
-    if e not in (4, 5, 6): subtitulo(L, t)
+        interrupcion(L, t, marca(5, 0) - 0.1, "TRUCO")
+        if t >= marca(5, 1):
+            for j, (f, x, g) in enumerate([("lip-bv", 230, -4), ("lip-cp", 540, 0), ("lip-vv", 850, 4)]):
+                pon_tarjeta(L, tarjeta(f, " ", None, ancho=220), x, 520, t, marca(5, 1) + 0.12 * j, g)
+            pas(L, "Suelto: $189 c/u", 800, t, marca(5, 1), sz=56, bg=WHITE, fg=NEGRO)
+        if t >= marca(5, 2):
+            sello(L, "En trío: $133 c/u", t, marca(5, 2), cy=910)
+    if e == 6:
+        pon_tarjeta(L, tarjeta("daise-lip", "Trío de labios", "Quedan 4", ancho=280, color_abajo=NEGRO), 300, 560, t, INI[6], -3)
+        pon_tarjeta(L, tarjeta("daise-mist", "Trío de mists", "Quedan 5", ancho=280, color_abajo=NEGRO), 780, 560, t, INI[6] + 0.25, 3)
+        pas(L, "$399 cada trío 🎁", 920, t, marca(6, 0), sz=64)
+    if e == 7: cierre(L, t, INI[7], "¿Labios, mists o calendario?", "Te leo en los comentarios 👇")
+    if e not in (5, 6, 7): subtitulo(L, t)
 
 
 def capa_adviento(L, t):
@@ -344,13 +344,22 @@ def capa_adviento(L, t):
 
 CAPA = {"haul": capa_haul, "daise": capa_daise, "adviento": capa_adviento}[VAR]
 
+def reparto(e):
+    """cuadros de cada toma de la frase e: las que traen segundos los usan, las demás se reparten lo que sobra"""
+    n_frase = int(round(INI[e + 1] * FPS)) - int(round(INI[e] * FPS)); tomas = TOMAS[e]
+    fijos = [int(round(tm[2] * FPS)) if tm[2] else None for tm in tomas]
+    libres = [k for k, x in enumerate(fijos) if x is None]
+    resto = n_frase - sum(x for x in fijos if x)
+    for k in libres: fijos[k] = resto // len(libres)
+    fijos[-1] += n_frase - sum(fijos)
+    return fijos
+
+
 def cuadros():
     f = 0
     for e, tomas in enumerate(TOMAS):
-        n_frase = int(round(INI[e + 1] * FPS)) - int(round(INI[e] * FPS))
-        ns = [n_frase // len(tomas)] * len(tomas); ns[-1] += n_frase - sum(ns)
-        for (fuente, ini), n in zip(tomas, ns):
-            for L in video(fuente, ini, n):
+        for (fuente, ini, _, cx, cy, z), n in zip(tomas, reparto(e)):
+            for L in video(fuente, ini, n, cx, cy, z):
                 L.alpha_composite(SOMBRA); CAPA(L, f / FPS); yield L; f += 1
 
 
@@ -359,10 +368,10 @@ def prueba(ts, ruta):
     ims = []
     for tq in ts:
         e = next(i for i in range(len(T)) if tq < INI[i + 1] or i == len(T) - 1)
-        n_frase = int(round(INI[e + 1] * FPS)) - int(round(INI[e] * FPS)); tomas = TOMAS[e]
-        k = min(len(tomas) - 1, int((tq - INI[e]) * FPS) // max(1, n_frase // len(tomas)))
-        fuente, ini = tomas[k]; dentro = tq - INI[e] - k * (n_frase // len(tomas)) / FPS
-        L = next(video(fuente, ini + dentro, 1)); L.alpha_composite(SOMBRA); CAPA(L, tq)
+        ns = reparto(e); dentro = tq - INI[e]; k = 0
+        while k < len(ns) - 1 and dentro >= ns[k] / FPS: dentro -= ns[k] / FPS; k += 1
+        fuente, ini, _, cx, cy, z = TOMAS[e][k]
+        L = next(video(fuente, ini + dentro, 1, cx, cy, z)); L.alpha_composite(SOMBRA); CAPA(L, tq)
         ims.append(L.convert("RGB").resize((270, 480)))
     c = Image.new("RGB", (270 * min(6, len(ims)), 480 * ((len(ims) + 5) // 6)))
     for j, im in enumerate(ims): c.paste(im, ((j % 6) * 270, (j // 6) * 480))
