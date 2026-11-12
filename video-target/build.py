@@ -39,25 +39,46 @@ def marca(e, m=None): return INI[e] + (0 if m is None else T[e]["marcas"][m])
 OUT = os.path.join(AQUI, f"Target-{VAR}.mp4")
 
 # ---------------- tomas: por frase, a velocidad normal (cada una dura lo que le toca de la frase) ----------------
-TOMAS = {
-    "haul": [[("189", 66.5), ("189", 23.0)], [("189", 6.0)], [("189", 20.0)], [("189", 35.0)], [("189", 61.0)],
-             [("189", 8.0), ("189", 64.5)], [("189", 151.0), ("5861", 0.5)]],
-    "daise": [[("5861", 2.5)], [("189", 106.0), ("189", 111.0)], [("189", 113.5), ("189", 116.5)],
-              [("189", 103.0), ("5861", 0.0), ("189", 107.5)], [("189", 111.5), ("5861", 3.5), ("189", 117.0)],
-              [("5861", 5.8), ("189", 108.0)], [("5861", 4.4)]],
+TOMAS = {  # "189f" = ese cuadro congelado con un acercamiento lento, en el momento en que el producto se ve de frente
+    "haul": [[("189", 64.5), ("189", 22.0)], [("189", 6.8), ("189f", 9.0)], [("189", 21.5), ("189f", 24.0)],
+             [("189", 36.4), ("189f", 38.5)], [("189", 64.0), ("189f", 65.5)], [("189", 7.5), ("189f", 9.0)],
+             [("189", 151.0), ("5861", 0.5)]],
+    "daise": [[("5861", 2.5)], [("189", 106.0), ("189", 112.0)], [("189", 113.0), ("189f", 116.5)],
+              [("189f", 107.0), ("5861", 0.0), ("189", 105.5)], [("189", 113.5), ("5861", 3.5), ("189f", 117.0)],
+              [("5861", 5.8), ("189f", 107.5)], [("5861", 4.4)]],
     "adviento": [[("5861", 6.6), ("189", 0.0)], [("189", 42.0), ("189", 52.0)], [("189", 88.0), ("189", 96.0)],
                  [("189", 13.0), ("189", 140.0)], [("189", 155.0), ("189", 162.0)], [("189", 0.5)], [("189", 168.0)]],
 }[VAR]
 
+Y_ANCHO = 110  # video de los lentes (3:4): va completo a lo ancho desde aquí, con fondo difuminado arriba y abajo
+
+
 def video(fuente, ini, n):
+    """las tomas de los lentes (189) son 3:4 y los productos quedan abajo: si se recortan a 9:16 se pierden los lados
+    y el subtítulo los tapa. Por eso van completas a lo ancho (1080x1444) en y=110, con la misma toma difuminada de
+    fondo. La del iPhone (5861) ya es vertical y llena la pantalla."""
+    if fuente.endswith("f"):  # cuadro congelado con acercamiento lento (el producto de frente, bien enfocado)
+        base = next(video(fuente[:-1], ini, 1))
+        for k in range(n):
+            z = 1 + 0.07 * k / max(1, n - 1); w, h = int(W / z), int(H / z)
+            x0, y0 = (W - w) // 2, int((H - h) * 0.62)  # el acercamiento va hacia el producto (abajo)
+            yield base.crop((x0, y0, x0 + w, y0 + h)).resize((W, H), Image.BILINEAR)
+        return
+    ancho = fuente == "189"
+    vf = f"fps={FPS},scale={W}:-2:flags=lanczos" if ancho else f"fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}"
     p = subprocess.Popen(["ffmpeg", "-nostdin", "-v", "error", "-ss", str(ini), "-i", os.path.join(CRUDO, f"est_{fuente}.mp4"),
-                          "-t", f"{n / FPS + 0.3:.2f}", "-an", "-vf",
-                          f"fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}",
-                          "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
+                          "-t", f"{n / FPS + 0.3:.2f}", "-an", "-vf", vf, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
+    hh = 1444 if ancho else H
     last = None
     for _ in range(n):
-        x = p.stdout.read(W * H * 3)
-        if len(x) == W * H * 3: last = Image.frombytes("RGB", (W, H), x).convert("RGBA")
+        x = p.stdout.read(W * hh * 3)
+        if len(x) == W * hh * 3:
+            im = Image.frombytes("RGB", (W, hh), x)
+            if ancho:
+                fondo = im.resize((54, 72), Image.BILINEAR).filter(ImageFilter.GaussianBlur(2)).resize((W, H), Image.BICUBIC)
+                fondo = Image.blend(fondo, Image.new("RGB", (W, H), (20, 10, 16)), 0.35)
+                fondo.paste(im, (0, Y_ANCHO)); im = fondo
+            last = im.convert("RGBA")
         yield last.copy()
     p.stdout.close(); p.wait()
 
@@ -139,7 +160,7 @@ def _palabras():
         pal, tp = "", None
         for c, t in zip(ch + [" "], st + [st[-1]]):
             if c.isspace():
-                if pal: out.append((INI[n] + off + tp - ini, pal.strip(".,:;…¿?¡!").replace("Deisi", "DAISE")))  # la voz dice «Deisi»
+                if pal: out.append((INI[n] + off + tp - ini, pal.strip(".,:;…¿?¡!").replace("Daice", "DAISE")))  # la voz dice «Daice»
                 pal = ""; continue
             if not pal: tp = t
             pal += c
@@ -147,7 +168,7 @@ def _palabras():
 PAL = _palabras()
 
 
-def subtitulo(L, t, y=1560):
+def subtitulo(L, t, y=1720):  # debajo de la toma de los lentes, para no tapar el producto
     act = [(t0, w) for t0, w in PAL if t0 <= t]
     if not act or t > PAL[-1][0] + 0.8: return
     t0, w = act[-1]
@@ -233,11 +254,11 @@ def cierre(L, t, t0, arriba, abajo):
 def etapa(t): return next(i for i in range(len(T)) if t < INI[i + 1] or i == len(T) - 1)
 
 
-def sello(L, txt, t, t0, cy=1290, bg=ROSA):
+def sello(L, txt, t, t0, cy=1290, bg=ROSA, cx=W / 2 + 200):
     """el precio como estampa que cae girada"""
     if t < t0: return
     im = _sombra(b.pastilla(txt, "ExtraBold", 84, bg, WHITE, padx=40, pady=14), 10, 120).rotate(-6, expand=True, resample=Image.BICUBIC)
-    s, a = b.entra(t, t0, 0.35); b.pon(L, im, W / 2 + 200, cy, 1.6 - 0.6 * b.ease((t - t0) / 0.25), a)
+    s, a = b.entra(t, t0, 0.35); b.pon(L, im, cx, cy, 1.6 - 0.6 * b.ease((t - t0) / 0.25), a)
 
 
 def capa_haul(L, t):
@@ -252,16 +273,16 @@ def capa_haul(L, t):
     if e in sets:
         f, nom, que, precio = sets[e]
         b.pon(L, _sombra(bagel(f"{e}/4", 120, WHITE), 12, 170), 150, 330, *b.entra(t, INI[e], 0.3))
-        pon_tarjeta(L, tarjeta(f, nom, que, ancho=470), W / 2 + 120, 760, t, marca(e, 0) - 0.2, 3)
-        sello(L, precio, t, marca(e, 1), cy=1170)
+        pon_tarjeta(L, tarjeta(f, nom, que, ancho=340), W - 220, 640, t, marca(e, 0) - 0.2, 3)
+        sello(L, precio, t, marca(e, 1), cy=600, cx=330)
     if e == 5:
         pas(L, "¿Ya adivinaste? 🥁", 330, t, INI[5], sz=64)
         if t >= marca(5, 1):
-            pon_tarjeta(L, tarjeta("spa", "medicube Night Spa", "Queda 1", ancho=500, color_abajo=NEGRO), W / 2, 830, t, marca(5, 1))
+            pon_tarjeta(L, tarjeta("spa", "medicube Night Spa", "Queda 1", ancho=360, color_abajo=NEGRO), W / 2, 680, t, marca(5, 1))
     if e == 6:
         pas(L, "🇲🇽 Todos ya están en México", 330, t, INI[6], sz=56)
         pas(L, "alpacca.mx", 450, t, marca(6, 1), sz=64, bg=WHITE, fg=ROSA)
-        if t >= marca(6, 2): pas(L, "Próximo video: el carrito de DAISE 🌼", 1180, t, marca(6, 2), sz=50, bg=NEGRO)
+        if t >= marca(6, 2): pas(L, "Próximo video: el carrito de DAISE 🌼", 1600, t, marca(6, 2), sz=50, bg=NEGRO)
     if e not in (6,): subtitulo(L, t)
 
 
@@ -272,24 +293,25 @@ def capa_daise(L, t):
         b.pon(L, _sombra(bagel("DAISE", 170, WHITE), 12, 170), W / 2, 340, *b.entra(t, marca(1, 0), 0.3))
         chips(L, ["💋 bálsamos", "🌼 mists en forma de flor"], 500, t, marca(1, 1) - 0.4)
     if e == 2:
-        pon_tarjeta(L, tarjeta("daise-lip", "Tinted Lip Balm Trio", "3 bálsamos", ancho=480), W / 2, 760, t, INI[2] + 0.2)
-        chips(L, ["péptidos", "manteca de karité", "color que subes"], 1240, t, marca(2, 0), sep=0.6)
+        pon_tarjeta(L, tarjeta("daise-lip", "Tinted Lip Balm Trio", "3 bálsamos", ancho=320), W - 210, 600, t, INI[2] + 0.2, 3)
+        for j, txt in enumerate(["🧪 péptidos", "🧈 manteca de karité", "💋 color que subes"]):
+            pas(L, txt, 470 + 90 * j, t, marca(2, j), sz=44, bg=WHITE, fg=NEGRO, cx=330, maxw=560)
     if e == 3:
-        pon_tarjeta(L, tarjeta("daise-mist", "Mini Body Mist Trio", "3 mists de 30 ml", ancho=480), W / 2, 740, t, INI[3] + 0.2)
-        for j, (txt, y) in enumerate([("☀️ Sunny: vainilla y coco", 1180), ("👋 Hello: frambuesa y menta", 1280), ("🍩 Glaze: vainilla y caramelo", 1380)]):
-            pas(L, txt, y, t, marca(3, j), sz=46, bg=WHITE, fg=NEGRO)
+        pon_tarjeta(L, tarjeta("daise-mist", "Mini Body Mist Trio", "3 mists de 30 ml", ancho=320), W - 210, 600, t, INI[3] + 0.2, 3)
+        for j, txt in enumerate(["☀️ Sunny: vainilla y coco", "👋 Hello: frambuesa y menta", "🍩 Glaze: vainilla y caramelo"]):
+            pas(L, txt, 470 + 90 * j, t, marca(3, j), sz=40, bg=WHITE, fg=NEGRO, cx=345, maxw=640)
     if e == 4:
         interrupcion(L, t, marca(4, 0) - 0.1, "TRUCO")
         if t >= marca(4, 1):
             for j, (f, x, g) in enumerate([("lip-bv", 230, -4), ("lip-cp", 540, 0), ("lip-vv", 850, 4)]):
-                pon_tarjeta(L, tarjeta(f, " ", None, ancho=260), x, 690, t, marca(4, 1) + 0.12 * j, g)
-            pas(L, "Suelto: $189 c/u", 1060, t, marca(4, 1), sz=60, bg=WHITE, fg=NEGRO)
+                pon_tarjeta(L, tarjeta(f, " ", None, ancho=220), x, 560, t, marca(4, 1) + 0.12 * j, g)
+            pas(L, "Suelto: $189 c/u", 850, t, marca(4, 1), sz=56, bg=WHITE, fg=NEGRO)
         if t >= marca(4, 2):
-            sello(L, "En trío: $133 c/u", t, marca(4, 2), cy=1200)
+            sello(L, "En trío: $133 c/u", t, marca(4, 2), cy=960)
     if e == 5:
-        pon_tarjeta(L, tarjeta("daise-lip", "Trío de labios", "Quedan 4", ancho=380, color_abajo=NEGRO), 290, 780, t, INI[5], -3)
-        pon_tarjeta(L, tarjeta("daise-mist", "Trío de mists", "Quedan 5", ancho=380, color_abajo=NEGRO), 790, 780, t, INI[5] + 0.25, 3)
-        pas(L, "$399 cada trío 🎁", 1240, t, marca(5, 0), sz=70)
+        pon_tarjeta(L, tarjeta("daise-lip", "Trío de labios", "Quedan 4", ancho=300, color_abajo=NEGRO), 300, 600, t, INI[5], -3)
+        pon_tarjeta(L, tarjeta("daise-mist", "Trío de mists", "Quedan 5", ancho=300, color_abajo=NEGRO), 780, 600, t, INI[5] + 0.25, 3)
+        pas(L, "$399 cada trío 🎁", 990, t, marca(5, 0), sz=64)
     if e == 6: cierre(L, t, INI[6], "¿Labios o mists? 💋🌼", "Te leo en los comentarios 👇")
     if e not in (4, 5, 6): subtitulo(L, t)
 
@@ -317,7 +339,7 @@ def capa_adviento(L, t):
         pon_tarjeta(L, tarjeta("rt-cal", "Real Techniques", "Quedan 2", ancho=500, color_abajo=NEGRO), W / 2, 760, t, INI[5])
     if e == 6: cierre(L, t, INI[6], "¿Cuál abrirías tú? 🎁", "Skincare, spa o brochas 👇")
     if e not in (2, 3, 4, 5, 6): subtitulo(L, t)
-    elif e in (2, 3): subtitulo(L, t, y=1640)
+    elif e in (2, 3): subtitulo(L, t)
 
 
 CAPA = {"haul": capa_haul, "daise": capa_daise, "adviento": capa_adviento}[VAR]

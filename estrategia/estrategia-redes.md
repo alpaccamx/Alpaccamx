@@ -91,6 +91,9 @@ Horario: 7–9 pm hora de México (cuando más gente usa el celular después del
 4. **Colores de la marca siempre:** rosa Alpacca, blanco y negro.
 5. **Voz de amiga, con opinión propia** ("neta…", "esa sí me la quería quedar") y el producto en la mano, pegado a la cámara.
 6. **La cara de Mae no sale:** revisar cada video cuadro por cuadro, también los espejos y reflejos.
+7. **Productos bien encuadrados y de frente:** las tomas de los lentes Meta (3:4) van completas a lo ancho con fondo difuminado, para no cortar los lados ni tapar el producto con el subtítulo (el subtítulo va debajo). Si en la toma el producto se mueve o baja, se usa el momento en que se ve de frente, congelado con un acercamiento lento.
+8. **Pronunciación de marcas como se dice en México:** DAISE se dice «daice» (así se escribe en el texto de la voz; en pantalla, DAISE).
+9. **Máximo 5 hashtags** por descripción.
 
 ## Qué grabar en cada ida a la tienda (para vlogs con historia, estilo @andybadilloo)
 
