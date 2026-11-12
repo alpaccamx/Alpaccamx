@@ -42,24 +42,33 @@ OUT = os.path.join(AQUI, f"Target-{VAR}.mp4")
 # tomas por frase: (fuente, inicio, segundos o None = lo que sobre de la frase, centro x, centro y, acercamiento).
 # Pantalla completa, sin franjas ni cuadros congelados. Cuando Mae sostiene un producto, la ventana se acerca a él
 # (centro y acercamiento), recortada del video de los lentes en su resolución original (1376x1840) para que se vea nítido.
+# 7º dato de una toma = foto del producto: cuando la toma no muestra bien el producto, el video sigue en movimiento
+# pero difuminado, y encima va la foto oficial grande (nunca un cuadro congelado ni franjas)
+FOTOS = {"spa": ("medicube Holiday Night Spa", "crema de colágeno + 2 mascarillas", ROSA),
+         "daise-advent": ("DAISE Dreamhouse", "7 sorpresas de baño y cuerpo", ROSA),
+         "skin-advent": ("Skincare Advent de Target", "12 sorpresas", ROSA),
+         "spa-advent": ("Spa Advent de Target", "12 sorpresas", ROSA),
+         "rt-cal": ("Real Techniques", "25 días de brochas", ROSA),
+         "rt-cal-q": ("Real Techniques", "Quedan 2", NEGRO)}
+FOTO = {"k": None, "t0": 0.0}  # la foto que va encima ahora y desde cuándo
 P = (0.5, 0.74, 1.3)   # producto en la mano: abajo al centro
 A = (0.5, 0.5, 1.0)    # toma abierta
 TOMAS = {
     "haul": [[("189", 64.0, 3.3, *P), ("189", 22.0, None, *P)],
-             [("189", 6.5, 4.0, 0.55, 0.74, 1.25), ("189", 40.5, None, *A)],
+             [("189", 6.5, 4.0, 0.55, 0.74, 1.25), ("189", 40.5, None, *A, "spa")],
              [("189", 20.5, None, *P)], [("189", 36.3, None, 0.5, 0.8, 1.2)], [("189", 63.8, None, *P)],
-             [("189", 5.0, None, 0.55, 0.74, 1.25)], [("189", 151.0, 4.5, *A), ("5861", 0.5, None, *A)]],
+             [("189", 6.5, 3.8, 0.55, 0.74, 1.25), ("189", 42.0, None, *A, "spa")], [("189", 151.0, 4.5, *A), ("5861", 0.5, None, *A)]],
     "daise": [[("5861", 2.5, None, *A)], [("189", 105.5, 2.5, *P), ("189", 112.5, None, *P)], [("189", 112.0, None, *P)],
               [("189", 103.5, 6.0, *P), ("5861", 0.0, None, *A)], [("189", 77.0, None, 0.5, 0.72, 1.2)],
               [("189", 113.0, 4.5, *P), ("5861", 3.5, None, *A)], [("5861", 5.8, 3.2, *A), ("189", 106.0, None, *P)],
               [("5861", 2.0, None, *A)]],
     "adviento": [[("5861", 6.6, 2.4, *A), ("189", 0.0, None, *A)],
-                 [("189", 42.0, 3.6, *A), ("189", 52.0, None, *A)], [("189", 88.0, 4.8, *A), ("189", 96.0, None, *A)],
-                 [("189", 151.0, 4.4, *A), ("189", 155.4, None, *A)], [("189", 160.0, 4.3, *A), ("189", 164.3, None, *A)],
-                 [("189", 0.5, None, *A)], [("189", 168.7, None, *A)]],  # 151-172.5: saliendo del estacionamiento, sin productos
+                 [("189", 42.0, 3.6, *A), ("189", 52.0, None, *A)], [("189", 88.0, 4.8, *A, "skin-advent"), ("189", 96.0, None, *A, "skin-advent")],
+                 [("189", 151.0, 4.4, *A, "spa-advent"), ("189", 155.4, None, *A, "spa-advent")],
+                 [("189", 160.0, 4.3, *A, "rt-cal"), ("189", 164.3, None, *A, "rt-cal")], [("189", 0.5, None, *A, "rt-cal-q")], [("189", 168.7, None, *A)]],  # 151-172.5: saliendo del estacionamiento, sin productos
 }[VAR]
 
-def video(fuente, ini, n, cx=0.5, cy=0.5, z=1.0):
+def video(fuente, ini, n, cx=0.5, cy=0.5, z=1.0, foto=None):
     """ventana 9:16 de la toma, centrada en (cx, cy) y acercada z veces; llena la pantalla (sin franjas)"""
     src = os.path.join(CRUDO, "estf_189.mp4" if fuente == "189" else f"est_{fuente}.mp4")
     sw, sh = (1376, 1840) if fuente == "189" else (W, H)
@@ -72,7 +81,12 @@ def video(fuente, ini, n, cx=0.5, cy=0.5, z=1.0):
     last = None
     for _ in range(n):
         x = p.stdout.read(W * H * 3)
-        if len(x) == W * H * 3: last = Image.frombytes("RGB", (W, H), x).convert("RGBA")
+        if len(x) == W * H * 3:
+            im = Image.frombytes("RGB", (W, H), x)
+            if foto:  # sigue en movimiento, solo difuminado y un poco más oscuro
+                im = im.resize((W // 6, H // 6), Image.BILINEAR).filter(ImageFilter.GaussianBlur(5)).resize((W, H), Image.BICUBIC)
+                im = Image.blend(im, Image.new("RGB", (W, H), (25, 12, 20)), 0.25)
+            last = im.convert("RGBA")
         yield last.copy()
     p.stdout.close(); p.wait()
 
@@ -154,7 +168,7 @@ def _palabras():
         pal, tp = "", None
         for c, t in zip(ch + [" "], st + [st[-1]]):
             if c.isspace():
-                if pal: out.append((INI[n] + off + tp - ini, pal.strip(".,:;…¿?¡!").replace("Daice", "DAISE")))  # la voz dice «Daice»
+                if pal: out.append((INI[n] + off + tp - ini, pal.strip(".,:;…¿?¡!").replace("Dái-se", "DAISE")))  # la voz dice «Dái-se» (se escucha la E)
                 pal = ""; continue
             if not pal: tp = t
             pal += c
@@ -163,7 +177,7 @@ PAL = _palabras()
 
 
 def subtitulo(L, t, y=None):  # arriba del producto (que va abajo en la toma); en adviento no hay producto en la mano
-    if y is None: y = 1500 if VAR == "adviento" else 900
+    if y is None: y = 1720 if FOTO["k"] else (1500 if VAR == "adviento" else 900)
     act = [(t0, w) for t0, w in PAL if t0 <= t]
     if not act or t > PAL[-1][0] + 0.8: return
     t0, w = act[-1]
@@ -214,7 +228,7 @@ def tarjeta(foto, nombre, abajo=None, ancho=440, color_abajo=ROSA):
 
 
 def pon_tarjeta(L, tj, cx, cy, t, t0, giro=0):
-    if t < t0: return
+    if t < t0 or FOTO["k"]: return  # con la foto grande encima no van las tarjetas chicas
     s, a = b.entra(t, t0, 0.4)
     if giro: tj = tj.rotate(giro, expand=True, resample=Image.BICUBIC)
     b.pon(L, tj, cx, cy, s, a)
@@ -331,9 +345,9 @@ def capa_adviento(L, t):
     if e in cal:
         f, nom, que, cuenta = cal[e]
         pon_tarjeta(L, tarjeta(f, nom, que, ancho=500), W / 2, 700, t, INI[e] + 0.2, -2 if e != 3 else 2)
-        if e == 2: chips(L, ["La Roche-Posay", "BYOMA", "TONYMOLY"], 1180, t, marca(2, 1), sep=0.3)
-        if e == 3: chips(L, ["Hero", "Pixi", "Aquaphor"], 1180, t, marca(3, 1), sep=0.3)
-        sello(L, cuenta, t, marca(e, 2) - 0.3, cy=1310, bg=ROSA if e != 4 else VERDE)
+        if e == 2: chips(L, ["La Roche-Posay", "BYOMA", "TONYMOLY"], 1450, t, marca(2, 1), sep=0.3)
+        if e == 3: chips(L, ["Hero", "Pixi", "Aquaphor"], 1450, t, marca(3, 1), sep=0.3)
+        sello(L, cuenta, t, marca(e, 2) - 0.3, cy=1570, bg=ROSA if e != 4 else VERDE)
         if e == 4 and t >= marca(4, 2) + 1.2: pas(L, "🏆 El más rendidor", 330, t, marca(4, 2) + 1.2, sz=64)
     if e == 5:
         pon_tarjeta(L, tarjeta("rt-cal", "Real Techniques", "Quedan 2", ancho=500, color_abajo=NEGRO), W / 2, 760, t, INI[5])
@@ -355,12 +369,26 @@ def reparto(e):
     return fijos
 
 
+def foto_grande(L, t):
+    if not FOTO["k"]: return
+    nom, abajo, col = FOTOS[FOTO["k"]]
+    tj = tarjeta(FOTO["k"].replace("-q", ""), nom, abajo, ancho=520, color_abajo=col)
+    s_, a_ = b.entra(t, FOTO["t0"], 0.4); b.pon(L, tj, W / 2, 960, s_, a_)
+
+
+def usa_foto(toma, t):
+    k = toma[6] if len(toma) > 6 else None
+    if k != FOTO["k"]: FOTO["t0"] = t  # entra con rebote solo cuando cambia
+    FOTO["k"] = k
+
+
 def cuadros():
     f = 0
     for e, tomas in enumerate(TOMAS):
-        for (fuente, ini, _, cx, cy, z), n in zip(tomas, reparto(e)):
-            for L in video(fuente, ini, n, cx, cy, z):
-                L.alpha_composite(SOMBRA); CAPA(L, f / FPS); yield L; f += 1
+        for toma, n in zip(tomas, reparto(e)):
+            fuente, ini, _, cx, cy, z = toma[:6]; usa_foto(toma, f / FPS)
+            for L in video(fuente, ini, n, cx, cy, z, FOTO["k"]):
+                L.alpha_composite(SOMBRA); foto_grande(L, f / FPS); CAPA(L, f / FPS); yield L; f += 1
 
 
 def prueba(ts, ruta):
@@ -370,8 +398,8 @@ def prueba(ts, ruta):
         e = next(i for i in range(len(T)) if tq < INI[i + 1] or i == len(T) - 1)
         ns = reparto(e); dentro = tq - INI[e]; k = 0
         while k < len(ns) - 1 and dentro >= ns[k] / FPS: dentro -= ns[k] / FPS; k += 1
-        fuente, ini, _, cx, cy, z = TOMAS[e][k]
-        L = next(video(fuente, ini + dentro, 1, cx, cy, z)); L.alpha_composite(SOMBRA); CAPA(L, tq)
+        toma = TOMAS[e][k]; fuente, ini, _, cx, cy, z = toma[:6]; FOTO["k"] = None; usa_foto(toma, tq - dentro)
+        L = next(video(fuente, ini + dentro, 1, cx, cy, z, FOTO["k"])); L.alpha_composite(SOMBRA); foto_grande(L, tq); CAPA(L, tq)
         ims.append(L.convert("RGB").resize((270, 480)))
     c = Image.new("RGB", (270 * min(6, len(ims)), 480 * ((len(ims) + 5) // 6)))
     for j, im in enumerate(ims): c.paste(im, ((j % 6) * 270, (j // 6) * 480))
