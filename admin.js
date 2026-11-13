@@ -5742,12 +5742,13 @@ ${itemLines}
     try {
       const res = await fetch("/.netlify/functions/admin-generate-guide", {
         method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ [kindKey]: id, apartadoIds: kindKey === "envioId" ? [] : (card.dataset.apartadoIds || "").split(",").filter(Boolean), weight, total: r.total, cobrarEnvio: g("cobrar") !== "" ? Number(g("cobrar")) : null, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
+        body: JSON.stringify({ [kindKey]: id, cajaExtra: kindKey === "envioId" && !!t.closest("[data-caja-extra]"), apartadoIds: kindKey === "envioId" ? [] : (card.dataset.apartadoIds || "").split(",").filter(Boolean), weight, total: r.total, cobrarEnvio: g("cobrar") !== "" ? Number(g("cobrar")) : null, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: r.provider, courier: r.carrier, service: r.service, quotationId: r.quotationId, rateId: r.rateId, carrierSlug: r.carrierSlug, serviceCode: r.serviceCode, destination }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo generar la guía.");
       if (data.error) alert(data.error);
       else if (kindKey !== "envioId") showToast(`✅ Guía ${(data.order || data).trackingNumber} generada: todo marcado enviado`);
+      else if (data.cajaExtra) showToast(`✅ Guía de la otra caja lista: ${data.guia}${data.cobro ? `. Se le sumó ${formatPrice(data.cobro)} a su cobro (total ${formatPrice(data.envio.cotizacion.total)})` : ""}.`);
       else showToast(data.guiaAnticipada ? `✅ Guía ${data.envio.guia} lista y cobro enviado (${formatPrice(data.envio.cotizacion.total)}). Cuando pague, le llega su guía sola.` : `✅ Guía ${data.envio.guia} generada y aviso enviado`);
       if (card.dataset.pmKey && !data.error) pmTerminar(card, data);
       if (kindKey !== "envioId") { if (kindKey === "orderId") await fetchOrders(); if ((card.dataset.apartadoIds || kindKey === "apartadoId")) await loadPreventaAdmin({ quiet: true }); }
@@ -6874,6 +6875,18 @@ ${itemLines}
 
   /* Guía real para un envío de Dirección americana (Envíos Perros /
      Skydropx), igual que en los pedidos de la tienda. */
+  /* Guía de otra caja del mismo envío (no cupo todo en una). Si todavía no
+     paga, su envío se le suma al cobro. */
+  function swmCajaExtraHTML(e) {
+    const extra = e.guiasExtra || [];
+    const lista = extra.length ? `<div class="meta" style="margin-top:6px;">${extra.map((x, i) => `📦 Caja ${i + 2}: <b>${escapeHtml(x.paqueteria || "")} ${escapeHtml(x.guia)}</b>${x.kg ? ` · ${x.kg} kg` : ""}${x.cobro ? ` · se le cobró ${formatPrice(x.cobro)}` : ""}`).join("<br>")}</div>` : "";
+    const pagado = !["solicitado", "cotizado"].includes(e.status);
+    return `${lista}<details style="margin-top:10px;"><summary style="cursor:pointer;font-weight:700;font-size:14px;color:#b33660;">📦➕ No cupo todo: hacer guía de otra caja (caja ${extra.length + 2})</summary>
+      <div data-caja-extra>${swmGuiaForm({ ...e, paqueteIds: [], kgExtra: 0, sugerido: {} }, pagado ? false : true)}</div>
+      <div class="meta">${pagado ? "Ya pagó: esta guía no se le cobra. Le llega el aviso con las guías de todas sus cajas." : "El envío de esta caja se le suma a lo que tiene que pagar (lo de tu tabla o lo que pongas en \"Cóbrale de envío\"). Cuando pague, le llegan las guías de todas sus cajas."}</div>
+    </details>`;
+  }
+
   function swmGuiaForm(e, cobrar = false) {
     const d = e.direccion || {};
     const pk = (e.paqueteIds || []).map((id) => swmData.paquetes.find((p) => p.id === id)).filter(Boolean);
@@ -6962,6 +6975,7 @@ ${itemLines}
       </details>`;
       action = e.guia
         ? `<div class="meta" style="margin-top:10px;font-size:14px;">📦 Guía lista: <b>${escapeHtml(e.paqueteria || "")} ${escapeHtml(e.guia)}</b><br>⏳ Esperando que pague ${q ? formatPrice(q.total) : ""}. En cuanto pague, le llega su guía sola.</div>
+          ${swmCajaExtraHTML(e)}
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">${swmCancelBtn("envio", e)}</div>`
         : `${juarez ? `<div style="margin-top:10px;"><button type="button" class="${personal ? "btn-primary" : "btn-secondary"}" data-swm-envio-personal>📍 Se lo entrego en Juárez: ${(sug.cruce || 0) + (sug.consolidacion || 0) + (sug.sinRegistro || 0) + (sug.extras || 0) ? `cobrarle solo el cruce (${formatPrice((sug.cruce || 0) + (sug.consolidacion || 0) + (sug.sinRegistro || 0) + (sug.extras || 0))})` : "no hay nada que cobrar"}</button></div>` : ""}
           ${personal ? "" : swmGuiaForm(e, true)}
@@ -6975,7 +6989,7 @@ ${itemLines}
         <div style="display:flex;gap:8px;margin-top:10px;">${e.status === "pagado" ? `<button type="button" class="btn-secondary" data-swm-en-mexico>🇲🇽 Ya está en México</button>` : ""}<button type="button" class="btn-primary" data-swm-enviado>🚚 Marcar enviado (mandarle la guía)</button></div>
         ${e.guia ? "" : swmGuiaForm(e)}`;
     } else if (e.status === "enviado") {
-      action = `<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-secondary" data-swm-entregado>🎁 Marcar entregado</button></div>`;
+      action = `<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn-secondary" data-swm-entregado>🎁 Marcar entregado</button></div>${e.entrega === "personal" ? "" : swmCajaExtraHTML(e)}`;
     }
     if (e.status === "enviado" || e.status === "entregado") {
       action += `<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:13px;color:#6b6370;">✏️ Corregir la guía</summary>
