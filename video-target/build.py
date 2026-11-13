@@ -3,6 +3,7 @@ Material: lo que Mae grabó el 12 de noviembre (carpeta del Drive): video-189 = 
 estacionamiento de Target, sacando del carrito cada set y enseñándolo frente a la tienda; IMG_5861 = el carrito lleno
 de sets de DAISE en el pasillo. Los dos son SDR: se pasan a 1080 de ancho con saturación 0.85 y el de los lentes se
 estabiliza (est_189.mp4, est_5861.mp4). No sale la cara de Mae ni gente de cerca.
+No se usan video-189 1.5-3.5 s ni 150-156.5 s (se ve basura junto a la banqueta).
 No se muestran el kit rosa de medicube (s 44-52 de video-189), la caja Dreamhouse de DAISE (s 76-86) ni los Petal
 Pod de DAISE (s 126-150): no hay piezas en stock. DAISE: trío de mists s 103-109, trío de labios s 111-118.
 
@@ -30,6 +31,22 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 b.RAIZ_EMOJI = os.path.join(AQUI, "sin-emoji-apple"); b.emoji.cache_clear(); b.linea.cache_clear()
 
 W, H, FPS = 1080, 1920, 30
+
+# todo lo que se pone en pantalla se anota (rectángulo de lo visible) para que el subtítulo busque un lugar libre
+REG = []
+_pon = b.pon
+def _pon_anota(L, im, cx, cy, s=1.0, a=1.0):
+    _pon(L, im, cx, cy, s, a)
+    if s <= 0.05 or a <= 0.3: return
+    caja = im.getchannel("A").point(lambda v: 255 if v > 90 else 0).getbbox()
+    if caja:
+        x0, y0, x1, y1 = caja; w2, h2 = im.width * s / 2, im.height * s / 2
+        REG.append((cx - w2 + x0 * s, cy - h2 + y0 * s, cx - w2 + x1 * s, cy - h2 + y1 * s))
+b.pon = _pon_anota
+
+
+def choca(r, margen=14):
+    return any(not (r[2] + margen < q[0] or q[2] + margen < r[0] or r[3] + margen < q[1] or q[3] + margen < r[1]) for q in REG)
 ROSA, NEGRO, WHITE, VERDE = (232, 70, 120), (20, 20, 22), (255, 255, 255), (22, 150, 80)
 FUENTES = os.path.join(RAIZ, "carruseles", "fuentes")
 T = json.load(open(os.path.join(AQUI, f"tiempos-{VAR}.json")))
@@ -49,7 +66,8 @@ FOTOS = {"spa": ("medicube Holiday Night Spa", "crema de colágeno + 2 mascarill
          "skin-advent": ("Skincare Advent de Target", "12 sorpresas", ROSA),
          "spa-advent": ("Spa Advent de Target", "12 sorpresas", ROSA),
          "rt-cal": ("Real Techniques", "25 días de brochas", ROSA),
-         "rt-cal-q": ("Real Techniques", "Quedan 2", NEGRO)}
+         "rt-cal-q": ("Real Techniques", "Quedan 2", NEGRO),
+         "spa-q": ("medicube Holiday Night Spa", "Queda 1", NEGRO)}
 FOTO = {"k": None, "t0": 0.0}  # la foto que va encima ahora y desde cuándo
 P = (0.5, 0.74, 1.3)   # producto en la mano: abajo al centro
 A = (0.5, 0.5, 1.0)    # toma abierta
@@ -57,15 +75,15 @@ TOMAS = {
     "haul": [[("189", 64.0, 3.3, *P), ("189", 22.0, None, *P)],
              [("189", 6.5, 4.0, 0.55, 0.74, 1.25), ("189", 40.5, None, *A, "spa")],
              [("189", 20.5, None, *P)], [("189", 36.3, None, 0.5, 0.8, 1.2)], [("189", 63.8, None, *P)],
-             [("189", 6.5, 3.8, 0.55, 0.74, 1.25), ("189", 42.0, None, *A, "spa")], [("189", 151.0, 4.5, *A), ("5861", 0.5, None, *A)]],
+             [("189", 6.5, 3.8, 0.55, 0.74, 1.25), ("189", 42.0, None, *A, "spa-q")], [("189", 157.0, 4.5, *A), ("5861", 0.5, None, *A)]],
     "daise": [[("5861", 2.5, None, *A)], [("189", 105.5, 2.5, *P), ("189", 112.5, None, *P)], [("189", 112.0, None, *P)],
               [("189", 103.5, 6.0, *P), ("5861", 0.0, None, *A)], [("189", 77.0, None, 0.5, 0.72, 1.2)],
               [("189", 113.0, 4.5, *P), ("5861", 3.5, None, *A)], [("5861", 5.8, 3.2, *A), ("189", 106.0, None, *P)],
               [("5861", 2.0, None, *A)]],
-    "adviento": [[("5861", 6.6, 2.4, *A), ("189", 0.0, None, *A)],
+    "adviento": [[("5861", 4.1, None, *A)],
                  [("189", 42.0, 3.6, *A), ("189", 52.0, None, *A)], [("189", 88.0, 4.8, *A, "skin-advent"), ("189", 96.0, None, *A, "skin-advent")],
-                 [("189", 151.0, 4.4, *A, "spa-advent"), ("189", 155.4, None, *A, "spa-advent")],
-                 [("189", 160.0, 4.3, *A, "rt-cal"), ("189", 164.3, None, *A, "rt-cal")], [("189", 0.5, None, *A, "rt-cal-q")], [("189", 168.7, None, *A)]],  # 151-172.5: saliendo del estacionamiento, sin productos
+                 [("189", 140.0, 4.4, *A, "spa-advent"), ("189", 144.4, None, *A, "spa-advent")],
+                 [("189", 160.0, 4.3, *A, "rt-cal"), ("189", 164.3, None, *A, "rt-cal")], [("189", 157.0, None, *A, "rt-cal-q")], [("189", 168.7, None, *A)]],  # 156.5-174: saliendo del estacionamiento (sin productos)
 }[VAR]
 
 def video(fuente, ini, n, cx=0.5, cy=0.5, z=1.0, foto=None):
@@ -176,15 +194,26 @@ def _palabras():
 PAL = _palabras()
 
 
-def subtitulo(L, t, y=None):  # arriba del producto (que va abajo en la toma); en adviento no hay producto en la mano
-    if y is None: y = 1720 if FOTO["k"] else (1500 if VAR == "adviento" else 900)
+SIN_LUGAR = []
+
+
+def subtitulo(L, t, y=None):
+    """la palabra que se dice; va arriba del producto (que va abajo en la toma) y nunca encima de otro texto o tarjeta:
+    si su lugar está ocupado, busca el hueco libre más cercano"""
+    if y is None: y = 1790 if FOTO["k"] else (1500 if VAR == "adviento" else 900)
     act = [(t0, w) for t0, w in PAL if t0 <= t]
     if not act or t > PAL[-1][0] + 0.8: return
     t0, w = act[-1]
-    if w in CLAVE:
-        b.pon(L, _sombra(bagel(w, 140)), W / 2, y, *b.entra(t, t0, 0.3))
+    clave = w in CLAVE
+    im = _sombra(bagel(w, 140)) if clave else _sombra(b.linea(w, "ExtraBold", 70, WHITE))
+    caja = im.getchannel("A").point(lambda v: 255 if v > 90 else 0).getbbox() or (0, 0, im.width, im.height)
+    hw, hh = (caja[2] - caja[0]) / 2, (caja[3] - caja[1]) / 2
+    for yy in sorted(range(400, 1841, 20), key=lambda v: abs(v - y)):  # el hueco libre más cercano a su lugar
+        if not choca((W / 2 - hw, yy - hh, W / 2 + hw, yy + hh)): y = yy; break
     else:
-        b.pon(L, _sombra(b.linea(w, "ExtraBold", 70, WHITE)), W / 2, y)
+        SIN_LUGAR.append(round(t, 2))  # no encontró hueco (se reporta al terminar)
+    if clave: _pon(L, im, W / 2, y, *b.entra(t, t0, 0.3))
+    else: _pon(L, im, W / 2, y)
 
 
 # ---------------- productos: foto oficial en tarjeta blanca redonda ----------------
@@ -267,6 +296,7 @@ def sello(L, txt, t, t0, cy=1290, bg=ROSA, cx=W / 2 + 200):
     """el precio como estampa que cae girada"""
     if t < t0: return
     im = _sombra(b.pastilla(txt, "ExtraBold", 84, bg, WHITE, padx=40, pady=14), 10, 120).rotate(-6, expand=True, resample=Image.BICUBIC)
+    cx = min(max(cx, im.width / 2 + 10), W - im.width / 2 - 10)  # que siempre quepa completo en la pantalla
     s, a = b.entra(t, t0, 0.35); b.pon(L, im, cx, cy, 1.6 - 0.6 * b.ease((t - t0) / 0.25), a)
 
 
@@ -274,7 +304,7 @@ def capa_haul(L, t):
     e = etapa(t)
     if e == 0:
         gancho(L, t, "Me traje 4 sets de Target", "…y de uno solo me queda 1 🫣", marca(0, 1))
-        if t >= marca(0, 2): pas(L, "¿Adivinas cuál? 👀", 620, t, marca(0, 2), sz=64, bg=WHITE, fg=ROSA)
+        if t >= marca(0, 2): pas(L, "¿Adivinas cuál? 👀", 660, t, marca(0, 2), sz=64, bg=WHITE, fg=ROSA)
     sets = {1: ("spa", "medicube Holiday Night Spa", "crema de colágeno + 2 mascarillas", "$529"),
             2: ("unlockt", "Unlockt 7 días K-Beauty", "SKIN1004 · Round Lab · medicube", "$789"),
             3: ("starface", "Starface Big Lil", "parches para barritos", "$529"),
@@ -283,14 +313,15 @@ def capa_haul(L, t):
         f, nom, que, precio = sets[e]
         b.pon(L, _sombra(bagel(f"{e}/4", 120, WHITE), 12, 170), 150, 330, *b.entra(t, INI[e], 0.3))
         pon_tarjeta(L, tarjeta(f, nom, que, ancho=310), W - 205, 590, t, marca(e, 0) - 0.2, 3)
-        sello(L, precio, t, marca(e, 1), cy=600, cx=330)
+        if FOTO["k"]: sello(L, precio, t, marca(e, 1), cy=1560, cx=W / 2 + 180)  # debajo de la foto grande
+        else: sello(L, precio, t, marca(e, 1), cy=600, cx=330)
     if e == 5:
         pas(L, "¿Ya adivinaste? 🥁", 330, t, INI[5], sz=64)
         if t >= marca(5, 1):
-            pon_tarjeta(L, tarjeta("spa", "medicube Night Spa", "Queda 1", ancho=320, color_abajo=NEGRO), W / 2, 620, t, marca(5, 1))
+            pon_tarjeta(L, tarjeta("spa", "medicube Night Spa", "Queda 1", ancho=300, color_abajo=NEGRO), W / 2, 720, t, marca(5, 1))
     if e == 6:
         pas(L, "🇲🇽 Todos ya están en México", 330, t, INI[6], sz=56)
-        pas(L, "alpacca.mx", 450, t, marca(6, 1), sz=64, bg=WHITE, fg=ROSA)
+        pas(L, "alpacca.mx", 480, t, marca(6, 1), sz=64, bg=WHITE, fg=ROSA)
         if t >= marca(6, 2): pas(L, "Próximo video: el carrito de DAISE 🌼", 1600, t, marca(6, 2), sz=50, bg=NEGRO)
     if e not in (6,): subtitulo(L, t)
 
@@ -304,16 +335,16 @@ def capa_daise(L, t):
     if e == 2:
         pon_tarjeta(L, tarjeta("daise-lip", "Tinted Lip Balm Trio", "3 bálsamos", ancho=300), W - 200, 560, t, INI[2] + 0.2, 3)
         for j, txt in enumerate(["🧪 péptidos", "🧈 manteca de karité", "💋 color que subes"]):
-            pas(L, txt, 420 + 90 * j, t, marca(2, j), sz=44, bg=WHITE, fg=NEGRO, cx=330, maxw=560)
+            pas(L, txt, 420 + 115 * j, t, marca(2, j), sz=44, bg=WHITE, fg=NEGRO, cx=330, maxw=560)
     if e == 3:
         pon_tarjeta(L, tarjeta("daise-mist", "Mini Body Mist Trio", "3 mists de 30 ml", ancho=300), W - 200, 560, t, INI[3] + 0.2, 3)
         for j, txt in enumerate(["☀️ Sunny: vainilla y coco", "👋 Hello: frambuesa y menta", "🍩 Glaze: vainilla y caramelo"]):
-            pas(L, txt, 420 + 90 * j, t, marca(3, j), sz=40, bg=WHITE, fg=NEGRO, cx=345, maxw=640)
+            pas(L, txt, 420 + 115 * j, t, marca(3, j), sz=40, bg=WHITE, fg=NEGRO, cx=345, maxw=640)
     if e == 4:  # el calendario de adviento de DAISE (Dreamhouse)
         b.pon(L, _sombra(bagel("Calendario", 120, WHITE), 12, 170), W / 2, 330, *b.entra(t, marca(4, 0) - 0.2, 0.3))
         pon_tarjeta(L, tarjeta("daise-advent", "DAISE Dreamhouse", "7 sorpresas", ancho=280), W - 190, 720, t, marca(4, 0), 3)
         pas(L, "🛁 baño y cuerpo", 560, t, marca(4, 1), sz=48, bg=WHITE, fg=NEGRO, cx=320, maxw=540)
-        sello(L, "$789", t, marca(4, 2), cy=700, cx=330)
+        sello(L, "$789", t, marca(4, 2), cy=790, cx=330)
     if e == 5:
         interrupcion(L, t, marca(5, 0) - 0.1, "TRUCO")
         if t >= marca(5, 1):
@@ -321,7 +352,7 @@ def capa_daise(L, t):
                 pon_tarjeta(L, tarjeta(f, " ", None, ancho=220), x, 520, t, marca(5, 1) + 0.12 * j, g)
             pas(L, "Suelto: $189 c/u", 800, t, marca(5, 1), sz=56, bg=WHITE, fg=NEGRO)
         if t >= marca(5, 2):
-            sello(L, "En trío: $133 c/u", t, marca(5, 2), cy=910)
+            sello(L, "En trío: $133 c/u", t, marca(5, 2), cy=1000)
     if e == 6:
         pon_tarjeta(L, tarjeta("daise-lip", "Trío de labios", "Quedan 4", ancho=280, color_abajo=NEGRO), 300, 560, t, INI[6], -3)
         pon_tarjeta(L, tarjeta("daise-mist", "Trío de mists", "Quedan 5", ancho=280, color_abajo=NEGRO), 780, 560, t, INI[6] + 0.25, 3)
@@ -335,7 +366,7 @@ def capa_adviento(L, t):
     if e == 0:
         gancho(L, t, "¿Calendario de adviento?", "El 1 de diciembre ya es tarde ⏰", marca(0, 1) - 0.2)
         for j, (f, x, g) in enumerate([("skin-advent", 230, -5), ("rt-cal", 540, 0), ("spa-advent", 850, 5)]):
-            pon_tarjeta(L, tarjeta(f, " ", None, ancho=290), x, 980 + (0 if j == 1 else 40), t, 0.12 * j - 0.4, g)
+            pon_tarjeta(L, tarjeta(f, " ", None, ancho=260), x, 980 + (0 if j == 1 else 40), t, 0.12 * j - 0.4, g)
     if e == 1:
         pas(L, "📅 1 de dic = 1ª sorpresa", 330, t, INI[1] + 0.1, sz=62)
         pas(L, "¿Cuánto te sale cada una? 🧮", 460, t, marca(1, 1) - 0.3, sz=56, bg=WHITE, fg=ROSA)
@@ -345,9 +376,9 @@ def capa_adviento(L, t):
     if e in cal:
         f, nom, que, cuenta = cal[e]
         pon_tarjeta(L, tarjeta(f, nom, que, ancho=500), W / 2, 700, t, INI[e] + 0.2, -2 if e != 3 else 2)
-        if e == 2: chips(L, ["La Roche-Posay", "BYOMA", "TONYMOLY"], 1450, t, marca(2, 1), sep=0.3)
-        if e == 3: chips(L, ["Hero", "Pixi", "Aquaphor"], 1450, t, marca(3, 1), sep=0.3)
-        sello(L, cuenta, t, marca(e, 2) - 0.3, cy=1570, bg=ROSA if e != 4 else VERDE)
+        if e == 2: chips(L, ["La Roche-Posay", "BYOMA", "TONYMOLY"], 1440, t, marca(2, 1), sep=0.3)
+        if e == 3: chips(L, ["Hero", "Pixi", "Aquaphor"], 1440, t, marca(3, 1), sep=0.3)
+        sello(L, cuenta, t, marca(e, 2) - 0.3, cy=1640, bg=ROSA if e != 4 else VERDE)
         if e == 4 and t >= marca(4, 2) + 1.2: pas(L, "🏆 El más rendidor", 330, t, marca(4, 2) + 1.2, sz=64)
     if e == 5:
         pon_tarjeta(L, tarjeta("rt-cal", "Real Techniques", "Quedan 2", ancho=500, color_abajo=NEGRO), W / 2, 760, t, INI[5])
@@ -373,7 +404,7 @@ def foto_grande(L, t):
     if not FOTO["k"]: return
     nom, abajo, col = FOTOS[FOTO["k"]]
     tj = tarjeta(FOTO["k"].replace("-q", ""), nom, abajo, ancho=520, color_abajo=col)
-    s_, a_ = b.entra(t, FOTO["t0"], 0.4); b.pon(L, tj, W / 2, 960, s_, a_)
+    s_, a_ = b.entra(t, FOTO["t0"], 0.4); b.pon(L, tj, W / 2, 900, s_, a_)
 
 
 def usa_foto(toma, t):
@@ -388,7 +419,7 @@ def cuadros():
         for toma, n in zip(tomas, reparto(e)):
             fuente, ini, _, cx, cy, z = toma[:6]; usa_foto(toma, f / FPS)
             for L in video(fuente, ini, n, cx, cy, z, FOTO["k"]):
-                L.alpha_composite(SOMBRA); foto_grande(L, f / FPS); CAPA(L, f / FPS); yield L; f += 1
+                REG.clear(); L.alpha_composite(SOMBRA); foto_grande(L, f / FPS); CAPA(L, f / FPS); yield L; f += 1
 
 
 def prueba(ts, ruta):
@@ -399,7 +430,7 @@ def prueba(ts, ruta):
         ns = reparto(e); dentro = tq - INI[e]; k = 0
         while k < len(ns) - 1 and dentro >= ns[k] / FPS: dentro -= ns[k] / FPS; k += 1
         toma = TOMAS[e][k]; fuente, ini, _, cx, cy, z = toma[:6]; FOTO["k"] = None; usa_foto(toma, tq - dentro)
-        L = next(video(fuente, ini + dentro, 1, cx, cy, z, FOTO["k"])); L.alpha_composite(SOMBRA); foto_grande(L, tq); CAPA(L, tq)
+        L = next(video(fuente, ini + dentro, 1, cx, cy, z, FOTO["k"])); REG.clear(); L.alpha_composite(SOMBRA); foto_grande(L, tq); CAPA(L, tq)
         ims.append(L.convert("RGB").resize((270, 480)))
     c = Image.new("RGB", (270 * min(6, len(ims)), 480 * ((len(ims) + 5) // 6)))
     for j, im in enumerate(ims): c.paste(im, ((j % 6) * 270, (j // 6) * 480))
@@ -429,7 +460,33 @@ def portada():
     L.convert("RGB").save(os.path.join(AQUI, f"portada-{VAR}.jpg"), quality=92)
 
 
-if __name__ == "__main__" and ARGS[:1] == ["portada"]:
+def revisa():
+    """busca en todo el video cuadros donde dos cosas (textos, tarjetas, precios) se enciman"""
+    malos = []
+    for k in range(0, int(INI[-1] * FPS), 3):
+        t = k / FPS; e = next(i for i in range(len(T)) if t < INI[i + 1] or i == len(T) - 1)
+        ns = reparto(e); d = t - INI[e]; j = 0
+        while j < len(ns) - 1 and d >= ns[j] / FPS: d -= ns[j] / FPS; j += 1
+        FOTO["k"] = None; usa_foto(TOMAS[e][j], t - d)
+        L = Image.new("RGBA", (W, H)); REG.clear(); foto_grande(L, t); n0 = len(REG)
+        globals()["subtitulo"], real = (lambda *a, **k: None), subtitulo
+        CAPA(L, t); globals()["subtitulo"] = real
+        for a_ in range(len(REG)):
+            for b_ in range(a_ + 1, len(REG)):
+                r, q = REG[a_], REG[b_]
+                if not (r[2] < q[0] or q[2] < r[0] or r[3] < q[1] or q[3] < r[1]):
+                    ov = (min(r[2], q[2]) - max(r[0], q[0])) * (min(r[3], q[3]) - max(r[1], q[1]))
+                    if ov > 400: malos.append((round(t, 1), e, [int(v) for v in r], [int(v) for v in q]))
+    vistos = set()
+    for m in malos:
+        clave = (m[1], tuple(m[2][:2]), tuple(m[3][:2]))
+        if clave not in vistos: vistos.add(clave); print(m)
+    print("encimados:", len(malos))
+
+
+if __name__ == "__main__" and ARGS[:1] == ["revisa"]:
+    revisa()
+elif __name__ == "__main__" and ARGS[:1] == ["portada"]:
     portada()
 elif __name__ == "__main__" and ARGS[:1] == ["prueba"]:
     prueba([float(x) for x in ARGS[1:-1]], ARGS[-1])
@@ -450,3 +507,4 @@ elif __name__ == "__main__":
     subprocess.run(["ffmpeg", "-v", "error", "-y", *ins, "-filter_complex", ";".join(fil), "-map", "0:v", "-map", "[a]",
                     "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-ar", "48000", "-shortest", "-movflags", "+faststart", final], check=True)
     print("ok", final, f"{cnt / FPS:.1f}s")
+    print("subtítulo sin hueco en", len(SIN_LUGAR), "cuadros", SIN_LUGAR[:10])
