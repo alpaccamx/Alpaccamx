@@ -117,6 +117,24 @@
     return (s || "").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   }
 
+  /* Calle para la guía: las paqueterías rechazan calles largas o con el
+     número adentro ("fraccionamiento X, circuito Y #209"). Si no pusieron
+     número exterior, se saca de la calle; si la calle es larga y trae
+     comas, se queda la última parte (la calle de verdad). Máx. 35 letras. */
+  function calleParaGuia(calle, ext) {
+    let street = String(calle || "").replace(/\s+/g, " ").trim();
+    let num = String(ext || "").trim();
+    if (!num) {
+      const m = street.match(/(?:#|\bn[uú]m(?:ero)?\.?|\bno\.?)\s*(\d+[a-z]?)\b/i) || street.match(/\s(\d+[a-z]?)\s*$/i);
+      if (m) { num = m[1]; street = street.replace(m[0], " ").replace(/\s+/g, " ").replace(/[\s,]+$/, "").trim(); }
+    }
+    if (street.length > 35 && street.includes(",")) {
+      const partes = street.split(",").map((x) => x.trim()).filter(Boolean);
+      street = partes[partes.length - 1] || street;
+    }
+    return { street: street.slice(0, 35), exteriorNumber: num.slice(0, 10) || "S/N" };
+  }
+
   /* ---------- "Ordenar por" de cada sección (Por mandar, Dirección
      americana, Personal shopper, Preventa, Inventario). Lo que elige Mae se
      recuerda por sección en este celular. ---------- */
@@ -1169,8 +1187,7 @@
     const destination = {
       name: nameVal || "Cliente",
       phone: phoneDigits,
-      street: document.querySelector(`[data-guide-street="${orderId}"]`).value.trim(),
-      exteriorNumber: document.querySelector(`[data-guide-ext="${orderId}"]`).value.trim() || "S/N",
+      ...calleParaGuia(document.querySelector(`[data-guide-street="${orderId}"]`).value, document.querySelector(`[data-guide-ext="${orderId}"]`).value),
       neighborhood: document.querySelector(`[data-guide-neighborhood="${orderId}"]`).value.trim().slice(0, 25),
       city: document.querySelector(`[data-guide-city="${orderId}"]`).value.trim(),
       state: document.querySelector(`[data-guide-state="${orderId}"]`).value.trim(),
@@ -5717,7 +5734,7 @@ ${itemLines}
     const r = st.rates[st.selected];
     const destination = {
       name: g("nombre").slice(0, 30) || "Cliente", phone: g("telefono").replace(/[^0-9]/g, "").slice(-10),
-      street: g("calle"), exteriorNumber: g("ext") || "S/N", neighborhood: g("colonia").slice(0, 25), city: g("ciudad"), state: g("estado"),
+      ...calleParaGuia(g("calle"), g("ext")), neighborhood: g("colonia").slice(0, 25), city: g("ciudad"), state: g("estado"),
       zipCode: g("cp"), references: g("referencias").slice(0, 25) || "Sin referencias",
     };
     if (g("int")) destination.interiorNumber = g("int");
