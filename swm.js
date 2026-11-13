@@ -660,7 +660,7 @@ function swmEnvioCardHTML(e) {
     ${q ? `<div class="mt-2 text-sm space-y-0.5">${line(q.premioLealtad ? `Cruce a México <span class="text-[#2f8f5b] font-semibold">(${q.lealtadPct || 50}% por lealtad 🎁)</span>` : "Cruce a México", q.cruce)}${line("Consolidación", q.consolidacion)}${line("Paquete(s) sin registrar", q.sinRegistro)}${line("Servicios extra", q.extras)}${q.descuento ? `<div class="flex justify-between text-rose-ink"><span>Cupón ${escapeHtml(q.cupon)}</span><span class="tabular-nums">−${swmMXN(q.descuento)}</span></div>` : ""}${line("Envío nacional", q.envio)}
       <div class="flex justify-between font-semibold border-t border-ink/10 pt-1"><span>Total</span><span class="tabular-nums">${swmMXN(q.total)}</span></div></div>` : `<p class="mt-2 text-xs text-ink/70">Te mando la cotización del envío por correo y aquí mismo.</p>`}
     ${swmPagoHTML("envio", e)}
-    ${e.guia ? `<p class="mt-2 text-sm">🚚 ${escapeHtml(e.paqueteria || "Paquetería")}: <b>${escapeHtml(e.guia)}</b></p>` : ""}
+    ${e.guia && !["solicitado", "cotizado"].includes(e.status) ? `<p class="mt-2 text-sm">🚚 ${escapeHtml(e.paqueteria || "Paquetería")}: <b>${escapeHtml(e.guia)}</b></p>` : e.guiaLista ? `<p class="mt-2 rounded-xl bg-[#eef8f2] px-3 py-2 text-sm text-green-900">📦 Tu caja ya está lista. En cuanto se acredite tu pago, sale y te llega tu número de guía aquí y por correo.</p>` : ""}
     ${["solicitado", "cotizado"].includes(e.status) && (!e.pago || e.pago.status === "pendiente") ? `<button type="button" data-swm-cancel="envio:${escapeHtml(e.id)}" class="mt-2 text-xs text-ink/60 underline">Cancelar envío</button>` : ""}` });
 }
 
