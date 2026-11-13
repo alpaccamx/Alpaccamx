@@ -52,23 +52,26 @@ async function apiRequest(path, options) {
 }
 
 /* Caja fija de 2x2x2 cm -- solo el peso varía, lo captura el admin a mano. */
-function buildPackage(weight, description) {
+function buildPackage(weight, description, dims) {
+  const d = dims || {};
   return {
     type: "Box",
     description: (description || "Productos de skincare").slice(0, 25),
-    depth: 2,
-    width: 2,
-    height: 2,
+    depth: Number(d.largo) || 2,
+    width: Number(d.ancho) || 2,
+    height: Number(d.alto) || 2,
     weight,
   };
 }
 
-async function quoteRates({ weight, destinationZipCode }) {
-  const origin = getOrigin();
+/* originZipCode / dims: opcionales, para cotizar envíos que no salen de la
+   dirección de Mae (cotizador libre del admin). */
+async function quoteRates({ weight, destinationZipCode, originZipCode, dims }) {
+  const origin = originZipCode ? { zipCode: originZipCode } : getOrigin();
   return apiRequest("/rates", {
     method: "POST",
     body: JSON.stringify({
-      package: buildPackage(weight),
+      package: buildPackage(weight, null, dims),
       originZipCode: origin.zipCode,
       destinationZipCode,
     }),

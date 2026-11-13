@@ -7,6 +7,10 @@
 //
 // Body esperado (JSON): { orderId | envioId | apartadoId, weight, destinationZipCode? }
 // (envioId: un envío de Dirección americana; se usa su dirección.)
+//
+// Cotizador libre (envíos que no son de un pedido, ni salen de la dirección
+// de Mae): { libre: { origen: {cp, estado, ciudad, colonia},
+//   destino: {cp, estado, ciudad, colonia}, largo, ancho, alto }, weight }
 
 const { getApartado } = require("./lib/preventa-store.js");
 const { getOrder } = require("./lib/blob-store.js");
@@ -37,13 +41,30 @@ exports.handler = async (event) => {
   }
 
   const { orderId, envioId, apartadoId, weight } = body;
+  const libre = body.libre && typeof body.libre === "object" ? body.libre : null;
   const weightNum = Number(weight);
-  if ((!orderId && !envioId && !apartadoId) || !weightNum || weightNum <= 0) {
+  if ((!orderId && !envioId && !apartadoId && !libre) || !weightNum || weightNum <= 0) {
     return jsonResponse(400, { error: "Faltan el pedido o un peso válido." });
   }
 
   let c;
-  if (envioId) {
+  let origen = null;
+  let dims = null;
+  if (libre) {
+    const o = libre.origen || {};
+    const d = libre.destino || {};
+    const cp5 = (x) => String(x || "").replace(/\D/g, "");
+    if (cp5(o.cp).length !== 5 || cp5(d.cp).length !== 5) {
+      return jsonResponse(400, { error: "Faltan los códigos postales de origen y destino (5 dígitos)." });
+    }
+    const t = (x) => String(x || "").trim().slice(0, 80);
+    origen = { zip: cp5(o.cp), state: t(o.estado), city: t(o.ciudad), neighborhood: t(o.colonia) || t(o.ciudad) };
+    c = { cp: cp5(d.cp), estado: t(d.estado), municipio: t(d.ciudad), colonia: t(d.colonia) };
+    const n = (x) => Math.min(300, Math.max(0, Number(x) || 0));
+    if (n(libre.largo) && n(libre.ancho) && n(libre.alto)) {
+      dims = { largo: Math.ceil(n(libre.largo)), ancho: Math.ceil(n(libre.ancho)), alto: Math.ceil(n(libre.alto)) };
+    }
+  } else if (envioId) {
     const envio = await getRecord("envio", String(envioId));
     if (!envio) return jsonResponse(404, { error: "Envío no encontrado." });
     const d = envio.direccion || {};
@@ -70,8 +91,8 @@ exports.handler = async (event) => {
   };
 
   const [epResult, sdResult] = await Promise.allSettled([
-    quoteEnviosPerros({ weight: weightNum, destinationZipCode }),
-    quoteSkydropx({ weight: weightNum, destination }),
+    quoteEnviosPerros({ weight: weightNum, destinationZipCode, originZipCode: origen && origen.zip, dims }),
+    quoteSkydropx({ weight: weightNum, destination, origin: origen, dims }),
   ]);
 
   const rates = [];

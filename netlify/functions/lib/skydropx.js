@@ -90,8 +90,9 @@ async function apiRequest(path, options) {
   return body;
 }
 
-async function createQuotation({ weight, destination }) {
-  const origin = getOrigin();
+async function createQuotation({ weight, destination, origin: origen, dims }) {
+  const origin = origen || getOrigin();
+  const d = dims || {};
   return apiRequest("/api/v2/quotations", {
     method: "POST",
     body: JSON.stringify({
@@ -110,7 +111,7 @@ async function createQuotation({ weight, destination }) {
           area_level2: destination.city,
           area_level3: destination.neighborhood || destination.city,
         },
-        parcel: { weight, height: 2, width: 2, length: 2 },
+        parcel: { weight, height: Number(d.alto) || 2, width: Number(d.ancho) || 2, length: Number(d.largo) || 2 },
       },
     }),
   });
@@ -128,8 +129,8 @@ async function pollQuotation(id, { attempts = 6, delayMs = 1500 } = {}) {
   return data;
 }
 
-async function quoteRates({ weight, destination }) {
-  const created = await createQuotation({ weight, destination });
+async function quoteRates({ weight, destination, origin, dims }) {
+  const created = await createQuotation({ weight, destination, origin, dims });
   const final = await pollQuotation(created.id);
   return (final.rates || [])
     .filter((r) => r.success && r.total)
