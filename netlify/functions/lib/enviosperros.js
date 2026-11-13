@@ -78,8 +78,9 @@ async function quoteRates({ weight, destinationZipCode, originZipCode, dims }) {
   });
 }
 
-async function createLabel({ weight, courier, service, destination }) {
-  const origin = getOrigin();
+/* origin / dims: opcionales (guías que no salen de la dirección de Mae). */
+async function createLabel({ weight, courier, service, destination, origin: origen, dims, description }) {
+  const origin = origen || getOrigin();
   return apiRequest("/labels", {
     method: "POST",
     body: JSON.stringify({
@@ -87,9 +88,13 @@ async function createLabel({ weight, courier, service, destination }) {
       service,
       origin,
       destination,
-      package: buildPackage(weight),
+      package: buildPackage(weight, description, dims),
     }),
   });
 }
 
-module.exports = { quoteRates, createLabel };
+function defaultOrigin() {
+  return getOrigin();
+}
+
+module.exports = { quoteRates, createLabel, defaultOrigin };
