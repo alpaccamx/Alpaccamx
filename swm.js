@@ -428,6 +428,8 @@ const SWM_STEPS = {
   paquete: [{ registrado: 0, recibido: 1, en_envio: 1, en_mexico: 2, enviado: 3, entregado: 4 }, ["Registrado", "En almacén", "En México", "Enviado", "Entregado"]],
   compra: [{ solicitud: 0, cotizado: 1, pagado: 2, comprado: 3 }, ["Cotizando", "Por pagar", "Pagada", "Comprada"]],
   envio: [{ solicitado: 0, cotizado: 1, pagado: 2, en_mexico: 3, enviado: 4, entregado: 5 }, ["Cotizando", "Por pagar", "Pagado", "En México", "En camino", "Entregado"]],
+  // Lo normal ahora: sus paquetes ya cruzaron a México y luego se cotiza y se paga el envío a su casa.
+  envioMx: [{ solicitado: 1, cotizado: 2, pagado: 3, en_mexico: 3, enviado: 4, entregado: 5 }, ["En México", "Cotizando", "Por pagar", "Pagado", "En camino", "Entregado"]],
 };
 function swmStepsHTML(kind, status) {
   const [idxMap, labels] = SWM_STEPS[kind];
@@ -653,7 +655,7 @@ function swmEnvioCardHTML(e) {
     ...(e.entrega === "personal" ? { pagado: "Te contacto para acordar la entrega", en_mexico: "Ya está en México: te contacto para acordar la entrega" } : {}), entregado: "¡Entregado! 💗", cancelado: "Cancelado" });
   return swmCardHTML({ key: `envio:${e.id}`, id: `swm-envio-${e.id}`, folio: e.folio, pill: swmPill(SWM_ENVIO_STATUS, e.status),
     sub: `${swmDate(e.createdAt)} · ${pk.length} paquete${pk.length === 1 ? "" : "s"}`, siguiente: escapeHtml(siguiente), accion, body: `
-    ${swmStepsHTML("envio", e.status)}
+    ${swmStepsHTML(pk.length && pk.every((p) => p.enMexicoAt) ? "envioMx" : "envio", e.status)}
     <p class="text-xs text-ink/65 mt-2">${swmDate(e.createdAt)} · ${pk.length} paquete${pk.length === 1 ? "" : "s"}: ${escapeHtml(pk.map((p) => p.folio).join(", "))}${e.consolidar ? " · en una sola caja" : ""}</p>
     <p class="text-xs text-ink/65">${e.entrega === "personal" ? `📍 Entrega personal en Ciudad Juárez · ${escapeHtml(d.nombre || "")}` : `A: ${escapeHtml([d.nombre, d.ciudad, d.cp].filter(Boolean).join(" · "))}`}</p>
     ${e.notaClienta ? `<p class="mt-2 rounded-xl bg-blush/25 px-3 py-2 text-sm">💬 ${escapeHtml(e.notaClienta)}</p>` : ""}
