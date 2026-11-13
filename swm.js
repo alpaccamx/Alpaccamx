@@ -1117,7 +1117,7 @@ function swmFormHTML() {
         ${swmInput("swm-d-referencias", "Referencias (opcional)", `maxlength="200" value="${dv("referencias")}"`)}
       </div>
       </div>
-      <p data-swm-entrega-nota-envio class="${personalPorDefecto ? "hidden " : ""}text-xs text-ink/65">Te mando aquí la cotización: el cruce a México${disp.length > 1 ? ", juntar en una caja (si lo elegiste)" : ""} y la guía a tu casa (Estafeta desde $250). La pagas aquí mismo.</p>
+      <p data-swm-entrega-nota-envio class="${personalPorDefecto ? "hidden " : ""}text-xs text-ink/65">Te mando aquí la cotización: el cruce a México${disp.length > 1 ? ", juntar en una caja (si lo elegiste)" : ""} y la guía a tu casa (Estafeta desde $260). La pagas aquí mismo.</p>
       <p data-swm-entrega-nota-personal class="${personalPorDefecto ? "" : "hidden "}text-xs text-ink/65">Te mando aquí la cotización: solo el cruce a México${disp.length > 1 ? " y juntar en una caja (si lo elegiste)" : ""}, sin costo de envío. La pagas aquí mismo.</p>`, "Pedir cotización de envío");
   }
   return "";
