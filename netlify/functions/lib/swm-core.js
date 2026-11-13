@@ -445,6 +445,12 @@ function publico(r) {
   delete out.history;
   delete out.capturas;
   if (out.pago) out.pago = { ...out.pago, paymentId: undefined };
+  // Envío con la guía ya hecha pero todavía sin pagar: la guía no se le
+  // muestra hasta que pague (aplicarPago la manda sola al acreditarse).
+  if (Array.isArray(out.paqueteIds) && out.guia && ["solicitado", "cotizado"].includes(out.status)) {
+    delete out.guia; delete out.paqueteria; delete out.guiaAt;
+    out.guiaLista = true;
+  }
   return out;
 }
 
