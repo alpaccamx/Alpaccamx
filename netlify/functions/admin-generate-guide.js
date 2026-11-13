@@ -192,7 +192,12 @@ exports.handler = async (event) => {
     const b = err.body;
     const detail = b && (typeof b === "string" ? b : b.message || b.error || b.errors || b);
     const texto = typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : err.message;
-    return jsonResponse(502, { error: `No se pudo generar la guía${err.status ? ` (HTTP ${err.status})` : ""}: ${String(texto || "").slice(0, 400)}` });
+    // Envíos Perros contesta "No fue posible procesar la orden" sin decir qué
+    // dato le molestó; casi siempre es la dirección.
+    const pista = provider === "enviosperros" && /procesar la orden/i.test(String(texto || ""))
+      ? " Casi siempre es la dirección: deja la calle corta (sin colonia ni fraccionamiento), pon el número en \"Núm. exterior\" y referencias cortas. Si sigue igual, elige una opción de Skydropx."
+      : "";
+    return jsonResponse(502, { error: `No se pudo generar la guía${err.status ? ` (HTTP ${err.status})` : ""}: ${String(texto || "").slice(0, 400)}${pista}` });
   }
 };
 
