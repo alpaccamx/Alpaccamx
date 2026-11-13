@@ -5969,6 +5969,7 @@ ${itemLines}
         <h4><span>📦 Caja ${escapeHtml(e.folio)}</span><button type="button" class="btn-secondary" data-pm-cancelar style="padding:4px 10px;font-size:12px;">Cerrar</button></h4>
         <div class="meta">${c.paqueteIds.length} paquete${c.paqueteIds.length === 1 ? "" : "s"}${c.orderIds.length ? ` + ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"}` : ""}${(c.apartadoIds || []).length ? ` + ${c.apartadoIds.length} del Sephora Sale` : ""}. A ella le llega el cobro del envío; cuando pague, sale su guía${c.orderIds.length || (c.apartadoIds || []).length ? " y lo demás se marca enviado" : ""}.</div>${nota}
         <button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist para armar la caja</button>
+        <div style="background:#fff7e8;border:1px solid #f3dca8;border-radius:10px;padding:8px 10px;margin:8px 0;font-size:13px;">📦📦 <b>¿No cabe todo en una caja?</b> Pon aquí solo el <b>peso de la caja 1</b> y haz su guía. Luego te sale el botón <b>“Guía de otra caja”</b> para la caja 2.</div>
         ${swmGuiaForm({ ...e, kgExtra: c.kgOrdenes }, true)}</div>`;
     }
     const nCaja = c.orderIds.length + (c.apartadoIds || []).length;
@@ -6061,7 +6062,7 @@ ${itemLines}
     document.getElementById("swm-empty").style.display = "none";
     const aviso = pmAviso ? `<div style="background:#eaf8f0;border:1px solid #bfe6cf;border-radius:14px;padding:12px;margin:10px 0;">
       <div style="font-weight:700;">${pmAviso.html}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${pmAviso.tel ? `<a class="btn-primary" style="text-decoration:none;padding:8px 14px;" target="_blank" rel="noopener" href="${escapeHtml(`${waLinkFromPhone(pmAviso.tel)}?text=${encodeURIComponent(pmAviso.texto)}`)}">💬 Avisarle por WhatsApp</a>` : ""}<button type="button" class="btn-secondary" data-pm-aviso-cerrar>Cerrar</button></div></div>` : "";
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${pmAviso.tel ? `<a class="btn-primary" style="text-decoration:none;padding:8px 14px;" target="_blank" rel="noopener" href="${escapeHtml(`${waLinkFromPhone(pmAviso.tel)}?text=${encodeURIComponent(pmAviso.texto)}`)}">💬 Avisarle por WhatsApp</a>` : ""}${pmAviso.folio ? `<button type="button" class="btn-secondary" data-global-go="swm" data-global-q="${escapeHtml(pmAviso.folio)}">📦➕ ¿No cupo todo? Guía de otra caja</button>` : ""}<button type="button" class="btn-secondary" data-pm-aviso-cerrar>Cerrar</button></div></div>` : "";
     document.getElementById("swm-list").innerHTML = aviso
       + (lista.map(pmCardHTML).join("") || `<p style="color:#5f5866;font-size:14px;">${q ? `No encontré nada con "${escapeHtml(q)}".` : vacio}</p>`);
   }
@@ -6078,7 +6079,7 @@ ${itemLines}
         texto: `Hola${c.nombre ? ` ${String(c.nombre).split(/\s+/)[0]}` : ""} 💕 ¡Ya salió tu caja! 📦 Paquetería: ${o.carrier || ""} · Guía: ${o.trackingNumber || ""}. Incluye todos tus pedidos. Cualquier cosa aquí estoy 🌸` };
     } else {
       const e = data.envio || {};
-      pmAviso = { nombre: c.nombre, tel: c.tel, html: `✅ Caja ${escapeHtml(e.folio || "")} de ${escapeHtml(c.nombre || "la clienta")} lista. ${data.guiaAnticipada ? `Ya le llegó el cobro del envío (${formatPrice(e.cotizacion ? e.cotizacion.total : 0)}); cuando pague, sale su guía${c.orderIds.length ? " y sus pedidos se marcan enviados" : ""}.` : "Ya salió con su guía."}`,
+      pmAviso = { nombre: c.nombre, tel: c.tel, folio: e.folio || "", html: `✅ Caja ${escapeHtml(e.folio || "")} de ${escapeHtml(c.nombre || "la clienta")} lista. ${data.guiaAnticipada ? `Ya le llegó el cobro del envío (${formatPrice(e.cotizacion ? e.cotizacion.total : 0)}); cuando pague, sale su guía${c.orderIds.length ? " y sus pedidos se marcan enviados" : ""}.` : "Ya salió con su guía."}`,
         texto: `Hola${c.nombre ? ` ${String(c.nombre).split(/\s+/)[0]}` : ""} 💕 Ya preparé tu caja ${e.folio || ""} 📦. Te mandé el cobro del envío; entra aquí para pagarlo y en cuanto pague te llega tu guía: ${location.origin}/?ver=direccion-americana` };
     }
     pmCaja = null;
