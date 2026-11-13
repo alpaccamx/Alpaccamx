@@ -138,7 +138,7 @@ exports.handler = async (event) => {
         e.history = [...(e.history || []), { at, status: e.status, guiaExtra: trackingNumber, guiaGenerada: provider }];
         return e;
       });
-      if (!envioPagado && rec.status === "cotizado") {
+      if (!envioPagado && rec.status === "cotizado" && cobro > 0) {
         const q = rec.cotizacion || {};
         const r = await cotizarEnvio(String(envioId), {
           envio: Math.round(((Number(q.envio) || 0) + cobro) * 100) / 100,

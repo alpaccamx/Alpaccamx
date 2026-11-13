@@ -5700,29 +5700,48 @@ ${itemLines}
     }
     const weight = parseFloat(g("peso"));
     if (!(weight > 0)) { errEl.textContent = "Escribe el peso de la caja."; return; }
+    // Varias cajas en un solo paso: un peso por caja, la misma paquetería para todas.
+    const nCajas = kindKey === "envioId" && !t.closest("[data-caja-extra]") ? (Number(g("cajas")) || 1) : 1;
+    const pesos = [weight];
+    for (let k = 2; k <= nCajas; k++) { const w = parseFloat(g(`peso${k}`)); if (!(w > 0)) { errEl.textContent = `Escribe el peso de la caja ${k}.`; return; } pesos.push(w); }
     if (!/^\d{5}$/.test(g("cp"))) { errEl.textContent = "Revisa el código postal."; return; }
     if (t.closest("[data-guia-cotizar]")) {
       genBtn.disabled = true; swmGuiaState[id] = null;
-      ratesEl.textContent = "Cotizando en Envíos Perros y Skydropx...";
+      ratesEl.textContent = nCajas > 1 ? `Cotizando ${nCajas} cajas en Envíos Perros y Skydropx...` : "Cotizando en Envíos Perros y Skydropx...";
       try {
-        const res = await fetch("/.netlify/functions/admin-shipping-rates", {
-          method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-          body: JSON.stringify({ [kindKey]: id, weight, destinationZipCode: g("cp"), destinationState: g("estado"), destinationCity: g("ciudad"), destinationNeighborhood: g("colonia") }),
-        });
-        const data = await res.json();
-        if (!res.ok || !(data.rates || []).length) { ratesEl.textContent = ""; errEl.textContent = data.error || "No hay opciones de envío para esos datos."; return; }
-        swmGuiaState[id] = { rates: data.rates, selected: null, tabla: data.tabla != null ? Number(data.tabla) : null };
+        const cotiza = async (w) => {
+          const res = await fetch("/.netlify/functions/admin-shipping-rates", {
+            method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+            body: JSON.stringify({ [kindKey]: id, weight: w, destinationZipCode: g("cp"), destinationState: g("estado"), destinationCity: g("ciudad"), destinationNeighborhood: g("colonia") }),
+          });
+          const d = await res.json();
+          if (!res.ok || !(d.rates || []).length) throw new Error(d.error || "No hay opciones de envío para esos datos.");
+          return d;
+        };
+        let porCaja;
+        try { porCaja = await Promise.all(pesos.map(cotiza)); } catch (err) { ratesEl.textContent = ""; errEl.textContent = err.message; return; }
+        // La misma paquetería y servicio en todas las cajas; el precio es la suma.
+        const llave = (r) => [r.provider, r.carrier || r.carrierSlug || "", r.service || r.serviceCode || ""].join("|");
+        const rates = porCaja[0].rates.map((r) => {
+          const partes = porCaja.map((d) => d.rates.find((x) => llave(x) === llave(r)));
+          if (partes.some((x) => !x)) return null;
+          return nCajas > 1 ? { ...r, total: Math.round(partes.reduce((s2, x) => s2 + (Number(x.total) || 0), 0) * 100) / 100, partes } : { ...r, partes };
+        }).filter(Boolean);
+        if (!rates.length) { ratesEl.textContent = ""; errEl.textContent = "No hay una paquetería que sirva para todas las cajas."; return; }
+        const tablas = porCaja.map((d) => (d.tabla != null ? Number(d.tabla) : null));
+        const data = { rates, tabla: tablas.every((x) => x != null) ? tablas.reduce((a, b) => a + b, 0) : null };
+        swmGuiaState[id] = { rates, selected: null, tabla: data.tabla, pesos };
         const nota = card.querySelector("[data-guia-tabla]");
         if (kindKey !== "envioId") {
           if (nota) nota.innerHTML = "🧾 Su envío ya lo pagó en sus pedidos: la paquetería que elijas es lo que te cuesta a ti la guía.";
         } else {
           const yaPagado = Number((card.dataset.pmPagado)) || 0;
           const sugerido = data.tabla != null && yaPagado > 0 ? Math.max(0, Math.round(Number(data.tabla) - yaPagado)) : "";
-        if (nota) nota.innerHTML = `${data.tabla != null ? `🧾 Envío según tu tabla (${weight} kg a CP ${escapeHtml(g("cp"))}): <b>${formatPrice(data.tabla)}</b>. La paquetería que elijas es lo que te cuesta a ti la guía.` : "⚠️ Su código postal no está en tu tabla (o pesa más de 30 kg): se le cobra lo que cueste la paquetería que elijas <b>+ $100</b>. Ella solo ve el total del envío, sin desglose."}
+        if (nota) nota.innerHTML = `${data.tabla != null ? `🧾 Envío según tu tabla (${nCajas > 1 ? `${nCajas} cajas: ${pesos.join(" + ")} kg` : `${weight} kg`} a CP ${escapeHtml(g("cp"))}): <b>${formatPrice(data.tabla)}</b>. La paquetería que elijas es lo que te cuesta a ti la guía.` : "⚠️ Su código postal no está en tu tabla (o pesa más de 30 kg): se le cobra lo que cueste la paquetería que elijas <b>+ $100</b>. Ella solo ve el total del envío, sin desglose."}
           <label style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-weight:600;">💲 Cóbrale de envío <input data-g="cobrar" type="number" min="0" step="1" value="${sugerido}" placeholder="${data.tabla != null ? Math.round(data.tabla) : "tabla"}" style="width:110px;padding:6px 8px;"> <span style="font-weight:400;color:#6b6370;">(${yaPagado > 0 && data.tabla != null ? `tabla ${formatPrice(data.tabla)} − ${formatPrice(yaPagado)} que ya pagó en sus pedidos` : `vacío = ${data.tabla != null ? "lo de tu tabla" : "paquetería + $100"}`})</span></label>`;
         }
         const badge = { enviosperros: "📦 Envíos Perros", skydropx: "🛵 Skydropx" };
-        ratesEl.innerHTML = zonaExtAviso(data.rates) + data.rates.map((r, i) => `<label class="rate-option" data-guia-rate="${i}"><input type="radio" name="guia-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""}${zonaExtTag(r)} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}</span></label>`).join("");
+        ratesEl.innerHTML = zonaExtAviso(data.rates) + data.rates.map((r, i) => `<label class="rate-option" data-guia-rate="${i}"><input type="radio" name="guia-${escapeHtml(id)}"> ${i === 0 ? "🏆 " : ""}${escapeHtml(r.label || "")}${r.days ? " · " + escapeHtml(r.days) : ""}${zonaExtTag(r)} <span style="font-size:13px;color:#6b6370;">(${badge[r.provider] || r.provider})</span> <span class="price">${formatPrice(r.total)}${nCajas > 1 ? ` <span style="font-size:12px;font-weight:400;">(${nCajas} guías)</span>` : ""}</span></label>`).join("");
       } catch (err) { ratesEl.textContent = ""; errEl.textContent = "No se pudo conectar con el servidor."; }
       return;
     }
@@ -5739,6 +5758,40 @@ ${itemLines}
     };
     if (g("int")) destination.interiorNumber = g("int");
     genBtn.disabled = true; const label = genBtn.textContent; genBtn.textContent = "Generando guía...";
+    const pesosCajas = st.pesos || [weight];
+    if (kindKey === "envioId" && pesosCajas.length > 1 && !t.closest("[data-caja-extra]")) {
+      // Varias cajas: la 1a lleva el cobro de todas; las demás se agregan al mismo envío.
+      const partes = r.partes || [r];
+      const aMano = g("cobrar");
+      const cobroTotal = aMano !== "" ? Number(aMano) : st.tabla != null ? st.tabla : Math.ceil(r.total) + 100;
+      const llamar = async (k, extra) => {
+        const p = partes[k];
+        const res = await fetch("/.netlify/functions/admin-generate-guide", {
+          method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ envioId: id, cajaExtra: extra, weight: pesosCajas[k], total: p.total, cobrarEnvio: extra ? 0 : cobroTotal, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: p.provider, courier: p.carrier, service: p.service, quotationId: p.quotationId, rateId: p.rateId, carrierSlug: p.carrierSlug, serviceCode: p.serviceCode, destination }),
+        });
+        const d = await res.json();
+        if (!res.ok || d.error) throw new Error(`${k ? `La caja ${k + 1}` : "La caja 1"}: ${d.error || "no se pudo generar la guía."}`);
+        return d;
+      };
+      const hechas = []; let primera = null;
+      try {
+        for (let k = 0; k < pesosCajas.length; k++) {
+          genBtn.textContent = `Generando guía de la caja ${k + 1} de ${pesosCajas.length}...`;
+          const d = await llamar(k, k > 0);
+          if (!k) primera = d;
+          hechas.push(k ? d.guia : d.envio.guia);
+        }
+        showToast(`✅ ${hechas.length} guías listas (${hechas.join(", ")}) y cobro enviado (${formatPrice(cobroTotal + (Number((card.querySelector("[data-cobro-base]") || {}).dataset?.cobroBase) || 0))}). Cuando pague, le llegan sus guías.`);
+        if (card.dataset.pmKey) pmTerminar(card, primera);
+      } catch (err) {
+        if (hechas.length) alert(`Ya quedaron ${hechas.length} guía(s): ${hechas.join(", ")}.\n${err.message}\nHaz la que falta con “No cupo todo: hacer guía de otra caja” en su envío.`);
+        else { errEl.textContent = err.message; genBtn.disabled = false; genBtn.textContent = label; return; }
+        if (card.dataset.pmKey && primera) pmTerminar(card, primera);
+      }
+      await loadSwm({ quiet: true });
+      return;
+    }
     try {
       const res = await fetch("/.netlify/functions/admin-generate-guide", {
         method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
@@ -5969,7 +6022,6 @@ ${itemLines}
         <h4><span>📦 Caja ${escapeHtml(e.folio)}</span><button type="button" class="btn-secondary" data-pm-cancelar style="padding:4px 10px;font-size:12px;">Cerrar</button></h4>
         <div class="meta">${c.paqueteIds.length} paquete${c.paqueteIds.length === 1 ? "" : "s"}${c.orderIds.length ? ` + ${c.orderIds.length} pedido${c.orderIds.length === 1 ? "" : "s"}` : ""}${(c.apartadoIds || []).length ? ` + ${c.apartadoIds.length} del Sephora Sale` : ""}. A ella le llega el cobro del envío; cuando pague, sale su guía${c.orderIds.length || (c.apartadoIds || []).length ? " y lo demás se marca enviado" : ""}.</div>${nota}
         <button type="button" class="btn-primary" data-pm-checklist style="padding:6px 12px;font-size:13px;margin:6px 0;">✅ Checklist para armar la caja</button>
-        <div style="background:#fff7e8;border:1px solid #f3dca8;border-radius:10px;padding:8px 10px;margin:8px 0;font-size:13px;">📦📦 <b>¿No cabe todo en una caja?</b> Pon aquí solo el <b>peso de la caja 1</b> y haz su guía. Luego te sale el botón <b>“Guía de otra caja”</b> para la caja 2.</div>
         ${swmGuiaForm({ ...e, kgExtra: c.kgOrdenes }, true)}</div>`;
     }
     const nCaja = c.orderIds.length + (c.apartadoIds || []).length;
@@ -6062,7 +6114,7 @@ ${itemLines}
     document.getElementById("swm-empty").style.display = "none";
     const aviso = pmAviso ? `<div style="background:#eaf8f0;border:1px solid #bfe6cf;border-radius:14px;padding:12px;margin:10px 0;">
       <div style="font-weight:700;">${pmAviso.html}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${pmAviso.tel ? `<a class="btn-primary" style="text-decoration:none;padding:8px 14px;" target="_blank" rel="noopener" href="${escapeHtml(`${waLinkFromPhone(pmAviso.tel)}?text=${encodeURIComponent(pmAviso.texto)}`)}">💬 Avisarle por WhatsApp</a>` : ""}${pmAviso.folio ? `<button type="button" class="btn-secondary" data-global-go="swm" data-global-q="${escapeHtml(pmAviso.folio)}">📦➕ ¿No cupo todo? Guía de otra caja</button>` : ""}<button type="button" class="btn-secondary" data-pm-aviso-cerrar>Cerrar</button></div></div>` : "";
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${pmAviso.tel ? `<a class="btn-primary" style="text-decoration:none;padding:8px 14px;" target="_blank" rel="noopener" href="${escapeHtml(`${waLinkFromPhone(pmAviso.tel)}?text=${encodeURIComponent(pmAviso.texto)}`)}">💬 Avisarle por WhatsApp</a>` : ""}<button type="button" class="btn-secondary" data-pm-aviso-cerrar>Cerrar</button></div></div>` : "";
     document.getElementById("swm-list").innerHTML = aviso
       + (lista.map(pmCardHTML).join("") || `<p style="color:#5f5866;font-size:14px;">${q ? `No encontré nada con "${escapeHtml(q)}".` : vacio}</p>`);
   }
@@ -6918,9 +6970,13 @@ ${itemLines}
       const s = e.sugerido || {};
       const base = (s.cruce || 0) + (s.consolidacion || 0) + (s.sinRegistro || 0) + (s.extras || 0);
       const libres = swmLealtadLibres(e.email);
+      const extraCaja = cobrar === true && !!e.guia; // "Guía de otra caja": siempre de una en una
       return `<div data-cobro-base="${base}" data-cruce="${s.cruce || 0}" style="margin-top:10px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
-          <label style="max-width:150px;">Peso de la caja (kg)<input data-g="peso" type="text" inputmode="decimal" value="${kg}"></label>
+          ${extraCaja ? "" : `<label style="max-width:120px;">¿Cuántas cajas?<select data-g="cajas" style="padding:9px 10px;border-radius:8px;border:1px solid #ddd;font-size:14px;"><option value="1">1 caja</option><option value="2">2 cajas</option><option value="3">3 cajas</option></select></label>`}
+          <label style="max-width:150px;"><span data-peso-label>Peso de la caja (kg)</span><input data-g="peso" type="text" inputmode="decimal" value="${kg}"></label>
+          <label data-peso-n="2" style="max-width:150px;display:none;">Peso caja 2 (kg)<input data-g="peso2" type="text" inputmode="decimal"></label>
+          <label data-peso-n="3" style="max-width:150px;display:none;">Peso caja 3 (kg)<input data-g="peso3" type="text" inputmode="decimal"></label>
           <button type="button" class="btn-secondary" data-guia-cotizar style="padding:8px 14px;">1️⃣ Ver precios de envío</button>
         </div>
         <div class="meta" data-guia-tabla style="margin-top:6px;"></div>
@@ -7043,6 +7099,13 @@ ${itemLines}
     const total = (Number(cobro.dataset.cobroBase) || 0) - (lealtad && lealtad.checked ? cruce / 2 : 0) + envioCobro;
     genBtn.textContent = `2️⃣ Hacer guía y cobrarle ${formatPrice(total)}`;
   }
+  document.getElementById("swm-panel").addEventListener("change", (e) => {
+    if (!e.target.matches('[data-g="cajas"]')) return;
+    const box = e.target.closest("[data-cobro-base]"); const n = Number(e.target.value) || 1;
+    box.querySelectorAll("[data-peso-n]").forEach((l) => { l.style.display = Number(l.dataset.pesoN) <= n ? "" : "none"; });
+    const lab = box.querySelector("[data-peso-label]"); if (lab) lab.textContent = n > 1 ? "Peso caja 1 (kg)" : "Peso de la caja (kg)";
+    const card = e.target.closest("[data-swm-id]"); if (card) { swmGuiaState[card.dataset.swmId] = null; const r = card.querySelector("[data-guia-rates]"); if (r) r.innerHTML = ""; const gb = card.querySelector("[data-guia-generar]"); if (gb) gb.disabled = true; }
+  });
   document.getElementById("swm-panel").addEventListener("input", (e) => {
     if (!e.target.matches('[data-g="cobrar"], [data-g-lealtad]')) return;
     const card = e.target.closest("[data-swm-id]");
