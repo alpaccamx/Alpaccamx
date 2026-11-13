@@ -66,9 +66,14 @@ exports.handler = async (event) => {
   if (envioId) {
     const envio = await getRecord("envio", String(envioId));
     if (!envio) return jsonResponse(404, { error: "Envío no encontrado." });
-    if (!["solicitado", "cotizado", "pagado", "en_mexico"].includes(envio.status)) return jsonResponse(409, { error: "Ese envío ya se mandó o está cancelado." });
-    if (envio.guia) return jsonResponse(409, { error: `Ese envío ya tiene guía (${envio.guia}).` });
-    envioPagado = ["pagado", "en_mexico"].includes(envio.status);
+    if (!["solicitado", "cotizado", "pagado", "en_mexico", ...(body.cajaExtra ? ["enviado"] : [])].includes(envio.status)) return jsonResponse(409, { error: "Ese envío ya se mandó o está cancelado." });
+    if (body.cajaExtra) {
+      // Otra caja del mismo envío (no cupo todo en una): necesita la guía de la primera.
+      if (!envio.guia) return jsonResponse(409, { error: "Primero haz la guía de la primera caja." });
+      if (envio.pago && envio.pago.status === "revision") return jsonResponse(409, { error: "Ya subió su comprobante: apruébalo o recházalo antes de agregar otra caja." });
+    } else if (envio.guia) return jsonResponse(409, { error: `Ese envío ya tiene guía (${envio.guia}). Si no cupo todo, usa "Guía de otra caja".` });
+    if (body.cajaExtra && !["cotizado", "pagado", "en_mexico", "enviado"].includes(envio.status)) return jsonResponse(409, { error: "Ese envío ya se entregó o está cancelado." });
+    envioPagado = ["pagado", "en_mexico", "enviado"].includes(envio.status);
   } else if (orderId) {
     const existing = await getOrder(orderId);
     if (!existing) return jsonResponse(404, { error: "Pedido no encontrado." });
@@ -118,6 +123,36 @@ exports.handler = async (event) => {
       carrierLabel = `${carrierSlug || "Skydropx"} ${serviceCode || ""}`.trim();
     } else {
       return jsonResponse(400, { error: "Paquetería no reconocida." });
+    }
+
+    // Otra caja del mismo envío: se guarda su guía junto a la primera. Si
+    // todavía no paga, su envío se suma al cobro (se vuelve a cotizar con los
+    // mismos montos de cruce); si ya pagó y ya salió, se le avisa.
+    if (envioId && body.cajaExtra) {
+      const at = new Date().toISOString();
+      const tabla = await envioEstimado(destination.zipCode, weightNum);
+      const aMano = body.cobrarEnvio != null && body.cobrarEnvio !== "" && Number(body.cobrarEnvio) >= 0 ? Math.round(Number(body.cobrarEnvio) * 100) / 100 : null;
+      const cobro = envioPagado ? 0 : (aMano != null ? aMano : tabla != null ? tabla : (Number(body.total) > 0 ? Math.ceil(Number(body.total)) + FUERA_TABLA_EXTRA : 0));
+      const rec = await mutateRecord("envio", String(envioId), (e) => {
+        e.guiasExtra = [...(e.guiasExtra || []), { guia: trackingNumber, paqueteria: carrierLabel, kg: weightNum, cobro, at }];
+        e.history = [...(e.history || []), { at, status: e.status, guiaExtra: trackingNumber, guiaGenerada: provider }];
+        return e;
+      });
+      if (!envioPagado && rec.status === "cotizado") {
+        const q = rec.cotizacion || {};
+        const r = await cotizarEnvio(String(envioId), {
+          envio: Math.round(((Number(q.envio) || 0) + cobro) * 100) / 100,
+          cruce: q.premioLealtad ? q.cruceSinDescuento : q.cruce, consolidacion: q.consolidacion, sinRegistro: q.sinRegistro, extras: q.extras,
+          premioLealtad: !!rec.premioLealtad,
+        });
+        if (r.error) return jsonResponse(200, { cajaExtra: true, error: `La guía ${trackingNumber} quedó lista, pero no se pudo sumar al cobro: ${r.error}` });
+        return jsonResponse(200, { envio: r.envio, cajaExtra: true, guia: trackingNumber, cobro });
+      }
+      if (rec.status === "enviado") {
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+        await avisar(rec, `tu envío ${rec.folio}: va en ${1 + rec.guiasExtra.length} cajas 📦`, `<h2 style="margin:0 0 8px;font-size:20px;">Tu envío va en ${1 + rec.guiasExtra.length} cajas</h2><p style="font-size:14px;">No cupo todo en una, así que te llega en varias:<br>Caja 1 · ${esc(rec.paqueteria)}: <b>${esc(rec.guia)}</b>${rec.guiasExtra.map((x, i) => `<br>Caja ${i + 2} · ${esc(x.paqueteria)}: <b>${esc(x.guia)}</b>`).join("")}</p>`);
+      }
+      return jsonResponse(200, { envio: rec, cajaExtra: true, guia: trackingNumber, cobro: 0 });
     }
 
     // Envío de Dirección americana todavía sin pagar: se guarda la guía y se

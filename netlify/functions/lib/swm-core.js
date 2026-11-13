@@ -263,7 +263,10 @@ async function despacharConGuia(rec) {
     p.status = "enviado"; p.history = [...(p.history || []), { at, status: "enviado" }]; return p;
   })));
   await marcarOrdenesDeCaja(out);
-  await avisar(out, `tu envío ${out.folio} va en camino 🚚`, `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${escHTML(out.paqueteria)}</b><br>Guía: <b>${escHTML(out.guia)}</b></p>`);
+  const extra = out.guiasExtra || [];
+  await avisar(out, `tu envío ${out.folio} va en camino 🚚`, extra.length
+    ? `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Va en ${1 + extra.length} cajas:<br>Caja 1 · ${escHTML(out.paqueteria)}: <b>${escHTML(out.guia)}</b>${extra.map((x, i) => `<br>Caja ${i + 2} · ${escHTML(x.paqueteria)}: <b>${escHTML(x.guia)}</b>`).join("")}</p>`
+    : `<h2 style="margin:0 0 8px;font-size:20px;">¡Tu envío va en camino!</h2><p style="font-size:14px;">Paquetería: <b>${escHTML(out.paqueteria)}</b><br>Guía: <b>${escHTML(out.guia)}</b></p>`);
   return out;
 }
 
@@ -449,6 +452,8 @@ function publico(r) {
   // muestra hasta que pague (aplicarPago la manda sola al acreditarse).
   if (Array.isArray(out.paqueteIds) && out.guia && ["solicitado", "cotizado"].includes(out.status)) {
     delete out.guia; delete out.paqueteria; delete out.guiaAt;
+    if (out.guiasExtra && out.guiasExtra.length) out.cajas = 1 + out.guiasExtra.length;
+    delete out.guiasExtra;
     out.guiaLista = true;
   }
   return out;
