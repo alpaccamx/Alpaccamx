@@ -76,16 +76,16 @@ TOMAS = {
              [("189", 6.5, 4.0, 0.55, 0.74, 1.25), ("189", 40.5, None, *A, "spa")],
              [("189", 20.5, None, *P)], [("189", 36.3, None, 0.5, 0.8, 1.2)], [("189", 63.8, None, *P)],
              [("189", 6.5, 3.8, 0.55, 0.74, 1.25), ("189", 42.0, None, *A, "spa-q")], [("189", 157.0, 4.5, *A), ("5861", 0.5, None, *A)],
-             [("189", 164.0, 5.3, *A, "wa"), ("189", 88.0, None, *A, "wa")]],
+             [("189", 164.0, 5.3, *A), ("189", 88.0, None, *A)]],
     "daise": [[("5861", 2.5, None, *A)], [("189", 105.5, 2.5, *P), ("189", 112.5, None, *P)], [("189", 112.0, None, *P)],
               [("189", 103.5, 6.0, *P), ("5861", 0.0, None, *A)], [("189", 77.0, None, 0.5, 0.72, 1.2)],
               [("189", 113.0, 4.5, *P), ("5861", 3.5, None, *A)], [("5861", 5.8, 3.2, *A), ("189", 106.0, None, *P)],
-              [("5861", 2.0, None, *A)], [("189", 158.5, 5.3, *A, "wa"), ("189", 164.0, None, *A, "wa")]],
+              [("5861", 2.0, None, *A)], [("189", 158.5, 5.3, *A), ("189", 164.0, None, *A)]],
     "adviento": [[("5861", 4.1, None, *A)],
                  [("189", 42.0, 3.6, *A), ("189", 52.0, None, *A)], [("189", 88.0, 4.8, *A, "skin-advent"), ("189", 96.0, None, *A, "skin-advent")],
                  [("189", 140.0, 4.4, *A, "spa-advent"), ("189", 144.4, None, *A, "spa-advent")],
                  [("189", 160.0, 4.3, *A, "rt-cal"), ("189", 164.3, None, *A, "rt-cal")], [("189", 157.0, None, *A, "rt-cal-q")], [("189", 168.7, None, *A)],  # 156.5-174: saliendo del estacionamiento
-                 [("5861", 0.0, 4.0, *A, "wa"), ("189", 56.0, None, *A, "wa")]],
+                 [("5861", 0.0, 4.0, *A), ("189", 56.0, None, *A)]],
 }[VAR]
 
 def video(fuente, ini, n, cx=0.5, cy=0.5, z=1.0, foto=None):
@@ -395,17 +395,18 @@ def qr_grupo():
     """el QR del grupo (chat.whatsapp.com/Jx4rYqxZvES93A4y4zvfXu, el mismo de la franja de alpacca.mx)"""
     if "qr" not in _qr:
         sys.path.insert(0, os.path.join(RAIZ, "carruseles")); import whatsapp
-        _qr["qr"] = whatsapp.tarjeta(300)
+        _qr["qr"] = whatsapp.tarjeta(420)
     return _qr["qr"]
 
 
 def invitacion(L, t, e):
-    """última frase de los 3 videos: únete al grupo de WhatsApp (mayoreo y ofertas exclusivas); link en alpacca.mx"""
-    pas(L, "💬 Únete a mi grupo de WhatsApp", 330, t, INI[e] + 0.1, sz=58, bg=VERDE_WA, maxw=1020)
-    pas(L, "📦 Precio de mayoreo", 470, t, marca(e, 1) - 0.1, sz=56, bg=WHITE, fg=NEGRO)
-    pas(L, "🔥 Ofertas exclusivas", 610, t, marca(e, 2) - 0.1, sz=56, bg=WHITE, fg=NEGRO)
-    if t >= marca(e, 0): b.pon(L, qr_grupo(), W / 2, 950, *b.entra(t, marca(e, 0), 0.4))
-    pas(L, "Link en alpacca.mx 👆", 1290, t, marca(e, 3) - 0.1, sz=60)
+    """última frase de los 3 videos, como en los de Bath & Body Works y Victoria's Secret: el QR grande arriba sobre el
+    video normal, la pastilla rosa «Únete a mi grupo de WhatsApp» debajo, y luego mayoreo, ofertas y el link"""
+    b.pon(L, qr_grupo(), W / 2, 470, *b.entra(t, INI[e] + 0.05, 0.4))
+    pas(L, "Únete a mi grupo de WhatsApp 💬", 840, t, INI[e] + 0.25, sz=60, maxw=1020)
+    pas(L, "📦 Precio de mayoreo", 980, t, marca(e, 1) - 0.1, sz=54, bg=WHITE, fg=NEGRO)
+    pas(L, "🔥 Ofertas exclusivas", 1100, t, marca(e, 2) - 0.1, sz=54, bg=WHITE, fg=NEGRO)
+    pas(L, "Link en alpacca.mx 👆", 1230, t, marca(e, 3) - 0.1, sz=58, bg=NEGRO)
 
 
 ULTIMA = len(T) - 1

@@ -94,7 +94,7 @@ Horario: 7–9 pm hora de México (cuando más gente usa el celular después del
 7. **Productos bien encuadrados y de frente:** pantalla completa (sin franjas arriba ni abajo) y nunca imágenes congeladas. Mientras Mae sostiene un producto, el encuadre se acerca a él usando el video en su resolución original, y solo se usan los segundos en que se ve de frente. Textos y subtítulos van arriba del producto, nunca encima. Si en un momento la toma no muestra bien el producto, el video sigue en movimiento pero difuminado y encima va la foto oficial del producto en grande.
 8. **Pronunciación de marcas como se dice en México:** DAISE se dice «dái-se», con la E (en el texto de la voz va «Dái-se»; en pantalla, DAISE).
 9. **Máximo 5 hashtags** por descripción.
-10. **Cierre con invitación al grupo de WhatsApp** (pedido de Mae, 14 de noviembre): «únete a mi grupo de WhatsApp: ahí vendo por mayoreo y aviso primero las ofertas exclusivas; el link está en alpacca.mx» (la franja de arriba de la página lleva al grupo). En pantalla: pastilla verde, «Precio de mayoreo», «Ofertas exclusivas», QR chico de apoyo y «Link en alpacca.mx». Sin «Comenta GRUPO».
+10. **Cierre con invitación al grupo de WhatsApp** (pedido de Mae, 14 de noviembre): «únete a mi grupo de WhatsApp: ahí vendo por mayoreo y aviso primero las ofertas exclusivas; el link está en alpacca.mx» (la franja de arriba de la página lleva al grupo). En pantalla, como en los videos de Bath & Body Works y Victoria's Secret: el QR grande arriba sobre el video normal y la pastilla rosa «Únete a mi grupo de WhatsApp 💬» debajo; luego «Precio de mayoreo», «Ofertas exclusivas» y «Link en alpacca.mx». Sin «Comenta GRUPO».
 
 ## Qué grabar en cada ida a la tienda (para vlogs con historia, estilo @andybadilloo)
 
