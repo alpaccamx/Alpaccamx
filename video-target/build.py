@@ -220,10 +220,10 @@ def subtitulo(L, t, y=None):
 
 # ---------------- productos: foto oficial en tarjeta blanca redonda ----------------
 _cache = {}
-def tarjeta(foto, nombre, abajo=None, ancho=440, color_abajo=ROSA):
-    k = (foto, nombre, abajo, ancho)
+def tarjeta(foto, nombre, abajo=None, ancho=440, color_abajo=ROSA, prop=1.2):
+    k = (foto, nombre, abajo, ancho, prop)
     if k in _cache: return _cache[k]
-    alto_foto = int(ancho * 1.2)
+    alto_foto = int(ancho * prop)
     im = Image.open(os.path.join(AQUI, "fotos", foto + ".jpg")).convert("RGB")
     # la foto trae mucho fondo: se recorta al producto (lo que no es del color de la esquina) y se centra sin cortarlo
     from PIL import ImageChops
@@ -256,6 +256,26 @@ def tarjeta(foto, nombre, abajo=None, ancho=440, color_abajo=ROSA):
     c.alpha_composite(tx, (30 + (ancho - tx.width) // 2, 30 + alto_foto))
     if pa: c.alpha_composite(pa, (30 + (ancho - pa.width) // 2, 30 + alto_foto + tx.height + 14))
     _cache[k] = c; return c
+
+
+def foto_tarjeta(foto, ancho, prop=1.2):
+    """solo la foto del producto en tarjeta blanca redonda (para las portadas): esquinas completas y sin espacio vacío"""
+    from PIL import ImageChops
+    h = int(ancho * prop)
+    im = Image.open(os.path.join(AQUI, "fotos", foto + ".jpg")).convert("RGB")
+    fondo = im.getpixel((3, 3))
+    caja = ImageChops.difference(im, Image.new("RGB", im.size, fondo)).convert("L").point(lambda v: 255 if v > 28 else 0).getbbox()
+    if caja:
+        x0, y0, x1, y1 = caja; mx, my = (x1 - x0) * 0.08, (y1 - y0) * 0.08
+        im = im.crop((max(0, int(x0 - mx)), max(0, int(y0 - my)), min(im.width, int(x1 + mx)), min(im.height, int(y1 + my))))
+    im = ImageOps.pad(im, (ancho - 32, h - 32), Image.LANCZOS, color=fondo)
+    c = Image.new("RGBA", (ancho + 60, h + 60))
+    sh = Image.new("L", c.size, 0); ImageDraw.Draw(sh).rounded_rectangle((30, 42, ancho + 30, h + 42), 36, fill=120)
+    c.putalpha(sh.filter(ImageFilter.GaussianBlur(16)))
+    ImageDraw.Draw(c).rounded_rectangle((30, 30, ancho + 30, h + 30), 36, fill=WHITE)
+    m = Image.new("L", im.size, 0); ImageDraw.Draw(m).rounded_rectangle((0, 0, im.width - 1, im.height - 1), 24, fill=255)
+    c.paste(im, (46, 46), m)
+    return c
 
 
 def pon_tarjeta(L, tj, cx, cy, t, t0, giro=0):
@@ -465,7 +485,7 @@ def prueba(ts, ruta):
 
 
 PORTADA = {  # (fuente, segundo, renglón 1, renglón 2, pastilla, productos)
-    "haul": ("189", 8.5, "Me traje 4 sets", "de Target 🎯", "y de uno solo me queda 1 👀", ["spa", "unlockt", "byoma"]),
+    "haul": ("189", 8.5, "Me traje 4 sets", "de Target 🎯", "y de uno solo me queda 1 👀", ["spa", "unlockt", "starface", "byoma"]),
     "daise": ("5861", 3.0, "Llené un carrito", "ENTERO de esto", "🌼 DAISE ya está en México", ["daise-lip", "daise-mist", "lip-cp"]),
     "adviento": ("189", 0.5, "Calendarios de", "adviento 🎄", "¿cuál vale más la pena? 🧮", ["skin-advent", "rt-cal", "spa-advent"]),
 }
@@ -480,9 +500,12 @@ def portada():
         if im.width > 1040: im = im.resize((1040, int(im.height * 1040 / im.width)), Image.LANCZOS)
         b.pon(L, im, W / 2, 380 + j * 165)
     b.pon(L, b.pastilla(pastilla, "ExtraBold", 50, NEGRO, WHITE, padx=34, pady=16), W / 2, 700)
-    for j, (f, x, g) in enumerate(zip(prods, (215, 540, 865), (-4, 0, 4))):
-        tj = tarjeta(f, " ", None, ancho=290).rotate(g, expand=True, resample=Image.BICUBIC)
-        b.pon(L, tj, x, 1150 + (40 if j != 1 else 0))
+    # una tarjeta por producto (tantas como dice la portada), solo con la foto, sin espacio vacío abajo
+    n = len(prods); ancho = 290 if n <= 3 else 220; paso = (W - 60) / n
+    giros = [-4, 0, 4] if n == 3 else [-4, -1, 1, 4]
+    for j, f in enumerate(prods):
+        tj = foto_tarjeta(f, ancho, 1.15 if n <= 3 else 1.0).rotate(giros[j], expand=True, resample=Image.BICUBIC)
+        b.pon(L, tj, 30 + paso * (j + 0.5), 1110 + (30 if j in (0, n - 1) else 0))
     pas(L, "alpacca.mx", 1560, 1, 0, sz=62)
     L.convert("RGB").save(os.path.join(AQUI, f"portada-{VAR}.jpg"), quality=92)
 
