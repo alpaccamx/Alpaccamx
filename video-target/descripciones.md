@@ -7,7 +7,7 @@ Horario: 7 a 9 pm, hora de México.
 
 ---
 
-## 1 · «Me traje 4 sets de Target… adivina cuál se está acabando» (Target-haul-voz.mp4, portada-haul.jpg, 47 s)
+## 1 · «Me traje 4 sets de Target… adivina cuál se está acabando» (Target-haul-voz.mp4, portada-haul.jpg, 57 s)
 
 **Neuromarketing:**
 - **Pregunta abierta en el segundo 0 («adivina cuál»):** se quedan hasta el final para saber la respuesta.
@@ -19,6 +19,7 @@ Horario: 7 a 9 pm, hora de México.
 **TikTok**
 > Me traje 4 sets de Target y de uno ya solo me queda 1 👀 ¿Adivinaste cuál?
 > Todos ya están en México 🇲🇽 Próximo video: el carrito que llené de DAISE 🌼
+> 💬 Únete a mi grupo de WhatsApp: mayoreo y ofertas exclusivas (link en alpacca.mx)
 > #target #skincare #kbeauty #regalosnavidad #alpacca
 
 **Instagram**
@@ -34,11 +35,13 @@ Horario: 7 a 9 pm, hora de México.
 >
 > ¿Cuál te llevarías tú? 👇
 >
+> 💬 Únete a mi grupo de WhatsApp: ahí vendo por mayoreo y aviso primero las ofertas exclusivas. El link está en alpacca.mx
+>
 > #target #skincare #kbeauty #regalosnavidad #alpacca
 
 ---
 
-## 2 · «Llené un carrito ENTERO de esto» (Target-daise-voz.mp4, portada-daise.jpg, 56 s)
+## 2 · «Llené un carrito ENTERO de esto» (Target-daise-voz.mp4, portada-daise.jpg, 65 s)
 
 **Neuromarketing:**
 - **Imagen que frena el scroll:** el carrito lleno, en el primer cuadro.
@@ -49,6 +52,7 @@ Horario: 7 a 9 pm, hora de México.
 **TikTok**
 > Llené un carrito ENTERO de DAISE 🌼 y te explico por qué
 > Suelto cada bálsamo es $189… en el trío te sale en $133 💸 Y también tengo su calendario 🏠 ¿Labios, mists o calendario? 👇
+> 💬 Únete a mi grupo de WhatsApp: mayoreo y ofertas exclusivas (link en alpacca.mx)
 > #daise #target #bodymist #regalosnavidad #alpacca
 
 **Instagram**
@@ -63,11 +67,13 @@ Horario: 7 a 9 pm, hora de México.
 >
 > ¿Tú cuál te llevarías: el de labios, el de mists o el calendario? 👇
 >
+> 💬 Únete a mi grupo de WhatsApp: ahí vendo por mayoreo y aviso primero las ofertas exclusivas. El link está en alpacca.mx
+>
 > #daise #target #bodymist #regalosnavidad #alpacca
 
 ---
 
-## 3 · «Calendario de adviento: el 1 de diciembre ya es tarde» (Target-adviento-voz.mp4, portada-adviento.jpg, 46 s)
+## 3 · «Calendario de adviento: el 1 de diciembre ya es tarde» (Target-adviento-voz.mp4, portada-adviento.jpg, 55 s)
 
 **Neuromarketing:**
 - **Fecha límite real:** el 1 de diciembre se abre la primera sorpresa, así que hay que decidir ya.
@@ -77,6 +83,7 @@ Horario: 7 a 9 pm, hora de México.
 **TikTok**
 > Si quieres calendario de adviento, el 1 de diciembre ya es tarde ⏰ Te saco la cuenta de cuál rinde más 🧮
 > ¿Cuál abrirías tú cada mañana? 👇
+> 💬 Únete a mi grupo de WhatsApp: mayoreo y ofertas exclusivas (link en alpacca.mx)
 > #calendariodeadviento #adventcalendar #skincare #navidad #alpacca
 
 **Instagram**
@@ -90,5 +97,7 @@ Horario: 7 a 9 pm, hora de México.
 > Ya están en México, en alpacca.mx 🇲🇽📦
 >
 > ¿Cuál abrirías tú cada mañana: skincare, spa o brochas? 👇
+>
+> 💬 Únete a mi grupo de WhatsApp: ahí vendo por mayoreo y aviso primero las ofertas exclusivas. El link está en alpacca.mx
 >
 > #calendariodeadviento #adventcalendar #skincare #navidad #alpacca

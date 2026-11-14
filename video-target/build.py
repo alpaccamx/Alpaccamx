@@ -75,15 +75,17 @@ TOMAS = {
     "haul": [[("189", 64.0, 3.3, *P), ("189", 22.0, None, *P)],
              [("189", 6.5, 4.0, 0.55, 0.74, 1.25), ("189", 40.5, None, *A, "spa")],
              [("189", 20.5, None, *P)], [("189", 36.3, None, 0.5, 0.8, 1.2)], [("189", 63.8, None, *P)],
-             [("189", 6.5, 3.8, 0.55, 0.74, 1.25), ("189", 42.0, None, *A, "spa-q")], [("189", 157.0, 4.5, *A), ("5861", 0.5, None, *A)]],
+             [("189", 6.5, 3.8, 0.55, 0.74, 1.25), ("189", 42.0, None, *A, "spa-q")], [("189", 157.0, 4.5, *A), ("5861", 0.5, None, *A)],
+             [("189", 164.0, 5.3, *A, "wa"), ("189", 88.0, None, *A, "wa")]],
     "daise": [[("5861", 2.5, None, *A)], [("189", 105.5, 2.5, *P), ("189", 112.5, None, *P)], [("189", 112.0, None, *P)],
               [("189", 103.5, 6.0, *P), ("5861", 0.0, None, *A)], [("189", 77.0, None, 0.5, 0.72, 1.2)],
               [("189", 113.0, 4.5, *P), ("5861", 3.5, None, *A)], [("5861", 5.8, 3.2, *A), ("189", 106.0, None, *P)],
-              [("5861", 2.0, None, *A)]],
+              [("5861", 2.0, None, *A)], [("189", 158.5, 5.3, *A, "wa"), ("189", 164.0, None, *A, "wa")]],
     "adviento": [[("5861", 4.1, None, *A)],
                  [("189", 42.0, 3.6, *A), ("189", 52.0, None, *A)], [("189", 88.0, 4.8, *A, "skin-advent"), ("189", 96.0, None, *A, "skin-advent")],
                  [("189", 140.0, 4.4, *A, "spa-advent"), ("189", 144.4, None, *A, "spa-advent")],
-                 [("189", 160.0, 4.3, *A, "rt-cal"), ("189", 164.3, None, *A, "rt-cal")], [("189", 157.0, None, *A, "rt-cal-q")], [("189", 168.7, None, *A)]],  # 156.5-174: saliendo del estacionamiento (sin productos)
+                 [("189", 160.0, 4.3, *A, "rt-cal"), ("189", 164.3, None, *A, "rt-cal")], [("189", 157.0, None, *A, "rt-cal-q")], [("189", 168.7, None, *A)],  # 156.5-174: saliendo del estacionamiento
+                 [("5861", 0.0, 4.0, *A, "wa"), ("189", 56.0, None, *A, "wa")]],
 }[VAR]
 
 def video(fuente, ini, n, cx=0.5, cy=0.5, z=1.0, foto=None):
@@ -172,7 +174,7 @@ def interrupcion(L, t, t0, texto, dur=0.9):
 CLAVE = {"cuatro", "Target", "pieza", "Adivina", "medicube", "colágeno", "SKIN1004", "Starface", "barritos", "BYOMA",
          "barrera", "adivinaste", "uno", "México", "DAISE", "entero", "flor", "péptidos", "karité", "Sunny", "Hello",
          "Glaze", "truco", "Navidad", "labios", "mists", "calendario", "diciembre", "tarde", "sorpresa", "skincare",
-         "spa", "cincuenta", "Real", "Techniques", "Dreamhouse", "setecientos", "veinticinco", "rendidor", "dos", "Cuál", "siete", "carrito"}
+         "spa", "cincuenta", "Real", "Techniques", "Dreamhouse", "setecientos", "WhatsApp", "mayoreo", "exclusivas", "veinticinco", "rendidor", "dos", "Cuál", "siete", "carrito"}
 
 def _palabras():
     v = open(os.path.join(AQUI, "voz.py")).read()
@@ -387,7 +389,31 @@ def capa_adviento(L, t):
     elif e in (2, 3): subtitulo(L, t)
 
 
-CAPA = {"haul": capa_haul, "daise": capa_daise, "adviento": capa_adviento}[VAR]
+VERDE_WA = (37, 211, 102)
+_qr = {}
+def qr_grupo():
+    """el QR del grupo (chat.whatsapp.com/Jx4rYqxZvES93A4y4zvfXu, el mismo de la franja de alpacca.mx)"""
+    if "qr" not in _qr:
+        sys.path.insert(0, os.path.join(RAIZ, "carruseles")); import whatsapp
+        _qr["qr"] = whatsapp.tarjeta(300)
+    return _qr["qr"]
+
+
+def invitacion(L, t, e):
+    """última frase de los 3 videos: únete al grupo de WhatsApp (mayoreo y ofertas exclusivas); link en alpacca.mx"""
+    pas(L, "💬 Únete a mi grupo de WhatsApp", 330, t, INI[e] + 0.1, sz=58, bg=VERDE_WA, maxw=1020)
+    pas(L, "📦 Precio de mayoreo", 470, t, marca(e, 1) - 0.1, sz=56, bg=WHITE, fg=NEGRO)
+    pas(L, "🔥 Ofertas exclusivas", 610, t, marca(e, 2) - 0.1, sz=56, bg=WHITE, fg=NEGRO)
+    if t >= marca(e, 0): b.pon(L, qr_grupo(), W / 2, 950, *b.entra(t, marca(e, 0), 0.4))
+    pas(L, "Link en alpacca.mx 👆", 1290, t, marca(e, 3) - 0.1, sz=60)
+
+
+ULTIMA = len(T) - 1
+_capa = {"haul": capa_haul, "daise": capa_daise, "adviento": capa_adviento}[VAR]
+def CAPA(L, t):
+    if etapa(t) == ULTIMA:
+        invitacion(L, t, ULTIMA); subtitulo(L, t)
+    else: _capa(L, t)
 
 def reparto(e):
     """cuadros de cada toma de la frase e: las que traen segundos los usan, las demás se reparten lo que sobra"""
@@ -401,7 +427,7 @@ def reparto(e):
 
 
 def foto_grande(L, t):
-    if not FOTO["k"]: return
+    if not FOTO["k"] or FOTO["k"] == "wa": return  # "wa": solo fondo difuminado para la invitación al grupo
     nom, abajo, col = FOTOS[FOTO["k"]]
     tj = tarjeta(FOTO["k"].replace("-q", ""), nom, abajo, ancho=520, color_abajo=col)
     s_, a_ = b.entra(t, FOTO["t0"], 0.4); b.pon(L, tj, W / 2, 900, s_, a_)
