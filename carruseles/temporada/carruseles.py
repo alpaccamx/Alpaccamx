@@ -401,7 +401,7 @@ def regalos():
     L = lunares(BLANCO, BLUSH)
     cierre(c, 6, L, "¿Cuál regalas?", "Todo ya está en México y te lo mando de inmediato (las pijamas se apartan con la mitad).",
            col_tit=ROSA_I, col_sub=TINTA, p1=(ROSA_P, BLANCO), p2=(LILA, BLANCO), col_link=ROSA_I,
-           extra=lambda L: pon(L, mono(170), W / 2 + 175, 505))
+           extra=lambda L: pon(L, mono(150), W / 2 + 380, 195))
 
 
 # ======================= 3 · ¿Juicy o True Religion? — estilo «revista» =======================
