@@ -160,6 +160,16 @@ for d in out:
         ini = a0 + 2 if k == 0 else ln[0]["a"]  # la primera entra con la diapositiva
         fin = lineas[k + 1][0]["a"] if k + 1 < len(lineas) else min(ln[-1]["b"] + 20, a1 - 2)
         subs.append(dict(a=ini, b=fin, palabras=ln))
+# ajustes pedidos a mano (15 nov): no partir «maestra Laura» y unir renglones de menos de un segundo
+def txt(x): return " ".join(p["w"] for p in x["palabras"])
+def une(i):  # junta el renglón i con el siguiente
+    subs[i]["palabras"] += subs[i + 1]["palabras"]; subs[i]["b"] = subs[i + 1]["b"]; del subs[i + 1]
+for k in range(len(subs) - 1):
+    if txt(subs[k]) == "la práctica de la maestra" and subs[k + 1]["palabras"][0]["w"] == "Laura":
+        p = subs[k + 1]["palabras"].pop(0); subs[k]["palabras"].append(p); subs[k + 1]["a"] = subs[k + 1]["palabras"][0]["a"]
+        subs[k]["b"] = subs[k + 1]["a"]
+for frase in ("respetando", "Ha trabajado"):
+    k = next(i for i, x in enumerate(subs) if txt(x) == frase); une(k)
 json.dump(dict(fps=FPS, total=round(ini_s * FPS), dias=out, subs=subs), open("video/src/datos.json", "w"), ensure_ascii=False)
 print("diapositivas", len(out), "renglones", len(subs), "duración", round(ini_s, 1), "s")
 for d in out: print(d["n"], d["titulo"], d["desde"], d["dura"], [i["f"] for i in d["ideas"]])

@@ -267,718 +267,710 @@ hace un diagnóstico al inicio del ciclo
 y planea actividades cortas según la edad,
 
 68
-00:02:10,400 --> 00:02:10,967
-respetando
+00:02:10,400 --> 00:02:13,400
+respetando el nivel de desarrollo de cada grupo.
 
 69
-00:02:10,967 --> 00:02:13,400
-el nivel de desarrollo de cada grupo.
-
-70
 00:02:13,533 --> 00:02:14,967
 Para Lev Vygotsky,
 
-71
+70
 00:02:14,967 --> 00:02:16,900
 el aprendizaje surge primero
 
-72
+71
 00:02:16,900 --> 00:02:18,700
 en la interacción con los demás.
 
-73
+72
 00:02:18,700 --> 00:02:19,833
 Su concepto clave
 
-74
+73
 00:02:19,833 --> 00:02:22,133
 es la zona de desarrollo próximo:
 
-75
+74
 00:02:22,133 --> 00:02:24,633
 la distancia entre lo que el niño puede hacer
 
-76
+75
 00:02:24,633 --> 00:02:26,100
 solo y lo que logra
 
-77
+76
 00:02:26,100 --> 00:02:28,067
 con ayuda de alguien más capaz.
 
-78
+77
 00:02:28,067 --> 00:02:29,967
 La maestra aprovecha esta zona
 
-79
+78
 00:02:29,967 --> 00:02:32,067
 cuando pide a los niños que ya dominan
 
-80
+79
 00:02:32,067 --> 00:02:34,200
 algo que ayuden a sus compañeros.
 
-81
+80
 00:02:34,200 --> 00:02:35,000
 Además,
 
-82
+81
 00:02:35,000 --> 00:02:37,033
 ella apoya de cerca y luego
 
-83
+82
 00:02:37,033 --> 00:02:38,867
 retira la ayuda poco a poco;
 
-84
+83
 00:02:38,867 --> 00:02:40,433
 eso es el andamiaje,
 
-85
+84
 00:02:40,433 --> 00:02:41,833
 un término que propusieron
 
-86
+85
 00:02:41,833 --> 00:02:44,167
 Wood, Bruner y Ross a partir
 
-87
+86
 00:02:44,167 --> 00:02:45,667
 de las ideas de Vygotsky.
 
-88
+87
 00:02:45,667 --> 00:02:47,833
 Y reconoce que el juego entre compañeros
 
-89
+88
 00:02:47,833 --> 00:02:50,567
 desarrolla el lenguaje y la convivencia.
 
-90
+89
 00:02:50,700 --> 00:02:53,567
 David Ausubel decía que lo que más influye
 
-91
+90
 00:02:53,567 --> 00:02:54,700
 en el aprendizaje
 
-92
+91
 00:02:54,700 --> 00:02:56,733
 es lo que el alumno ya sabe.
 
-93
+92
 00:02:56,733 --> 00:02:59,467
 Aprender es significativo cuando lo nuevo
 
-94
+93
 00:02:59,467 --> 00:03:02,200
 se conecta con esos conocimientos previos.
 
-95
+94
 00:03:02,200 --> 00:03:04,367
 La maestra siempre empieza preguntando
 
-96
+95
 00:03:04,367 --> 00:03:06,433
 por las experiencias de los niños,
 
-97
+96
 00:03:06,433 --> 00:03:08,367
 como «¿quién ha ido al mercado?»
 
-98
+97
 00:03:08,367 --> 00:03:10,533
 o «¿en qué trabajan tus papás?»,
 
-99
+98
 00:03:10,533 --> 00:03:12,400
 y luego usa dramatizaciones
 
-100
+99
 00:03:12,400 --> 00:03:14,433
 como «la tiendita».
 
-101
+100
 00:03:14,433 --> 00:03:15,067
 Así,
 
-102
+101
 00:03:15,067 --> 00:03:16,600
 lo nuevo se ancla en algo
 
-103
+102
 00:03:16,600 --> 00:03:18,533
 que los niños ya viven.
 
-104
+103
 00:03:18,667 --> 00:03:20,200
 Albert Bandura explicó
 
-105
+104
 00:03:20,200 --> 00:03:22,533
 que aprendemos observando a otros.
 
-106
+105
 00:03:22,533 --> 00:03:24,400
 La maestra lo dice muy claro:
 
-107
+106
 00:03:24,400 --> 00:03:26,800
 los niños imitan a sus compañeros
 
-108
+107
 00:03:26,800 --> 00:03:28,467
 «lo bueno y lo malo»,
 
-109
+108
 00:03:28,467 --> 00:03:29,767
 por eso cuidan los modelos
 
-110
+109
 00:03:29,767 --> 00:03:31,100
 que tienen en el salón.
 
-111
+110
 00:03:31,100 --> 00:03:32,133
 También me compartió
 
-112
+111
 00:03:32,133 --> 00:03:34,100
 el caso de un niño tímido que empezó
 
-113
+112
 00:03:34,100 --> 00:03:36,667
 a participar porque su amigo lo animaba.
 
-114
+113
 00:03:36,667 --> 00:03:38,233
 Ahí se ve el modelado,
 
-115
+114
 00:03:38,233 --> 00:03:40,833
 y también cómo un compañero puede aumentar
 
-116
+115
 00:03:40,833 --> 00:03:43,800
 la confianza de otro en que sí puede hacerlo,
 
-117
+116
 00:03:43,800 --> 00:03:46,367
 lo que Bandura llama autoeficacia.
 
-118
+117
 00:03:46,500 --> 00:03:47,900
 Howard Gardner propone
 
-119
+118
 00:03:47,900 --> 00:03:50,133
 que no hay una sola inteligencia,
 
-120
+119
 00:03:50,133 --> 00:03:53,567
 sino varias, como la musical, la corporal,
 
-121
+120
 00:03:53,567 --> 00:03:55,633
 la espacial o la lingüística.
 
-122
+121
 00:03:55,633 --> 00:03:57,767
 La maestra observa que algunos niños
 
-123
+122
 00:03:57,767 --> 00:03:59,967
 tienen más facilidad para la música,
 
-124
+123
 00:03:59,967 --> 00:04:03,567
 el movimiento, el dibujo o para armar cosas.
 
-125
+124
 00:04:03,567 --> 00:04:06,633
 Por eso, un mismo tema lo trabaja cantando,
 
-126
+125
 00:04:06,633 --> 00:04:07,733
 con un cuento,
 
-127
+126
 00:04:07,733 --> 00:04:10,033
 en el patio y con una manualidad.
 
-128
+127
 00:04:10,033 --> 00:04:11,400
 Así cada niño tiene
 
-129
+128
 00:04:11,400 --> 00:04:12,900
 más de una puerta de entrada
 
-130
+129
 00:04:12,900 --> 00:04:14,667
 al mismo contenido.
 
-131
+130
 00:04:14,800 --> 00:04:16,267
 Jerome Bruner defendió
 
-132
+131
 00:04:16,267 --> 00:04:18,467
 el aprendizaje por descubrimiento:
 
-133
+132
 00:04:18,467 --> 00:04:21,667
 el niño construye el conocimiento explorando,
 
-134
+133
 00:04:21,667 --> 00:04:23,067
 y el docente guía
 
-135
+134
 00:04:23,067 --> 00:04:25,200
 en lugar de solo dar respuestas.
 
-136
+135
 00:04:25,200 --> 00:04:26,867
 La maestra hace experimentos
 
-137
+136
 00:04:26,867 --> 00:04:29,367
 como ver qué flota y qué se hunde,
 
-138
+137
 00:04:29,367 --> 00:04:30,700
 o mezclar colores,
 
-139
+138
 00:04:30,700 --> 00:04:33,333
 y antes pregunta qué creen que va a pasar.
 
-140
+139
 00:04:33,333 --> 00:04:34,800
 Así los niños plantean
 
-141
+140
 00:04:34,800 --> 00:04:36,667
 hipótesis y las comprueban.
 
-142
+141
 00:04:36,667 --> 00:04:38,800
 Ella misma se describe como guía
 
-143
+142
 00:04:38,800 --> 00:04:40,367
 y no como la que dicta,
 
-144
+143
 00:04:40,367 --> 00:04:43,033
 que es justo el papel que propone Bruner.
 
-145
+144
 00:04:43,167 --> 00:04:45,667
 Los estilos cognitivos son las diferencias
 
-146
+145
 00:04:45,667 --> 00:04:47,967
 en la forma de procesar la información,
 
-147
+146
 00:04:47,967 --> 00:04:50,000
 y la maestra identifica varias:
 
-148
+147
 00:04:50,000 --> 00:04:52,167
 niños rápidos e impulsivos frente
 
-149
+148
 00:04:52,167 --> 00:04:54,300
 a otros lentos y reflexivos,
 
-150
+149
 00:04:54,300 --> 00:04:57,633
 lo que Kagan llamó reflexividad-impulsividad;
 
-151
+150
 00:04:57,633 --> 00:04:59,467
 niños que se fijan en los detalles
 
-152
+151
 00:04:59,467 --> 00:05:00,900
 y otros en lo general;
 
-153
+152
 00:05:00,900 --> 00:05:02,733
 y niños independientes frente
 
-154
+153
 00:05:02,733 --> 00:05:04,533
 a otros que buscan aprobación,
 
-155
+154
 00:05:04,533 --> 00:05:05,533
 lo que se relaciona
 
-156
+155
 00:05:05,533 --> 00:05:08,100
 con la dependencia e independencia de campo
 
-157
+156
 00:05:08,100 --> 00:05:09,400
 que describió Witkin.
 
-158
+157
 00:05:09,400 --> 00:05:10,267
 También menciona
 
-159
+158
 00:05:10,267 --> 00:05:12,333
 que unos aprenden escuchando,
 
-160
+159
 00:05:12,333 --> 00:05:14,500
 otros viendo y otros haciendo.
 
-161
+160
 00:05:14,500 --> 00:05:16,033
 Aquí vale una precisión:
 
-162
+161
 00:05:16,033 --> 00:05:18,400
 la investigación no respalda etiquetar
 
-163
+162
 00:05:18,400 --> 00:05:20,533
 a cada niño con un solo canal;
 
-164
+163
 00:05:20,533 --> 00:05:22,333
 funciona mejor combinar varios,
 
-165
+164
 00:05:22,333 --> 00:05:24,200
 que es lo que ella ya hace.
 
-166
+165
 00:05:24,333 --> 00:05:25,300
 Para motivar,
 
-167
+166
 00:05:25,300 --> 00:05:27,800
 la maestra usa una caja sorpresa,
 
-168
+167
 00:05:27,800 --> 00:05:29,467
 títeres y canciones.
 
-169
+168
 00:05:29,467 --> 00:05:31,067
 Y lo que ella observa que mueve
 
-170
+169
 00:05:31,067 --> 00:05:34,467
 a los niños es el juego, sentirse queridos,
 
-171
+170
 00:05:34,467 --> 00:05:35,900
 los retos alcanzables
 
-172
+171
 00:05:35,900 --> 00:05:37,767
 y que su familia se interese.
 
-173
+172
 00:05:37,767 --> 00:05:39,200
 Aquí conviene distinguir
 
-174
+173
 00:05:39,200 --> 00:05:40,733
 dos tipos de motivación:
 
-175
+174
 00:05:40,733 --> 00:05:43,033
 la extrínseca, que viene de fuera,
 
-176
+175
 00:05:43,033 --> 00:05:45,100
 como los sellos y las estrellas,
 
-177
+176
 00:05:45,100 --> 00:05:48,100
 y la intrínseca, que nace del propio niño,
 
-178
+177
 00:05:48,100 --> 00:05:49,500
 como el gusto por jugar,
 
-179
+178
 00:05:49,500 --> 00:05:51,833
 la curiosidad o sentirse capaz.
 
-180
+179
 00:05:51,833 --> 00:05:52,633
 Esto coincide
 
-181
+180
 00:05:52,633 --> 00:05:54,567
 con la teoría de la autodeterminación
 
-182
+181
 00:05:54,567 --> 00:05:58,100
 de Deci y Ryan, que plantea tres necesidades:
 
-183
+182
 00:05:58,100 --> 00:05:59,300
 sentirse capaz,
 
-184
+183
 00:05:59,300 --> 00:06:00,900
 tener cierta autonomía
 
-185
+184
 00:06:00,900 --> 00:06:03,367
 y sentirse vinculado con los demás.
 
-186
+185
 00:06:03,500 --> 00:06:05,500
 El contexto también pesa:
 
-187
+186
 00:06:05,500 --> 00:06:07,133
 muchos padres trabajan turnos
 
-188
+187
 00:06:07,133 --> 00:06:08,600
 largos en la maquila,
 
-189
+188
 00:06:08,600 --> 00:06:11,033
 hay niños al cuidado de sus abuelos,
 
-190
+189
 00:06:11,033 --> 00:06:12,033
 divorcios,
 
-191
+190
 00:06:12,033 --> 00:06:13,367
 duelos y familias
 
-192
+191
 00:06:13,367 --> 00:06:15,233
 que llegaron de otros estados.
 
-193
+192
 00:06:15,233 --> 00:06:16,400
 Cuando hace falta,
 
-194
+193
 00:06:16,400 --> 00:06:18,433
 la maestra canaliza a USAER,
 
-195
+194
 00:06:18,433 --> 00:06:20,667
 al DIF o a apoyo psicológico.
 
+195
+00:06:20,667 --> 00:06:23,933
+Ha trabajado con USAER y con practicantes de psicología,
+
 196
-00:06:20,667 --> 00:06:21,300
-Ha trabajado
-
-197
-00:06:21,300 --> 00:06:23,933
-con USAER y con practicantes de psicología,
-
-198
 00:06:23,933 --> 00:06:25,333
 con buena experiencia,
 
-199
+197
 00:06:25,333 --> 00:06:27,100
 pero el apoyo es limitado.
 
-200
+198
 00:06:27,100 --> 00:06:29,900
 Sus retos son la participación de los padres,
 
-201
+199
 00:06:29,900 --> 00:06:31,400
 los grupos numerosos,
 
-202
+200
 00:06:31,400 --> 00:06:33,000
 la carga administrativa
 
-203
+201
 00:06:33,000 --> 00:06:34,500
 y los efectos de la pandemia
 
-204
+202
 00:06:34,500 --> 00:06:35,800
 y de las pantallas,
 
-205
+203
 00:06:35,800 --> 00:06:37,500
 y pide capacitación práctica
 
-206
+204
 00:06:37,500 --> 00:06:39,900
 y acompañamiento de especialistas.
 
-207
+205
 00:06:40,033 --> 00:06:41,567
 A partir de este análisis
 
-208
+206
 00:06:41,567 --> 00:06:43,767
 propongo cuatro alternativas.
 
-209
+207
 00:06:43,767 --> 00:06:44,367
 Primero,
 
-210
+208
 00:06:44,367 --> 00:06:47,200
 involucrar a las familias de forma realista:
 
-211
+209
 00:06:47,200 --> 00:06:49,733
 enviar actividades de diez minutos para hacer
 
-212
+210
 00:06:49,733 --> 00:06:51,500
 en casa y ofrecer talleres
 
-213
+211
 00:06:51,500 --> 00:06:53,867
 en horarios flexibles o grabados.
 
-214
+212
 00:06:53,867 --> 00:06:54,600
 Segundo,
 
-215
+213
 00:06:54,600 --> 00:06:57,000
 pasar poco a poco de las recompensas
 
-216
+214
 00:06:57,000 --> 00:06:59,333
 externas a la motivación intrínseca:
 
-217
+215
 00:06:59,333 --> 00:07:01,900
 retirar gradualmente sellos y estrellas,
 
-218
+216
 00:07:01,900 --> 00:07:03,467
 y cambiarlos por comentarios
 
-219
+217
 00:07:03,467 --> 00:07:04,433
 sobre el esfuerzo
 
-220
+218
 00:07:04,433 --> 00:07:06,367
 y por oportunidades de elegir.
 
-221
+219
 00:07:06,367 --> 00:07:09,233
 Tercero, fortalecer el apoyo psicológico,
 
-222
+220
 00:07:09,233 --> 00:07:11,533
 con convenios con universidades para tener
 
-223
+221
 00:07:11,533 --> 00:07:14,167
 practicantes de forma constante y talleres
 
-224
+222
 00:07:14,167 --> 00:07:16,433
 socioemocionales para los niños que viven
 
-225
+223
 00:07:16,433 --> 00:07:18,467
 duelos o cambios en su familia.
 
-226
+224
 00:07:18,467 --> 00:07:20,833
 Y cuarto, ante los grupos numerosos,
 
-227
+225
 00:07:20,833 --> 00:07:23,100
 trabajar por rincones o estaciones
 
-228
+226
 00:07:23,100 --> 00:07:24,733
 y planear mejor la tutoría
 
-229
+227
 00:07:24,733 --> 00:07:27,033
 entre compañeros que ella ya usa.
 
-230
+228
 00:07:27,167 --> 00:07:28,200
 Para concluir,
 
+229
+00:07:28,200 --> 00:07:30,033
+la práctica de la maestra Laura
+
+230
+00:07:30,033 --> 00:07:31,800
+integra de manera natural
+
 231
-00:07:28,200 --> 00:07:29,567
-la práctica de la maestra
-
-232
-00:07:29,567 --> 00:07:31,800
-Laura integra de manera natural
-
-233
 00:07:31,800 --> 00:07:33,167
 ideas de casi todos
 
-234
+232
 00:07:33,167 --> 00:07:34,867
 los enfoques que revisamos:
 
-235
+233
 00:07:34,867 --> 00:07:36,833
 refuerza conductas positivas,
 
-236
+234
 00:07:36,833 --> 00:07:38,733
 respeta el nivel de desarrollo,
 
-237
+235
 00:07:38,733 --> 00:07:41,000
 aprovecha la interacción entre niños,
 
-238
+236
 00:07:41,000 --> 00:07:42,667
 parte de lo que ya saben,
 
-239
+237
 00:07:42,667 --> 00:07:44,600
 ofrece varias formas de aprender
 
-240
+238
 00:07:44,600 --> 00:07:46,067
 y los deja descubrir.
 
-241
+239
 00:07:46,067 --> 00:07:48,367
 Comprenderla desde la psicología no solo
 
-242
+240
 00:07:48,367 --> 00:07:50,367
 permite fundamentar lo que hace,
 
-243
+241
 00:07:50,367 --> 00:07:53,033
 sino encontrar caminos para fortalecerlo,
 
-244
+242
 00:07:53,033 --> 00:07:55,467
 sobre todo en la relación con las familias
 
-245
+243
 00:07:55,467 --> 00:07:57,200
 y en el apoyo especializado.
 
-246
+244
 00:07:57,200 --> 00:07:59,267
 Gracias por su atención.
 
