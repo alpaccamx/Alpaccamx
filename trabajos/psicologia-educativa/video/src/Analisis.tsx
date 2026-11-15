@@ -71,7 +71,8 @@ const DiaAutor: React.FC<{ d: Dia }> = ({ d }) => {
     <AbsoluteFill>
       <div style={{ position: "absolute", left: 110, top: 100, transform: `translateY(${(1 - t) * 30}px)`, opacity: t }}>
         <div style={{ fontSize: 30, fontWeight: 700, color: fuerte }}>Parte {d.n - 1} de {datos.dias.length - 2}</div>
-        <div style={{ fontSize: 76, fontWeight: 800, color: TINTA, lineHeight: 1.05, marginTop: 6 }}>{d.titulo}</div>
+        <div style={{ fontSize: Math.min(76, Math.floor(2750 / d.titulo.length)), fontWeight: 800, color: TINTA, lineHeight: 1.05, marginTop: 6,
+          whiteSpace: "nowrap" }}>{d.titulo}</div>
       </div>
       <div style={{ position: "absolute", left: 110, top: 252, opacity: a, transform: `scale(${0.85 + 0.15 * a})`, transformOrigin: "left center",
         background: fuerte, color: "white", fontSize: 34, fontWeight: 700, padding: "12px 30px", borderRadius: 40 }}>{d.autor}</div>
