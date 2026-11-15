@@ -402,6 +402,19 @@ def calendarios():
 
 
 # ======================= 5 · Cómo comprar en alpacca.mx =======================
+TAPAR = {"14.png": [(276, 732, 1010, 938)]}  # titular, CLABE y número de cuenta: no deben quedar en un post
+
+
+def tapa_datos(im, nombre):
+    """pixela y difumina los datos bancarios para que no se puedan leer"""
+    im = im.convert("RGB")
+    for caja in TAPAR.get(nombre, []):
+        r = im.crop(caja); w, h = r.size
+        r = r.resize((max(1, w // 28), max(1, h // 28)), Image.BILINEAR).resize((w, h), Image.NEAREST).filter(ImageFilter.GaussianBlur(14))
+        im.paste(r, caja[:2])
+    return im
+
+
 def como_comprar():
     sys.path.insert(0, os.path.join(RAIZ, "video-tutorial-stock")); from iphone import Iphone
     c = "como-comprar"; tel = Iphone(820); pant = os.path.join(RAIZ, "video-tutorial-stock", "pantallas")
@@ -423,7 +436,7 @@ def como_comprar():
         L = papel(BLUSH if k % 2 == 0 else LILA_CLARO, 52 + k)
         num = pastilla(n, 60, ROSA_P, BLANCO, 34, 10); pon(L, num, 110, 140)
         pon(L, parrafo(tit, fm(78), ROSA_P if k % 2 == 0 else LILA, 840, centrado=False), 600, 150)
-        t = tel.con(Image.open(os.path.join(pant, img))); e = 830 / t.height; t = t.resize((int(t.width * e), int(t.height * e)), Image.LANCZOS)
+        t = tel.con(tapa_datos(Image.open(os.path.join(pant, img)), img)); e = 830 / t.height; t = t.resize((int(t.width * e), int(t.height * e)), Image.LANCZOS)
         pon(L, t, W / 2, 690)
         pon(L, parrafo(desc, fi(36, "SemiBold"), TINTA, 900), W / 2, 1165)
         pie(L, True); guardar(L, c, 2 + k)
