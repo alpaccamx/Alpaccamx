@@ -1,8 +1,10 @@
 [
  {"texto": "¿Eres más Juicy Couture o True Religion? Te enseño las pijamas y me dices cuál te llevas.", "marcas": ["Juicy", "True", "cuál"]},
- {"texto": "De Juicy: la rosa con sus coronas negras, la de rayas fucsia y las afelpadas con su logo.", "marcas": ["coronas", "rayas", "afelpadas"]},
- {"texto": "De True Religion: la gris con herraduras rosas, la gris con ribete negro y las rosas con su corazón de brillitos.", "marcas": ["herraduras", "ribete", "corazón"]},
- {"texto": "Todas están a seiscientos noventa y nueve pesos, precio de mayoreo, y las apartas con la mitad.", "marcas": ["seiscientos", "mayoreo", "mitad"]},
+ {"texto": "De Juicy, la de coronas es de tres piezas: camisa, short y pantalón.", "marcas": ["coronas", "tres piezas"]},
+ {"texto": "La de rayas, las dos afelpadas y la rosita de brillitos son de dos piezas: camisa y pantalón.", "marcas": ["rayas", "afelpadas", "brillitos", "dos piezas"]},
+ {"texto": "Y la fucsia de letras es Mommy and Me: una para ti y otra para tu niña.", "marcas": ["fucsia", "Mommy", "niña"]},
+ {"texto": "Las de True Religion son de tres piezas: la rosa con corazón de brillitos, la gris con herraduras y la gris con ribete negro.", "marcas": ["tres piezas", "rosa", "herraduras", "ribete"]},
+ {"texto": "Todos los sets están a seiscientos noventa y nueve pesos, y los apartas con la mitad.", "marcas": ["seiscientos", "mitad"]},
  {"texto": "Comenta el número de tu favorita.", "marcas": ["número"]},
  {"texto": "Y únete a mi grupo de WhatsApp: ahí vendo por mayoreo y aviso primero las ofertas exclusivas. El link está en alpacca punto eme equis.", "marcas": ["WhatsApp", "mayoreo", "ofertas", "link"]}
 ]

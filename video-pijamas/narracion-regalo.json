@@ -1,8 +1,9 @@
 [
  {"texto": "Si no sabes qué regalar esta Navidad, regala una pijama de Juicy Couture o de True Religion.", "marcas": ["Navidad", "Juicy", "True"]},
- {"texto": "Son suavecitas, en rosita, gris y blanco, y ya vienen con su moño, listas para regalar.", "marcas": ["suavecitas", "moño"]},
- {"texto": "Este set de Juicy, en Estados Unidos, trae precio de etiqueta de sesenta y ocho dólares.", "marcas": ["etiqueta", "sesenta y ocho"]},
- {"texto": "Conmigo, cada pijama está en seiscientos noventa y nueve pesos, a precio de mayoreo.", "marcas": ["seiscientos", "mayoreo"]},
- {"texto": "Y la apartas con la mitad, y liquidas antes de que te la envíe.", "marcas": ["apartas", "liquidas"]},
+ {"texto": "Hay sets de dos piezas, camisa y pantalón, y de tres piezas, que también traen short. Y ya vienen con su moño.", "marcas": ["dos piezas", "tres piezas", "moño"]},
+ {"texto": "Y hasta hay una Mommy and Me: una pijama para ti y otra para tu niña, igualitas.", "marcas": ["Mommy", "niña"]},
+ {"texto": "En Estados Unidos, las de Juicy traen precio de etiqueta de cincuenta y ocho y de sesenta y ocho dólares.", "marcas": ["etiqueta", "cincuenta", "sesenta"]},
+ {"texto": "Conmigo, cada set está en seiscientos noventa y nueve pesos, a precio de mayoreo.", "marcas": ["seiscientos", "mayoreo"]},
+ {"texto": "Y lo apartas con la mitad, y liquidas antes de que te lo envíe.", "marcas": ["apartas", "liquidas"]},
  {"texto": "Y únete a mi grupo de WhatsApp: ahí vendo por mayoreo y aviso primero las ofertas exclusivas. El link está en alpacca punto eme equis.", "marcas": ["WhatsApp", "mayoreo", "ofertas", "link"]}
 ]

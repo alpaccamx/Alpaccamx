@@ -5,7 +5,8 @@ IMG_6117 = el carrito lleno de sets de Juicy; fotos IMG_6106-6115 = cada set en 
 pasados a color normal (saturación 0.8) y estabilizados: est_6116.mp4, est_6117.mp4.
 Cuando la toma no muestra bien un set, el video sigue en movimiento difuminado y encima va la foto del set (nunca
 cuadros congelados ni franjas).
-Etiqueta verificada en la foto IMG_6107: Juicy Couture «3 piece pajama set», MSRP $68.00.
+Etiquetas leídas en las fotos: Juicy coronas = 3 piezas, MSRP $68; Juicy rayas, afelpadas y brillitos = 2 piezas, MSRP $58;
+Juicy fucsia de letras = Mommy & Me, MSRP $58; True Religion (corazón, herraduras, ribete) = 3 piezas.
 
 Variantes:
   regalo  = «El regalo de Navidad que sí van a usar»: regalo resuelto + anclaje (etiqueta de 68 dólares contra $699).
@@ -56,34 +57,45 @@ OUT = os.path.join(AQUI, f"Pijamas-{VAR}.mp4")
 # (centro y acercamiento), recortada del video de los lentes en su resolución original (1376x1840) para que se vea nítido.
 # 7º dato de una toma = foto del producto: cuando la toma no muestra bien el producto, el video sigue en movimiento
 # pero difuminado, y encima va la foto oficial grande (nunca un cuadro congelado ni franjas)
+# piezas leídas en la etiqueta de cada foto: 3 piezas = camisa, short y pantalón; 2 piezas = camisa y pantalón.
+# p6111 es «Mommy & Me» (pijama de mamá + pijama de niña). p6114 es el mismo set que p6106 (no se numera dos veces).
 FOTOS = {  # foto del set: (nombre, abajo, color)
-    "p6107": ("Juicy Couture · coronas", "3 piezas · MSRP $68 USD", ROSA),
-    "p6108": ("Juicy Couture · rayas", "", ROSA), "p6112": ("Juicy Couture · afelpada", "", ROSA),
-    "p6113": ("Juicy Couture · afelpada", "", ROSA), "p6111": ("Juicy Couture", "", ROSA), "p6115": ("Juicy Couture", "", ROSA),
-    "p6109": ("True Religion · herraduras", "", NEGRO), "p6110": ("True Religion · ribete negro", "", NEGRO),
-    "p6106": ("True Religion · corazón", "", NEGRO), "p6114": ("True Religion · corazón", "", NEGRO)}
+    "p6107": ("Juicy · coronas", "3 piezas: camisa, short y pantalón", ROSA),
+    "p6108": ("Juicy · rayas", "2 piezas", ROSA), "p6112": ("Juicy · afelpada", "2 piezas", ROSA),
+    "p6113": ("Juicy · afelpada", "2 piezas", ROSA), "p6115": ("Juicy · brillitos", "2 piezas", ROSA),
+    "p6111": ("Juicy · Mommy & Me", "mamá + niña", ROSA),
+    "p6106": ("True Religion · corazón", "3 piezas", NEGRO), "p6109": ("True Religion · herraduras", "3 piezas", NEGRO),
+    "p6110": ("True Religion · ribete negro", "3 piezas", NEGRO)}
 FOTO = {"k": None, "t0": 0.0}  # la foto que va encima ahora y desde cuándo ("fondo": solo difumina)
 M = (0.5, 0.52, 1.15)  # el set en la mano, al centro
 A = (0.5, 0.5, 1.0)    # toma abierta
+F = ("6116", 150.0, None, 0.5, 0.5, 1.0, "fondo")  # video difuminado de fondo (encima van las fotos)
+# en el video solo se acercan los segundos en que Mae sostiene sets que están en las fotos:
+# 0-2.7 coronas (p6107) · 46-51 brillitos (p6115) · 112.5-119 Mommy & Me (p6111) · 130-133.4 afelpada beige (p6112)
+# 139-142.4 afelpada blanca (p6113) · 157.2-159 True Religion rosa (p6106) · 261-265 rayas (p6108) · 278.8-283 ribete (p6110)
 TOMAS = {  # por frase: (fuente, inicio, segundos o None, centro x, centro y, acercamiento[, foto])
     "regalo": [[("6117", 2.5, 3.6, *A), ("6116", 0.0, None, *M)],
-               [("6116", 45.5, 2.6, *M), ("6116", 278.5, 2.4, *M), ("6116", 138.9, None, *M)],
+               [("6116", 261.0, None, *A, "fondo")],
+               [("6116", 112.5, None, *M)],
                [("6116", 150.0, None, *A, "p6107")],
-               [("6116", 113.5, None, *M)],
+               [("6116", 45.5, None, *M)],
                [("6117", 6.0, None, *A)],
-               [("6116", 238.0, 3.0, *A), ("6117", 8.5, None, *A)]],
-    "equipo": [[("6116", 0.0, 3.2, *M), ("6116", 279.0, None, *M)],
-               [("6116", 150.0, None, *A, "fondo")],
+               [("6116", 139.0, 3.4, *M), ("6117", 8.5, None, *A)]],
+    "equipo": [[("6117", 2.0, 2.8, *A), ("6116", 278.8, None, *M)],
+               [("6116", 0.0, 2.6, *M), ("6116", 150.0, None, *A, "p6107")],
                [("6116", 160.0, None, *A, "fondo")],
-               [("6116", 45.5, 3.0, *M), ("6116", 259.5, None, *M)],
+               [("6116", 112.5, None, *M)],
                [("6116", 170.0, None, *A, "fondo")],
-               [("6117", 2.0, 5.0, *A), ("6116", 238.0, None, *A)]],
+               [("6116", 261.0, 4.2, *M), ("6116", 157.2, None, *M)],
+               [("6116", 180.0, None, *A, "fondo")],
+               [("6117", 2.0, 5.0, *A), ("6116", 139.0, 3.4, *M), ("6116", 46.0, None, *M)]],
     "reventa": [[("6117", 1.0, None, *A)],
-                [("6116", 0.0, 2.8, 0.5, 0.55, 1.3), ("6116", 30.0, None, *M)],
-                [("6116", 259.5, 3.0, *M), ("6116", 112.5, None, *M)],
+                [("6116", 0.0, 2.6, *M), ("6116", 261.0, None, *M)],
+                [("6116", 190.0, None, *A, "fondo")],
+                [("6116", 278.8, 3.6, *M), ("6116", 46.0, None, *M)],
                 [("6117", 8.0, None, *A)],
                 [("6116", 129.9, 3.4, *M), ("6116", 139.0, None, *M)],
-                [("6116", 238.0, 3.0, *A), ("6116", 45.5, None, *A)]],
+                [("6116", 112.5, 3.0, *M), ("6117", 8.5, None, *A)]],
 }[VAR]
 
 def video(fuente, ini, n, cx=0.5, cy=0.5, z=1.0, foto=None):
@@ -171,7 +183,7 @@ def interrupcion(L, t, t0, texto, dur=0.9):
 # subtítulo de una palabra (blanca, sin borde); las clave, grandes en rosa con Bagel
 CLAVE = {"Navidad", "Juicy", "Couture", "True", "Religion", "suavecitas", "moño", "etiqueta", "dólares", "seiscientos",
          "mayoreo", "mitad", "liquidas", "WhatsApp", "ofertas", "exclusivas", "número", "coronas", "rayas", "afelpadas",
-         "herraduras", "ribete", "corazón", "diciembre", "pijamas", "originales", "envolver", "vendes", "favorita", "regalar"}
+         "herraduras", "ribete", "corazón", "diciembre", "pijamas", "originales", "envolver", "vendes", "favorita", "regalar", "Mommy", "piezas", "short", "niña"}
 
 def _palabras():
     v = open(os.path.join(AQUI, "voz.py")).read()
@@ -306,20 +318,25 @@ def sello(L, txt, t, t0, cy=1290, bg=ROSA, cx=W / 2 + 200):
     s, a = b.entra(t, t0, 0.35); b.pon(L, im, cx, cy, 1.6 - 0.6 * b.ease((t - t0) / 0.25), a)
 
 
-def rejilla(L, t, fotos, t0s, numeros, y0=520, cols=3, ancho=300):
-    """tarjetas numeradas de los sets (catálogo); cada una entra en su momento"""
+def rejilla(L, t, fotos, t0s, numeros=None, y0=520, cols=3, ancho=300, etiqueta=True):
+    """tarjetas de los sets (con su número y cuántas piezas trae); cada una entra en su momento"""
     paso = (W - 60) / cols
-    for k, (f, t0, n) in enumerate(zip(fotos, t0s, numeros)):
+    for k, (f, t0) in enumerate(zip(fotos, t0s)):
         if t < t0: continue
         tj = foto_tarjeta(f, ancho, 1.2)
-        c = Image.new("RGBA", tj.size); c.alpha_composite(tj); d = ImageDraw.Draw(c)
-        d.ellipse((14, 14, 92, 92), fill=ROSA if f in ("p6107", "p6108", "p6112", "p6113", "p6111", "p6115") else NEGRO, outline=WHITE, width=5)
-        d.text((53, 52), str(n), font=ImageFont.truetype(os.path.join(FUENTES, "BagelFatOne-Regular.ttf"), 50), fill=WHITE, anchor="mm")
-        b.pon(L, c, 30 + paso * (k % cols + 0.5), y0 + (k // cols) * (ancho * 1.2 + 70), *b.entra(t, t0, 0.35))
+        c = Image.new("RGBA", (tj.width, tj.height + (60 if etiqueta else 0))); c.alpha_composite(tj); d = ImageDraw.Draw(c)
+        col = ROSA if f in JUICY else NEGRO
+        if numeros:
+            d.ellipse((14, 14, 92, 92), fill=col, outline=WHITE, width=5)
+            d.text((53, 52), str(numeros[k]), font=ImageFont.truetype(os.path.join(FUENTES, "BagelFatOne-Regular.ttf"), 50), fill=WHITE, anchor="mm")
+        if etiqueta:
+            pz = b.pastilla(FOTOS[f][1].split(":")[0], "ExtraBold", 30 if ancho >= 260 else 24, col, WHITE, padx=16, pady=6)
+            c.alpha_composite(pz, ((c.width - pz.width) // 2, tj.height - 30))
+        b.pon(L, c, 30 + paso * (k % cols + 0.5), y0 + (k // cols) * (c.height + 20), *b.entra(t, t0, 0.35))
 
 
-JUICY = ["p6107", "p6108", "p6112", "p6113", "p6111", "p6115"]
-TR = ["p6109", "p6110", "p6106", "p6114"]
+JUICY = ["p6107", "p6108", "p6112", "p6113", "p6115", "p6111"]
+TR = ["p6106", "p6109", "p6110"]
 
 
 def capa_regalo(L, t):
@@ -327,20 +344,24 @@ def capa_regalo(L, t):
     if e == 0:
         gancho(L, t, "¿No sabes qué regalar?", "🎁 Pijamas Juicy Couture y True Religion", marca(0, 1) - 0.3)
     if e == 1:
-        pas(L, "☁️ Suavecitas", 330, t, marca(1, 0), sz=60)
-        chips(L, ["rosita", "gris", "blanco"], 460, t, marca(1, 0) + 0.8, sep=0.5)
-        pas(L, "🎀 Ya vienen con moño", 590, t, marca(1, 1) - 0.2, sz=56, bg=WHITE, fg=ROSA)
+        rejilla(L, t, ["p6108", "p6107"], [marca(1, 0) - 0.3, marca(1, 1) - 0.3], y0=1000, cols=2, ancho=420)
+        pas(L, "2 piezas: camisa y pantalón", 330, t, marca(1, 0) - 0.3, sz=50, bg=WHITE, fg=NEGRO)
+        pas(L, "3 piezas: camisa, short y pantalón", 460, t, marca(1, 1) - 0.3, sz=50)
+        pas(L, "🎀 Ya vienen con su moño", 1430, t, marca(1, 2) - 0.2, sz=52, bg=NEGRO)
     if e == 2:
-        pas(L, "Precio de etiqueta en EE. UU.", 330, t, INI[2] + 0.3, sz=54, bg=WHITE, fg=NEGRO)
-        sello(L, "68 dólares", t, marca(2, 1) - 0.1, cy=1530, cx=W / 2)
+        pas(L, "Mommy & Me 👩‍👧", 330, t, INI[2] + 0.2, sz=64)
+        pas(L, "una para ti y otra para tu niña", 460, t, marca(2, 1) - 0.4, sz=50, bg=WHITE, fg=NEGRO)
     if e == 3:
-        pas(L, "Conmigo 💗", 330, t, INI[3] + 0.1, sz=60, bg=WHITE, fg=ROSA)
-        sello(L, "$699", t, marca(3, 0) - 0.1, cy=520, cx=W / 2)
-        pas(L, "precio de mayoreo", 700, t, marca(3, 1) - 0.1, sz=52, bg=NEGRO)
+        pas(L, "Precio de etiqueta en EE. UU.", 300, t, INI[3] + 0.2, sz=52, bg=WHITE, fg=NEGRO)
+        chips(L, ["2 piezas: MSRP $58", "3 piezas: MSRP $68"], 1560, t, marca(3, 1) - 0.1, sep=0.7)
     if e == 4:
-        pas(L, "Apártala con la mitad", 330, t, marca(4, 0) - 0.1, sz=60)
-        pas(L, "y liquidas antes de que te la envíe", 460, t, marca(4, 1) - 0.1, sz=46, bg=WHITE, fg=NEGRO)
-    subtitulo(L, t)
+        pas(L, "Conmigo 💗", 330, t, INI[4] + 0.1, sz=60, bg=WHITE, fg=ROSA)
+        sello(L, "$699", t, marca(4, 0) - 0.1, cy=520, cx=W / 2)
+        pas(L, "cada set · precio de mayoreo", 700, t, marca(4, 1) - 0.1, sz=50, bg=NEGRO)
+    if e == 5:
+        pas(L, "Apártalo con la mitad", 330, t, marca(5, 0) - 0.1, sz=60)
+        pas(L, "y liquidas antes de que te lo envíe", 460, t, marca(5, 1) - 0.1, sz=46, bg=WHITE, fg=NEGRO)
+    if e != 1: subtitulo(L, t)
 
 
 def capa_equipo(L, t):
@@ -348,20 +369,27 @@ def capa_equipo(L, t):
     if e == 0:
         gancho(L, t, "¿Juicy o True Religion?", "Elige tu pijama 👇", marca(0, 2) - 0.2)
     if e == 1:
-        pas(L, "Juicy Couture", 300, t, INI[1], sz=64)
-        rejilla(L, t, JUICY, [INI[1] + 0.2 + 0.35 * k for k in range(6)], range(1, 7), y0=640)
+        pas(L, "1 · Juicy coronas", 300, t, INI[1] + 0.1, sz=58)
+        chips(L, ["camisa", "short", "pantalón"], 1590, t, marca(1, 1), sep=0.4)
     if e == 2:
-        pas(L, "True Religion", 300, t, INI[2], sz=64, bg=NEGRO)
-        rejilla(L, t, TR, [INI[2] + 0.2 + 0.45 * k for k in range(4)], range(7, 11), y0=640, cols=2, ancho=360)
+        pas(L, "Juicy · 2 piezas: camisa y pantalón", 300, t, INI[2], sz=50)
+        rejilla(L, t, ["p6108", "p6112", "p6113", "p6115"], [marca(2, 0) - 0.2, marca(2, 1) - 0.2, marca(2, 1) + 0.3, marca(2, 2) - 0.2],
+                [2, 3, 4, 5], y0=700, cols=2, ancho=360)
     if e == 3:
-        pas(L, "Todas a", 330, t, INI[3] + 0.1, sz=56, bg=WHITE, fg=NEGRO)
-        sello(L, "$699", t, marca(3, 0) - 0.1, cy=520, cx=W / 2)
-        pas(L, "precio de mayoreo", 700, t, marca(3, 1) - 0.1, sz=50, bg=NEGRO)
-        pas(L, "Apártala con la mitad", 830, t, marca(3, 2) - 0.1, sz=50)
+        pas(L, "6 · Mommy & Me 👩‍👧", 330, t, marca(3, 1) - 0.3, sz=62)
+        pas(L, "una para ti y otra para tu niña", 460, t, marca(3, 2) - 0.3, sz=50, bg=WHITE, fg=NEGRO)
     if e == 4:
-        pas(L, "Comenta el NÚMERO de tu favorita 👇", 300, t, INI[4], sz=50)
-        rejilla(L, t, JUICY + TR, [INI[4] + 0.04 * k for k in range(10)], range(1, 11), y0=580, cols=4, ancho=215)
-    if e not in (1, 2, 4): subtitulo(L, t)
+        pas(L, "True Religion · 3 piezas", 300, t, INI[4], sz=56, bg=NEGRO)
+        chips(L, ["camisa", "short", "pantalón"], 420, t, marca(4, 0), sep=0.3)
+        rejilla(L, t, TR, [marca(4, 1) - 0.2, marca(4, 2) - 0.2, marca(4, 3) - 0.2], [7, 8, 9], y0=760, cols=3, ancho=300)
+    if e == 5:
+        pas(L, "Todos los sets a", 330, t, INI[5] + 0.1, sz=56, bg=WHITE, fg=NEGRO)
+        sello(L, "$699", t, marca(5, 0) - 0.1, cy=520, cx=W / 2)
+        pas(L, "Apártalo con la mitad", 700, t, marca(5, 1) - 0.1, sz=52)
+    if e == 6:
+        pas(L, "Comenta el NÚMERO de tu favorita 👇", 300, t, INI[6], sz=50)
+        rejilla(L, t, JUICY + TR, [INI[6] + 0.04 * k for k in range(9)], list(range(1, 10)), y0=600, cols=3, ancho=230)
+    if e not in (2, 6): subtitulo(L, t)
 
 
 def capa_reventa(L, t):
@@ -370,18 +398,21 @@ def capa_reventa(L, t):
         gancho(L, t, "¿Vendes ropa?", "Esto es lo que más se pide en diciembre", marca(0, 1) - 0.3)
     if e == 1:
         chips(L, ["Juicy Couture", "True Religion"], 330, t, marca(1, 0) + 0.1, sep=0.6)
-        pas(L, "✅ Originales, con moño y etiqueta", 460, t, marca(1, 2) - 0.1, sz=50, bg=WHITE, fg=NEGRO)
+        pas(L, "✅ Originales, con su etiqueta", 460, t, marca(1, 2) - 0.1, sz=50, bg=WHITE, fg=NEGRO)
     if e == 2:
-        sello(L, "$699 c/u", t, marca(2, 0) - 0.1, cy=360, cx=W / 2)
-        pas(L, "precio de mayoreo", 550, t, marca(2, 1) - 0.1, sz=52, bg=NEGRO)
-        pas(L, "💸 Tú le pones tu precio", 680, t, marca(2, 2) - 0.1, sz=54)
+        pas(L, "Para que tus clientas escojan", 300, t, INI[2], sz=50, bg=WHITE, fg=NEGRO)
+        rejilla(L, t, ["p6108", "p6107", "p6111"], [marca(2, 0) - 0.2, marca(2, 1) - 0.2, marca(2, 2) - 0.2], y0=820, cols=3, ancho=320)
     if e == 3:
-        pas(L, "Apártalas con la mitad", 330, t, marca(3, 1) - 0.2, sz=60)
-        pas(L, "y liquidas antes de que te las envíe", 460, t, marca(3, 2) - 0.1, sz=46, bg=WHITE, fg=NEGRO)
+        sello(L, "$699 c/u", t, marca(3, 0) - 0.1, cy=360, cx=W / 2)
+        pas(L, "precio de mayoreo", 550, t, marca(3, 1) - 0.1, sz=52, bg=NEGRO)
+        pas(L, "💸 Tú le pones tu precio", 680, t, marca(3, 2) - 0.1, sz=54)
     if e == 4:
-        pas(L, "🎀 Listas para regalar", 330, t, marca(4, 0) - 0.2, sz=60)
-        pas(L, "tus clientas no envuelven nada", 460, t, marca(4, 1) - 0.2, sz=48, bg=WHITE, fg=NEGRO)
-    subtitulo(L, t)
+        pas(L, "Apártalos con la mitad", 330, t, marca(4, 1) - 0.2, sz=60)
+        pas(L, "y liquidas antes de que te los envíe", 460, t, marca(4, 2) - 0.1, sz=46, bg=WHITE, fg=NEGRO)
+    if e == 5:
+        pas(L, "🎀 Listos para regalar", 330, t, marca(5, 0) - 0.2, sz=60)
+        pas(L, "tus clientas no envuelven nada", 460, t, marca(5, 1) - 0.2, sz=48, bg=WHITE, fg=NEGRO)
+    if e != 2: subtitulo(L, t)
 
 
 VERDE_WA = (37, 211, 102)
@@ -461,8 +492,8 @@ def prueba(ts, ruta):
 
 PORTADA = {  # (fuente, segundo, renglón 1, renglón 2, pastilla, productos)
     "regalo": ("6117", 3.0, "El regalo que", "SÍ van a usar", "🎁 Pijamas Juicy y True Religion · $699", ["p6107", "p6109", "p6113"]),
-    "equipo": ("6116", 150.0, "¿Juicy o", "True Religion?", "Elige tu pijama · $699 c/u 👇", ["p6108", "p6106", "p6112", "p6110"]),
-    "reventa": ("6117", 8.0, "¿Vendes ropa?", "Esto se vende en diciembre", "Pijamas de marca a $699 (mayoreo)", ["p6107", "p6114", "p6115"]),
+    "equipo": ("6116", 150.0, "¿Juicy o", "True Religion?", "Elige tu pijama · $699 c/u 👇", ["p6108", "p6106", "p6111", "p6110"]),
+    "reventa": ("6117", 8.0, "¿Vendes ropa?", "Esto se vende en diciembre", "Pijamas de marca a $699 (mayoreo)", ["p6107", "p6106", "p6115"]),
 }
 
 
