@@ -463,7 +463,8 @@ async function todoDe(email) {
   const [paquetes, compras, envios] = await Promise.all([
     listRecords("paquete", { email }), listRecords("compra", { email }), listRecords("envio", { email }),
   ]);
-  return { paquetes, compras, envios };
+  // Una compra "unida" (ej. el cobro de una diferencia) ya vive dentro de otra.
+  return { paquetes, compras: compras.filter((c) => !c.unidaA), envios };
 }
 
 module.exports = {

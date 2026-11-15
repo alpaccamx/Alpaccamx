@@ -111,7 +111,7 @@ exports.handler = async (event) => {
     try {
       const juntar = (await listRecords("juntar").catch(() => [])).filter((j) => j.status === "pendiente");
       const [paquetes, compras, envios, casilleros, tiposCambio] = await Promise.all([listRecords("paquete"), listRecords("compra"), listRecords("envio"), todosLosCasilleros(), tiposDeCambio()]);
-      return json(200, { paquetes, compras, envios, juntar, casilleros, tiposCambio, comisionPct: COMISION_PCT, almacenajeDias: ALMACENAJE_DIAS, almacenajeAntes: ALMACENAJE_ANTES, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
+      return json(200, { paquetes, compras: compras.filter((c) => !c.unidaA), envios, juntar, casilleros, tiposCambio, comisionPct: COMISION_PCT, almacenajeDias: ALMACENAJE_DIAS, almacenajeAntes: ALMACENAJE_ANTES, cargoSinRegistro: CARGO_SIN_REGISTRO, diasSinDuena: DIAS_SIN_DUENA });
     } catch (err) {
       console.error("admin-swm GET:", err);
       return json(500, { error: "No se pudo cargar la dirección americana." });
@@ -338,6 +338,31 @@ exports.handler = async (event) => {
           <p style="font-size:14px;">Productos: <b>${formatPriceMXN(q.productos)}</b>${q.cruce ? `<br>Cruce a México (15%): <b>${formatPriceMXN(q.cruce)}</b>` : ""}${q.ajuste ? `<br>Ajuste a tu favor: <b>−${formatPriceMXN(q.ajuste)}</b>` : ""}<br>Total: <b>${formatPriceMXN(q.total)}</b> (ya pagado ✅)</p>
           <p style="font-size:14px;">No tienes que pagar nada más 💗</p>
           <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=direccion-americana&compra=${rec.id}">Ver mi compra</a></p>`).catch(() => {});
+        return json(200, { compra: rec });
+      }
+
+      case "unir_compra": {
+        // Una compra aparte que en realidad es parte de otra (ej. la
+        // diferencia de precio que se cobró después): su pago se suma a la
+        // compra principal y la aparte deja de mostrarse.
+        const extra = await getRecord("compra", id);
+        const principal = await getRecord("compra", String(b.a || ""));
+        if (!extra || !principal) return json(404, { error: "No existe esa compra." });
+        if (extra.id === principal.id || extra.email !== principal.email) return json(400, { error: "Tienen que ser dos compras de la misma clienta." });
+        if (!extra.pago || extra.pago.status !== "pagado" || !principal.pago || principal.pago.status !== "pagado") return json(409, { error: "Las dos compras tienen que estar pagadas." });
+        if (extra.unidaA) return json(409, { error: `Ya está unida a ${extra.unidaA}.` });
+        const monto = round2(extra.pago.monto || 0);
+        const rec = await mutateRecord("compra", principal.id, (c) => {
+          const q = c.cotizacion || {};
+          const ajuste = round2(Math.max(0, (q.ajuste || 0) - monto));
+          c.cotizacion = { ...q, total: round2((q.total || 0) + monto), ...(q.ajuste ? { ajuste } : {}) };
+          if (c.cotizacion.ajuste === 0) { delete c.cotizacion.ajuste; delete c.cotizacion.totalSinAjuste; }
+          c.pago = { ...c.pago, monto: round2((c.pago.monto || 0) + monto),
+            extras: [...(c.pago.extras || []), { folio: extra.folio, id: extra.id, monto, metodo: extra.pago.metodo || "", paidAt: extra.pago.paidAt || "" }] };
+          push(c, c.status, { unida: extra.folio, monto });
+          return c;
+        });
+        await mutateRecord("compra", extra.id, (c) => { c.unidaA = principal.folio; push(c, c.status, { unidaA: principal.folio }); return c; });
         return json(200, { compra: rec });
       }
 
