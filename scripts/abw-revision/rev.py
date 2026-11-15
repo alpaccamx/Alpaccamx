@@ -186,7 +186,7 @@ def revisar(marca, rows, lst, known, F, ocultos=False):
             if o is None and known.get(sku):
                 kp = known[sku]; o = opt.get(kp)
                 if o is None:
-                    d = F.page(kp); checked = bool(d and (d.get("status") in (404, 410) or (d.get("status") == 200 and not d.get("og_title"))))
+                    d = F.page(kp); checked = bool(d and d.get("status") in (404, 410))
                     for oo in (d or {}).get("options") or []: opt[str(oo["productId"])] = oo
                     o = opt.get(kp)
         else:
@@ -196,10 +196,10 @@ def revisar(marca, rows, lst, known, F, ocultos=False):
                 if o is None:
                     d = F.page(p)
                     # Solo cuenta como "ya no existe" si ABW de verdad no tiene la
-                    # página (404/410, o 200 sin título = te manda al inicio). Si
+                    # página (404/410). Un 200 sin título puede ser un bloqueo. Si
                     # la página carga con su título, el producto SÍ existe aunque
                     # no se hayan podido leer sus opciones: eso queda sin revisar.
-                    checked = bool(d and (d.get("status") in (404, 410) or (d.get("status") == 200 and not d.get("og_title"))))
+                    checked = bool(d and d.get("status") in (404, 410))
                     for oo in (d or {}).get("options") or []: opt[str(oo["productId"])] = oo
                     o = opt.get(p)
         antes = {"usd": usd(r.get("Precio USD")), "disp": (r.get("Disponible") or "").strip().upper() or "SI"}
