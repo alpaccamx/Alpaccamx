@@ -627,6 +627,7 @@ function swmCompraCardHTML(c) {
       <div class="flex justify-between"><span>Productos</span><span class="tabular-nums">${swmMXN(q.productos)}</span></div>
       ${q.cruce ? `<div class="flex justify-between"><span>Cruce a México (15%)</span><span class="tabular-nums">${swmMXN(q.cruce)}</span></div>` : ""}
       ${q.descuento ? `<div class="flex justify-between text-rose-ink"><span>Cupón ${escapeHtml(q.cupon)}</span><span class="tabular-nums">−${swmMXN(q.descuento)}</span></div>` : ""}
+      ${q.ajuste ? `<div class="flex justify-between text-rose-ink"><span>Ajuste a tu favor</span><span class="tabular-nums">−${swmMXN(q.ajuste)}</span></div>` : ""}
       <div class="flex justify-between font-semibold border-t border-ink/10 pt-1"><span>Total</span><span class="tabular-nums">${swmMXN(q.total)}</span></div></div>` : "";
   const [siguiente, accion] = swmCotSiguiente(c, "Mae está armando tu cotización", { pagado: "Mae hará tu compra pronto", comprado: "Tus productos van a la bodega", cancelado: "Cancelada" });
   return swmCardHTML({ key: `compra:${c.id}`, id: `swm-compra-${c.id}`, folio: c.folio, pill: swmPill(SWM_COMPRA_STATUS, c.status),

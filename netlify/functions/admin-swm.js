@@ -307,6 +307,40 @@ exports.handler = async (event) => {
         return json(200, { compra: rec, tieneCuenta: Boolean(cuenta) });
       }
 
+      case "corregir_pagada": {
+        // Compra ya pagada, todavía sin comprar: Mae ve los precios reales en
+        // la tienda y corrige los artículos. Lo pagado no cambia: si lo real
+        // sale más caro, la diferencia queda como "ajuste a tu favor".
+        const actual = await getRecord("compra", id);
+        if (!actual) return json(404, { error: "No existe esa compra." });
+        const tc = (actual.cotizacion && actual.cotizacion.tipoCambio) || (await tiposDeCambio()).USD;
+        const taxPct = b.taxPct === "" || b.taxPct == null ? 8.25 : Math.max(0, num(b.taxPct));
+        const items = leerItems(b.items, tc, taxPct);
+        if (!items.length) return json(400, { error: "Pon al menos un artículo con su precio." });
+        const productos = round2(items.reduce((t, x) => t + x.precio * x.cantidad, 0));
+        let error = "";
+        const rec = await mutateRecord("compra", id, (c) => {
+          if (c.status !== "pagado" || !c.pago || c.pago.status !== "pagado") { error = "Solo se corrige una compra pagada que todavía no se compra."; return null; }
+          const cruce = c.cobro === "comision" ? crucePorComision(productos) : 0;
+          const pagado = round2(c.pago.monto || (c.cotizacion && c.cotizacion.total) || 0);
+          const base = round2(productos + cruce);
+          if (base < pagado) { error = `Con estos precios sale en ${formatPriceMXN(base)}, menos de lo que pagó (${formatPriceMXN(pagado)}).`; return null; }
+          c.cotizacion = { ...(c.cotizacion || {}), items, productos, cruce, tipoCambio: tc, taxPct, at: now(),
+            ajuste: round2(base - pagado), totalSinAjuste: base, total: pagado };
+          push(c, "corregido");
+          return c;
+        });
+        if (!rec || error) return json(409, { error: error || "No se pudo corregir." });
+        const q = rec.cotizacion;
+        await avisar(rec, `corregí tu compra ${rec.folio}`, `
+          <h2 style="margin:0 0 8px;font-size:20px;">Corregí tu compra con los precios reales</h2>
+          <p style="font-size:14px;">${q.items.map((x) => `${x.cantidad} × ${esc(x.nombre)}${x.tono ? ` · ${esc(x.tono)}` : ""}`).join("<br>")}</p>
+          <p style="font-size:14px;">Productos: <b>${formatPriceMXN(q.productos)}</b>${q.cruce ? `<br>Cruce a México (15%): <b>${formatPriceMXN(q.cruce)}</b>` : ""}${q.ajuste ? `<br>Ajuste a tu favor: <b>−${formatPriceMXN(q.ajuste)}</b>` : ""}<br>Total: <b>${formatPriceMXN(q.total)}</b> (ya pagado ✅)</p>
+          <p style="font-size:14px;">No tienes que pagar nada más 💗</p>
+          <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=direccion-americana&compra=${rec.id}">Ver mi compra</a></p>`).catch(() => {});
+        return json(200, { compra: rec });
+      }
+
       case "cotizar_compra": {
         const productos = round2(num(b.productos));
         if (!productos) return json(400, { error: "Pon el costo de los productos." });
