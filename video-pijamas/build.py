@@ -77,13 +77,13 @@ F = ("6116", 150.0, None, 0.5, 0.5, 1.0, "fondo")  # video difuminado de fondo (
 # 0-2.7 coronas (p6107) · 46-51 brillitos (p6115) · 112.5-119 fucsia de letras (p6111) · 130-133.4 afelpada beige (p6112)
 # 139-142.4 afelpada blanca (p6113) · 157.2-159 True Religion rosa (p6106) · 261-265 rayas (p6108) · 278.8-283 ribete (p6110)
 TOMAS = {  # por frase: (fuente, inicio, segundos o None, centro x, centro y, acercamiento[, foto])
-    "regalo": [[("6117", 2.5, 3.6, *A), ("6116", 0.0, None, *M)],
+    "regalo": [[("6117", 2.5, 3.6, *A), ("6116", 0.0, 1.25, *M), ("6116", 157.3, None, *M)],  # Juicy y True Religion cuando se dicen
                [("6116", 261.0, None, *A, "fondo")],
                [("6116", 150.0, None, *A, "p6107")],
                [("6116", 112.5, None, *M)],
                [("6117", 6.0, None, *A)],
                [("6116", 139.0, 3.4, *M), ("6117", 8.5, None, *A)]],
-    "equipo": [[("6117", 2.0, 2.8, *A), ("6116", 278.8, None, *M)],
+    "equipo": [[("6117", 2.0, 2.2, *A), ("6116", 278.8, None, *M)],  # el carrito (Juicy) y la True Religion al decir «True»
                [("6116", 0.0, 2.6, *M), ("6116", 150.0, None, *A, "p6107")],
                [("6116", 160.0, None, *A, "fondo")],
                [("6116", 170.0, None, *A, "fondo")],
@@ -91,9 +91,9 @@ TOMAS = {  # por frase: (fuente, inicio, segundos o None, centro x, centro y, ac
                [("6116", 180.0, None, *A, "fondo")],
                [("6117", 2.0, 5.0, *A), ("6116", 139.0, 3.4, *M), ("6116", 46.0, None, *M)]],
     "reventa": [[("6117", 1.0, None, *A)],
-                [("6116", 0.0, 2.6, *M), ("6116", 261.0, None, *M)],
+                [("6116", 0.0, 1.15, *M), ("6116", 278.8, None, *M)],  # Juicy coronas y la True Religion al decir «True»
                 [("6116", 190.0, None, *A, "fondo")],
-                [("6116", 278.8, 3.6, *M), ("6116", 46.0, None, *M)],
+                [("6116", 157.3, 1.7, *M), ("6116", 261.0, 2.2, *M), ("6116", 46.0, None, *M)],
                 [("6117", 8.0, None, *A)],
                 [("6116", 129.9, 3.4, *M), ("6116", 139.0, None, *M)],
                 [("6116", 112.5, 3.0, *M), ("6117", 8.5, None, *A)]],
@@ -1340,7 +1340,7 @@ def _junta_web(pal):
         else: out.append(pal[i]); i += 1
     return out
 # las cantidades que la voz dice con letra, en el subtítulo van con número
-NUMEROS = [("mil doscientos sesenta y un", "$1,261"), ("mil setenta y seis", "$1,076"), ("seiscientos noventa y nueve", "$699"),
+NUMEROS = [("fiusha", "fucsia"), ("mil doscientos sesenta y un", "$1,261"), ("mil setenta y seis", "$1,076"), ("seiscientos noventa y nueve", "$699"),
            ("trescientos setenta y siete", "$377"), ("quinientos sesenta y dos", "$562"), ("cincuenta y ocho", "58"),
            ("sesenta y ocho", "68")]
 def _junta_numeros(pal):
