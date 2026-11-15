@@ -1,6 +1,6 @@
 # 5 carruseles de temporada (15 de noviembre de 2026)
 
-Formato: inspirado en «¿vende o aburre?» de fania studio (portada tipo collage, burbuja de chat, estrellas, corazón con foto, carpetas, slides divididos en dos). Todo va en los colores y la letra de alpacca.mx.
+Diseños: cada carrusel tiene su propio estilo para que el feed no se vea repetido, pero todos van en los colores y la letra de alpacca.mx. Historias: collage tipo «¿vende o aburre?» de fania studio. Regalos: etiquetas de regalo colgadas en papel de lunares. Pijamas: revista. Calendarios: hoja de calendario. Cómo comprar: tutorial lila con números grandes.
 Tamaño: 1080x1350 (4:5), que es el que más espacio ocupa en el feed. En TikTok súbelos como carrusel de fotos.
 Precios: tu sección Stock en México del 15 de noviembre. Pijamas a $699, apartado con la mitad. Si se vende algo de lo que dice «quedan 2», avísame y lo corrijo.
 

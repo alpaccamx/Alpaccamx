@@ -269,139 +269,302 @@ def historias():
     cierre_grupo(c, 6, "¿Revendes?", "Pijamas Juicy y True Religion, DAISE, mists y más, por mayoreo desde 1 pieza.")
 
 
-# ======================= 2 · Regalos de Navidad por presupuesto =======================
-def slide_rango(c, n, rango, productos, semilla):
-    L = papel(BLUSH, semilla)
-    adornos(L, [(90, 120, 60), (990, 130, 70), (1000, 1150, 56)], semilla)
-    pon(L, titulo_marca(rango, 120, ROSA_P), W / 2, 150)
-    cols = 2; aw, ah = 440, 470
-    for k, (foto, nom, precio) in enumerate(productos):
-        cx = W / 2 + (k % cols - 0.5) * (aw + 40) if len(productos) > 1 else W / 2; cy = 470 + (k // cols) * (ah + 70)
-        pon(L, foto_tarjeta(foto, aw, ah - 60, fondo_blanco=True), cx, cy - 20)
-        pon(L, pastilla(nom, 26, BLANCO, TINTA, 20, 10), cx, cy + ah / 2 - 50)
-        pon(L, pastilla(precio, 34, ROSA_P, BLANCO, 22, 10), cx + aw / 2 - 70, cy - ah / 2 + 30)
-    pie(L, True); guardar(L, c, n)
+# ---------------- piezas comunes a los estilos nuevos ----------------
+def plano(col): return Image.new("RGBA", (W, H), col + (255,))
+
+
+def lunares(bg, dot, sep=96, r=7):
+    """papel de regalo: fondo liso con lunares en tresbolillo"""
+    L = plano(bg); d = ImageDraw.Draw(L)
+    for j, y in enumerate(range(-sep, H + sep, sep)):
+        for x in range(-sep, W + sep, sep):
+            x2 = x + (sep // 2 if j % 2 else 0); d.ellipse((x2 - r, y - r, x2 + r, y + r), fill=dot + (255,))
+    return L
+
+
+def cuadricula_puntos(bg, col, sep=54, r=3, a=70):
+    L = plano(bg); capa = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(capa)
+    for y in range(sep // 2, H, sep):
+        for x in range(sep // 2, W, sep): d.ellipse((x - r, y - r, x + r, y + r), fill=col + (a,))
+    L.alpha_composite(capa); return L
+
+
+def espaciado(s, sz, col, track=0.16, peso="SemiBold"):
+    f = fi(sz, peso); sp = sz * track; w = sum(f.getlength(ch) for ch in s) + sp * (len(s) - 1); asc, desc = f.getmetrics()
+    im = Image.new("RGBA", (int(w) + 6, asc + desc + 6)); d = ImageDraw.Draw(im); x = 3
+    for ch in s: d.text((x, 3 + asc), ch, font=f, fill=col, anchor="ls"); x += f.getlength(ch) + sp
+    return im.crop(im.getbbox() or (0, 0, 1, 1))
+
+
+def izq(L, im, x, cy): L.alpha_composite(im, (int(x), int(cy - im.height / 2)))
+def der(L, im, x, cy): L.alpha_composite(im, (int(x - im.width), int(cy - im.height / 2)))
+
+
+def recorte(foto, w, h, centrado=(0.5, 0.45), blanco=False):
+    im = Image.open(os.path.join(FOTOS, foto)).convert("RGB")
+    im = ImageOps.pad(im, (w, h), Image.LANCZOS, color=(255, 255, 255)) if blanco else ImageOps.fit(im, (w, h), Image.LANCZOS, centering=centrado)
+    return im.convert("RGBA")
+
+
+def contorno(s, sz, col, grosor=6, a=255):
+    f = fm(sz); asc, desc = f.getmetrics(); im = Image.new("RGBA", (int(f.getlength(s)) + 40, asc + desc + 40))
+    ImageDraw.Draw(im).text((20, 20), s, font=f, fill=(0, 0, 0, 0), stroke_width=grosor, stroke_fill=col + (a,))
+    return im.crop(im.getbbox())
+
+
+def cierre(c, n, L, titulo, sub, col_tit=BLANCO, col_sub=BLANCO, p1=(BLANCO, ROSA_I), p2=(ROSA_P, BLANCO), col_link=BLANCO, y_tit=200, extra=None):
+    """invitación al grupo: QR grande arriba y la pastilla rosa «Únete a mi grupo de WhatsApp» abajo"""
+    sys.path.insert(0, os.path.dirname(AQUI)); import whatsapp
+    pon(L, titulo_marca(titulo, 96, col_tit, sh=col_tit == BLANCO), W / 2, y_tit)
+    pon(L, parrafo(sub, fi(38, "SemiBold"), col_sub, 900), W / 2, 330)
+    pon(L, whatsapp.tarjeta(380), W / 2, 680)
+    if extra: extra(L)
+    pon(L, pastilla("Únete a mi grupo de WhatsApp 💬", 42, *p1), W / 2, 960)
+    pon(L, pastilla("📦 Precio de mayoreo   🔥 Ofertas exclusivas", 32, *p2), W / 2, 1070)
+    pon(L, texto("Link en alpacca.mx 👆", fi(36, "Bold"), col_link), W / 2, 1170)
+    guardar(L, c, n)
+
+
+# ======================= 2 · Regalos por presupuesto — estilo «etiquetas de regalo» =======================
+def etiqueta(foto, nombre, precio, w=420, h=440, cuerda=44):
+    im = Image.new("RGBA", (w, h + cuerda)); d = ImageDraw.Draw(im); y0 = cuerda; ch = 56
+    d.polygon([(ch, y0), (w - ch, y0), (w - 1, y0 + ch), (w - 1, y0 + h - 1), (0, y0 + h - 1), (0, y0 + ch)], fill=BLANCO + (255,), outline=BLUSH + (255,), width=6)
+    hx, hy = w // 2, y0 + 34
+    d.line((hx, 0, hx, hy), fill=ROSA_P + (255,), width=5)
+    d.ellipse((hx - 15, hy - 15, hx + 15, hy + 15), fill=BLUSH + (255,), outline=LILA + (255,), width=5)
+    if foto:
+        f = recorte(foto, w - 70, 205, blanco=True); im.alpha_composite(f, (35, y0 + 62))
+        t = parrafo(nombre, fi(26, "Bold"), TINTA, w - 50); im.alpha_composite(t, (25, y0 + 277))
+        p = titulo_marca(precio, 54, ROSA_P, sh=False); im.alpha_composite(p, ((w - p.width) // 2, y0 + h - p.height - 18))
+    return im
+
+
+def colgar(L, tags, y_cuerda, xs, giros):
+    d = ImageDraw.Draw(L)
+    for t, x, g in zip(tags, xs, giros):
+        r = sombra(t.rotate(g, expand=True, resample=Image.BICUBIC, center=(t.width / 2, 0)), 12, 90, 10)
+        L.alpha_composite(r, (int(x - r.width / 2), int(y_cuerda - 24)))
+        d.ellipse((x - 10, y_cuerda - 6, x + 10, y_cuerda + 14), fill=ROSA_I + (255,))
+
+
+def mono(sz):
+    """moño de listón (rosa con orilla rosa profundo)"""
+    im = Image.new("RGBA", (sz, sz)); c = sz / 2
+    for lado in (-1, 1):
+        lazo = Image.new("RGBA", (sz, sz)); d = ImageDraw.Draw(lazo)
+        d.ellipse((c - sz * 0.24, c - sz * 0.15, c + sz * 0.24, c + sz * 0.15), fill=ROSA + (255,), outline=ROSA_P + (255,), width=max(4, sz // 45))
+        lazo = lazo.rotate(-lado * 28, resample=Image.BICUBIC); im.alpha_composite(lazo, (int(lado * sz * 0.2), int(-sz * 0.06)))
+        d = ImageDraw.Draw(im); d.polygon([(c, c), (c + lado * sz * 0.13, c + sz * 0.42), (c + lado * sz * 0.26, c + sz * 0.36)], fill=ROSA_P + (255,))
+    d = ImageDraw.Draw(im); d.ellipse((c - sz * 0.08, c - sz * 0.1, c + sz * 0.08, c + sz * 0.06), fill=ROSA_I + (255,))
+    return im
 
 
 def regalos():
     c = "regalos"
-    L = papel(ROSA, 21)
-    adornos(L, [(150, 170, 90), (930, 190, 100), (130, 1060, 70), (960, 1100, 80)], 21)
-    pon(L, burbuja("Guía para no fallar 🎁"), W / 2, 170)
-    pon(L, titulo_marca("Regalos", 200), W / 2, 330)
-    pon(L, titulo_marca("por presupuesto", 96, BLUSH), W / 2, 480)
-    for k, (f, x, g) in enumerate([("jcb.webp", 230, -6), ("daise-lip.jpg", 540, 2), ("p6106.jpg", 850, 6)]):
-        pon(L, foto_tarjeta(f, 300, 360, fondo_blanco=f != "p6106.jpg").rotate(g, expand=True, resample=Image.BICUBIC), x, 780 + (0 if k == 1 else 40))
-    pon(L, pastilla("Desde $149 · todo ya está en México 🇲🇽", 36, BLANCO, ROSA_I), W / 2, 1070)
-    pon(L, parrafo("Desliza y elige según lo que quieras gastar →", fi(32, "SemiBold"), BLANCO, 900), W / 2, 1170)
-    pie(L); guardar(L, c, 1)
-    slide_rango(c, 2, "Menos de $200", [("jcb.webp", "Body mist Bath & Body Works", "$150"), ("lip-bv.jpg", "Bálsamo DAISE", "$189"),
-                                         ("rt-midi.jpg", "Duo de brochas Real Techniques", "$149"), ("peppermint.jpg", "Mist Twisted Peppermint", "$150")], 22)
-    slide_rango(c, 3, "De $300 a $400", [("pocketbac10.jpg", "10 geles PocketBac navideños", "$300"), ("daise-lip.jpg", "Trío de bálsamos DAISE", "$399"),
-                                          ("daise-mist.jpg", "Trío de mists DAISE", "$399")], 23)
-    slide_rango(c, 4, "De $500 a $600", [("starface.jpg", "Starface Big Lil", "$529"), ("gm.jpg", "Good Molecules Merry & Glow", "$529"),
-                                          ("skin-advent.jpg", "Calendario Skincare (12 días)", "$599"), ("spa-advent.jpg", "Calendario Spa (12 días)", "$599")], 24)
-    slide_rango(c, 5, "De $650 a $800", [("p6108.jpg", "Pijama Juicy Couture", "$699"), ("byoma.jpg", "BYOMA Lab Kit (5 pzs)", "$659"),
-                                          ("rhode-pink.jpg", "rhode Pocket Pair", "$799"), ("unlockt.jpg", "Unlockt K-Beauty (8 pzs)", "$789")], 25)
-    cierre_grupo(c, 6, "¿Cuál regalas?", "Todo ya está en México y te lo mando de inmediato (las pijamas se apartan con la mitad).")
+    L = lunares(BLANCO, BLUSH)
+    d = ImageDraw.Draw(L)
+    d.rectangle((690, 0, 800, H), fill=ROSA + (255,)); d.rectangle((0, 820, W, 930), fill=ROSA + (255,))
+    for x in (702, 788): d.line((x, 0, x, H), fill=BLANCO + (255,), width=4)
+    for y in (832, 918): d.line((0, y, W, y), fill=BLANCO + (255,), width=4)
+    pon(L, sombra(mono(380), 12, 80, 8), 745, 840)
+    izq(L, espaciado("GUÍA DE NAVIDAD", 30, LILA), 70, 110)
+    izq(L, titulo_marca("Regalos", 190, ROSA_I, sh=False), 60, 250)
+    izq(L, titulo_marca("por", 110, LILA, sh=False), 66, 410); izq(L, titulo_marca("presupuesto", 110, LILA, sh=False), 66, 520)
+    t = etiqueta(None, "", ""); dt = ImageDraw.Draw(t)
+    tx = titulo_marca("Desde", 70, LILA, sh=False); t.alpha_composite(tx, ((t.width - tx.width) // 2, 140))
+    tx = titulo_marca("$149", 140, ROSA_P, sh=False); t.alpha_composite(tx, ((t.width - tx.width) // 2, 230))
+    tx = parrafo("Todo ya está en México 🇲🇽", fi(28, "Bold"), TINTA, 400); t.alpha_composite(tx, ((t.width - tx.width) // 2, 395))
+    r = sombra(t.rotate(5, expand=True, resample=Image.BICUBIC), 12, 90, 10); pon(L, r, 330, 980)
+    pon(L, pastilla("Desliza y elige tu presupuesto →", 34, ROSA_P, BLANCO), W / 2, 1270)
+    guardar(L, c, 1)
+    rangos = [("Menos de $200", [("jcb.webp", "Body mist Bath & Body Works", "$150"), ("lip-bv.jpg", "Bálsamo DAISE", "$189"),
+                                 ("rt-midi.jpg", "Duo de brochas Real Techniques", "$149"), ("peppermint.jpg", "Mist Twisted Peppermint", "$150")]),
+              ("De $300 a $400", [("pocketbac10.jpg", "10 geles PocketBac navideños", "$300"), ("daise-lip.jpg", "Trío de bálsamos DAISE", "$399"),
+                                  ("daise-mist.jpg", "Trío de mists DAISE", "$399")]),
+              ("De $500 a $600", [("starface.jpg", "Starface Big Lil", "$529"), ("gm.jpg", "Good Molecules Merry & Glow", "$529"),
+                                  ("skin-advent.jpg", "Calendario Skincare (12 días)", "$599"), ("spa-advent.jpg", "Calendario Spa (12 días)", "$599")]),
+              ("De $650 a $800", [("p6108.jpg", "Pijama Juicy Couture", "$699"), ("byoma.jpg", "BYOMA Lab Kit (5 pzs)", "$659"),
+                                  ("rhode-pink.jpg", "rhode Pocket Pair", "$799"), ("unlockt.jpg", "Unlockt K-Beauty (8 pzs)", "$789")])]
+    for k, (rango, prods) in enumerate(rangos):
+        L = lunares(BLANCO, BLUSH)
+        izq(L, espaciado(f"PRESUPUESTO {k + 1} DE 4", 26, LILA), 60, 70)
+        izq(L, titulo_marca(rango, 104, ROSA_I, sh=False), 56, 145)
+        tags = [etiqueta(*p) for p in prods]
+        d = ImageDraw.Draw(L)
+        for yc in (215, 760): d.line([(x, yc + 10 * math.sin(math.pi * x / W)) for x in range(0, W + 20, 20)], fill=ROSA_P + (255,), width=5)
+        colgar(L, tags[:2], 215, [280, 800], [-3, 3])
+        fila2 = tags[2:]
+        if len(fila2) == 2: colgar(L, fila2, 760, [280, 800], [2, -2])
+        else: colgar(L, fila2, 760, [W / 2], [2])
+        pon(L, pastilla("alpacca.mx", 30, ROSA_P, BLANCO, 26, 12), W / 2, 1300)
+        guardar(L, c, 2 + k)
+    L = lunares(BLANCO, BLUSH)
+    cierre(c, 6, L, "¿Cuál regalas?", "Todo ya está en México y te lo mando de inmediato (las pijamas se apartan con la mitad).",
+           col_tit=ROSA_I, col_sub=TINTA, p1=(ROSA_P, BLANCO), p2=(LILA, BLANCO), col_link=ROSA_I,
+           extra=lambda L: pon(L, mono(170), W / 2 + 175, 505))
 
 
-# ======================= 3 · ¿Juicy o True Religion? =======================
+# ======================= 3 · ¿Juicy o True Religion? — estilo «revista» =======================
+def cabecera_revista(L, col, num, total):
+    izq(L, espaciado("ALPACCA · EDICIÓN DE NAVIDAD", 22, col), 60, 58)
+    der(L, espaciado(f"N° {num}/{total}", 22, col), W - 60, 58)
+    ImageDraw.Draw(L).line((60, 88, W - 60, 88), fill=col + (255,), width=2)
+
+
 def pijamas():
-    c = "pijamas"
-    L = papel(ROSA, 31)
-    adornos(L, [(140, 160, 80), (950, 170, 100), (120, 1150, 60), (980, 1120, 70)], 31)
-    pon(L, burbuja("Comparación directa 🤯"), W / 2, 160)
-    pon(L, titulo_marca("¿Juicy", 190), W / 2, 320)
-    pon(L, titulo_marca("o True Religion?", 110, BLUSH), W / 2, 480)
-    pon(L, foto_tarjeta("p6107.jpg", 400, 520).rotate(-5, expand=True, resample=Image.BICUBIC), 290, 840)
-    pon(L, foto_tarjeta("p6109.jpg", 400, 520).rotate(5, expand=True, resample=Image.BICUBIC), 790, 840)
-    vs = Image.new("RGBA", (150, 150)); ImageDraw.Draw(vs).ellipse((0, 0, 149, 149), fill=ROSA_P + (255,)); pon(vs, titulo_marca("vs", 76, BLANCO, sh=False), 75, 70)
-    pon(L, sombra(vs, 10, 90, 6), W / 2, 830)
-    pon(L, pastilla("Todas a $699 · apártala con la mitad", 36, BLANCO, ROSA_I), W / 2, 1180)
-    pie(L); guardar(L, c, 1)
+    c = "pijamas"; T = 6
+    L = plano(TINTA)
+    L.alpha_composite(recorte("p6107.jpg", 540, H, (0.5, 0.5)), (0, 0)); L.alpha_composite(recorte("p6109.jpg", 540, H, (0.5, 0.5)), (540, 0))
+    g = Image.new("L", (1, H)); [g.putpixel((0, y), int(200 * max(0, 1 - y / 640) ** 1.4)) for y in range(H)]
+    sombra_sup = Image.new("RGBA", (W, H), (40, 12, 30, 255)); sombra_sup.putalpha(g.resize((W, H))); L.alpha_composite(sombra_sup)
+    ImageDraw.Draw(L).line((540, 640, 540, 1150), fill=BLANCO + (255,), width=4)
+    cabecera_revista(L, BLANCO, 1, T)
+    izq(L, titulo_marca("¿Juicy", 220), 50, 270)
+    izq(L, titulo_marca("o True Religion?", 112, BLUSH), 60, 440)
+    pon(L, titulo_marca("vs", 130), 540, 900)
+    ImageDraw.Draw(L).rectangle((0, 1170, W, H), fill=LILA + (255,))
+    pon(L, espaciado("TODAS A $699 · APÁRTALA CON LA MITAD", 32, BLANCO, 0.08, "Bold"), W / 2, 1230)
+    pon(L, espaciado("ALPACCA.MX", 24, BLUSH), W / 2, 1290)
+    guardar(L, c, 1)
     # 2 · Juicy Couture
-    L = papel(BLUSH, 32); pon(L, titulo_marca("Juicy Couture", 120, ROSA_P), W / 2, 140)
-    juicy = [("p6107.jpg", "Coronas · 3 piezas"), ("p6108.jpg", "Rayas · 2 piezas"), ("p6111.jpg", "Fucsia de letras · 2 piezas"),
-             ("p6112.jpg", "Afelpada beige · 2 piezas"), ("p6113.jpg", "Afelpada blanca · 2 piezas"), ("p6115.jpg", "Brillitos · 2 piezas")]
-    for k, (f, t) in enumerate(juicy):
-        cx = 190 + (k % 3) * 350; cy = 470 + (k // 3) * 480
-        pon(L, foto_tarjeta(f, 310, 380), cx, cy); pon(L, pastilla(t, 22, BLANCO, ROSA_I, 14, 8), cx, cy + 215)
-        pon(L, pastilla(str(k + 1), 30, ROSA_P, BLANCO, 18, 6), cx - 120, cy - 165)
-    pie(L, True); guardar(L, c, 2)
+    L = plano(BLUSH); cabecera_revista(L, ROSA_I, 2, T)
+    izq(L, titulo_marca("Juicy Couture", 110, ROSA_I, sh=False), 56, 175)
+    izq(L, espaciado("6 SETS · DE 2 Y 3 PIEZAS", 24, LILA), 62, 255)
+    juicy = [("p6107.jpg", "Coronas", "3 piezas"), ("p6108.jpg", "Rayas", "2 piezas"), ("p6111.jpg", "Fucsia de letras", "2 piezas"),
+             ("p6112.jpg", "Afelpada beige", "2 piezas"), ("p6113.jpg", "Afelpada blanca", "2 piezas"), ("p6115.jpg", "Brillitos", "2 piezas")]
+    for k, (f, nom, pz) in enumerate(juicy):
+        x = 60 + (k % 3) * 325; y = 300 + (k // 3) * 490
+        L.alpha_composite(recorte(f, 310, 380), (x, y))
+        L.alpha_composite(titulo_marca(str(k + 1), 96), (x + 8, y + 380 - 120))
+        L.alpha_composite(texto(nom, fi(28, "Bold"), ROSA_I), (x, y + 395)); L.alpha_composite(texto(pz, fi(24, "Medium"), TINTA), (x, y + 438))
+    pon(L, espaciado("ALPACCA.MX", 24, ROSA_I), W / 2, 1300)
+    guardar(L, c, 2)
     # 3 · True Religion
-    L = papel(LILA_CLARO, 33); pon(L, titulo_marca("True Religion", 120, LILA), W / 2, 140)
-    pon(L, pastilla("3 piezas: camisa, short y pantalón", 36, LILA, BLANCO), W / 2, 260)
+    L = plano(LILA); cabecera_revista(L, BLANCO, 3, T)
+    izq(L, titulo_marca("True Religion", 110, BLANCO, sh=False), 56, 175)
+    izq(L, espaciado("3 SETS · TODAS DE 3 PIEZAS", 24, BLUSH), 62, 255)
     tr = [("p6106.jpg", "Rosa con corazón"), ("p6109.jpg", "Gris con herraduras"), ("p6110.jpg", "Gris con ribete negro")]
-    for k, (f, t) in enumerate(tr):
-        cx = 190 + k * 350; pon(L, foto_tarjeta(f, 320, 520), cx, 640); pon(L, pastilla(t, 24, BLANCO, LILA, 16, 8), cx, 930)
-        pon(L, pastilla(str(k + 7), 30, LILA, BLANCO, 18, 6), cx - 125, 410)
-    pon(L, parrafo("Las de True Religion traen short además del pantalón: tres prendas en un solo regalo.", fi(34, "SemiBold"), TINTA, 900), W / 2, 1110)
-    pie(L, True); guardar(L, c, 3)
-    # 4 · 2 piezas vs 3 piezas (dividido)
-    L = Image.new("RGBA", (W, H)); L.paste(papel(LILA, 34).crop((0, 0, W // 2, H)), (0, 0)); L.paste(papel(BLUSH, 35).crop((W // 2, 0, W, H)), (W // 2, 0))
-    for cx, et, f, lista, col in [(W / 4, "2 piezas", "p6108.jpg", ["Camisa", "Pantalón"], BLUSH), (3 * W / 4, "3 piezas", "p6107.jpg", ["Camisa", "Short", "Pantalón"], ROSA_P)]:
-        lab = titulo_marca(et, 90, BLANCO if col == ROSA_P else LILA, sh=False); bx = Image.new("RGBA", (lab.width + 60, lab.height + 40), col + (255,)); bx.alpha_composite(lab, (30, 20))
-        pon(L, sombra(bx, 8, 60, 4), cx, 170); pon(L, foto_tarjeta(f, 470, 640), cx, 600)
-        for k, p in enumerate(lista): pon(L, pastilla("✓ " + p, 40, BLANCO, TINTA, 30, 12), cx, 980 + k * 92)
-    pon(L, pastilla("Mismo precio: $699", 46, ROSA_P, BLANCO), W / 2, 1255)
+    for k, (f, nom) in enumerate(tr):
+        x = 60 + k * 325; y = 300
+        L.alpha_composite(recorte(f, 310, 600), (x, y)); L.alpha_composite(titulo_marca(str(k + 7), 96), (x + 8, y + 600 - 120))
+        L.alpha_composite(parrafo(nom, fi(28, "Bold"), BLANCO, 300, centrado=False), (x, y + 615))
+    izq(L, parrafo("Traen camisa, short y pantalón: tres prendas en un solo regalo.", fi(36, "SemiBold"), BLANCO, 960, centrado=False), 60, 1110)
+    pon(L, espaciado("ALPACCA.MX", 24, BLUSH), W / 2, 1300)
+    guardar(L, c, 3)
+    # 4 · 2 piezas vs 3 piezas
+    L = plano(BLANCO); cabecera_revista(L, ROSA_I, 4, T); d = ImageDraw.Draw(L)
+    for k, (f, et, lista) in enumerate([("p6108.jpg", "2 piezas", ["Camisa", "Pantalón"]), ("p6107.jpg", "3 piezas", ["Camisa", "Short", "Pantalón"])]):
+        y = 130 + k * 545; fx = 60 if k == 0 else 550; tx = 590 if k == 0 else 60
+        L.alpha_composite(recorte(f, 470, 515), (fx, y))
+        izq(L, titulo_marca(et, 110, ROSA_P if k else LILA, sh=False), tx, y + 90)
+        for j, p in enumerate(lista):
+            yy = y + 210 + j * 70; d.rectangle((tx, yy - 4, tx + 26, yy + 4), fill=(ROSA_P if k else LILA) + (255,))
+            izq(L, texto(p, fi(40, "SemiBold"), TINTA), tx + 46, yy)
+    d.rectangle((0, 1225, W, H), fill=ROSA_P + (255,))
+    pon(L, titulo_marca("Mismo precio: $699", 76, BLANCO, sh=False), W / 2, 1287)
     guardar(L, c, 4)
-    # 5 · precio de etiqueta vs conmigo
-    L = Image.new("RGBA", (W, H)); L.paste(papel(LILA, 36).crop((0, 0, W // 2, H)), (0, 0)); L.paste(papel(BLUSH, 37).crop((W // 2, 0, W, H)), (W // 2, 0))
-    pon(L, pastilla("Precio de etiqueta en EE. UU.", 32, BLANCO, LILA), W / 4, 180); pon(L, pastilla("Conmigo", 40, ROSA_P, BLANCO), 3 * W / 4, 180)
-    for k, (pz, usd, mxn, ahorro) in enumerate([("2 piezas", "$58 USD", "≈ $1,076 pesos", "$377"), ("3 piezas", "$68 USD", "≈ $1,261 pesos", "$562")]):
-        y = 420 + k * 380
-        pon(L, texto(pz.upper(), fi(30, "Bold"), BLANCO), W / 4, y - 110); pon(L, titulo_marca(usd, 96, BLANCO), W / 4, y)
-        pon(L, pastilla(mxn, 34, BLANCO, LILA), W / 4, y + 100)
-        pon(L, texto(pz.upper(), fi(30, "Bold"), ROSA_I), 3 * W / 4, y - 110); pon(L, titulo_marca("$699", 110, ROSA_P, sh=False), 3 * W / 4, y)
-        pon(L, pastilla("Te ahorras " + ahorro, 34, ROSA_P, BLANCO), 3 * W / 4, y + 100)
-    nota = parrafo("Precios de etiqueta de las Juicy en EE. UU. Tipo de cambio FIX de Banxico del 15 de noviembre de 2026: $18.55 por dólar.", fi(26, "Medium"), TINTA, 880)
-    caja = Image.new("RGBA", (940, nota.height + 40)); ImageDraw.Draw(caja).rounded_rectangle((0, 0, 939, nota.height + 39), 26, fill=BLANCO + (240,))
-    caja.alpha_composite(nota, (30, 20)); pon(L, sombra(caja, 10, 60, 6), W / 2, 1200)
+    # 5 · cuánto te ahorras
+    L = plano(BLUSH); cabecera_revista(L, ROSA_I, 5, T); d = ImageDraw.Draw(L)
+    izq(L, titulo_marca("¿Cuánto te ahorras?", 100, ROSA_I, sh=False), 56, 185)
+    for k, (pz, usd, mxn, ahorro) in enumerate([("2 PIEZAS", "$58 USD", "$1,076", "$377"), ("3 PIEZAS", "$68 USD", "$1,261", "$562")]):
+        y = 300 + k * 420
+        d.rectangle((60, y, W - 60, y + 380), fill=BLANCO + (255,))
+        izq(L, espaciado(pz, 26, LILA, 0.16, "Bold"), 100, y + 50)
+        izq(L, texto("Precio de etiqueta en EE. UU.", fi(28, "Medium"), TINTA), 100, y + 105)
+        a1 = titulo_marca(usd, 74, LILA, sh=False); a2 = texto(f"≈ {mxn} pesos", fi(36, "Bold"), LILA)
+        izq(L, a1, 100, y + 180); izq(L, a2, 100 + a1.width + 24, y + 185)
+        d.line((92, y + 188, 124 + a1.width + a2.width + 10, y + 176), fill=ROSA_P + (255,), width=6)
+        izq(L, texto("Conmigo", fi(30, "Bold"), ROSA_I), 100, y + 275)
+        izq(L, titulo_marca("$699", 110, ROSA_P, sh=False), 260, y + 285)
+        der(L, pastilla("Te ahorras " + ahorro, 34, ROSA_P, BLANCO), W - 100, y + 285)
+    izq(L, parrafo("Precios de etiqueta de las Juicy en EE. UU. Tipo de cambio FIX de Banxico del 15 de noviembre de 2026: $18.55 por dólar.", fi(25, "Medium"), TINTA, 960, centrado=False), 60, 1200)
     guardar(L, c, 5)
-    cierre_grupo(c, 6, "¿Cuál es la tuya?", "Comenta el número de tu favorita. Todas a $699 y la apartas con la mitad.")
+    L = plano(LILA); cabecera_revista(L, BLANCO, 6, T)
+    cierre(c, 6, L, "¿Cuál es la tuya?", "Comenta el número de tu favorita. Todas a $699 y la apartas con la mitad.",
+           col_sub=BLANCO, p1=(BLANCO, ROSA_I), p2=(ROSA_P, BLANCO), col_link=BLUSH, y_tit=200)
 
 
-# ======================= 4 · ¿Qué calendario de adviento te conviene? =======================
+# ======================= 4 · Calendarios de adviento — estilo «hoja de calendario» =======================
+def hoja_diciembre(w, marcado=1):
+    """hoja de calendario de diciembre de 2026 (el 1 cae en martes)"""
+    cab = int(w * 0.2); celda = (w - 60) / 7; h = int(cab + 70 + celda * 5 + 40)
+    im = Image.new("RGBA", (w, h)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle((0, 0, w - 1, h - 1), 30, fill=BLANCO + (255,)); d.rounded_rectangle((0, 0, w - 1, cab), 30, fill=ROSA_P + (255,)); d.rectangle((0, cab - 30, w - 1, cab), fill=ROSA_P + (255,))
+    t = titulo_marca("Diciembre", int(cab * 0.62), BLANCO, sh=False); im.alpha_composite(t, ((w - t.width) // 2, (cab - t.height) // 2))
+    for k in range(2): x = int(w * (0.25 + 0.5 * k)); d.rounded_rectangle((x - 12, -20, x + 12, 40), 12, fill=LILA + (255,))
+    for j, l in enumerate("LMMJVSD"): d.text((30 + celda * (j + 0.5), cab + 38), l, font=fi(int(celda * 0.32), "Bold"), fill=LILA, anchor="mm")
+    for dia in range(1, 32):
+        pos = dia + 0; col = (pos) % 7; fila = (pos) // 7
+        cx, cy = 30 + celda * (col + 0.5), cab + 70 + celda * (fila + 0.5)
+        d.rounded_rectangle((cx - celda * 0.44, cy - celda * 0.44, cx + celda * 0.44, cy + celda * 0.44), 12, fill=BLUSH + (110,) if dia > 24 else BLUSH + (255,))
+        d.text((cx, cy), str(dia), font=fi(int(celda * 0.36), "Bold"), fill=ROSA_I, anchor="mm")
+        if dia == marcado:
+            d.ellipse((cx - celda * 0.56, cy - celda * 0.56, cx + celda * 0.56, cy + celda * 0.56), outline=ROSA_P + (255,), width=7)
+    return im
+
+
+def cabecera_cal(L, titulo, sub):
+    d = ImageDraw.Draw(L); d.rectangle((0, 0, W, 230), fill=ROSA_P + (255,))
+    for x in range(90, W, 150): d.ellipse((x - 14, 216, x + 14, 244), fill=BLANCO + (255,), outline=LILA + (255,), width=4)
+    izq(L, espaciado(sub, 24, BLUSH), 60, 62)
+    izq(L, titulo_marca(titulo, 96, BLANCO, sh=False), 56, 140)
+
+
 def calendarios():
     c = "calendarios"
-    L = papel(ROSA, 41)
-    adornos(L, [(150, 170, 90), (940, 190, 100), (130, 1080, 60), (960, 1120, 80)], 41)
-    pon(L, burbuja("El 1 de diciembre ya es tarde ⏰"), W / 2, 160)
-    pon(L, titulo_marca("Calendarios", 170), W / 2, 320)
-    pon(L, titulo_marca("de adviento", 110, BLUSH), W / 2, 460)
-    for k, (f, x, g) in enumerate([("skin-advent.jpg", 210, -6), ("rt-cal.jpg", 420, 3), ("daise-advent.jpg", 650, -3), ("spa-advent.jpg", 870, 6)]):
-        pon(L, foto_tarjeta(f, 240, 300, fondo_blanco=True).rotate(g, expand=True, resample=Image.BICUBIC), x, 780 + (30 if k in (0, 3) else 0))
-    pon(L, pastilla("¿Cuánto te sale cada sorpresa? 🧮", 38, BLANCO, ROSA_I), W / 2, 1080)
-    pie(L); guardar(L, c, 1)
-    cals = [("skin-advent.jpg", "Skincare de Target", "12 sorpresas de skincare: La Roche-Posay, BYOMA, TONYMOLY y más", "$599", 12),
-            ("spa-advent.jpg", "Spa de Target", "12 sorpresas de spa: Hero, Pixi, Aquaphor, Palmer's y La Roche-Posay", "$599", 12),
-            ("rt-cal.jpg", "Real Techniques", "25 días de brochas y accesorios de maquillaje", "$789", 25),
-            ("daise-advent.jpg", "DAISE Dreamhouse", "7 sorpresas de baño y cuerpo (una para cada día de la semana)", "$789", 7)]
+    L = plano(LILA_CLARO)
+    izq(L, espaciado("EL 1 DE DICIEMBRE YA ES TARDE ⏰".replace(" ⏰", ""), 26, LILA), 62, 90)
+    izq(L, titulo_marca("Calendarios", 170, ROSA_I, sh=False), 52, 210)
+    izq(L, titulo_marca("de adviento", 110, LILA, sh=False), 60, 350)
+    hoja = hoja_diciembre(720)
+    pon(L, sombra(hoja.rotate(-3, expand=True, resample=Image.BICUBIC), 14, 90, 10), W / 2 + 40, 880)
+    nota = Image.new("RGBA", (290, 170), BLUSH + (255,))
+    nota.alpha_composite(parrafo("El 1 se abre la primera sorpresa", fi(32, "Bold"), ROSA_I, 250), (20, 30))
+    pon(L, sombra(nota.rotate(6, expand=True, resample=Image.BICUBIC), 10, 80, 6), 870, 415)
+    pon(L, pastilla("¿Cuál te conviene? Te saco la cuenta 🧮", 36, ROSA_P, BLANCO), W / 2, 1280)
+    guardar(L, c, 1)
+    cals = [("skin-advent.jpg", "Skincare de Target", "12 sorpresas de skincare: La Roche-Posay, BYOMA, TONYMOLY y más.", 599, 12),
+            ("spa-advent.jpg", "Spa de Target", "12 sorpresas de spa: Hero, Pixi, Aquaphor, Palmer's y La Roche-Posay.", 599, 12),
+            ("rt-cal.jpg", "Real Techniques", "25 días de brochas y accesorios de maquillaje. Solo me quedan 2.", 789, 25),
+            ("daise-advent.jpg", "DAISE Dreamhouse", "7 sorpresas de baño y cuerpo, una para cada día de la semana.", 789, 7)]
     for k, (f, nom, desc, precio, n) in enumerate(cals):
-        L = papel(BLUSH if k % 2 == 0 else LILA_CLARO, 42 + k)
-        pon(L, titulo_marca(nom, 100, ROSA_P if k % 2 == 0 else LILA), W / 2, 150)
-        pon(L, foto_tarjeta(f, 560, 620, fondo_blanco=True), W / 2, 580)
-        pon(L, parrafo(desc, fi(34, "SemiBold"), TINTA, 880), W / 2, 960)
-        por = round(int(precio[1:]) / n)
-        pon(L, pastilla(f"{precio} ÷ {n} = unos ${por} por sorpresa", 40, ROSA_P, BLANCO), W / 2, 1110)
-        pie(L, True); guardar(L, c, 2 + k)
-    # resumen
-    L = papel(ROSA, 47); pon(L, titulo_marca("El más rendidor", 120), W / 2, 150)
-    filas = [("rt-cal.jpg", "Real Techniques", "$32", "25 días"), ("skin-advent.jpg", "Skincare de Target", "$50", "12 días"),
-             ("spa-advent.jpg", "Spa de Target", "$50", "12 días"), ("daise-advent.jpg", "DAISE Dreamhouse", "$113", "7 días")]
-    for k, (f, nom, por, dias) in enumerate(filas):
-        y = 340 + k * 210; card = Image.new("RGBA", (920, 180)); ImageDraw.Draw(card).rounded_rectangle((0, 0, 919, 179), 30, fill=BLANCO + (255,))
-        im = ImageOps.pad(Image.open(os.path.join(FOTOS, f)).convert("RGB"), (150, 150), color=(255, 255, 255)); card.paste(im, (20, 15))
-        card.alpha_composite(texto(nom, fi(38, "Bold"), TINTA), (200, 40)); card.alpha_composite(texto(dias, fi(28, "Medium"), (110, 110, 116)), (200, 100))
-        p = pastilla(por + " c/u", 40, ROSA_P if k == 0 else LILA, BLANCO); card.alpha_composite(p, (900 - p.width, 90 - p.height // 2))
-        pon(L, sombra(card, 10, 80, 6), W / 2, y)
-    pon(L, parrafo("Por sorpresa, el de Real Techniques es el que más rinde, y solo me quedan 2.", fi(34, "SemiBold"), BLANCO, 900), W / 2, 1170)
+        L = plano(BLANCO); cabecera_cal(L, nom, f"CALENDARIO {k + 1} DE 4")
+        L.alpha_composite(sombra(recorte(f, 460, 540, blanco=True), 12, 70, 8), (60 - 24, 290 - 24))
+        x = 580
+        izq(L, texto(f"${precio} ÷ {n} sorpresas", fi(32, "Bold"), TINTA), x, 330)
+        izq(L, titulo_marca(f"${round(precio / n)}", 210, ROSA_P, sh=False), x - 6, 500)
+        izq(L, texto("por sorpresa (aprox.)", fi(32, "SemiBold"), LILA), x, 640)
+        izq(L, parrafo(desc, fi(30, "Medium"), TINTA, 450, centrado=False), x, 780)
+        cols = {12: 6, 25: 9}.get(n, n); gap = 12; tam = min(120, (960 - gap * (cols - 1)) / cols)
+        x0 = (W - (cols * tam + gap * (cols - 1))) / 2; y0 = 950
+        d = ImageDraw.Draw(L)
+        for i in range(n):
+            cx = x0 + (i % cols) * (tam + gap); cy = y0 + (i // cols) * (tam + gap)
+            d.rounded_rectangle((cx, cy, cx + tam, cy + tam), 10, fill=BLUSH + (255,))
+            d.text((cx + tam / 2, cy + tam / 2), str(i + 1), font=fi(int(tam * 0.4), "Bold"), fill=ROSA_I, anchor="mm")
+        izq(L, espaciado(f"{n} SORPRESAS", 24, LILA, 0.16, "Bold"), x0, y0 - 40)
+        pon(L, pastilla("alpacca.mx", 28, ROSA_P, BLANCO, 24, 10), W / 2, 1310)
+        guardar(L, c, 2 + k)
+    L = plano(BLANCO); cabecera_cal(L, "El más rendidor", "PRECIO POR SORPRESA")
+    filas = [("rt-cal.jpg", "Real Techniques", "$32", "25 sorpresas · $789"), ("skin-advent.jpg", "Skincare de Target", "$50", "12 sorpresas · $599"),
+             ("spa-advent.jpg", "Spa de Target", "$50", "12 sorpresas · $599"), ("daise-advent.jpg", "DAISE Dreamhouse", "$113", "7 sorpresas · $789")]
+    d = ImageDraw.Draw(L)
+    for k, (f, nom, por, det) in enumerate(filas):
+        y = 290 + k * 215
+        d.rounded_rectangle((60, y, W - 60, y + 190), 26, fill=(BLUSH if k == 0 else LILA_CLARO) + (255,))
+        pon(L, titulo_marca(str(k + 1), 100, ROSA_P if k == 0 else LILA, sh=False), 120, y + 95)
+        L.alpha_composite(recorte(f, 150, 150, blanco=True), (180, y + 20))
+        izq(L, texto(nom, fi(36, "Bold"), TINTA), 360, y + 70); izq(L, texto(det, fi(26, "Medium"), (90, 90, 96)), 360, y + 122)
+        der(L, titulo_marca(por, 84, ROSA_P if k == 0 else LILA, sh=False), W - 95, y + 95)
+    pon(L, parrafo("Real Techniques es el que más rinde por sorpresa, y solo me quedan 2.", fi(34, "SemiBold"), TINTA, 940), W / 2, 1200)
     guardar(L, c, 6)
-    cierre_grupo(c, 7, "¿Cuál abrirías tú?", "Todos ya están en México y te los mando de inmediato.")
+    L = plano(BLANCO); d = ImageDraw.Draw(L); d.rectangle((0, 0, W, 230), fill=ROSA_P + (255,))
+    for x in range(90, W, 150): d.ellipse((x - 14, 216, x + 14, 244), fill=BLANCO + (255,), outline=LILA + (255,), width=4)
+    cierre(c, 7, L, "¿Cuál abrirías tú?", "Todos ya están en México y te los mando de inmediato.", col_sub=TINTA,
+           p1=(ROSA_P, BLANCO), p2=(LILA, BLANCO), col_link=ROSA_I, y_tit=115)
 
 
-# ======================= 5 · Cómo comprar en alpacca.mx =======================
+# ======================= 5 · Cómo comprar — estilo «tutorial lila» =======================
 TAPAR = {"14.png": [(276, 732, 1010, 938)]}  # titular, CLABE y número de cuenta: no deben quedar en un post
 
 
@@ -418,31 +581,38 @@ def tapa_datos(im, nombre):
 def como_comprar():
     sys.path.insert(0, os.path.join(RAIZ, "video-tutorial-stock")); from iphone import Iphone
     c = "como-comprar"; tel = Iphone(820); pant = os.path.join(RAIZ, "video-tutorial-stock", "pantallas")
-    L = papel(ROSA, 51)
-    adornos(L, [(150, 170, 90), (940, 200, 100), (120, 1060, 60), (980, 1100, 80)], 51)
-    pon(L, burbuja("¿Cómo le hago para comprar? 🤔"), W / 2, 170)
-    pon(L, titulo_marca("Así compras", 170), W / 2, 330)
-    pon(L, titulo_marca("en alpacca.mx", 110, BLUSH), W / 2, 470)
-    t = tel.con(Image.open(os.path.join(pant, "02.png"))); e = 660 / t.height
-    pon(L, t.resize((int(t.width * e), int(t.height * e)), Image.LANCZOS), W / 2, 880)
-    pie(L); guardar(L, c, 1)
-    pasos = [("1", "Toca «Stock en México»", "02.png", "Ahí está todo lo que ya tengo aquí, listo para enviarse."),
-             ("2", "Elige y toca «Agregar»", "05.png", "Puedes filtrar por categoría y ver cuántas piezas quedan."),
-             ("3", "Revisa tu carrito", "07.png", "Ves el total, y si revendes, cuánto ganas por pieza."),
-             ("4", "Inicia sesión o crea tu cuenta", "09.png", "Es gratis y así puedes ver tus pedidos."),
-             ("5", "Llena tus datos de envío", "11.png", "El envío se calcula con tu código postal. En Juárez puedes elegir entrega personal."),
-             ("6", "Elige cómo pagar y envía tu pedido", "14.png", "Transferencia (sube tu comprobante) o tarjeta con Mercado Pago.")]
-    for k, (n, tit, img, desc) in enumerate(pasos):
-        L = papel(BLUSH if k % 2 == 0 else LILA_CLARO, 52 + k)
-        num = pastilla(n, 60, ROSA_P, BLANCO, 34, 10); pon(L, num, 110, 140)
-        pon(L, parrafo(tit, fm(78), ROSA_P if k % 2 == 0 else LILA, 840, centrado=False), 600, 150)
-        t = tel.con(tapa_datos(Image.open(os.path.join(pant, img)), img)); e = 830 / t.height; t = t.resize((int(t.width * e), int(t.height * e)), Image.LANCZOS)
-        pon(L, t, W / 2, 690)
-        pon(L, parrafo(desc, fi(36, "SemiBold"), TINTA, 900), W / 2, 1165)
-        pie(L, True); guardar(L, c, 2 + k)
-    cierre_grupo(c, 8, "¡Así de fácil!", "Lo que está en Stock en México te lo mando de inmediato. Guarda este carrusel para cuando lo necesites.")
+    def telefono(img, alto, giro=0):
+        t = tel.con(tapa_datos(Image.open(os.path.join(pant, img)), img)); e = alto / t.height
+        t = t.resize((int(t.width * e), int(t.height * e)), Image.LANCZOS)
+        return t.rotate(giro, expand=True, resample=Image.BICUBIC) if giro else t
+    L = cuadricula_puntos(LILA, BLANCO)
+    izq(L, espaciado("TUTORIAL · 6 PASOS", 26, BLUSH), 62, 90)
+    izq(L, titulo_marca("Así compras", 170, BLANCO), 50, 220)
+    izq(L, titulo_marca("en alpacca.mx", 110, BLUSH), 58, 370)
+    pon(L, telefono("07.png", 760, 7), 330, 900); pon(L, telefono("02.png", 820, -5), 740, 870)
+    guardar(L, c, 1)
+    pasos = [("Toca «Stock en México»", "02.png", "Ahí está todo lo que ya tengo aquí, listo para enviarse."),
+             ("Elige y toca «Agregar»", "05.png", "Puedes filtrar por categoría y ver cuántas piezas quedan."),
+             ("Revisa tu carrito", "07.png", "Ves el total, y si revendes, cuánto ganas por pieza."),
+             ("Inicia sesión o crea tu cuenta", "09.png", "Es gratis y así puedes ver tus pedidos."),
+             ("Llena tus datos de envío", "11.png", "El envío se calcula con tu código postal. En Juárez puedes elegir entrega personal."),
+             ("Elige cómo pagar y envía tu pedido", "14.png", "Transferencia (subes tu comprobante) o tarjeta con Mercado Pago.")]
+    for k, (tit, img, desc) in enumerate(pasos):
+        L = cuadricula_puntos(LILA, BLANCO); d = ImageDraw.Draw(L)
+        izq(L, espaciado(f"PASO {k + 1} DE 6", 26, BLUSH, 0.16, "Bold"), 62, 70)
+        for j in range(6):
+            x = W - 70 - (5 - j) * 40; d.ellipse((x - 11, 59, x + 11, 81), fill=(BLUSH if j <= k else LILA) + (255,), outline=BLUSH + (255,), width=3)
+        izq(L, parrafo(tit, fm(84), BLANCO, 960, centrado=False, inter=1.05), 56, 185 if len(tit) > 26 else 160)
+        pon(L, contorno(str(k + 1), 640, BLUSH, 8, 150), 250, 760)
+        pon(L, telefono(img, 820, -3), 650, 735)
+        caja = parrafo(desc, fi(34, "SemiBold"), TINTA, 900); fondo = Image.new("RGBA", (960, caja.height + 44)); ImageDraw.Draw(fondo).rounded_rectangle((0, 0, 959, caja.height + 43), 28, fill=BLANCO + (255,))
+        fondo.alpha_composite(caja, (30, 22)); pon(L, fondo, W / 2, 1230)
+        guardar(L, c, 2 + k)
+    L = cuadricula_puntos(LILA, BLANCO)
+    cierre(c, 8, L, "¡Así de fácil!", "Lo que está en Stock en México te lo mando de inmediato. Guarda este carrusel para cuando lo necesites.",
+           col_sub=BLANCO, p1=(BLANCO, ROSA_I), p2=(ROSA_P, BLANCO), col_link=BLUSH)
 
 
 if __name__ == "__main__":
-    que = sys.argv[1:] if len(sys.argv) > 1 and False else ["historias", "regalos", "pijamas", "calendarios", "como_comprar"]
+    que = [q for q in os.environ.get("SOLO", "historias regalos pijamas calendarios como_comprar").split()]
     for q in que: globals()[q](); print("ok", q)
