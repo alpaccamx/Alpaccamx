@@ -123,7 +123,7 @@ def shade_key(t):
     return norm(t)
 
 
-def revisar(marca, rows, lst, known, F):
+def revisar(marca, rows, lst, known, F, ocultos=False):
     nb = norm(marca)
     items = lst.get(nb, [])
     pages = {}
@@ -163,7 +163,9 @@ def revisar(marca, rows, lst, known, F):
         sku = r["SKU"].strip()
         if not sku or sku.startswith("STOCK"): continue
         # OCULTO lo pone Mae a mano (ej. quitar una marca un tiempo): no se toca.
-        if (r.get("Disponible") or "").strip().upper() == "OCULTO": continue
+        # En un barrido completo (ocultos=True) sí se revisan, por si se ocultó
+        # algo que en realidad sigue en ABW.
+        if (r.get("Disponible") or "").strip().upper() == "OCULTO" and not ocultos: continue
         o = None; checked = False
         if "-C" in sku:
             base, q = sku.rsplit("-C", 1)
@@ -190,6 +192,8 @@ def revisar(marca, rows, lst, known, F):
                     o = opt.get(p)
         antes = {"usd": usd(r.get("Precio USD")), "disp": (r.get("Disponible") or "").strip().upper() or "SI"}
         base_c = {"sku": sku, "nombre": r["Nombre"], "presentacion": r.get("Presentacion", "")}
+        if o is None and d_dbg(sku, pages, opt):
+            pass
         if o is None:
             # Solo un SKU de ABW (número) se puede dar por "ya no existe"; los nuestros (ALTHEA-001…) no.
             if checked and antes["disp"] in ("SI", "PREORDEN") and re.fullmatch(r"\d+", sku.split("-")[0]):
@@ -200,6 +204,11 @@ def revisar(marca, rows, lst, known, F):
             continue
         revisados += 1
         nu, nd = usd(o.get("priceColumnContent")), avail(o)
+        if antes["disp"] == "OCULTO":
+            # Estaba oculto y sí existe en ABW: se reporta para que Mae decida.
+            tipo = {"SI": "disponible", "PREORDEN": "preorden"}.get(nd, "agotado")
+            cambios.append({**base_c, "tipo": tipo, "antes": antes, "despues": {"usd": nu, "disp": nd}, "oculto": True})
+            continue
         if antes["usd"] is not None and nu is not None and abs(nu - antes["usd"]) >= 0.01:
             cambios.append({**base_c, "tipo": "precio", "antes": antes, "despues": {"usd": nu, "disp": nd}})
         if nd != antes["disp"]:
@@ -213,6 +222,19 @@ def revisar(marca, rows, lst, known, F):
         cambios = [c for c in cambios if c["tipo"] != "no_existe"]
         revisados -= len(ne); sin += len(ne)
     return cambios, revisados, sin
+
+
+_dbg = {"n": 0}
+def d_dbg(sku, pages, opt):
+    """Diagnóstico: los primeros SKUs que no se encuentran en una marca (sin datos de la cuenta)."""
+    if _dbg["n"] < 8:
+        _dbg["n"] += 1
+        base = sku.split("-")[0]
+        pg = next((d for pid, (n, d) in pages.items() if pid == base), None)
+        log("no encontrado", sku, "| página en listas:", bool(pg), "| status:", pg and pg.get("status"),
+            "| título:", bool(pg and pg.get("og_title")), "| opciones:", len((pg or {}).get("options") or []),
+            "| ids:", [str(o.get("productId")) for o in ((pg or {}).get("options") or [])][:4], "| opts marca:", len(opt))
+    return False
 
 
 def aplicar_preorden(pre):
@@ -240,12 +262,17 @@ def main():
     lst = {k: [tuple(x) for x in v] for k, v in json.load(open(os.path.join(AQUI, "listas.json"))).items()}
     known = json.load(open(os.path.join(AQUI, "skus.json")))
 
+    barrido = ""
     if pedidas:
         marcas = [m for m in pedidas if m in by]
     else:
         # Las que no se han revisado en los últimos días, de la más vieja a la más nueva.
-        fechas = {m: (d or {}).get("fecha", "") for m, d in (api("admin-abw-revision").get("marcas") or {}).items()}
+        rep = api("admin-abw-revision")
+        fechas = {m: (d or {}).get("fecha", "") for m, d in (rep.get("marcas") or {}).items()}
         corte = (datetime.datetime.utcnow() - datetime.timedelta(days=dias)).isoformat()
+        barrido = rep.get("barrido") or ""
+        if barrido and barrido > corte: corte = barrido
+        if barrido: log("barrido completo pedido desde", barrido)
         marcas = sorted((m for m in by if fechas.get(m, "") < corte), key=lambda m: (fechas.get(m, ""), -len(by[m])))
     log("marcas por revisar:", len(marcas))
 
@@ -258,11 +285,13 @@ def main():
                 log("se acabó el tiempo de esta corrida; faltan", len(marcas) - hechas, "marcas (siguen mañana)")
                 break
             log("revisando", m, len(by[m]), "renglones")
-            cambios, rev, sin = revisar(m, by[m], lst, known, F)
-            pre = [c for c in cambios if c["tipo"] == "preorden"]
+            _dbg["n"] = 0
+            cambios, rev, sin = revisar(m, by[m], lst, known, F, ocultos=bool(barrido) or "--ocultos" in sys.argv)
+            # Lo que estaba OCULTO nunca se cambia solo: lo decide Mae.
+            pre = [c for c in cambios if c["tipo"] == "preorden" and not c.get("oculto")]
             if pre:
                 log(m, "a preorden directo", len(pre), aplicar_preorden(pre))
-                cambios = [c for c in cambios if c["tipo"] != "preorden"]
+                cambios = [c for c in cambios if c["tipo"] != "preorden" or c.get("oculto")]
             log(m, "revisados", rev, "sin revisar", sin, "cambios", len(cambios))
             r = api("admin-abw-revision", {"marca": m, "fecha": datetime.datetime.utcnow().isoformat() + "Z", "revisados": rev, "cambios": cambios})
             log("subido", "ok" if r.get("ok") else str(r)[:120])

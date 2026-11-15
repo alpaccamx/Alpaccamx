@@ -10,6 +10,7 @@
 //   GET                                    -> { marcas: { Marca: { fecha, revisados, cambios: [...] } }, updatedAt }
 //   POST { marca, fecha, revisados, cambios } -> guarda (reemplaza) lo de esa marca
 //   POST { quitar: [{ marca, sku, tipo }] }   -> quita cambios ya aplicados o ignorados
+//   POST { barrido: "fecha ISO" | null }        -> pide revisar TODO otra vez (incluye OCULTO)
 //
 // Cada cambio: { sku, nombre, presentacion, tipo: "precio" | "agotado" |
 //   "disponible" | "no_existe", antes: { usd, disp }, despues: { usd, disp } }
@@ -62,6 +63,13 @@ exports.handler = async (event) => {
 
     let body;
     try { body = JSON.parse(event.body || "{}"); } catch { return jsonResponse(400, { error: "JSON inválido." }); }
+
+    // Barrido completo: todas las marcas revisadas antes de esta fecha se
+    // vuelven a revisar (aunque sean recientes), incluyendo las OCULTO.
+    if ("barrido" in body) {
+      const data = await mutate((d) => { if (body.barrido) d.barrido = clean(body.barrido, 40); else delete d.barrido; });
+      return jsonResponse(200, { ok: true, barrido: data.barrido || null });
+    }
 
     if (Array.isArray(body.quitar)) {
       const quitar = new Set(body.quitar.map((q) => `${q.marca}|${q.sku}|${q.tipo}`));
