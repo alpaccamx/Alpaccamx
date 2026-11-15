@@ -172,7 +172,7 @@ def revisar(marca, rows, lst, known, F):
             if o is None and known.get(sku):
                 kp = known[sku]; o = opt.get(kp)
                 if o is None:
-                    d = F.page(kp); checked = bool(d and d.get("status") == 200)
+                    d = F.page(kp); checked = bool(d and (d.get("status") in (404, 410) or (d.get("status") == 200 and not d.get("og_title"))))
                     for oo in (d or {}).get("options") or []: opt[str(oo["productId"])] = oo
                     o = opt.get(kp)
         else:
@@ -180,7 +180,12 @@ def revisar(marca, rows, lst, known, F):
             if p:
                 o = opt.get(p)
                 if o is None:
-                    d = F.page(p); checked = bool(d and d.get("status") == 200 and d.get("og_title"))
+                    d = F.page(p)
+                    # Solo cuenta como "ya no existe" si ABW de verdad no tiene la
+                    # página (404/410, o 200 sin título = te manda al inicio). Si
+                    # la página carga con su título, el producto SÍ existe aunque
+                    # no se hayan podido leer sus opciones: eso queda sin revisar.
+                    checked = bool(d and (d.get("status") in (404, 410) or (d.get("status") == 200 and not d.get("og_title"))))
                     for oo in (d or {}).get("options") or []: opt[str(oo["productId"])] = oo
                     o = opt.get(p)
         antes = {"usd": usd(r.get("Precio USD")), "disp": (r.get("Disponible") or "").strip().upper() or "SI"}
@@ -199,6 +204,14 @@ def revisar(marca, rows, lst, known, F):
             cambios.append({**base_c, "tipo": "precio", "antes": antes, "despues": {"usd": nu, "disp": nd}})
         if nd != antes["disp"]:
             cambios.append({**base_c, "tipo": {"SI": "disponible", "PREORDEN": "preorden"}.get(nd, "agotado"), "antes": antes, "despues": {"usd": nu, "disp": nd}})
+    # Freno: si una marca sale con muchos "ya no existe", lo más seguro es que
+    # ABW cambió su página y no se pudo leer bien (pasó el 13-15 nov: SKIN1004
+    # salió con 252 de 262). Esos no se reportan, para no ocultar productos que sí hay.
+    ne = [c for c in cambios if c["tipo"] == "no_existe"]
+    if len(ne) > max(5, 0.15 * max(revisados, 1)):
+        log(f"{marca}: {len(ne)} 'ya no existe' de {revisados} revisados -- parece error de lectura, no se reportan")
+        cambios = [c for c in cambios if c["tipo"] != "no_existe"]
+        revisados -= len(ne); sin += len(ne)
     return cambios, revisados, sin
 
 
