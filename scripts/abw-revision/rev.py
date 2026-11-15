@@ -68,8 +68,14 @@ def grab(h, key):
 
 def parse(h):
     m = re.search(r'<meta property="og:title" content="([^"]*)"', h)
-    return {"og_title": H.unescape(m.group(1)) if m else None, "options": grab(h, '"productOptions":'),
-            "loggedIn": '"customer_id":"' in h}
+    d = {"og_title": H.unescape(m.group(1)) if m else None, "options": grab(h, '"productOptions":'),
+         "loggedIn": '"customer_id":"' in h}
+    if d["og_title"] and not d["options"]:
+        # Diagnóstico (solo nombres de claves y conteos, nada de la cuenta):
+        # qué trae una página que carga pero de la que no salen opciones.
+        d["pistas"] = {"len": len(h), "productId": h.count('"productId"'), "productOptions": h.count("productOptions"),
+                       "priceColumnContent": h.count("priceColumnContent"), "claves": sorted(set(re.findall(r'"(product[A-Za-z]{2,30})"\s*:', h)))[:15]}
+    return d
 
 
 class Fetcher:
@@ -94,7 +100,13 @@ class Fetcher:
                 d = parse(r.text()); d["status"] = st; d["pid"] = pid; d["at"] = time.time()
                 if st == 200 and not d["loggedIn"]:
                     raise SesionCaducada()
-                json.dump(d, open(f, "w"))
+                if st == 200 and d["og_title"] and not d["options"] and a < 1:
+                    # Página incompleta (pasa cuando ABW frena las visitas): se
+                    # espera y se vuelve a pedir, y así no se guarda en caché.
+                    log("página sin opciones, reintento", pid, json.dumps(d.get("pistas")))
+                    time.sleep(20); continue
+                if d["options"] or st != 200:
+                    json.dump(d, open(f, "w"))
                 self.n += 1
                 time.sleep(self.delay)
                 if self.n % 40 == 0 and self.delay > 5: self.delay -= 0.5
