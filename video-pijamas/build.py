@@ -12,6 +12,8 @@ Variantes:
   regalo  = «El regalo de Navidad que sí van a usar»: regalo resuelto + anclaje (etiqueta de 68 dólares contra $699).
   equipo  = «¿Eres más Juicy o True Religion?»: identidad (equipo) + catálogo numerado + «comenta el número».
   reventa = «Si vendes ropa…»: para revendedoras; entrada baja (apartas con la mitad) y «tú le pones tu precio».
+Diseño «boutique» (distinto a los videos anteriores): titulares Cormorant, etiquetas de ropa con hilo dorado,
+precio en sello redondo, fotos tipo polaroid con cinta y subtítulos en frase.
 Uso: python3 voz.py VARIANTE; python3 build.py VARIANTE CARPETA_CON_est_*.mp4 -> Pijamas-VARIANTE-voz.mp4"""
 import hashlib, json, os, re, subprocess, sys
 
@@ -351,9 +353,9 @@ def capa_regalo(L, t):
         pas(L, "Precio de etiqueta en EE. UU.", 300, t, INI[2] + 0.2, sz=52, bg=WHITE, fg=NEGRO)
         chips(L, ["2 piezas: MSRP $58", "3 piezas: MSRP $68"], 1560, t, marca(2, 1) - 0.1, sep=0.7)
     if e == 3:
-        pas(L, "Conmigo 💗", 330, t, INI[3] + 0.1, sz=60, bg=WHITE, fg=ROSA)
-        sello(L, "$699", t, marca(3, 0) - 0.1, cy=520, cx=W / 2)
-        pas(L, "cada set · precio de mayoreo", 700, t, marca(3, 1) - 0.1, sz=50, bg=NEGRO)
+        pas(L, "Conmigo 💗", 290, t, INI[3] + 0.1, sz=60, bg=WHITE, fg=ROSA)
+        sello(L, "$699", t, marca(3, 0) - 0.1, cy=540, cx=W / 2)
+        pas(L, "cada set · precio de mayoreo", 780, t, marca(3, 1) - 0.1, sz=50, bg=NEGRO)
     if e == 4:
         pas(L, "Apártalo con la mitad", 330, t, marca(4, 0) - 0.1, sz=60)
         pas(L, "y liquidas antes de que te lo envíe", 460, t, marca(4, 1) - 0.1, sz=46, bg=WHITE, fg=NEGRO)
@@ -377,9 +379,9 @@ def capa_equipo(L, t):
         chips(L, ["camisa", "short", "pantalón"], 420, t, marca(3, 0), sep=0.3)
         rejilla(L, t, TR, [marca(3, 1) - 0.2, marca(3, 2) - 0.2, marca(3, 3) - 0.2], [7, 8, 9], y0=760, cols=3, ancho=300)
     if e == 4:
-        pas(L, "Todos los sets a", 330, t, INI[4] + 0.1, sz=56, bg=WHITE, fg=NEGRO)
-        sello(L, "$699", t, marca(4, 0) - 0.1, cy=520, cx=W / 2)
-        pas(L, "Apártalo con la mitad", 700, t, marca(4, 1) - 0.1, sz=52)
+        pas(L, "Todos los sets a", 290, t, INI[4] + 0.1, sz=56, bg=WHITE, fg=NEGRO)
+        sello(L, "$699", t, marca(4, 0) - 0.1, cy=540, cx=W / 2)
+        pas(L, "Apártalo con la mitad", 780, t, marca(4, 1) - 0.1, sz=52)
     if e == 5:
         pas(L, "Comenta el NÚMERO de tu favorita 👇", 300, t, INI[5], sz=50)
         rejilla(L, t, JUICY + TR, [INI[5] + 0.04 * k for k in range(9)], list(range(1, 10)), y0=600, cols=3, ancho=230)
@@ -395,11 +397,11 @@ def capa_reventa(L, t):
         pas(L, "✅ Originales, con su etiqueta", 460, t, marca(1, 2) - 0.1, sz=50, bg=WHITE, fg=NEGRO)
     if e == 2:
         pas(L, "Para que tus clientas escojan", 300, t, INI[2], sz=50, bg=WHITE, fg=NEGRO)
-        rejilla(L, t, ["p6108", "p6111", "p6107"], [marca(2, 0) - 0.2, marca(2, 0) + 0.3, marca(2, 1) - 0.2], y0=820, cols=3, ancho=320)
+        rejilla(L, t, ["p6108", "p6111", "p6107"], [marca(2, 0) - 0.2, marca(2, 0) + 0.3, marca(2, 1) - 0.2], y0=820, cols=3, ancho=290)
     if e == 3:
-        sello(L, "$699 c/u", t, marca(3, 0) - 0.1, cy=360, cx=W / 2)
-        pas(L, "precio de mayoreo", 550, t, marca(3, 1) - 0.1, sz=52, bg=NEGRO)
-        pas(L, "💸 Tú le pones tu precio", 680, t, marca(3, 2) - 0.1, sz=54)
+        sello(L, "$699 c/u", t, marca(3, 0) - 0.1, cy=420, cx=W / 2)
+        pas(L, "precio de mayoreo", 650, t, marca(3, 1) - 0.1, sz=52, bg=NEGRO)
+        pas(L, "💸 Tú le pones tu precio", 770, t, marca(3, 2) - 0.1, sz=54)
     if e == 4:
         pas(L, "Apártalos con la mitad", 330, t, marca(4, 1) - 0.2, sz=60)
         pas(L, "y liquidas antes de que te los envíe", 460, t, marca(4, 2) - 0.1, sz=46, bg=WHITE, fg=NEGRO)
@@ -507,6 +509,242 @@ def portada():
         tj = foto_tarjeta(f, ancho, 1.25).rotate(giros[j], expand=True, resample=Image.BICUBIC)
         b.pon(L, tj, 30 + paso * (j + 0.5), 1110 + (30 if j in (0, n - 1) else 0))
     pas(L, "alpacca.mx", 1560, 1, 0, sz=62)
+    L.convert("RGB").save(os.path.join(AQUI, f"portada-{VAR}.jpg"), quality=92)
+
+
+
+# ======================= DISEÑO «BOUTIQUE» (pijamas) =======================
+# Distinto a los videos anteriores (pastillas rosas y letra Bagel): letras de boutique (Cormorant + Inter Display en
+# mayúsculas espaciadas), etiquetas de ropa colgando de un hilo dorado, precio en sello redondo con borde dorado, fotos
+# tipo polaroid con cinta, subtítulos en frase (no una palabra a la vez), colores crema, cacao, rosa empolvado y oro.
+import re as _re, unicodedata as _ud
+CREMA, CACAO, EMPOLVADO, ORO = (250, 243, 234), (58, 40, 38), (232, 178, 184), (201, 164, 92)
+_COR = os.path.join(FUENTES, "Cormorant.ttf")
+_INT = "/usr/share/fonts/opentype/inter/InterDisplay-{}.otf"
+_fcache = {}
+def fcor(sz, peso="Bold"):
+    k = ("c", sz, peso)
+    if k not in _fcache:
+        f = ImageFont.truetype(_COR, int(sz)); f.set_variation_by_name(peso); _fcache[k] = f
+    return _fcache[k]
+def fint(sz, peso="SemiBold"):
+    k = ("i", sz, peso)
+    if k not in _fcache: _fcache[k] = ImageFont.truetype(_INT.format(peso), int(sz))
+    return _fcache[k]
+def sin_emoji(s): return "".join(c for c in s if not (ord(c) >= 0x2190 and _ud.category(c) in ("So", "Sk", "Mn", "Cf"))).replace("  ", " ").strip()
+def trazo(txt, f, fill, track=0):
+    """texto como imagen (con espaciado entre letras opcional)"""
+    w = int(sum(f.getlength(c) + track for c in txt)) + 10; asc, desc = f.getmetrics()
+    im = Image.new("RGBA", (max(w, 1), asc + desc + 6)); d = ImageDraw.Draw(im); x = 3
+    for c in txt: d.text((x, 2), c, font=f, fill=fill); x += f.getlength(c) + track
+    return im.crop(im.getbbox() or (0, 0, 1, 1))
+def _suave(t, t0, dur=0.45):
+    if t < t0: return 0.0
+    return b.ease((t - t0) / dur)
+
+
+def etiqueta_ropa(s, sz=44, oscura=False, upper=True):
+    """etiqueta de ropa: rectángulo con esquina recortada, ojillo y texto en mayúsculas espaciadas"""
+    s = sin_emoji(s); s = s.upper() if upper else s
+    fondo, tinta = (CACAO, CREMA) if oscura else (CREMA, CACAO)
+    tx = trazo(s, fint(sz * 0.8, "SemiBold"), tinta, track=sz * 0.07)
+    if tx.width > 900: tx = tx.resize((900, int(tx.height * 900 / tx.width)), Image.LANCZOS)
+    h = int(sz * 1.6); w = tx.width + int(sz * 1.9)
+    im = Image.new("RGBA", (w + 24, h + 24)); d = ImageDraw.Draw(im)
+    sh = Image.new("L", im.size, 0); ImageDraw.Draw(sh).rounded_rectangle((14, 18, w + 10, h + 18), 10, fill=90)
+    im.putalpha(sh.filter(ImageFilter.GaussianBlur(7)))
+    c = h // 2
+    d.polygon([(12 + c * 0.55, 12), (w + 12, 12), (w + 12, h + 12), (12 + c * 0.55, h + 12), (12, 12 + c)], fill=fondo + (255,))
+    d.ellipse((12 + c * 0.55 - 2, 12 + c - 7, 12 + c * 0.55 + 12, 12 + c + 7), fill=(0, 0, 0, 0), outline=ORO + (255,), width=3)
+    d.line((12 + int(c * 0.55) + int(sz * 0.6), 20, 12 + int(c * 0.55) + int(sz * 0.6), h + 4), fill=ORO + (200,), width=2)
+    im.alpha_composite(tx, (12 + int(sz * 1.25), 12 + (h - tx.height) // 2))
+    return im
+
+
+def pas(L, s, cy, t, t0, sz=58, bg=ROSA, fg=WHITE, n="ExtraBold", maxw=1000, cx=W / 2):
+    if t < t0: return
+    im = etiqueta_ropa(s, sz=min(sz, 60) * 0.95, oscura=(bg == NEGRO or bg == ROSA and fg == WHITE and False))
+    if bg == ROSA: im = etiqueta_ropa(s, sz=min(sz, 60) * 0.95, oscura=True)
+    if im.width > maxw + 40: im = im.resize((maxw + 40, int(im.height * (maxw + 40) / im.width)), Image.LANCZOS)
+    k = _suave(t, t0)
+    b.pon(L, im, cx - (1 - k) * 60, cy, 1.0, k)
+
+
+def gancho(L, t, arriba, abajo, t_abajo):
+    """titular de revista: letras Cormorant grandes en crema, alineadas a la izquierda, con raya dorada"""
+    arriba = sin_emoji(arriba)
+    palabras = arriba.split(); lineas = []; cur = ""
+    for p in palabras:
+        if fcor(132).getlength((cur + " " + p).strip()) > 980 and cur: lineas.append(cur); cur = p
+        else: cur = (cur + " " + p).strip()
+    lineas.append(cur)
+    y = 300
+    for ln in lineas:
+        im = _sombra(trazo(ln, fcor(132, "Bold"), CREMA + (255,)), 12, 170)
+        b.pon(L, im, 50 + im.width / 2, y, 1.0, 1.0); y += 132
+    raya = Image.new("RGBA", (220, 6), ORO + (255,)); b.pon(L, raya, 70 + 110, y - 30, 1.0, 1.0)
+    if abajo: pas(L, abajo, y + 50, t, t_abajo, sz=50, cx=70 + 470)
+
+
+def sello(L, txt, t, t0, cy=1290, bg=ROSA, cx=W / 2 + 200):
+    """precio en sello redondo crema con doble borde dorado"""
+    if t < t0: return
+    txt = sin_emoji(txt); r = 150
+    im = Image.new("RGBA", (2 * r + 30, 2 * r + 30)); d = ImageDraw.Draw(im)
+    sh = Image.new("L", im.size, 0); ImageDraw.Draw(sh).ellipse((15, 22, 2 * r + 15, 2 * r + 22), fill=110)
+    im.putalpha(sh.filter(ImageFilter.GaussianBlur(10)))
+    d.ellipse((15, 15, 2 * r + 15, 2 * r + 15), fill=CREMA + (255,), outline=ORO + (255,), width=6)
+    d.ellipse((31, 31, 2 * r - 1, 2 * r - 1), outline=ORO + (255,), width=2)
+    principal = txt.split(" ")[0]; resto = txt[len(principal):].strip()
+    f = fcor(118 if len(principal) <= 4 else 96, "Bold")
+    d.text((r + 15, r + 5 - (12 if resto else 0)), principal, font=f, fill=CACAO, anchor="mm")
+    if resto: d.text((r + 15, r + 78), resto.upper(), font=fint(28, "SemiBold"), fill=ORO, anchor="mm")
+    cx = min(max(cx, r + 30), W - r - 30)
+    k = _suave(t, t0, 0.35); im = im.rotate(-8 * (1 - k) - 4, expand=True, resample=Image.BICUBIC)
+    b.pon(L, im, cx, cy, 0.85 + 0.15 * k, k)
+
+
+def chips(L, textos, cy, t, t0, sep=0.25):
+    """palabras sueltas en mayúsculas espaciadas separadas por puntos dorados (sin pastillas)"""
+    textos = [sin_emoji(x).upper() for x in textos]
+    f = fint(36, "SemiBold"); partes = []
+    for j, x in enumerate(textos):
+        if t >= t0 + j * sep: partes.append(x)
+    if not partes: return
+    sepi = trazo("·", f, ORO + (255,), 0)
+    gap = Image.new("RGBA", (26, 1))
+    ims = []
+    for j, x in enumerate(partes):
+        if j: ims += [gap, sepi, gap]
+        ims.append(trazo(x, f, CREMA + (255,), 5))
+    w = sum(i.width for i in ims); h = max(i.height for i in ims)
+    im = Image.new("RGBA", (w + 60, h + 34)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle((0, 0, w + 59, h + 33), 8, fill=CACAO + (215,))
+    x = 30
+    for i in ims: im.alpha_composite(i, (x, 17 + (h - i.height) // 2)); x += i.width
+    if im.width > 1040: im = im.resize((1040, int(im.height * 1040 / im.width)), Image.LANCZOS)
+    b.pon(L, im, W / 2, cy, 1.0, 1.0)
+
+
+def polaroid(foto, ancho, pie=None, num=None, giro=0, prop=1.2):
+    """foto del set como polaroid con cinta arriba; abajo, el número y cuántas piezas trae"""
+    h = int(ancho * prop); marco = max(14, ancho // 18); abajo = int(ancho * 0.30)
+    im = Image.open(os.path.join(AQUI, "fotos", foto + ".jpg")).convert("RGB")
+    im = ImageOps.fit(im, (ancho, h), Image.LANCZOS, centering=(0.5, 0.45))
+    W_, H_ = ancho + 2 * marco, h + marco + abajo
+    c = Image.new("RGBA", (W_ + 40, H_ + 60))
+    sh = Image.new("L", c.size, 0); ImageDraw.Draw(sh).rectangle((22, 42, W_ + 22, H_ + 46), fill=120)
+    c.putalpha(sh.filter(ImageFilter.GaussianBlur(12)))
+    d = ImageDraw.Draw(c); d.rectangle((20, 30, W_ + 20, H_ + 30), fill=(252, 250, 246, 255))
+    c.paste(im, (20 + marco, 30 + marco))
+    if num is not None or pie:
+        ty = 30 + marco + h + abajo // 2
+        if num is not None:
+            d.text((20 + marco + 4, ty), f"N.º {num}", font=fcor(abajo * 0.62, "Bold"), fill=CACAO, anchor="lm")
+        if pie:
+            p = trazo(sin_emoji(pie).upper(), fint(max(16, abajo * 0.26), "SemiBold"), ORO + (255,), 3)
+            if p.width > ancho * (0.55 if num is not None else 0.95):
+                k = ancho * (0.55 if num is not None else 0.95) / p.width; p = p.resize((int(p.width * k), max(1, int(p.height * k))), Image.LANCZOS)
+            c.alpha_composite(p, (20 + marco + ancho - p.width if num is not None else 20 + (W_ - p.width) // 2, ty - p.height // 2))
+    cinta = Image.new("RGBA", (int(ancho * 0.42), 44), EMPOLVADO + (190,))
+    cinta = cinta.rotate(-6, expand=True, resample=Image.BICUBIC)
+    c.alpha_composite(cinta, ((c.width - cinta.width) // 2, 8))
+    return c.rotate(giro, expand=True, resample=Image.BICUBIC) if giro else c
+
+
+def foto_tarjeta(foto, ancho, prop=1.2):
+    return polaroid(foto, ancho - 30, prop=prop)
+
+
+def tarjeta(foto, nombre, abajo=None, ancho=440, color_abajo=ROSA, prop=1.2):
+    return polaroid(foto, ancho - 40, pie=(nombre + (" · " + abajo if abajo else "")), prop=prop)
+
+
+def rejilla(L, t, fotos, t0s, numeros=None, y0=520, cols=3, ancho=300, etiqueta=True):
+    paso = (W - 60) / cols
+    giros = [-3, 2, -2, 3, -1, 2, -3, 1, -2]
+    for k, (f, t0) in enumerate(zip(fotos, t0s)):
+        if t < t0: continue
+        pz = FOTOS[f][1].split(":")[0] if etiqueta else None
+        c = polaroid(f, ancho - 30, pie=pz, num=numeros[k] if numeros else None, giro=giros[k % len(giros)])
+        kk = _suave(t, t0, 0.4)
+        b.pon(L, c, 30 + paso * (k % cols + 0.5), y0 + (k // cols) * (c.height - 10) + (1 - kk) * 50, 1.0, kk)
+
+
+def foto_grande(L, t):
+    if not FOTO["k"] or FOTO["k"] == "fondo": return
+    nom, abajo, col = FOTOS[FOTO["k"]]
+    c = polaroid(FOTO["k"], 520, pie=nom + " · " + abajo.split(":")[0], giro=-2, prop=1.25)
+    k = _suave(t, FOTO["t0"], 0.5)
+    b.pon(L, c, W / 2, 880 + (1 - k) * 60, 1.0, k)
+
+
+# subtítulos en frase: hasta 4 palabras, letra Cormorant crema; las palabras clave en rosa empolvado
+_FR = []
+def _frases():
+    cur = []
+    for t0, w in PAL:
+        cur.append((t0, w))
+        if len(cur) >= 4 or w.endswith((",", ".", ":", "?", "!")): _FR.append(cur); cur = []
+    if cur: _FR.append(cur)
+def subtitulo(L, t, y=None):
+    if not _FR: _frases()
+    act = [fr for fr in _FR if fr[0][0] <= t]
+    if not act or t > PAL[-1][0] + 0.8: return
+    fr = act[-1]
+    f = fcor(78, "SemiBold"); esp = f.getlength(" ")
+    pal = [w.strip(".,:;") for _, w in fr]
+    ww = int(sum(f.getlength(p) for p in pal) + esp * (len(pal) - 1)) + 20; asc, desc = f.getmetrics()
+    im = Image.new("RGBA", (ww, asc + desc + 20)); d = ImageDraw.Draw(im); x = 10
+    for p in pal:  # todas en la misma línea base
+        d.text((x, 10 + asc), p, font=f, fill=(EMPOLVADO if p.strip("¿?¡!") in CLAVE else CREMA), anchor="ls"); x += f.getlength(p) + esp
+    im = _sombra(im.crop(im.getbbox()), 10, 200)
+    if im.width > 1040: im = im.resize((1040, int(im.height * 1040 / im.width)), Image.LANCZOS)
+    yy0 = 1720 if y is None else y
+    caja = im.getchannel("A").point(lambda v: 255 if v > 90 else 0).getbbox() or (0, 0, im.width, im.height)
+    hw, hh2 = (caja[2] - caja[0]) / 2, (caja[3] - caja[1]) / 2
+    for yy in sorted(range(400, 1841, 20), key=lambda v: abs(v - yy0)):
+        if not choca((W / 2 - hw, yy - hh2, W / 2 + hw, yy + hh2)): yy0 = yy; break
+    else: SIN_LUGAR.append(round(t, 2))
+    _pon(L, im, W / 2, yy0)
+
+
+def degradado():
+    """viñeta cálida arriba y abajo (para que se lean las letras crema)"""
+    g = Image.new("L", (1, H))
+    for y in range(H):
+        a = max(0, 1 - y / 700) * 150 + max(0, (y - 1300) / 620) * 140
+        g.putpixel((0, y), int(min(255, a)))
+    im = Image.new("RGBA", (W, H), (36, 22, 20, 255)); im.putalpha(g.resize((W, H))); return im
+SOMBRA = degradado()
+
+
+def invitacion(L, t, e):
+    """cierre: QR grande arriba (como antes) y debajo las etiquetas del grupo de WhatsApp"""
+    b.pon(L, qr_grupo(), W / 2, 470, *b.entra(t, INI[e] + 0.05, 0.4))
+    pas(L, "Únete a mi grupo de WhatsApp", 840, t, INI[e] + 0.25, sz=58)
+    pas(L, "Precio de mayoreo", 975, t, marca(e, 1) - 0.1, sz=50, bg=WHITE, fg=NEGRO)
+    pas(L, "Ofertas exclusivas", 1095, t, marca(e, 2) - 0.1, sz=50, bg=WHITE, fg=NEGRO)
+    pas(L, "Link en alpacca.mx", 1225, t, marca(e, 3) - 0.1, sz=56, bg=NEGRO)
+
+
+def portada():
+    """portada boutique: todo dentro de la zona 3:4 que se ve en el perfil (y 240-1680)"""
+    fuente, seg, r1, r2, pastilla, prods = PORTADA[VAR]
+    L = next(video(fuente, seg, 1)); L.alpha_composite(Image.new("RGBA", (W, H), (30, 18, 16, 110)))
+    k = trazo("PIJAMAS · JUICY COUTURE · TRUE RELIGION", fint(30, "SemiBold"), ORO + (255,), 6)
+    b.pon(L, k, W / 2, 300)
+    for j, txt in enumerate((r1, r2)):
+        im = _sombra(trazo(sin_emoji(txt), fcor(140, "Bold"), (CREMA if j == 0 else EMPOLVADO) + (255,)), 14, 190)
+        if im.width > 1020: im = im.resize((1020, int(im.height * 1020 / im.width)), Image.LANCZOS)
+        b.pon(L, im, W / 2, 420 + j * 150)
+    b.pon(L, etiqueta_ropa(pastilla, 46, oscura=False), W / 2, 720)
+    n = len(prods); ancho = 300 if n <= 3 else 230; paso = (W - 60) / n
+    giros = [-4, 2, 4] if n == 3 else [-4, -1, 2, 4]
+    for j, f in enumerate(prods):
+        b.pon(L, polaroid(f, ancho, giro=giros[j]), 30 + paso * (j + 0.5), 1150 + (25 if j in (0, n - 1) else 0))
+    sello(L, "$699 c/u", 1, 0, cy=1500, cx=W - 190)
+    b.pon(L, trazo("alpacca.mx", fcor(70, "Bold"), CREMA + (255,)), 300, 1530)
     L.convert("RGB").save(os.path.join(AQUI, f"portada-{VAR}.jpg"), quality=92)
 
 
