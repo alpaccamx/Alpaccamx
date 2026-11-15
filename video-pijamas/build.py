@@ -1326,6 +1326,19 @@ def portada():
     L.convert("RGB").save(os.path.join(AQUI, f"portada-{VAR}.jpg"), quality=92)
 
 
+# en los subtítulos, «alpacca punto eme equis» (como lo dice la voz) se escribe «alpacca.mx»
+def _junta_web(pal):
+    out = []; i = 0
+    while i < len(pal):
+        ws = [w.strip(".,:;").lower() for _, w in pal[i:i + 4]]
+        if ws[:1] == ["alpacca"] and ws[1:4] == ["punto", "eme", "equis"]:
+            fin = pal[i + 3][1]; punt = fin[len(fin.rstrip(".,:;")):]
+            out.append((pal[i][0], "alpacca.mx" + punt)); i += 4
+        else: out.append(pal[i]); i += 1
+    return out
+PAL[:] = _junta_web(PAL); _FR.clear()
+
+
 def revisa():
     """busca en todo el video cuadros donde dos cosas (textos, tarjetas, precios) se enciman"""
     malos = []
