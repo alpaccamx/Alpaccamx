@@ -12,7 +12,7 @@ Variantes:
   regalo  = «El regalo de Navidad que sí van a usar»: regalo resuelto + anclaje (etiqueta de 68 dólares contra $699).
   equipo  = «¿Eres más Juicy o True Religion?»: identidad (equipo) + catálogo numerado + «comenta el número».
   reventa = «Si vendes ropa…»: para revendedoras; entrada baja (apartas con la mitad) y «tú le pones tu precio».
-Diseño «juvenil» (elegido por Mae; el «boutique» no le gustó): titulares Anton con contorno, stickers de colores,
+Diseño navideño (pedido por Mae) sobre el «juvenil» (el «boutique» no le gustó): titulares Anton con contorno, stickers de colores,
 precio en estrella amarilla, corazones y estrellas, fotos con rebote y subtítulos gruesos con contorno.
 Uso: python3 voz.py VARIANTE; python3 build.py VARIANTE CARPETA_CON_est_*.mp4 -> Pijamas-VARIANTE-voz.mp4"""
 import hashlib, json, os, re, subprocess, sys
@@ -354,7 +354,7 @@ def capa_regalo(L, t):
         chips(L, ["2 piezas: MSRP $58", "3 piezas: MSRP $68"], 1560, t, marca(2, 1) - 0.1, sep=0.7)
     if e == 3:
         pas(L, "Conmigo 💗", 290, t, INI[3] + 0.1, sz=60, bg=WHITE, fg=ROSA)
-        sello(L, "$699", t, marca(3, 0) - 0.1, cy=540, cx=W / 2)
+        sello(L, "$699", t, marca(3, 0) - 0.1, cy=600, cx=W / 2)
         pas(L, "cada set · precio de mayoreo", 780, t, marca(3, 1) - 0.1, sz=50, bg=NEGRO)
     if e == 4:
         pas(L, "Apártalo con la mitad", 330, t, marca(4, 0) - 0.1, sz=60)
@@ -380,7 +380,7 @@ def capa_equipo(L, t):
         rejilla(L, t, TR, [marca(3, 1) - 0.2, marca(3, 2) - 0.2, marca(3, 3) - 0.2], [7, 8, 9], y0=760, cols=3, ancho=300)
     if e == 4:
         pas(L, "Todos los sets a", 290, t, INI[4] + 0.1, sz=56, bg=WHITE, fg=NEGRO)
-        sello(L, "$699", t, marca(4, 0) - 0.1, cy=540, cx=W / 2)
+        sello(L, "$699", t, marca(4, 0) - 0.1, cy=600, cx=W / 2)
         pas(L, "Apártalo con la mitad", 780, t, marca(4, 1) - 0.1, sz=52)
     if e == 5:
         pas(L, "Comenta el NÚMERO de tu favorita 👇", 300, t, INI[5], sz=50)
@@ -870,7 +870,7 @@ def sello(L, txt, t, t0, cy=1290, bg=ROSA, cx=W / 2 + 200):
 
 
 def chips(L, textos, cy, t, t0, sep=0.25):
-    ims = [sticker(x, 54, colores=COLORES[(j + 1) % 4], giro=[-3, 2, -2][j % 3]) for j, x in enumerate(textos)]
+    ims = [sticker(x, 54, colores=COLORES[(j + 1) % len(COLORES)], giro=[-3, 2, -2][j % 3]) for j, x in enumerate(textos)]
     total = sum(i.width for i in ims) + 10 * (len(ims) - 1)
     if total > 1050:
         k = 1050 / total; ims = [i.resize((int(i.width * k), int(i.height * k)), Image.LANCZOS) for i in ims]; total = 1050
@@ -985,6 +985,108 @@ def portada():
     sello(L, "$699 c/u", 2.0, 0, cy=1500, cx=W - 200)
     b.pon(L, sticker("alpacca.mx", 56, colores=(CHICLE, WHITE), giro=-3), 300, 1520)
     L.convert("RGB").save(os.path.join(AQUI, f"portada-{VAR}.jpg"), quality=92)
+
+
+
+# ======================= DISEÑO NAVIDEÑO (pijamas, pedido por Mae) =======================
+# Sobre el juvenil (letras grandes y stickers con borde blanco), pero en rojo, verde, dorado y blanco: nieve que cae,
+# tira de foquitos que parpadean arriba, precio dentro de una esfera navideña, moño rojo en cada foto, acebo y copos.
+ROJO, VERDE_N, DORADO, PINO = (205, 28, 48), (22, 128, 72), (240, 190, 60), (12, 70, 42)
+CHICLE, LILA, AQUA, AMARILLO = ROJO, VERDE_N, PINO, DORADO
+COLORES = [(ROJO, WHITE), (VERDE_N, WHITE), (DORADO, TINTA)]
+_ncolor.clear()
+
+
+def copo(sz, col=(255, 255, 255, 235)):
+    im = Image.new("RGBA", (sz, sz)); d = ImageDraw.Draw(im); c = sz / 2; w = max(2, sz // 12)
+    for k in range(6):
+        a = _m.pi * k / 3; x, y = c + (c - 2) * _m.cos(a), c + (c - 2) * _m.sin(a); d.line((c, c, x, y), fill=col, width=w)
+        for f in (0.55,):
+            px, py = c + (c - 2) * f * _m.cos(a), c + (c - 2) * f * _m.sin(a)
+            for s_ in (-1, 1):
+                b2 = a + s_ * 0.6; d.line((px, py, px + c * 0.28 * _m.cos(b2), py + c * 0.28 * _m.sin(b2)), fill=col, width=w)
+    return im
+def acebo(sz):
+    im = Image.new("RGBA", (sz, sz)); d = ImageDraw.Draw(im)
+    d.ellipse((sz * 0.02, sz * 0.30, sz * 0.52, sz * 0.62), fill=VERDE_N + (255,))
+    d.ellipse((sz * 0.48, sz * 0.30, sz * 0.98, sz * 0.62), fill=VERDE_N + (255,))
+    for (x, y) in ((0.42, 0.5), (0.58, 0.5), (0.5, 0.64)):
+        r = sz * 0.1; d.ellipse((sz * x - r, sz * y - r, sz * x + r, sz * y + r), fill=ROJO + (255,))
+    return im
+def adornos(L, t, y=300):
+    for k, (x, yy, f, sz) in enumerate([(80, y - 140, acebo, 110), (1000, y - 130, copo, 90), (1010, y + 170, acebo, 90), (70, y + 210, copo, 70)]):
+        p = 1 + 0.08 * _m.sin(t * 4 + k)
+        _pon(L, f(int(sz * p)), x, yy)
+
+
+def sello(L, txt, t, t0, cy=1290, bg=ROSA, cx=W / 2 + 200):
+    """precio dentro de una esfera navideña roja con tapita dorada, que se mece"""
+    if t < t0: return
+    txt = sin_emoji(txt); principal = txt.split(" ")[0]; resto = txt[len(principal):].strip()
+    r = 160; im = Image.new("RGBA", (2 * r + 40, 2 * r + 110)); d = ImageDraw.Draw(im); cx0, cy0 = r + 20, r + 90
+    d.line((cx0, 0, cx0, cy0 - r - 20), fill=DORADO + (255,), width=4)
+    d.ellipse((cx0 - r + 10, cy0 - r + 14, cx0 + r + 10, cy0 + r + 14), fill=(0, 0, 0, 90))
+    d.ellipse((cx0 - r, cy0 - r, cx0 + r, cy0 + r), fill=ROJO + (255,), outline=WHITE + (255,), width=6)
+    d.ellipse((cx0 - r * 0.62, cy0 - r * 0.78, cx0 - r * 0.15, cy0 - r * 0.42), fill=(255, 255, 255, 80))
+    d.rounded_rectangle((cx0 - 38, cy0 - r - 30, cx0 + 38, cy0 - r + 8), 8, fill=DORADO + (255,))
+    d.arc((cx0 - r + 18, cy0 - 30, cx0 + r - 18, cy0 + 50), 15, 165, fill=DORADO + (255,), width=6)
+    tx = contorno(principal, fanton(118 if len(principal) <= 4 else 92), WHITE, WHITE, 0)
+    im.alpha_composite(tx, (cx0 - tx.width // 2, cy0 - tx.height // 2 - (22 if resto else 6)))
+    if resto:
+        rr = contorno(resto.upper(), fblack(30), DORADO, DORADO, 0); im.alpha_composite(rr, (cx0 - rr.width // 2, cy0 + 62))
+    cx = min(max(cx, im.width / 2 + 20), W - im.width / 2 - 20)
+    im = im.rotate(6 * _m.sin(t * 2.4), expand=True, resample=Image.BICUBIC)
+    b.pon(L, im, cx, cy, *rebote(t, t0, 0.5))
+
+
+def mono(sz):
+    """moño rojo de regalo"""
+    im = Image.new("RGBA", (sz, int(sz * 0.7))); d = ImageDraw.Draw(im); h = im.height
+    d.polygon([(sz * 0.5, h * 0.45), (sz * 0.05, h * 0.05), (sz * 0.02, h * 0.8)], fill=ROJO + (255,))
+    d.polygon([(sz * 0.5, h * 0.45), (sz * 0.95, h * 0.05), (sz * 0.98, h * 0.8)], fill=ROJO + (255,))
+    d.polygon([(sz * 0.45, h * 0.5), (sz * 0.3, h), (sz * 0.42, h * 0.95)], fill=(160, 18, 35, 255))
+    d.polygon([(sz * 0.55, h * 0.5), (sz * 0.7, h), (sz * 0.58, h * 0.95)], fill=(160, 18, 35, 255))
+    r = sz * 0.12; d.ellipse((sz / 2 - r, h * 0.45 - r, sz / 2 + r, h * 0.45 + r), fill=(170, 20, 38, 255))
+    return im
+_pol_juvenil = polaroid
+def polaroid(foto, ancho, pie=None, num=None, giro=0, prop=1.2):
+    c = _pol_juvenil(foto, ancho, pie=pie, num=num, giro=0, prop=prop)
+    m = mono(int(ancho * 0.42)); out = Image.new("RGBA", (c.width, c.height + m.height // 2))
+    out.alpha_composite(c, (0, m.height // 2)); out.alpha_composite(m, ((c.width - m.width) // 2 + 6, 0))
+    return out.rotate(giro, expand=True, resample=Image.BICUBIC) if giro else out
+
+
+import random as _rnd
+_r = _rnd.Random(7)
+NIEVE = [(_r.uniform(0, W), _r.uniform(0, H), _r.uniform(60, 160), _r.choice([8, 10, 12, 16, 22]), _r.uniform(0, 6.28)) for _ in range(70)]
+_copos = {sz: copo(sz, (255, 255, 255, 220)) for sz in (16, 22)}
+def nieve(L, t):
+    for x, y, v, sz, f in NIEVE:
+        yy = (y + v * t) % (H + 40) - 20; xx = x + 18 * _m.sin(t * 1.3 + f)
+        if sz >= 16: L.alpha_composite(_copos[sz], (int(xx), int(yy)))
+        else:
+            ImageDraw.Draw(L).ellipse((xx, yy, xx + sz, yy + sz), fill=(255, 255, 255, 190))
+def foquitos(L, t):
+    d = ImageDraw.Draw(L); pts = [(x, 46 + 22 * _m.sin(x / 140)) for x in range(-20, W + 40, 20)]
+    d.line(pts, fill=(25, 45, 30, 255), width=4)
+    cols = [ROJO, DORADO, VERDE_N, (70, 140, 255)]
+    for k, x in enumerate(range(30, W, 90)):
+        y = 46 + 22 * _m.sin(x / 140) + 16; on = (int(t * 3) + k) % 3 != 0; col = cols[k % 4]
+        if on: d.ellipse((x - 20, y - 18, x + 20, y + 26), fill=col + (90,))
+        d.ellipse((x - 10, y - 8, x + 10, y + 18), fill=(col if on else tuple(v // 2 for v in col)) + (255,))
+        d.rectangle((x - 5, y - 14, x + 5, y - 6), fill=(60, 60, 60, 255))
+
+
+_capa_juvenil = CAPA
+def CAPA(L, t):
+    foquitos(L, t); _capa_juvenil(L, t); nieve(L, t)
+
+
+_portada_juvenil = portada
+def portada():
+    _portada_juvenil()
+    ruta = os.path.join(AQUI, f"portada-{VAR}.jpg"); L = Image.open(ruta).convert("RGBA")
+    foquitos(L, 0.2); nieve(L, 3.0); L.convert("RGB").save(ruta, quality=92)
 
 
 def revisa():
