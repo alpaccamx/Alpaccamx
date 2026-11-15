@@ -12,8 +12,8 @@ Variantes:
   regalo  = «El regalo de Navidad que sí van a usar»: regalo resuelto + anclaje (etiqueta de 68 dólares contra $699).
   equipo  = «¿Eres más Juicy o True Religion?»: identidad (equipo) + catálogo numerado + «comenta el número».
   reventa = «Si vendes ropa…»: para revendedoras; entrada baja (apartas con la mitad) y «tú le pones tu precio».
-Diseño «boutique» (distinto a los videos anteriores): titulares Cormorant, etiquetas de ropa con hilo dorado,
-precio en sello redondo, fotos tipo polaroid con cinta y subtítulos en frase.
+Diseño «juvenil» (elegido por Mae; el «boutique» no le gustó): titulares Anton con contorno, stickers de colores,
+precio en estrella amarilla, corazones y estrellas, fotos con rebote y subtítulos gruesos con contorno.
 Uso: python3 voz.py VARIANTE; python3 build.py VARIANTE CARPETA_CON_est_*.mp4 -> Pijamas-VARIANTE-voz.mp4"""
 import hashlib, json, os, re, subprocess, sys
 
@@ -745,6 +745,245 @@ def portada():
         b.pon(L, polaroid(f, ancho, giro=giros[j]), 30 + paso * (j + 0.5), 1150 + (25 if j in (0, n - 1) else 0))
     sello(L, "$699 c/u", 1, 0, cy=1500, cx=W - 190)
     b.pon(L, trazo("alpacca.mx", fcor(70, "Bold"), CREMA + (255,)), 300, 1530)
+    L.convert("RGB").save(os.path.join(AQUI, f"portada-{VAR}.jpg"), quality=92)
+
+
+
+# ======================= DISEÑO «JUVENIL» (pijamas, elegido por Mae) =======================
+# Llamativo estilo TikTok y distinto a los videos anteriores: titulares Anton gigantes en blanco con contorno rosa,
+# etiquetas tipo sticker en colores vivos (rosa chicle, amarillo, lila, aqua) con borde blanco grueso y un poco
+# giradas, precio dentro de una estrella amarilla, corazones y estrellitas que laten, fotos con borde blanco y sombra
+# de color que entran con rebote, subtítulos gruesos con contorno (las palabras clave en amarillo).
+import math as _m
+CHICLE, AMARILLO, LILA, AQUA, TINTA = (255, 64, 150), (255, 214, 0), (170, 120, 255), (0, 200, 200), (25, 15, 30)
+COLORES = [(CHICLE, WHITE), (AMARILLO, TINTA), (LILA, WHITE), (AQUA, TINTA)]
+_ANTON = os.path.join(FUENTES, "Anton-Regular.ttf")
+def fanton(sz):
+    k = ("a", int(sz))
+    if k not in _fcache: _fcache[k] = ImageFont.truetype(_ANTON, int(sz))
+    return _fcache[k]
+def fblack(sz):
+    k = ("b", int(sz))
+    if k not in _fcache: _fcache[k] = ImageFont.truetype("/usr/share/fonts/opentype/inter/InterDisplay-Black.otf", int(sz))
+    return _fcache[k]
+def contorno(txt, f, fill, stroke, sw):
+    asc, desc = f.getmetrics(); w = int(f.getlength(txt)) + 4 * sw + 10
+    im = Image.new("RGBA", (w, asc + desc + 4 * sw)); d = ImageDraw.Draw(im)
+    d.text((2 * sw, 2 * sw), txt, font=f, fill=fill, stroke_width=sw, stroke_fill=stroke)
+    return im.crop(im.getbbox())
+def rebote(t, t0, dur=0.45):
+    if t < t0: return 0.0, 0.0
+    return b.back((t - t0) / dur), min(1.0, (t - t0) / 0.12)
+_ncolor = {}
+def color_de(s):
+    if s not in _ncolor: _ncolor[s] = COLORES[len(_ncolor) % len(COLORES)]
+    return _ncolor[s]
+
+
+def sticker(s, sz=60, colores=None, giro=0):
+    """texto en sticker: fondo de color vivo, borde blanco grueso y sombra dura"""
+    s = sin_emoji(s)
+    fondo, tinta = colores or color_de(s)
+    tx = contorno(s, fblack(sz), tinta, tinta, 0) if True else None
+    if tx.width > 940: tx = tx.resize((940, int(tx.height * 940 / tx.width)), Image.LANCZOS)
+    px, py = int(sz * 0.55), int(sz * 0.32); w, h = tx.width + 2 * px, tx.height + 2 * py
+    im = Image.new("RGBA", (w + 30, h + 30)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle((12, 14, w + 12, h + 14), h // 3, fill=TINTA + (150,))  # sombra dura
+    d.rounded_rectangle((4, 4, w + 4, h + 4), h // 3, fill=WHITE + (255,))
+    d.rounded_rectangle((10, 10, w - 2, h - 2), h // 3 - 4, fill=fondo + (255,))
+    im.alpha_composite(tx, (4 + px, 4 + py))
+    return im.rotate(giro, expand=True, resample=Image.BICUBIC) if giro else im
+
+
+_giros = {}
+def pas(L, s, cy, t, t0, sz=58, bg=ROSA, fg=WHITE, n="ExtraBold", maxw=1000, cx=W / 2):
+    if t < t0: return
+    if s not in _giros: _giros[s] = [-3, 2, -2, 3][len(_giros) % 4]
+    col = (TINTA, WHITE) if bg == NEGRO else ((WHITE, CHICLE) if bg == WHITE else None)
+    im = sticker(s, sz=max(62, min(sz * 1.25, 80)), colores=col or color_de(s), giro=_giros[s])
+    if im.width > maxw + 60: im = im.resize((maxw + 60, int(im.height * (maxw + 60) / im.width)), Image.LANCZOS)
+    cy = libre(im, cx, cy)
+    b.pon(L, im, cx, cy, *rebote(t, t0))
+
+
+def libre(im, cx, cy, margen=28):  # margen para el rebote al entrar
+    """si ya hay algo en ese lugar (otra etiqueta, el precio, una foto), baja hasta el primer hueco"""
+    caja = im.getchannel("A").point(lambda v: 255 if v > 90 else 0).getbbox() or (0, 0, im.width, im.height)
+    w2, h2 = (caja[2] - caja[0]) / 2, (caja[3] - caja[1]) / 2
+    for yy in range(int(cy), 1700, 10):
+        if not choca((cx - w2, yy - h2, cx + w2, yy + h2), margen): return yy
+    return cy
+
+
+def corazon(sz, col):
+    im = Image.new("RGBA", (sz, sz)); d = ImageDraw.Draw(im); r = sz * 0.27
+    d.ellipse((sz * 0.06, sz * 0.12, sz * 0.06 + 2 * r, sz * 0.12 + 2 * r), fill=col)
+    d.ellipse((sz * 0.94 - 2 * r, sz * 0.12, sz * 0.94, sz * 0.12 + 2 * r), fill=col)
+    d.polygon([(sz * 0.08, sz * 0.36), (sz * 0.92, sz * 0.36), (sz * 0.5, sz * 0.92)], fill=col)
+    return im
+def estrella(sz, col, puntas=5, hueco=0.45):
+    im = Image.new("RGBA", (sz, sz)); c = sz / 2
+    pts = [(c + (c - 2 if k % 2 == 0 else (c - 2) * hueco) * _m.cos(_m.pi * k / puntas - _m.pi / 2),
+            c + (c - 2 if k % 2 == 0 else (c - 2) * hueco) * _m.sin(_m.pi * k / puntas - _m.pi / 2)) for k in range(2 * puntas)]
+    ImageDraw.Draw(im).polygon(pts, fill=col); return im
+def adornos(L, t, y=300):
+    """corazones y estrellitas que laten alrededor del titular"""
+    for k, (x, yy, f, sz, col) in enumerate([(70, y - 140, corazon, 70, CHICLE), (1000, y - 120, estrella, 80, AMARILLO),
+                                              (1010, y + 170, corazon, 56, LILA), (60, y + 210, estrella, 54, AQUA)]):
+        p = 1 + 0.12 * _m.sin(t * 5 + k)
+        im = f(int(sz * p), col + (255,)); _pon(L, im, x, yy)
+
+
+def gancho(L, t, arriba, abajo, t_abajo):
+    """titular gigante (Anton) en blanco con contorno rosa, girado, ya completo en el primer cuadro"""
+    arriba = sin_emoji(arriba); f = fanton(150)
+    palabras = arriba.split(); lineas = []; cur = ""
+    for p in palabras:
+        if f.getlength((cur + " " + p).strip()) > 900 and cur: lineas.append(cur); cur = p
+        else: cur = (cur + " " + p).strip()
+    lineas.append(cur)
+    y = 330
+    for j, ln in enumerate(lineas):
+        im = contorno(ln.upper(), f, WHITE, CHICLE if j % 2 == 0 else LILA, 10)
+        if im.width > 1000: im = im.resize((1000, int(im.height * 1000 / im.width)), Image.LANCZOS)
+        im = im.rotate(-3 if j % 2 == 0 else 2, expand=True, resample=Image.BICUBIC)
+        b.pon(L, im, W / 2, y); y += im.height - 20
+    adornos(L, t, 330)
+    if abajo: pas(L, abajo, y + 70, t, t_abajo, sz=54, colores=None) if False else pas(L, abajo, y + 70, t, t_abajo, sz=54)
+
+
+def sello(L, txt, t, t0, cy=1290, bg=ROSA, cx=W / 2 + 200):
+    """precio dentro de una estrella amarilla que gira un poquito"""
+    if t < t0: return
+    txt = sin_emoji(txt); principal = txt.split(" ")[0]; resto = txt[len(principal):].strip()
+    sz = 330; im = estrella(sz, TINTA + (130,), puntas=12, hueco=0.8)
+    base = Image.new("RGBA", (sz + 20, sz + 20)); base.alpha_composite(im, (14, 16))
+    base.alpha_composite(estrella(sz, WHITE + (255,), puntas=12, hueco=0.8), (4, 4))
+    base.alpha_composite(estrella(sz - 24, AMARILLO + (255,), puntas=12, hueco=0.8), (16, 16))
+    tx = contorno(principal, fanton(108 if len(principal) <= 4 else 84), TINTA, TINTA, 0)
+    base.alpha_composite(tx, ((base.width - tx.width) // 2, (base.height - tx.height) // 2 - (16 if resto else 0)))
+    if resto:
+        r = contorno(resto.upper(), fblack(30), CHICLE, CHICLE, 0); base.alpha_composite(r, ((base.width - r.width) // 2, base.height // 2 + 48))
+    cx = min(max(cx, base.width / 2 + 20), W - base.width / 2 - 20)
+    base = base.rotate(8 * _m.sin(t * 2.2), expand=True, resample=Image.BICUBIC)
+    b.pon(L, base, cx, cy, *rebote(t, t0, 0.5))
+
+
+def chips(L, textos, cy, t, t0, sep=0.25):
+    ims = [sticker(x, 54, colores=COLORES[(j + 1) % 4], giro=[-3, 2, -2][j % 3]) for j, x in enumerate(textos)]
+    total = sum(i.width for i in ims) + 10 * (len(ims) - 1)
+    if total > 1050:
+        k = 1050 / total; ims = [i.resize((int(i.width * k), int(i.height * k)), Image.LANCZOS) for i in ims]; total = 1050
+    x = W / 2 - total / 2
+    fila = Image.new("RGBA", (int(total), max(i.height for i in ims))); cy = libre(fila, W / 2, cy)
+    for j, im in enumerate(ims):
+        if t >= t0 + j * sep: b.pon(L, im, x + im.width / 2, cy, *rebote(t, t0 + j * sep))
+        x += im.width + 10
+
+
+def polaroid(foto, ancho, pie=None, num=None, giro=0, prop=1.2):
+    """foto del set con borde blanco grueso redondeado, sombra dura de color y número en círculo amarillo"""
+    h = int(ancho * prop); borde = max(10, ancho // 22)
+    im = Image.open(os.path.join(AQUI, "fotos", foto + ".jpg")).convert("RGB")
+    im = ImageOps.fit(im, (ancho, h), Image.LANCZOS, centering=(0.5, 0.45))
+    extra = int(ancho * 0.17) if pie else 0
+    W_, H_ = ancho + 2 * borde, h + 2 * borde + extra; rr = max(18, ancho // 9)
+    c = Image.new("RGBA", (W_ + 40, H_ + 40)); d = ImageDraw.Draw(c)
+    sombra = [CHICLE, LILA, AQUA][hash(foto) % 3]
+    d.rounded_rectangle((16, 18, W_ + 16, H_ + 18), rr, fill=sombra + (255,))
+    d.rounded_rectangle((4, 4, W_ + 4, H_ + 4), rr, fill=WHITE + (255,))
+    m = Image.new("L", im.size, 0); ImageDraw.Draw(m).rounded_rectangle((0, 0, ancho - 1, h - 1), rr - 6, fill=255)
+    c.paste(im, (4 + borde, 4 + borde), m)
+    if pie:
+        p = contorno(sin_emoji(pie).upper(), fblack(max(18, extra * 0.55)), TINTA, TINTA, 0)
+        if p.width > ancho: p = p.resize((ancho, int(p.height * ancho / p.width)), Image.LANCZOS)
+        c.alpha_composite(p, (4 + (W_ - p.width) // 2, 4 + borde + h + (extra + borde - p.height) // 2))
+    if num is not None:
+        r = max(26, ancho // 6); n = Image.new("RGBA", (2 * r + 8, 2 * r + 8)); dn = ImageDraw.Draw(n)
+        dn.ellipse((0, 0, 2 * r + 6, 2 * r + 6), fill=WHITE); dn.ellipse((4, 4, 2 * r + 2, 2 * r + 2), fill=AMARILLO)
+        dn.text((r + 3, r + 3), str(num), font=fanton(r * 1.3), fill=TINTA, anchor="mm")
+        c.alpha_composite(n, (0, 0))
+    return c.rotate(giro, expand=True, resample=Image.BICUBIC) if giro else c
+
+
+def rejilla(L, t, fotos, t0s, numeros=None, y0=520, cols=3, ancho=300, etiqueta=True):
+    paso = (W - 60) / cols; giros = [-4, 3, -2, 4, -3, 2, -4, 3, -2]
+    ancho = min(ancho, int(paso * 0.82))  # que no se toquen las de al lado (van giradas)
+    for k, (f, t0) in enumerate(zip(fotos, t0s)):
+        if t < t0: continue
+        pz = FOTOS[f][1].split(":")[0] if etiqueta else None
+        c = polaroid(f, ancho - 30, pie=pz, num=numeros[k] if numeros else None, giro=giros[k % 9])
+        b.pon(L, c, 30 + paso * (k % cols + 0.5), y0 + (k // cols) * (c.height + 25), *rebote(t, t0))
+
+
+def foto_grande(L, t):
+    if not FOTO["k"] or FOTO["k"] == "fondo": return
+    nom, abajo, col = FOTOS[FOTO["k"]]
+    c = polaroid(FOTO["k"], 540, pie=nom + " · " + abajo.split(":")[0], giro=-3, prop=1.2)
+    b.pon(L, c, W / 2, 900, *rebote(t, FOTO["t0"], 0.5))
+
+
+_FR.clear()
+def subtitulo(L, t, y=None):
+    """frases de hasta 3 palabras, letra gruesa blanca con contorno negro; las clave en amarillo"""
+    if not _FR:
+        cur = []
+        for t0, w in PAL:
+            cur.append((t0, w))
+            if len(cur) >= 3 or w.endswith((",", ".", ":", "?", "!")): _FR.append(cur); cur = []
+        if cur: _FR.append(cur)
+    act = [fr for fr in _FR if fr[0][0] <= t]
+    if not act or t > PAL[-1][0] + 0.8: return
+    fr = act[-1]; f = fblack(76); esp = f.getlength(" ")
+    pal = [w.strip(".,:;") for _, w in fr]; asc, desc = f.getmetrics()
+    ww = int(sum(f.getlength(p) for p in pal) + esp * (len(pal) - 1)) + 40
+    im = Image.new("RGBA", (ww, asc + desc + 40)); d = ImageDraw.Draw(im); x = 20
+    for p in pal:
+        d.text((x, 20 + asc), p, font=f, fill=(AMARILLO if p.strip("¿?¡!") in CLAVE else WHITE), anchor="ls", stroke_width=7, stroke_fill=TINTA)
+        x += f.getlength(p) + esp
+    im = im.crop(im.getbbox())
+    if im.width > 1040: im = im.resize((1040, int(im.height * 1040 / im.width)), Image.LANCZOS)
+    yy0 = 1720 if y is None else y
+    hw, hh2 = im.width / 2, im.height / 2
+    for yy in sorted(range(400, 1841, 20), key=lambda v: abs(v - yy0)):
+        if not choca((W / 2 - hw, yy - hh2, W / 2 + hw, yy + hh2)): yy0 = yy; break
+    else: SIN_LUGAR.append(round(t, 2))
+    k = min(1.0, (t - fr[0][0]) / 0.1); _pon(L, im, W / 2, yy0, 0.9 + 0.1 * k, 1.0)
+
+
+def degradado():
+    g = Image.new("L", (1, H))
+    for y in range(H):
+        a = max(0, 1 - y / 650) * 110 + max(0, (y - 1450) / 470) * 120
+        g.putpixel((0, y), int(min(255, a)))
+    im = Image.new("RGBA", (W, H), (20, 10, 25, 255)); im.putalpha(g.resize((W, H))); return im
+SOMBRA = degradado()
+
+
+def invitacion(L, t, e):
+    b.pon(L, qr_grupo(), W / 2, 470, *rebote(t, INI[e] + 0.05, 0.4))
+    pas(L, "Únete a mi grupo de WhatsApp", 845, t, INI[e] + 0.25, sz=60, bg=ROSA)
+    pas(L, "Precio de mayoreo", 990, t, marca(e, 1) - 0.1, sz=54)
+    pas(L, "Ofertas exclusivas", 1120, t, marca(e, 2) - 0.1, sz=54)
+    pas(L, "Link en alpacca.mx", 1255, t, marca(e, 3) - 0.1, sz=58, bg=WHITE)
+
+
+def portada():
+    fuente, seg, r1, r2, pastilla, prods = PORTADA[VAR]
+    L = next(video(fuente, seg, 1)); L.alpha_composite(Image.new("RGBA", (W, H), (20, 10, 25, 70)))
+    y = 400
+    for j, txt in enumerate((r1, r2)):
+        im = contorno(sin_emoji(txt).upper(), fanton(150), WHITE if j == 0 else AMARILLO, CHICLE if j == 0 else TINTA, 11)
+        if im.width > 1020: im = im.resize((1020, int(im.height * 1020 / im.width)), Image.LANCZOS)
+        im = im.rotate(-3 if j == 0 else 2, expand=True, resample=Image.BICUBIC)
+        b.pon(L, im, W / 2, y); y += im.height - 10
+    adornos(L, 0.3, 400)
+    b.pon(L, sticker(pastilla, 46, colores=(LILA, WHITE), giro=-2), W / 2, y + 60)
+    n = len(prods); ancho = 270 if n <= 3 else 215; paso = (W - 60) / n; giros = [-5, 3, -3, 5]
+    for j, f in enumerate(prods):
+        b.pon(L, polaroid(f, ancho, giro=giros[j]), 30 + paso * (j + 0.5), 1180 + (25 if j in (0, n - 1) else 0))
+    sello(L, "$699 c/u", 2.0, 0, cy=1500, cx=W - 200)
+    b.pon(L, sticker("alpacca.mx", 56, colores=(CHICLE, WHITE), giro=-3), 300, 1520)
     L.convert("RGB").save(os.path.join(AQUI, f"portada-{VAR}.jpg"), quality=92)
 
 
