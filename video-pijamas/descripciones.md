@@ -1,6 +1,7 @@
 # Pijamas Juicy Couture y True Religion (15 de noviembre de 2026)
 
 $699 cada set, precio de mayoreo. Se apartan con la mitad y se liquida antes del envío.
+Conversión: tipo de cambio FIX de Banxico del 15 de noviembre de 2026 ($18.55 por dólar). El ahorro es contra el precio de etiqueta en EE. UU.
 
 Piezas (leídas en la etiqueta de cada foto):
 - **3 piezas (camisa, short y pantalón):** Juicy de coronas; True Religion rosa con corazón de brillitos, gris con herraduras y gris con ribete negro.
@@ -9,17 +10,17 @@ Orden para publicar: **1 → 2 → 3**, en días seguidos, de 7 a 9 pm (hora de 
 
 ---
 
-## 1 · «El regalo que SÍ van a usar» (Pijamas-regalo-voz.mp4, portada-regalo.jpg, 42 s)
+## 1 · «El regalo que SÍ van a usar» (Pijamas-regalo-voz.mp4, portada-regalo.jpg, 51 s)
 
 **Neuromarketing:**
 - **Resuelve un problema real («no sé qué regalar»)** en el segundo 0.
-- **Anclaje de precio:** precio de etiqueta de las Juicy en EE. UU. (58 y 68 dólares) y luego «conmigo, $699».
+- **Anclaje de precio:** precio de etiqueta de las Juicy en EE. UU. (58 y 68 dólares, con lo que es en pesos abajo: unos $1,076 y $1,261) y luego «conmigo, $699: te ahorras de $377 a $562».
 - **Más opciones para regalar:** de 2 y de 3 piezas.
 - **Entrada baja:** apartas con la mitad.
 
 **TikTok**
 > ¿No sabes qué regalar esta Navidad? 🎁 Pijamas Juicy Couture y True Religion, ya con su moño
-> De 2 y 3 piezas · $699 · apártala con la mitad 💗
+> De 2 y 3 piezas · $699 (te ahorras hasta $562) · apártala con la mitad 💗
 > 💬 Únete a mi grupo de WhatsApp: mayoreo y ofertas exclusivas (link en alpacca.mx)
 > #juicycouture #truereligion #pijamas #regalosnavidad #alpacca
 
@@ -31,8 +32,11 @@ Orden para publicar: **1 → 2 → 3**, en días seguidos, de 7 a 9 pm (hora de 
 > 👚 De 2 piezas: camisa y pantalón
 > 👚🩳 De 3 piezas: camisa, short y pantalón
 >
-> 🏷️ Las de Juicy traen precio de etiqueta de 58 y 68 dólares en EE. UU.
+> 🏷️ Precio de etiqueta de las Juicy en EE. UU.:
+> 2 piezas: $58 USD (≈ $1,076 pesos)
+> 3 piezas: $68 USD (≈ $1,261 pesos)
 > 💗 Conmigo: $699 cada set (precio de mayoreo)
+> 💸 Te ahorras de $377 a $562
 > ✨ La apartas con la mitad y liquidas antes de que te la envíe
 >
 > ¿A quién se la regalarías? 👇

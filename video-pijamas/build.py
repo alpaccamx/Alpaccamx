@@ -184,7 +184,7 @@ def interrupcion(L, t, t0, texto, dur=0.9):
 # subtítulo de una palabra (blanca, sin borde); las clave, grandes en rosa con Bagel
 CLAVE = {"Navidad", "Juicy", "Couture", "True", "Religion", "suavecitas", "moño", "etiqueta", "dólares", "seiscientos",
          "mayoreo", "mitad", "liquidas", "WhatsApp", "ofertas", "exclusivas", "número", "coronas", "rayas", "afelpadas",
-         "herraduras", "ribete", "corazón", "diciembre", "pijamas", "originales", "envolver", "vendes", "favorita", "regalar", "piezas", "short", "escojan"}
+         "herraduras", "ribete", "corazón", "diciembre", "pijamas", "originales", "envolver", "vendes", "favorita", "regalar", "piezas", "short", "escojan", "ahorras"}
 
 def _palabras():
     v = open(os.path.join(AQUI, "voz.py")).read()
@@ -351,11 +351,14 @@ def capa_regalo(L, t):
         pas(L, "🎀 Ya vienen con su moño", 1430, t, marca(1, 2) - 0.2, sz=52, bg=NEGRO)
     if e == 2:
         pas(L, "Precio de etiqueta en EE. UU.", 300, t, INI[2] + 0.2, sz=52, bg=WHITE, fg=NEGRO)
-        chips(L, ["2 piezas: MSRP $58", "3 piezas: MSRP $68"], 1560, t, marca(2, 1) - 0.1, sep=0.7)
+        # precio de etiqueta en dólares y abajo lo que es en pesos (FIX Banxico 15 nov 2026: $18.55 por dólar)
+        chips(L, ["2 piezas: $58 USD", "3 piezas: $68 USD"], 1390, t, marca(2, 1) - 0.1, sep=0.7, sz=60, colores=[(BLANCO, ROSA_I)] * 3)
+        chips(L, ["≈ $1,076 pesos", "≈ $1,261 pesos"], 1520, t, marca(2, 3) - 0.1, sep=0.5, sz=70, colores=[(ROSA_P, BLANCO)] * 3)
     if e == 3:
         pas(L, "Conmigo 💗", 290, t, INI[3] + 0.1, sz=60, bg=WHITE, fg=ROSA)
         sello(L, "$699", t, marca(3, 0) - 0.1, cy=600, cx=W / 2)
         pas(L, "cada set · precio de mayoreo", 780, t, marca(3, 1) - 0.1, sz=50, bg=NEGRO)
+        pas(L, "Te ahorras de $377 a $562", 920, t, marca(3, 2) - 0.1, sz=60)
     if e == 4:
         pas(L, "Apártalo con la mitad", 330, t, marca(4, 0) - 0.1, sz=60)
         pas(L, "y liquidas antes de que te lo envíe", 460, t, marca(4, 1) - 0.1, sz=46, bg=WHITE, fg=NEGRO)
@@ -1181,8 +1184,8 @@ def sello(L, txt, t, t0, cy=1290, bg=ROSA, cx=W / 2 + 200):
     k = _suave(t, t0, 0.4); b.pon(L, im, cx, cy, 0.9 + 0.1 * k, k)
 
 
-def chips(L, textos, cy, t, t0, sep=0.25):
-    ims = [sticker(x, 50, colores=[(BLANCO, ROSA_I), (BLUSH, ROSA_I), (LILA_A, BLANCO)][j % 3]) for j, x in enumerate(textos)]
+def chips(L, textos, cy, t, t0, sep=0.25, sz=50, colores=None):
+    ims = [sticker(x, sz, colores=(colores or [(BLANCO, ROSA_I), (BLUSH, ROSA_I), (LILA_A, BLANCO)])[j % 3]) for j, x in enumerate(textos)]
     total = sum(i.width for i in ims)
     if total > 1060:
         k = 1060 / total; ims = [i.resize((int(i.width * k), int(i.height * k)), Image.LANCZOS) for i in ims]; total = 1060
@@ -1336,7 +1339,25 @@ def _junta_web(pal):
             out.append((pal[i][0], "alpacca.mx" + punt)); i += 4
         else: out.append(pal[i]); i += 1
     return out
-PAL[:] = _junta_web(PAL); _FR.clear()
+# las cantidades que la voz dice con letra, en el subtítulo van con número
+NUMEROS = [("mil doscientos sesenta y un", "$1,261"), ("mil setenta y seis", "$1,076"), ("seiscientos noventa y nueve", "$699"),
+           ("trescientos setenta y siete", "$377"), ("quinientos sesenta y dos", "$562"), ("cincuenta y ocho", "58"),
+           ("sesenta y ocho", "68")]
+def _junta_numeros(pal):
+    out = []; i = 0
+    while i < len(pal):
+        for frase, num in NUMEROS:
+            n = len(frase.split()); ws = [w.strip(".,:;").lower() for _, w in pal[i:i + n]]
+            if ws == frase.split():
+                fin = pal[i + n - 1][1]; punt = fin[len(fin.rstrip(".,:;")):]
+                sig = [w.strip(".,:;").lower() for _, w in pal[i + n:i + n + 1]]
+                if num.startswith("$") and sig == ["pesos"]:  # «$699 pesos» -> «$699»
+                    fin = pal[i + n][1]; punt = fin[len(fin.rstrip(".,:;")):]; n += 1
+                out.append((pal[i][0], num + punt)); i += n; break
+        else:
+            out.append(pal[i]); i += 1
+    return out
+PAL[:] = _junta_numeros(_junta_web(PAL)); _FR.clear()
 
 
 def revisa():
