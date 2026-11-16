@@ -154,6 +154,13 @@ html {
   transform: translateY(12px) scale(0.98);
   transition-duration: 180ms;
 }
+/* iPhone: con la barra de Safari abierta, 92vh es más alto que lo que se ve
+   y la ficha se salía por arriba (no aparecía la tacha para cerrarla).
+   dvh es el alto visible real; donde no existe se queda el vh del HTML. */
+@supports (height: 100dvh) {
+  #product-overlay > .modal-card { max-height: 92dvh; }
+  #shipping-times-overlay > .modal-card { max-height: 90dvh; }
+}
 
 /* Banner en tarjetas: la fila ocupa todo el ancho de la pantalla y deja
    margen a los lados para que la primera y la última tarjeta también
