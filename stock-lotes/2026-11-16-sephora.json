@@ -804,6 +804,18 @@
    "peso": 0.3,
    "imagen": "https://alpacca.mx/assets/products/stock/soldejaneiro-delicia-drench-jet-set.jpg",
    "precioTarjeta": 540
+  },
+  {
+   "sku": "STOCK-ONESIZE-ON-TIL-DAWN-SPRAY",
+   "nombre": "ONE/SIZE by Patrick Starrr On 'Til Dawn Mattifying Waterproof Setting Spray",
+   "marca": "ONE/SIZE",
+   "categoria": "Maquillaje",
+   "descripcion": "Spray fijador de ONE/SIZE by Patrick Starrr: sella el maquillaje con acabado mate, es a prueba de agua y sudor y controla el brillo todo el día. 143 ml. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 5,
+   "precio": 509,
+   "peso": 0.2,
+   "imagen": "https://alpacca.mx/assets/products/stock/onesize-on-til-dawn-setting-spray.jpg",
+   "precioTarjeta": 540
   }
  ]
 }
