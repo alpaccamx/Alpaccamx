@@ -214,18 +214,6 @@
     "precio",
     "foto"
    ]
-  },
-  {
-   "sku": "STOCK-MEDICUBE-PARCHES-ROSAS",
-   "nombre": "medicube parches rosas",
-   "marca": "medicube",
-   "categoria": "Skincare",
-   "piezas": 10,
-   "pendientes": [
-    "nombre exacto",
-    "precio",
-    "foto"
-   ]
   }
  ]
 }
