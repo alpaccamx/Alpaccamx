@@ -2,42 +2,6 @@
  "nombre": "Pedido Sephora Estados Unidos (23 y 27 de octubre): tonos nuevos que no estaban en la página",
  "productos": [
   {
-   "sku": "STOCK-PTA-BLUSH-DUO-SHES-A-DOLL",
-   "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#She's A Doll)",
-   "marca": "Patrick Ta",
-   "categoria": "Maquillaje",
-   "descripcion": "Rubor doble de Patrick Ta: un blush en crema y uno en polvo del mismo tono para construir el color y que dure todo el día. Tono She's A Doll (rosa neutro brillante). 5 g crema + 5 g polvo. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 5,
-   "precio": 599,
-   "peso": 0.1,
-   "imagen": "https://alpacca.mx/assets/products/stock/patrickta-blush-duo-shes-a-doll.jpg",
-   "precioTarjeta": 635
-  },
-  {
-   "sku": "STOCK-PTA-BLUSH-DUO-SHES-THE-MOMENT",
-   "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#She's The Moment)",
-   "marca": "Patrick Ta",
-   "categoria": "Maquillaje",
-   "descripcion": "Rubor doble de Patrick Ta: un blush en crema y uno en polvo del mismo tono para construir el color y que dure todo el día. Tono She's The Moment (durazno dorado). 5 g crema + 5 g polvo. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 4,
-   "precio": 599,
-   "peso": 0.1,
-   "imagen": "https://alpacca.mx/assets/products/stock/patrickta-blush-duo-shes-the-moment.jpg",
-   "precioTarjeta": 635
-  },
-  {
-   "sku": "STOCK-PTA-BLUSH-DUO-SHE-GOES-TO-THE-GYM",
-   "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#She Goes To The Gym)",
-   "marca": "Patrick Ta",
-   "categoria": "Maquillaje",
-   "descripcion": "Rubor doble de Patrick Ta: un blush en crema y uno en polvo del mismo tono para construir el color y que dure todo el día. Tono She Goes To The Gym (rosa malva frío). 5 g crema + 5 g polvo. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 3,
-   "precio": 599,
-   "peso": 0.1,
-   "imagen": "https://alpacca.mx/assets/products/stock/patrickta-blush-duo-she-goes-to-the-gym.jpg",
-   "precioTarjeta": 635
-  },
-  {
    "sku": "STOCK-PTA-BLUSH-DUO-SHES-SEDUCTIVE",
    "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#She's Seductive)",
    "marca": "Patrick Ta",
@@ -62,30 +26,6 @@
    "precioTarjeta": 635
   },
   {
-   "sku": "STOCK-PTA-BLUSH-DUO-SHES-GIVING",
-   "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#She's Giving)",
-   "marca": "Patrick Ta",
-   "categoria": "Maquillaje",
-   "descripcion": "Rubor doble de Patrick Ta: un blush en crema y uno en polvo del mismo tono para construir el color y que dure todo el día. Tono She's Giving (rosa vibrante frío). 5 g crema + 5 g polvo. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 2,
-   "precio": 599,
-   "peso": 0.1,
-   "imagen": "https://alpacca.mx/assets/products/stock/patrickta-blush-duo-shes-giving.jpg",
-   "precioTarjeta": 635
-  },
-  {
-   "sku": "STOCK-RHODE-POCKET-BRONZE-SIP",
-   "nombre": "rhode Pocket Bronze (#Sip)",
-   "marca": "rhode",
-   "categoria": "Maquillaje",
-   "descripcion": "Bronceador en crema de rhode en barra compacta: se difumina con los dedos, da calidez natural y un acabado luminoso que se funde con la piel. Tono Sip (bronce dorado claro). 5.3 g. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 2,
-   "precio": 379,
-   "peso": 0.04,
-   "imagen": "https://alpacca.mx/assets/products/stock/rhode-pocket-bronze-sip.jpg",
-   "precioTarjeta": 402
-  },
-  {
    "sku": "STOCK-RHODE-POCKET-BRONZE-SUNBED",
    "nombre": "rhode Pocket Bronze (#Sunbed)",
    "marca": "rhode",
@@ -108,42 +48,6 @@
    "peso": 0.04,
    "imagen": "https://alpacca.mx/assets/products/stock/rhode-pocket-bronze-bake.jpg",
    "precioTarjeta": 402
-  },
-  {
-   "sku": "STOCK-RHODE-POCKET-BRONZE-PEBBLE",
-   "nombre": "rhode Pocket Bronze (#Pebble)",
-   "marca": "rhode",
-   "categoria": "Maquillaje",
-   "descripcion": "Bronceador en crema de rhode en barra compacta: se difumina con los dedos, da calidez natural y un acabado luminoso que se funde con la piel. Tono Pebble (bronce claro rosado). 5.3 g. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 1,
-   "precio": 379,
-   "peso": 0.04,
-   "imagen": "https://alpacca.mx/assets/products/stock/rhode-pocket-bronze-pebble.jpg",
-   "precioTarjeta": 402
-  },
-  {
-   "sku": "STOCK-RHODE-PEPTIDE-LIP-TINT-RIBBON",
-   "nombre": "rhode Peptide Lip Tint (#Ribbon)",
-   "marca": "rhode",
-   "categoria": "Maquillaje",
-   "descripcion": "Bálsamo con color de rhode con péptidos: hidrata, da un brillo jugoso y un toque de color translúcido. Tono Ribbon (rosa translúcido). 10 ml. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 8,
-   "precio": 299,
-   "peso": 0.03,
-   "imagen": "https://alpacca.mx/assets/products/stock/rhode-peptide-lip-tint-ribbon.jpg",
-   "precioTarjeta": 317
-  },
-  {
-   "sku": "STOCK-RHODE-PEPTIDE-LIP-TINT-TOAST",
-   "nombre": "rhode Peptide Lip Tint (#Toast)",
-   "marca": "rhode",
-   "categoria": "Maquillaje",
-   "descripcion": "Bálsamo con color de rhode con péptidos: hidrata, da un brillo jugoso y un toque de color translúcido. Tono Toast (rosa topo). 10 ml. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 7,
-   "precio": 299,
-   "peso": 0.03,
-   "imagen": "https://alpacca.mx/assets/products/stock/rhode-peptide-lip-tint-toast.jpg",
-   "precioTarjeta": 317
   },
   {
    "sku": "STOCK-RHODE-PEPTIDE-LIP-TINT-SALTY-TAN",
@@ -372,78 +276,6 @@
    "peso": 0.03,
    "imagen": "https://alpacca.mx/assets/products/stock/rarebeauty-tinted-lip-oil-serenity.jpg",
    "precioTarjeta": 381
-  },
-  {
-   "sku": "STOCK-HUDA-EASY-BAKE-POUND-CAKE",
-   "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Pound Cake)",
-   "marca": "Huda Beauty",
-   "categoria": "Maquillaje",
-   "descripcion": "Polvo suelto para hornear y sellar de Huda Beauty en tamaño completo: difumina poros y líneas finas, controla el brillo y fija el maquillaje hasta 16 horas con acabado mate tipo aerógrafo, sin flashback. Tono Pound Cake (vainilla claro: piel clara, subtono neutro). 20 g. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 15,
-   "precio": 599,
-   "peso": 0.08,
-   "imagen": "https://alpacca.mx/assets/products/stock/huda-easy-bake-pound-cake.jpg",
-   "precioTarjeta": 635
-  },
-  {
-   "sku": "STOCK-HUDA-EASY-BAKE-CUPCAKE",
-   "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Cupcake)",
-   "marca": "Huda Beauty",
-   "categoria": "Maquillaje",
-   "descripcion": "Polvo suelto para hornear y sellar de Huda Beauty en tamaño completo: difumina poros y líneas finas, controla el brillo y fija el maquillaje hasta 16 horas con acabado mate tipo aerógrafo, sin flashback. Tono Cupcake (durazno claro: piel clara, subtono cálido). 20 g. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 15,
-   "precio": 599,
-   "peso": 0.08,
-   "imagen": "https://alpacca.mx/assets/products/stock/huda-easy-bake-cupcake.jpg",
-   "precioTarjeta": 635
-  },
-  {
-   "sku": "STOCK-HUDA-EASY-BAKE-BANANA-BREAD",
-   "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Banana Bread)",
-   "marca": "Huda Beauty",
-   "categoria": "Maquillaje",
-   "descripcion": "Polvo suelto para hornear y sellar de Huda Beauty en tamaño completo: difumina poros y líneas finas, controla el brillo y fija el maquillaje hasta 16 horas con acabado mate tipo aerógrafo, sin flashback. Tono Banana Bread (amarillo plátano: piel media, subtono cálido u oliva). 20 g. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 9,
-   "precio": 599,
-   "peso": 0.08,
-   "imagen": "https://alpacca.mx/assets/products/stock/huda-easy-bake-banana-bread.jpg",
-   "precioTarjeta": 635
-  },
-  {
-   "sku": "STOCK-HUDA-EASY-BAKE-SUGAR-COOKIE",
-   "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Sugar Cookie)",
-   "marca": "Huda Beauty",
-   "categoria": "Maquillaje",
-   "descripcion": "Polvo suelto para hornear y sellar de Huda Beauty en tamaño completo: difumina poros y líneas finas, controla el brillo y fija el maquillaje hasta 16 horas con acabado mate tipo aerógrafo, sin flashback. Tono Sugar Cookie (blanco translúcido: sella sin agregar color). 20 g. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 3,
-   "precio": 599,
-   "peso": 0.08,
-   "imagen": "https://alpacca.mx/assets/products/stock/huda-easy-bake-sugar-cookie.jpg",
-   "precioTarjeta": 635
-  },
-  {
-   "sku": "STOCK-HUDA-EASY-BAKE-PEACH-PIE",
-   "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Peach Pie)",
-   "marca": "Huda Beauty",
-   "categoria": "Maquillaje",
-   "descripcion": "Polvo suelto para hornear y sellar de Huda Beauty en tamaño completo: difumina poros y líneas finas, controla el brillo y fija el maquillaje hasta 16 horas con acabado mate tipo aerógrafo, sin flashback. Tono Peach Pie (durazno: piel clara a media). 20 g. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 5,
-   "precio": 599,
-   "peso": 0.08,
-   "imagen": "https://alpacca.mx/assets/products/stock/huda-easy-bake-peach-pie.jpg",
-   "precioTarjeta": 635
-  },
-  {
-   "sku": "STOCK-HUDA-EASY-BAKE-CHERRY-BLOSSOM-CAKE",
-   "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Cherry Blossom Cake)",
-   "marca": "Huda Beauty",
-   "categoria": "Maquillaje",
-   "descripcion": "Polvo suelto para hornear y sellar de Huda Beauty en tamaño completo: difumina poros y líneas finas, controla el brillo y fija el maquillaje hasta 16 horas con acabado mate tipo aerógrafo, sin flashback. Tono Cherry Blossom Cake (rosa claro: piel muy clara). 20 g. Original, comprado en Sephora Estados Unidos.",
-   "piezas": 3,
-   "precio": 599,
-   "peso": 0.08,
-   "imagen": "https://alpacca.mx/assets/products/stock/huda-easy-bake-cherry-blossom-cake.jpg",
-   "precioTarjeta": 635
   },
   {
    "sku": "STOCK-HUDA-BLUSH-FILTER-TOASTY-PEACH",
@@ -788,10 +620,10 @@
    "categoria": "Maquillaje",
    "descripcion": "Labial líquido de dos pasos de KIKO Milano: un color de larga duración (hasta 16 horas, no se corre) y un gloss transparente para un brillo tipo espejo. Tono 126. Original, traído de Estados Unidos.",
    "piezas": 4,
-   "precio": 269,
+   "precio": 299,
    "peso": 0.03,
    "imagen": "https://alpacca.mx/assets/products/stock/kiko-unlimited-double-touch-126.jpg",
-   "precioTarjeta": 286
+   "precioTarjeta": 317
   },
   {
    "sku": "STOCK-KIKO-UNLIMITED-DOUBLE-TOUCH-128",
@@ -800,10 +632,10 @@
    "categoria": "Maquillaje",
    "descripcion": "Labial líquido de dos pasos de KIKO Milano: un color de larga duración (hasta 16 horas, no se corre) y un gloss transparente para un brillo tipo espejo. Tono 128. Original, traído de Estados Unidos.",
    "piezas": 4,
-   "precio": 269,
+   "precio": 299,
    "peso": 0.03,
    "imagen": "https://alpacca.mx/assets/products/stock/kiko-unlimited-double-touch-128.jpg",
-   "precioTarjeta": 286
+   "precioTarjeta": 317
   },
   {
    "sku": "STOCK-KIKO-3D-HYDRA-GLOSS-01",
