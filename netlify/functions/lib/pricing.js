@@ -371,7 +371,7 @@ function koreaFlatMXN(state, parcels, porKgMXN, useTarjeta = false) {
   const kg = koreaKgCompletos(parcels);
   const pct = state.settings.transferDiscountPct || 0;
   const rate = useTarjeta ? ceilTo(porKgMXN * (1 + pct / 100), 1) : porKgMXN;
-  return Math.round(kg * rate * 100) / 100;
+  return Math.ceil(kg * rate - 1e-9);
 }
 
 function shippingEstimate(state, pesoKg, cp, korea = pesoKg, koreaPorKgMXN = 0) {
@@ -384,12 +384,12 @@ function shippingEstimate(state, pesoKg, cp, korea = pesoKg, koreaPorKgMXN = 0) 
   if (!hasKorea && !hasNacional) return null;
 
   const coreaUSD = hasKorea && !flat ? koreaParcelsUSD(state, parcels) : 0;
-  const coreaMXN = !hasKorea ? 0 : flat ? koreaFlatMXN(state, parcels, koreaPorKgMXN) : coreaUSD * (state.settings.exchangeRate || 0);
+  const coreaMXN = !hasKorea ? 0 : flat ? koreaFlatMXN(state, parcels, koreaPorKgMXN) : Math.ceil(coreaUSD * (state.settings.exchangeRate || 0) - 1e-9);
   const totalMXN = coreaMXN + (nacionalMXN || 0);
 
   const nacionalMXNTarjeta = hasNacional ? nacionalShippingMXN(state, cp, pesoKg, true) || 0 : 0;
   const coreaUSDTarjeta = hasKorea && !flat ? koreaParcelsUSD(state, parcels, true) : 0;
-  const coreaMXNTarjeta = !hasKorea ? 0 : flat ? koreaFlatMXN(state, parcels, koreaPorKgMXN, true) : coreaUSDTarjeta * (state.settings.exchangeRate || 0);
+  const coreaMXNTarjeta = !hasKorea ? 0 : flat ? koreaFlatMXN(state, parcels, koreaPorKgMXN, true) : Math.ceil(coreaUSDTarjeta * (state.settings.exchangeRate || 0) - 1e-9);
   const totalMXNTarjeta = coreaMXNTarjeta + nacionalMXNTarjeta;
 
   return {
