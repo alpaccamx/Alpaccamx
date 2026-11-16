@@ -1,0 +1,161 @@
+{
+ "nombre": "Pedido Sephora Estados Unidos: segunda parte (KIKO 103, e.l.f. Camo, Hourglass Unlocked, Fenty Swirl, YSL)",
+ "productos": [
+  {
+   "sku": "STOCK-KIKO-UNLIMITED-DOUBLE-TOUCH-103",
+   "nombre": "KIKO Milano Unlimited Double Touch (#103)",
+   "marca": "KIKO Milano",
+   "categoria": "Maquillaje",
+   "descripcion": "Labial líquido de dos pasos de KIKO Milano: un color de larga duración (hasta 16 horas, no se corre) y un gloss transparente para un brillo tipo espejo. Tono 103 (Natural Rose, rosa nude). Original, traído de Estados Unidos.",
+   "piezas": 4,
+   "precio": 299,
+   "peso": 0.03,
+   "imagen": "https://alpacca.mx/assets/products/stock/kiko-unlimited-double-touch-103.jpg",
+   "precioTarjeta": 317
+  },
+  {
+   "sku": "STOCK-ELF-CAMO-LIQUID-BLUSH-PINKY-PROMISE",
+   "nombre": "e.l.f. Camo Liquid Blush (#Pinky Promise)",
+   "marca": "e.l.f.",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor líquido de e.l.f. muy pigmentado y ligero: se difumina fácil y deja un rubor suave, jugoso y de larga duración. Tono Pinky Promise (rosa frío). 4 ml. Original, traído de Estados Unidos.",
+   "piezas": 2,
+   "precio": 75,
+   "peso": 0.03,
+   "imagen": "https://alpacca.mx/assets/products/stock/elf-camo-liquid-blush-pinky-promise.jpg",
+   "precioTarjeta": 80
+  },
+  {
+   "sku": "STOCK-ELF-CAMO-LIQUID-BLUSH-DUSTY-ROSE",
+   "nombre": "e.l.f. Camo Liquid Blush (#Dusty Rosé)",
+   "marca": "e.l.f.",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor líquido de e.l.f. muy pigmentado y ligero: se difumina fácil y deja un rubor suave, jugoso y de larga duración. Tono Dusty Rosé (rosa palo cálido). 4 ml. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 75,
+   "peso": 0.03,
+   "imagen": "https://alpacca.mx/assets/products/stock/elf-camo-liquid-blush-dusty-rose.jpg",
+   "precioTarjeta": 80
+  },
+  {
+   "sku": "STOCK-ELF-CAMO-LIQUID-BLUSH-PEACH-PERFECT",
+   "nombre": "e.l.f. Camo Liquid Blush (#Peach Perfect)",
+   "marca": "e.l.f.",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor líquido de e.l.f. muy pigmentado y ligero: se difumina fácil y deja un rubor suave, jugoso y de larga duración. Tono Peach Perfect (rosa durazno). 4 ml. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 75,
+   "peso": 0.03,
+   "imagen": "https://alpacca.mx/assets/products/stock/elf-camo-liquid-blush-peach-perfect.jpg",
+   "precioTarjeta": 80
+  },
+  {
+   "sku": "STOCK-ELF-CAMO-LIQUID-BLUSH-CORAL-CRUSH",
+   "nombre": "e.l.f. Camo Liquid Blush (#Coral Crush)",
+   "marca": "e.l.f.",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor líquido de e.l.f. muy pigmentado y ligero: se difumina fácil y deja un rubor suave, jugoso y de larga duración. Tono Coral Crush (coral brillante). 4 ml. Original, traído de Estados Unidos.",
+   "piezas": 1,
+   "precio": 75,
+   "peso": 0.03,
+   "imagen": "https://alpacca.mx/assets/products/stock/elf-camo-liquid-blush-coral-crush.jpg",
+   "precioTarjeta": 80
+  },
+  {
+   "sku": "STOCK-HOURGLASS-AMBIENT-UNLOCKED-HORSE",
+   "nombre": "Hourglass Ambient Lighting Edit Unlocked (#Horse)",
+   "marca": "Hourglass",
+   "categoria": "Maquillaje",
+   "descripcion": "Paleta de rostro edición limitada de Hourglass, estuche Horse: 6 tonos con polvo Soft Light, rubores Mood Exposure, Iridescent Coral e Iridescent Rose, iluminador Supernatural Strobe Light y bronceador Glistening Bronze Light. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 1,
+   "precio": 1299,
+   "peso": 0.15,
+   "imagen": "https://alpacca.mx/assets/products/stock/hourglass-ambient-unlocked-horse.jpg",
+   "precioTarjeta": 1377
+  },
+  {
+   "sku": "STOCK-HOURGLASS-AMBIENT-UNLOCKED-SWAN",
+   "nombre": "Hourglass Ambient Lighting Edit Unlocked (#Swan)",
+   "marca": "Hourglass",
+   "categoria": "Maquillaje",
+   "descripcion": "Paleta de rostro edición limitada de Hourglass, estuche Swan: 6 tonos con polvos iluminadores, bronceador y rubores Ambient Lighting para iluminar, dar calidez y color. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 1,
+   "precio": 1299,
+   "peso": 0.15,
+   "imagen": "https://alpacca.mx/assets/products/stock/hourglass-ambient-unlocked-swan.jpg",
+   "precioTarjeta": 1377
+  },
+  {
+   "sku": "STOCK-FENTY-GLOSS-BOMB-SWIRL-FUSSY-CHOCOLIT",
+   "nombre": "Fenty Beauty Gloss Bomb Swirl Twisted Lip Luminizer (#Fu$$y Chocolit)",
+   "marca": "Fenty Beauty",
+   "categoria": "Maquillaje",
+   "descripcion": "Edición limitada del Gloss Bomb de Fenty Beauty con dos tonos entrelazados en el mismo tubo: brillo intenso, no pegajoso y aplicador extragrande. Tono Fu$$y Chocolit (Fu$$y + Hot Chocolit: rosa empolvado con chocolate, con destellos). 9 ml. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 2,
+   "precio": 349,
+   "peso": 0.03,
+   "imagen": "https://alpacca.mx/assets/products/stock/fenty-gloss-bomb-swirl-fussy-chocolit.jpg",
+   "precioTarjeta": 370
+  },
+  {
+   "sku": "STOCK-FENTY-GLOSS-BOMB-SWIRL-FUSSY-FLEX",
+   "nombre": "Fenty Beauty Gloss Bomb Swirl Twisted Lip Luminizer (#Fu$$y Flex)",
+   "marca": "Fenty Beauty",
+   "categoria": "Maquillaje",
+   "descripcion": "Edición limitada del Gloss Bomb de Fenty Beauty con dos tonos entrelazados en el mismo tubo: brillo intenso, no pegajoso y aplicador extragrande. Tono Fu$$y Flex (Fu$$y + Fuchsia Flex: rosa empolvado con fucsia, con destellos). 9 ml. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 2,
+   "precio": 349,
+   "peso": 0.03,
+   "imagen": "https://alpacca.mx/assets/products/stock/fenty-gloss-bomb-swirl-fussy-flex.jpg",
+   "precioTarjeta": 370
+  },
+  {
+   "sku": "STOCK-FENTY-GLOSS-BOMB-SWIRL-SWEET-RIRI",
+   "nombre": "Fenty Beauty Gloss Bomb Swirl Twisted Lip Luminizer (#$weet RiRi)",
+   "marca": "Fenty Beauty",
+   "categoria": "Maquillaje",
+   "descripcion": "Edición limitada del Gloss Bomb de Fenty Beauty con dos tonos entrelazados en el mismo tubo: brillo intenso, no pegajoso y aplicador extragrande. Tono $weet RiRi (rosa intenso con destellos). 9 ml. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 1,
+   "precio": 349,
+   "peso": 0.03,
+   "imagen": "https://alpacca.mx/assets/products/stock/fenty-gloss-bomb-swirl-sweet-riri.jpg",
+   "precioTarjeta": 370
+  },
+  {
+   "sku": "STOCK-YSL-MAKE-ME-BLUSH-06",
+   "nombre": "YSL Make Me Blush 24H Buildable Blurring Powder Blush (#06 Rose Haze)",
+   "marca": "YSL Beauty",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor en polvo de YSL Beauty: textura sedosa que difumina, se construye de ligero a intenso, resiste el agua y dura hasta 24 horas. Tono 06 Rose Haze (rosa nude suave). 6 g. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 1,
+   "precio": 689,
+   "peso": 0.06,
+   "imagen": "https://alpacca.mx/assets/products/stock/ysl-make-me-blush-06.jpg",
+   "precioTarjeta": 731
+  },
+  {
+   "sku": "STOCK-YSL-MAKE-ME-BLUSH-24",
+   "nombre": "YSL Make Me Blush 24H Buildable Blurring Powder Blush (#24 Suave Sunstone)",
+   "marca": "YSL Beauty",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor en polvo de YSL Beauty: textura sedosa que difumina, se construye de ligero a intenso, resiste el agua y dura hasta 24 horas. Tono 24 Suave Sunstone (durazno nude). 6 g. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 1,
+   "precio": 689,
+   "peso": 0.06,
+   "imagen": "https://alpacca.mx/assets/products/stock/ysl-make-me-blush-24.jpg",
+   "precioTarjeta": 731
+  },
+  {
+   "sku": "STOCK-YSL-MAKE-ME-BLUSH-44",
+   "nombre": "YSL Make Me Blush 24H Buildable Blurring Powder Blush (#44 Nude Lavallière)",
+   "marca": "YSL Beauty",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor en polvo de YSL Beauty: textura sedosa que difumina, se construye de ligero a intenso, resiste el agua y dura hasta 24 horas. Tono 44 Nude Lavallière (rosa malva empolvado, satinado). 6 g. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 1,
+   "precio": 689,
+   "peso": 0.06,
+   "imagen": "https://alpacca.mx/assets/products/stock/ysl-make-me-blush-44.jpg",
+   "precioTarjeta": 731
+  }
+ ]
+}
