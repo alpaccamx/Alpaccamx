@@ -52,31 +52,10 @@
    "categoria": "Maquillaje",
    "piezas": 4,
    "pendientes": [
-    "precio",
     "foto"
-   ]
-  },
-  {
-   "sku": "STOCK-KIKO-UNLIMITED-DOUBLE-TOUCH-126",
-   "nombre": "KIKO Milano Unlimited Double Touch (#126)",
-   "marca": "KIKO Milano",
-   "categoria": "Maquillaje",
-   "piezas": 4,
-   "pendientes": [
-    "precio",
-    "foto"
-   ]
-  },
-  {
-   "sku": "STOCK-KIKO-UNLIMITED-DOUBLE-TOUCH-128",
-   "nombre": "KIKO Milano Unlimited Double Touch (#128)",
-   "marca": "KIKO Milano",
-   "categoria": "Maquillaje",
-   "piezas": 4,
-   "pendientes": [
-    "precio",
-    "foto"
-   ]
+   ],
+   "precio": 269,
+   "precioTarjeta": 286
   },
   {
    "sku": "STOCK-KIKO-3D-HYDRA-GLOSS-01",
