@@ -4124,7 +4124,14 @@ function renderBrands(showAll = false) {
 
 function showBrandProducts(marca, { restore = false } = {}) {
   document.getElementById("brand-products-title").textContent = `Productos de ${marca}`;
-  mountListing("brands", products.filter((p) => !p.enStock && p.marca === marca), { restore, id: marca });
+  let list = products.filter((p) => !p.enStock && p.marca === marca);
+  // Marcas que solo existen en Stock en México (Juicy Couture, e.l.f....): sin esto,
+  // "Ver todo de <marca>" desde la ficha de un producto de Stock abría una página vacía.
+  if (!list.length) {
+    const key = countryBrandKey(marca);
+    list = products.filter((p) => p.enStock && p.disponible && !(p.stockPiezas <= 0) && countryBrandKey(p.marca) === key);
+  }
+  mountListing("brands", list, { restore, id: marca });
   showHomeView("brands", { marca });
   if (!restore) document.getElementById("brand-products-section").scrollIntoView({ behavior: scrollBehavior(), block: "start" });
 }
