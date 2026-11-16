@@ -249,7 +249,7 @@ const Titulo: React.FC<{ t: number; t0: number; t1: number; children: React.Reac
   const e = resorte(t, t0); const s = lerp(t, t1, t1 + 0.25, 1, 0);
   return (
     <div style={{ position: "absolute", left: 0, width: 1080, top: y - size * 0.75, textAlign: "center", fontFamily: "RTP", fontSize: size, color,
-      lineHeight: 1.05, opacity: Math.min(e, s), transform: `translateY(${(1 - e) * 50}px) scale(${0.85 + 0.15 * e})`, textShadow: "0 4px 0 rgba(255,255,255,0.7)" }}>
+      lineHeight: 1.05, opacity: Math.min(e, s), transform: `translateY(${(1 - e) * 50 + 4 * Math.sin(t * 2.1)}px) scale(${0.85 + 0.15 * e})`, textShadow: "0 4px 0 rgba(255,255,255,0.7)" }}>
       {children}
     </div>
   );
@@ -301,7 +301,7 @@ const Icono: React.FC<{ n: string }> = ({ n }) => {
 
 const Incluye: React.FC<{ t: number }> = ({ t }) => {
   if (t < T.incluye - 0.1 || t > T.yo + 0.6) return null;
-  const sale = lerp(t, T.yo, T.yo + 0.45, 0, 1, Easing.in(Easing.cubic));
+  const sale = lerp(t, T.yo - 0.15, T.yo + 0.22, 0, 1, Easing.in(Easing.cubic));
   return (
     <>
       {ITEMS.map(([w, texto, ic], i) => {
@@ -311,7 +311,7 @@ const Incluye: React.FC<{ t: number }> = ({ t }) => {
         return (
           <div key={i} style={{ position: "absolute", left: x, top: y, width: 470, height: 238, borderRadius: 40, background: "rgba(255,255,255,0.97)",
             boxShadow: "0 16px 40px rgba(122,74,94,0.18)", display: "flex", flexDirection: "column", justifyContent: "center", gap: 16, padding: "0 34px", boxSizing: "border-box",
-            opacity: e * (1 - sale), transform: `translateY(${(1 - e) * 80 - sale * 60}px) scale(${0.8 + 0.2 * e})` }}>
+            opacity: e * (1 - sale), transform: `translateY(${(1 - e) * 80 - sale * 60 + 6 * Math.sin(t * 1.9 + i * 0.8)}px) scale(${0.8 + 0.2 * e}) rotate(${0.5 * Math.sin(t * 1.3 + i)}deg)` }}>
             <div style={{ width: 84, height: 84, borderRadius: 26, background: ROSA, display: "flex", alignItems: "center", justifyContent: "center" }}><Icono n={ic} /></div>
             <div style={{ fontFamily: "Inter", fontWeight: 800, fontSize: 37, lineHeight: 1.12, color: VINO }}>{texto}</div>
           </div>
@@ -329,13 +329,15 @@ const WhatsApp: React.FC<{ s: number }> = ({ s }) => (
 export const Promo: React.FC = () => {
   const t = useT();
   // celular: en la portada asoma inclinado; luego sube al centro; en «Incluye» sale por la izquierda
-  const sube = lerp(t, 0.4, 1.5, 0, 1, Easing.out(Easing.cubic));
-  let cy = 1330 - 470 * sube, rot = -7 * (1 - sube), esc = 0.94 + 0.06 * sube, cx = 540 + 70 * (1 - sube);
+  const sube = lerp(t, T.mira - 0.3, T.mira + 0.55, 0, 1, Easing.inOut(Easing.cubic));
+  let cy = 1440 - 580 * sube, rot = -7 * (1 - sube), esc = 0.94 + 0.06 * sube, cx = 540 + 70 * (1 - sube);
   const zoom = lerp(t, T.mis + 0.2, T.eligen - 0.2, 0, 1) * (1 - lerp(t, T.pagan + 0.3, T.yAmi, 0, 1));
   esc += 0.1 * zoom; cy += 40 * zoom;
   const sal = lerp(t, T.incluye - 0.05, T.incluye + 0.45, 0, 1, Easing.in(Easing.cubic));
   cx -= 1150 * sal; rot -= 12 * sal;
   const mostrarCel = t < T.incluye + 0.5;
+  // flotado suave continuo para que nunca se vea quieto
+  cy += 9 * Math.sin(t * 1.7); rot += 0.7 * Math.sin(t * 1.15 + 0.6); esc *= 1 + 0.008 * Math.sin(t * 0.9);
 
   // logo: grande en la portada, luego chico arriba
   const lg = lerp(t, T.mira - 0.2, T.mira + 0.35, 0, 1, Easing.inOut(Easing.cubic));
@@ -344,7 +346,7 @@ export const Promo: React.FC = () => {
   const tituloSale = lerp(t, T.mira - 0.25, T.mira + 0.1, 1, 0);
 
   // cierre
-  const c0 = T.yo + 0.15;
+  const c0 = T.yo + 0.25;
   const eLogo = resorte(t, c0, { damping: 11, stiffness: 120, mass: 0.8 });
   const eMasc = resorte(t, c0 + 0.25);
   const eTexto = resorte(t, ta(77));
@@ -357,8 +359,8 @@ export const Promo: React.FC = () => {
       <Fondo t={t} />
 
       {/* mascota en la portada */}
-      {t < 1.6 && (
-        <Img src={staticFile("marca/mascot.png")} style={{ position: "absolute", left: 700, top: 1330 + 260 * lerp(t, 0.6, 1.3, 0, 1, Easing.in(Easing.cubic)), width: 420,
+      {t < T.mira + 0.6 && (
+        <Img src={staticFile("marca/mascot.png")} style={{ position: "absolute", left: 700, top: 1360 + 600 * lerp(t, T.mira - 0.35, T.mira + 0.4, 0, 1, Easing.in(Easing.cubic)), width: 420,
           transform: `rotate(${8 + 3 * Math.sin(t * 5)}deg)`, filter: "drop-shadow(0 18px 24px rgba(122,74,94,0.35))", zIndex: 3 }} />
       )}
 
@@ -421,7 +423,7 @@ export const Promo: React.FC = () => {
       {t > c0 - 0.05 && (
         <>
           <Img src={staticFile("marca/logo-wordmark-2x.png")} style={{ position: "absolute", left: 90, top: 330, width: 900, zIndex: 20,
-            transform: `scale(${0.5 + 0.5 * eLogo})`, opacity: Math.min(1, eLogo * 1.5), filter: "drop-shadow(0 7px 0 rgba(255,255,255,0.95)) drop-shadow(0 16px 28px rgba(122,74,94,0.28))" }} />
+            transform: `scale(${(0.5 + 0.5 * eLogo) * (1 + 0.012 * Math.sin(t * 2.2))}) rotate(${0.8 * Math.sin(t * 1.4)}deg)`, opacity: Math.min(1, eLogo * 1.5), filter: "drop-shadow(0 7px 0 rgba(255,255,255,0.95)) drop-shadow(0 16px 28px rgba(122,74,94,0.28))" }} />
           <div style={{ position: "absolute", left: 0, width: 1080, top: 640, textAlign: "center", fontFamily: "Inter", fontWeight: 700, fontSize: 44, color: VINO, opacity: eLogo, zIndex: 20 }}>
             Tiendas en línea con tu marca
           </div>
