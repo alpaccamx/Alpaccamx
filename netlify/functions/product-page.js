@@ -129,7 +129,7 @@ const fam = (n) => String(n || "").replace(/\s*\(.*\)$/, "").toLowerCase();
 /* País de la MARCA (el que más se repite en sus productos), igual que
    brandCountry() en app.js -- "?pais=" agrupa por marca, no por dónde se
    fabricó cada producto. */
-const US_BRANDS = ["Bath & Body Works", "Juicy Couture", "True Religion", "e.l.f.", "elf", "rhode", "Victoria's Secret", "Victoria Secret", "DAISE", "Gisou", "Patrick Ta", "Huda Beauty", "Rare Beauty", "Target", "Real Techniques", "Good Molecules", "Starface", "BYOMA", "Unlockt Brands", "Pixi", "Morphe", "Dermasil"];
+const US_BRANDS = ["Bath & Body Works", "Juicy Couture", "True Religion", "e.l.f.", "elf", "rhode", "Victoria's Secret", "Victoria Secret", "DAISE", "Gisou", "Patrick Ta", "Huda Beauty", "Rare Beauty", "Target", "Real Techniques", "Good Molecules", "Starface", "BYOMA", "Unlockt Brands", "Pixi", "Morphe", "Dermasil", "Summer Fridays", "Sol de Janeiro", "Fenty Beauty", "Hourglass", "NARS"];
 const COUNTRY_BRAND_OVERRIDES = { Shiseido: "Japón", "SK-II": "Japón", "Ishizawa-Lab": "Japón", ...Object.fromEntries(US_BRANDS.map((m) => [m, "Estados Unidos"])) };
 function brandCountryMap(rows) {
   const votes = new Map();
