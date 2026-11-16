@@ -1,0 +1,53 @@
+{
+ "nombre": "Patrick Ta Blush Duo (Sephora, 4 tonos)",
+ "productos": [
+  {
+   "sku": "STOCK-PTA-BLUSH-DUO-NOT-TOO-MUCH",
+   "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#Not Too Much)",
+   "marca": "Patrick Ta",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor doble de Patrick Ta: un blush en crema y uno en polvo del mismo tono para construir el color y que dure todo el día. Tono Not Too Much (rosa taupe suave). 5 g crema + 5 g polvo. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 1,
+   "precio": 739,
+   "peso": 0.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/patrickta-blush-duo-not-too-much.jpg",
+   "precioTarjeta": 784
+  },
+  {
+   "sku": "STOCK-PTA-BLUSH-DUO-SHES-FLUSHED",
+   "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#She's Flushed)",
+   "marca": "Patrick Ta",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor doble de Patrick Ta: un blush en crema y uno en polvo del mismo tono para construir el color y que dure todo el día. Tono She's Flushed (rosa durazno suave). 5 g crema + 5 g polvo. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 1,
+   "precio": 739,
+   "peso": 0.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/patrickta-blush-duo-shes-flushed.jpg",
+   "precioTarjeta": 784
+  },
+  {
+   "sku": "STOCK-PTA-BLUSH-DUO-SHES-BLUSHING",
+   "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#She's Blushing)",
+   "marca": "Patrick Ta",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor doble de Patrick Ta: un blush en crema y uno en polvo del mismo tono para construir el color y que dure todo el día. Tono She's Blushing (rosa taupe). 5 g crema + 5 g polvo. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 1,
+   "precio": 739,
+   "peso": 0.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/patrickta-blush-duo-shes-blushing.jpg",
+   "precioTarjeta": 784
+  },
+  {
+   "sku": "STOCK-PTA-BLUSH-DUO-SHES-THAT-GIRL",
+   "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#She's That Girl)",
+   "marca": "Patrick Ta",
+   "categoria": "Maquillaje",
+   "descripcion": "Rubor doble de Patrick Ta: un blush en crema y uno en polvo del mismo tono para construir el color y que dure todo el día. Tono She's That Girl (rosa suave). 5 g crema + 5 g polvo. Original, comprado en Sephora Estados Unidos.",
+   "piezas": 1,
+   "precio": 739,
+   "peso": 0.1,
+   "imagen": "https://alpacca.mx/assets/products/stock/patrickta-blush-duo-shes-that-girl.jpg",
+   "precioTarjeta": 784
+  }
+ ]
+}
