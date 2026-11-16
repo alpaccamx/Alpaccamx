@@ -4139,8 +4139,11 @@ function showBrandProducts(marca, { restore = false } = {}) {
    ====================================================================== */
 const COUNTRY_BRAND_OVERRIDES = {
   Japón: ["Shiseido", "SK-II", "Ishizawa-Lab"],
-  "Estados Unidos": ["Bath & Body Works"],
+  // Marcas que Mae compra en tiendas de Estados Unidos (Stock en México).
+  "Estados Unidos": ["Bath & Body Works", "Juicy Couture", "True Religion", "e.l.f.", "elf", "rhode", "Victoria's Secret", "Victoria Secret", "DAISE", "Gisou", "Patrick Ta", "Huda Beauty", "Rare Beauty", "Target", "Real Techniques", "Good Molecules", "Starface", "BYOMA", "Unlockt Brands", "Pixi", "Morphe", "Dermasil"],
 };
+// Compara marcas sin importar mayúsculas, espacios ni apóstrofes ("Patrick TA", "Victoria’s Secret").
+const countryBrandKey = (m) => String(m || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const COUNTRY_ORDER = ["Corea del Sur", "Japón"];
 
 let brandCountryCache = null; // Map marca -> país, se recalcula si cambia el catálogo
@@ -4148,7 +4151,7 @@ let brandCountryCacheSize = -1;
 
 function brandCountry(marca) {
   for (const [country, brands] of Object.entries(COUNTRY_BRAND_OVERRIDES)) {
-    if (brands.includes(marca)) return country;
+    if (brands.some((b) => countryBrandKey(b) === countryBrandKey(marca))) return country;
   }
   if (!brandCountryCache || brandCountryCacheSize !== products.length) {
     const counts = new Map();
