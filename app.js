@@ -4147,7 +4147,7 @@ function showBrandProducts(marca, { restore = false } = {}) {
 const COUNTRY_BRAND_OVERRIDES = {
   Japón: ["Shiseido", "SK-II", "Ishizawa-Lab"],
   // Marcas que Mae compra en tiendas de Estados Unidos (Stock en México).
-  "Estados Unidos": ["Bath & Body Works", "Juicy Couture", "True Religion", "e.l.f.", "elf", "rhode", "Victoria's Secret", "Victoria Secret", "DAISE", "Gisou", "Patrick Ta", "Huda Beauty", "Rare Beauty", "Target", "Real Techniques", "Good Molecules", "Starface", "BYOMA", "Unlockt Brands", "Pixi", "Morphe", "Dermasil"],
+  "Estados Unidos": ["Bath & Body Works", "Juicy Couture", "True Religion", "e.l.f.", "elf", "rhode", "Victoria's Secret", "Victoria Secret", "DAISE", "Gisou", "Patrick Ta", "Huda Beauty", "Rare Beauty", "Target", "Real Techniques", "Good Molecules", "Starface", "BYOMA", "Unlockt Brands", "Pixi", "Morphe", "Dermasil", "Summer Fridays", "Sol de Janeiro", "Fenty Beauty", "Hourglass", "NARS", "KIKO Milano", "YSL Beauty", "NYX", "ONE/SIZE"],
 };
 // Compara marcas sin importar mayúsculas, espacios ni apóstrofes ("Patrick TA", "Victoria’s Secret").
 const countryBrandKey = (m) => String(m || "").toLowerCase().replace(/[^a-z0-9]/g, "");
