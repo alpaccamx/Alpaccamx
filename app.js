@@ -1448,7 +1448,7 @@ function koreaFlatMXN(parcels, porKgMXN, useTarjeta = false) {
   const kg = koreaKgCompletos(parcels);
   const pct = shippingSettings.transferDiscountPct || 0;
   const rate = useTarjeta ? ceilTo(porKgMXN * (1 + pct / 100), 1) : porKgMXN;
-  return Math.round(kg * rate * 100) / 100;
+  return Math.ceil(kg * rate - 1e-9);
 }
 
 function shippingEstimate(pesoKg, cp, korea = pesoKg) {
@@ -1462,7 +1462,7 @@ function shippingEstimate(pesoKg, cp, korea = pesoKg) {
   if (!hasKorea && !hasNacional) return null;
 
   const coreaUSD = hasKorea && !flat ? koreaParcelsUSD(parcels) : 0;
-  const coreaMXN = !hasKorea ? 0 : flat ? koreaFlatMXN(parcels, porKg) : coreaUSD * (shippingSettings.exchangeRate || 0);
+  const coreaMXN = !hasKorea ? 0 : flat ? koreaFlatMXN(parcels, porKg) : Math.ceil(coreaUSD * (shippingSettings.exchangeRate || 0) - 1e-9);
   const totalMXN = coreaMXN + (nacionalMXN || 0);
 
   // Precio de envío de referencia al pagar con tarjeta (Mercado Pago):
@@ -1473,7 +1473,7 @@ function shippingEstimate(pesoKg, cp, korea = pesoKg) {
   // diferencia entre ambos métodos de pago.
   const nacionalMXNTarjeta = hasNacional ? nacionalShippingMXN(cp, pesoKg, true) || 0 : 0;
   const coreaUSDTarjeta = hasKorea && !flat ? koreaParcelsUSD(parcels, true) : 0;
-  const coreaMXNTarjeta = !hasKorea ? 0 : flat ? koreaFlatMXN(parcels, porKg, true) : coreaUSDTarjeta * (shippingSettings.exchangeRate || 0);
+  const coreaMXNTarjeta = !hasKorea ? 0 : flat ? koreaFlatMXN(parcels, porKg, true) : Math.ceil(coreaUSDTarjeta * (shippingSettings.exchangeRate || 0) - 1e-9);
   const totalMXNTarjeta = coreaMXNTarjeta + nacionalMXNTarjeta;
 
   return {
