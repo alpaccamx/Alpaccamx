@@ -1654,7 +1654,11 @@ function applyStockData() {
     const vendidas = soldStock.get(sku) || 0;
     const stockPiezas = Math.max(0, entry.piezas - vendidas);
 
-    const original = products.find((p) => p.id === sku);
+    // Solo cuenta como "del catálogo" lo que NO es de Stock: en la segunda
+    // vuelta de applyStockData() el producto solo-stock que se creó en la
+    // primera ya está en `products` con este mismo id, y tomarlo como
+    // original le creaba una copia "__stock" (cada tono salía dos veces).
+    const original = products.find((p) => p.id === sku && !p.enStock);
     if (original) {
       const stockId = `${sku}${STOCK_CLONE_ID_SUFFIX}`;
       let clone = products.find((p) => p.id === stockId);
