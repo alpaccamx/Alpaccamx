@@ -50,3 +50,18 @@ Sin precios y solo con lo que incluye la tienda. Máximo 5 hashtags.
 > Pagos, envíos, tonos y tallas, inventario y pedidos, todo en un solo lugar. Yo te la instalo y te acompaño ✨
 > 💬 Escríbeme por mensaje o WhatsApp y la hacemos juntas
 > #tiendaenlinea #emprendedorasmexicanas #negociodebelleza #emprendimiento #alpacca
+
+## WhatsApp (para mandar con el video a contactos, grupos o en tu estado)
+> Hola! 💗 Les cuento algo nuevo:
+>
+> Ahora también hago *tiendas en línea* para emprendedoras que venden belleza, ropa o accesorios 🛍️
+>
+> Así como la mía, tus clientas pueden comprarte desde el celular: eligen su tono o talla, pagan y a ti te llega el pedido. Y te la hago con *tu marca, tus colores y tu logo* ✨
+>
+> Incluye pago con tarjeta o transferencia, envío calculado por código postal, inventario que se descuenta solo, panel de pedidos y guías, cupones, reseñas y avisos por correo.
+>
+> Yo te la instalo y te acompaño en todo 🤝
+>
+> 👉 Chécala aquí: https://alpacca.mx
+>
+> Si te interesa, contéstame este mensaje y la hacemos juntas 💬
