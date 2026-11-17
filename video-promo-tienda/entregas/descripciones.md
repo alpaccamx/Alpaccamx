@@ -65,3 +65,22 @@ Sin precios y solo con lo que incluye la tienda. Máximo 5 hashtags.
 > 👉 Chécala aquí: https://alpacca.mx
 >
 > Si te interesa, contéstame este mensaje y la hacemos juntas 💬
+
+## WhatsApp: grupo de shoppers (personal shoppers que traen productos de EE. UU.)
+> Hola, chicas! 💗 Soy Mae, de Alpacca. Yo también soy shopper y les quiero compartir algo que me ha ayudado muchísimo:
+>
+> Tengo mi propia *tienda en línea* y ya no tengo que mandar fotos y precios uno por uno. Mis clientas entran, eligen su producto, su tono o su talla, pagan con tarjeta o transferencia y a mí me llega el pedido 🙌
+>
+> Ahora las estoy haciendo para otras shoppers, *con su marca, sus colores y su logo*. Incluye:
+> ✅ Pago con tarjeta o transferencia
+> ✅ Envío calculado por código postal
+> ✅ Tonos y tallas
+> ✅ Inventario que se descuenta solo (ya no vendes lo que no tienes)
+> ✅ Panel de pedidos y guías
+> ✅ Cupones, reseñas y avisos por correo
+>
+> Yo se las instalo y las acompaño en todo 🤝
+>
+> 👉 Así se ve la mía: https://alpacca.mx
+>
+> Si a alguna le interesa, mándenme mensaje por privado y platicamos 💬
