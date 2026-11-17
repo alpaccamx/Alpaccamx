@@ -1678,8 +1678,11 @@ function applyStockData() {
       }
       clone.enStock = true;
       clone.stockPiezas = stockPiezas;
-      // En stock manda tu inventario, no si ABW lo tiene agotado.
+      // En stock manda tu inventario, no si ABW lo tiene agotado o en
+      // preorden: ya está en México, se manda de inmediato.
       clone.disponible = true;
+      clone.preorden = false;
+      clone.preordenDias = "";
       // Si en la hoja de Stock le pusiste otro nombre, foto o descripción
       // (por ejemplo "1 mascarilla" en vez del set del catálogo), mandan esos.
       if (entry.nombre && entry.nombre !== original.nombre) {
