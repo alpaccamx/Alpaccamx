@@ -6,7 +6,7 @@ import {
 import datos from "./datos.json";
 
 // ---------- marca ----------
-const ROSA = "#D9468A", CLARO = "#FFE3EE", MEDIO = "#F7B6D2", VINO = "#7A4A5E", VINO_OSC = "#4E2A3A", BLANCO = "#FFFFFF";
+export const ROSA = "#D9468A", CLARO = "#FFE3EE", MEDIO = "#F7B6D2", VINO = "#7A4A5E", VINO_OSC = "#4E2A3A", BLANCO = "#FFFFFF";
 
 const fuentes: [string, string, string][] = [
   ["RTP", "fuentes/ReadyToParty.ttf", "400"], ["Inter", "fuentes/Inter-Medium.otf", "500"], ["Inter", "fuentes/Inter-SemiBold.otf", "600"],
@@ -35,7 +35,7 @@ const tramo = (desde: number, hasta: number, a: number, z: number, z0: number, z
   if ((hasta - desde) / dur > maxVel) hasta = desde + dur * maxVel; // si habría que acelerar demasiado, mejor se corta
   return { desde, hasta, a, z, z0, z1, c0, c1 };
 };
-const fin1 = L[1].a - 0.15; // la pantalla entra con la línea 2
+const fin1 = L[1].a - 0.5; // la pantalla entra con la línea 2
 const PLANOS: Plano[] = [
   tramo(0.0, 2.95, fin1, L[2].a - 0.1, 1.0, 1.1, [540, 700], [540, 400]),                                        // entra con su clave
   tramo(3.0, 8.45, L[2].a - 0.1, L[3].a - 0.1, 1.02, 1.1, [540, 700], [540, 1000]),                                // resumen de ventas
@@ -46,15 +46,15 @@ const PLANOS: Plano[] = [
   tramo(24.5, 32.45, L[5].a - 0.1, L[6].a - 0.1, 1.04, 1.12, [540, 900], [540, 1300]),                              // por mandar
   tramo(32.5, 37.95, L[6].a - 0.1, L[6].a + (L[6].z - L[6].a) * 0.4, 1.04, 1.12, [540, 900], [540, 1200]),        // inventario
   tramo(38.0, 41.95, L[6].a + (L[6].z - L[6].a) * 0.4, L[6].a + (L[6].z - L[6].a) * 0.7, 1.04, 1.12, [540, 900], [540, 1300]), // cupones
-  tramo(42.0, 45.95, L[6].a + (L[6].z - L[6].a) * 0.7, L[7].a + 0.4, 1.04, 1.12, [540, 900], [540, 1200]),        // clientas
+  tramo(42.0, 45.95, L[6].a + (L[6].z - L[6].a) * 0.7, L[7].a + 0.55, 1.04, 1.12, [540, 900], [540, 1200]),        // clientas
 ];
 // toque en «Ya me pagó» (en la grabación, segundo 20.4, botón en x 540, y 1214)
 const toqueEn = (seg: number) => { const p = PLANOS.find((q) => seg >= q.desde && seg <= q.hasta)!; return p.a + ((seg - p.desde) / (p.hasta - p.desde)) * (p.z - p.a); };
 const TOQUES: [number, number, number][] = [[toqueEn(20.4), 540, 1214]];
 
 // ---------- celular ----------
-const SW = 540, STATUS = 54, VIDH = Math.round((SW * VH) / VW), SH = STATUS + VIDH;
-const BarraEstado: React.FC = () => (
+export const SW = 540, STATUS = 54, VIDH = Math.round((SW * VH) / VW), SH = STATUS + VIDH;
+export const BarraEstado: React.FC = () => (
   <div style={{ position: "absolute", top: 0, left: 0, width: SW, height: STATUS, background: BLANCO, zIndex: 5, display: "flex", alignItems: "center",
     justifyContent: "space-between", padding: "6px 40px 0 52px", boxSizing: "border-box", fontFamily: "Inter", fontWeight: 700, fontSize: 22, color: "#111" }}>
     <span>9:41</span>
@@ -72,8 +72,9 @@ const Pantalla: React.FC<{ t: number }> = ({ t }) => {
   return (
     <div style={{ position: "absolute", left: 0, top: STATUS, width: SW, height: VIDH, overflow: "hidden", background: "#fff" }}>
       {PLANOS.map((p, i) => {
-        const vis = t >= p.a - 0.001 && t < p.z;
-        const desdeFr = Math.round(p.a * FPS), durFr = Math.max(1, Math.round((p.z - p.a) * FPS));
+        // cuadros enteros: cada plano empieza justo donde acaba el anterior (sin cuadros vacíos entre planos)
+        const desdeFr = Math.round(p.a * FPS), hastaFr = Math.round(p.z * FPS), durFr = Math.max(1, hastaFr - desdeFr);
+        const fr = Math.round(t * FPS), vis = fr >= desdeFr && fr < hastaFr;
         const u = lerp(t, p.a, p.z, 0, 1, Easing.inOut(Easing.sin));
         const z = p.z0 + (p.z1 - p.z0) * u, cx = p.c0[0] + (p.c1[0] - p.c0[0]) * u, cy = p.c0[1] + (p.c1[1] - p.c0[1]) * u;
         // limita el centro para no salir de la grabación
@@ -128,12 +129,12 @@ const Celular: React.FC<{ t: number }> = ({ t }) => (
 );
 
 // ---------- fondo ----------
-const Destello: React.FC<{ x: number; y: number; s: number; t: number; c?: string; fase?: number }> = ({ x, y, s, t, c = MEDIO, fase = 0 }) => (
+export const Destello: React.FC<{ x: number; y: number; s: number; t: number; c?: string; fase?: number }> = ({ x, y, s, t, c = MEDIO, fase = 0 }) => (
   <svg style={{ position: "absolute", left: x - s / 2, top: y - s / 2, transform: `rotate(${t * 20 + fase * 30}deg) scale(${0.75 + 0.25 * Math.sin(t * 2.2 + fase)})` }} width={s} height={s} viewBox="0 0 100 100">
     <path d="M50 0 C54 36 64 46 100 50 C64 54 54 64 50 100 C46 64 36 54 0 50 C36 46 46 36 50 0Z" fill={c} />
   </svg>
 );
-const Fondo: React.FC<{ t: number }> = ({ t }) => (
+export const Fondo: React.FC<{ t: number }> = ({ t }) => (
   <AbsoluteFill style={{ background: `linear-gradient(165deg, #8A5468 0%, ${VINO} 40%, ${VINO_OSC} 100%)`, overflow: "hidden" }}>
     {[[180, 420, 700, 0], [920, 900, 760, 2], [300, 1600, 680, 4]].map(([x, y, s, f], i) => (
       <div key={i} style={{ position: "absolute", left: x - s / 2 + 50 * Math.sin(t * 0.45 + f), top: y - s / 2 + 60 * Math.cos(t * 0.4 + f), width: s, height: s, borderRadius: "50%",
@@ -202,9 +203,9 @@ const Subtitulos: React.FC<{ t: number }> = ({ t }) => {
 };
 
 // gancho: mensajes que llegan sin parar
-const MENSAJES = ["¿Precio? 🙏", "¿Todavía lo tienes?", "¿Precio?", "Ya te transferí, ¿lo viste?", "¿Hay en talla M?", "¿Precio??", "Te mandé el comprobante arriba 👆"];
+export const MENSAJES = ["¿Precio? 🙏", "¿Todavía lo tienes?", "¿Precio?", "Ya te transferí, ¿lo viste?", "¿Hay en talla M?", "¿Precio??", "Te mandé el comprobante arriba 👆"];
 const Gancho: React.FC<{ t: number }> = ({ t }) => {
-  const fin = L[1].a - 0.1;
+  const fin = L[1].a - 0.45;
   if (t > fin + 0.5) return null;
   const sale = lerp(t, fin - 0.2, fin + 0.35, 0, 1, Easing.in(Easing.cubic));
   return (
@@ -237,10 +238,10 @@ const Gancho: React.FC<{ t: number }> = ({ t }) => {
   );
 };
 
-const WhatsApp: React.FC<{ s: number; c?: string }> = ({ s, c = BLANCO }) => (
+export const WhatsApp: React.FC<{ s: number; c?: string }> = ({ s, c = BLANCO }) => (
   <svg width={s} height={s} viewBox="0 0 32 32"><path fill={c} d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.7a10.7 10.7 0 0 1-5.5-1.5l-.4-.2-3.9 1 1-3.8-.3-.4A10.7 10.7 0 1 1 16 26.7zm5.9-8c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a8.8 8.8 0 0 1-4.4-3.8c-.3-.6.3-.5 1-1.7.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.6 3.6 0 0 0-1.1 2.7 6.3 6.3 0 0 0 1.3 3.3 14.4 14.4 0 0 0 5.5 4.9c2 .9 2.8 1 3.8.8a3.2 3.2 0 0 0 2.1-1.5 2.6 2.6 0 0 0 .2-1.5c-.1-.1-.3-.2-.6-.3z" /></svg>
 );
-const TikTok: React.FC<{ s: number; c?: string }> = ({ s, c = BLANCO }) => (
+export const TikTok: React.FC<{ s: number; c?: string }> = ({ s, c = BLANCO }) => (
   <svg width={s} height={s} viewBox="0 0 32 32"><path fill={c} d="M22.5 3h-4.6v17.4a3.9 3.9 0 1 1-3.9-3.9c.4 0 .8.1 1.2.2v-4.7a8.6 8.6 0 1 0 7.3 8.5V11.6a10.8 10.8 0 0 0 6.3 2V9a6.3 6.3 0 0 1-6.3-6z" /></svg>
 );
 
