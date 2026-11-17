@@ -1,0 +1,17 @@
+{
+ "nombre": "Dermasil: lote de 50 piezas",
+ "productos": [
+  {
+   "sku": "STOCK-DERMASIL-LOTE50",
+   "nombre": "Dermasil Ácido Glicólico con Agua de Rosas · Lote de 50 piezas",
+   "marca": "Dermasil",
+   "categoria": "Skincare",
+   "descripcion": "Lote de 50 tónicos Dermasil con ácido glicólico, hamamelis y agua de rosas ($35 cada uno). Exfolia suavemente, limpia los poros y unifica el tono. 118 ml cada uno. Ideal para revender.",
+   "piezas": 1,
+   "precio": 1750,
+   "peso": 9,
+   "imagen": "https://alpacca.mx/assets/products/stock/dermasil-aha-glycolic-acid-toning-solution-2.webp",
+   "precioTarjeta": 1855
+  }
+ ]
+}
