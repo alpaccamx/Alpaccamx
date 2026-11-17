@@ -1,0 +1,472 @@
+{
+ "STOCK-PTA-BLUSH-DUO-SHES-SEDUCTIVE": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#She's Seductive)"
+ },
+ "STOCK-PTA-BLUSH-DUO-SHES-WANTED": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Patrick Ta Major Headlines Double-Take Crème & Powder Blush Duo (#She's Wanted)"
+ },
+ "STOCK-RHODE-POCKET-BRONZE-SUNBED": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "rhode Pocket Bronze (#Sunbed)"
+ },
+ "STOCK-RHODE-POCKET-BRONZE-BAKE": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "rhode Pocket Bronze (#Bake)"
+ },
+ "STOCK-RHODE-PEPTIDE-LIP-TINT-SALTY-TAN": {
+  "precio": 299,
+  "precioTarjeta": 317,
+  "nombre": "rhode Peptide Lip Tint (#Salty Tan)"
+ },
+ "STOCK-RB-SOFT-PINCH-BLUSH-HOPE": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "Rare Beauty Soft Pinch Liquid Blush (#Hope)"
+ },
+ "STOCK-RB-SOFT-PINCH-BLUSH-JOY": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "Rare Beauty Soft Pinch Liquid Blush (#Joy)"
+ },
+ "STOCK-RB-SOFT-PINCH-BLUSH-HAPPY": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "Rare Beauty Soft Pinch Liquid Blush (#Happy)"
+ },
+ "STOCK-RB-SOFT-PINCH-BLUSH-BLISS": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "Rare Beauty Soft Pinch Liquid Blush (#Bliss)"
+ },
+ "STOCK-RB-SOFT-PINCH-BLUSH-ENCOURAGE": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "Rare Beauty Soft Pinch Liquid Blush (#Encourage)"
+ },
+ "STOCK-RB-SOFT-PINCH-BLUSH-LOVE": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "Rare Beauty Soft Pinch Liquid Blush (#Love)"
+ },
+ "STOCK-RB-SOFT-PINCH-BLUSH-VIRTUE": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "Rare Beauty Soft Pinch Liquid Blush (#Virtue)"
+ },
+ "STOCK-RB-POSITIVE-LIGHT-ENCHANT": {
+  "precio": 419,
+  "precioTarjeta": 445,
+  "nombre": "Rare Beauty Positive Light Liquid Luminizer (#Enchant)"
+ },
+ "STOCK-RB-POSITIVE-LIGHT-MESMERIZE": {
+  "precio": 419,
+  "precioTarjeta": 445,
+  "nombre": "Rare Beauty Positive Light Liquid Luminizer (#Mesmerize)"
+ },
+ "STOCK-RB-POSITIVE-LIGHT-TRANSCEND": {
+  "precio": 419,
+  "precioTarjeta": 445,
+  "nombre": "Rare Beauty Positive Light Liquid Luminizer (#Transcend)"
+ },
+ "STOCK-RB-POSITIVE-LIGHT-REFLECT": {
+  "precio": 419,
+  "precioTarjeta": 445,
+  "nombre": "Rare Beauty Positive Light Liquid Luminizer (#Reflect)"
+ },
+ "STOCK-RB-POSITIVE-LIGHT-FLAUNT": {
+  "precio": 419,
+  "precioTarjeta": 445,
+  "nombre": "Rare Beauty Positive Light Liquid Luminizer (#Flaunt)"
+ },
+ "STOCK-RB-POSITIVE-LIGHT-OUTSHINE": {
+  "precio": 419,
+  "precioTarjeta": 445,
+  "nombre": "Rare Beauty Positive Light Liquid Luminizer (#Outshine)"
+ },
+ "STOCK-RB-POSITIVE-LIGHT-ENLIGHTEN": {
+  "precio": 419,
+  "precioTarjeta": 445,
+  "nombre": "Rare Beauty Positive Light Liquid Luminizer (#Enlighten)"
+ },
+ "STOCK-RB-TINTED-LIP-OIL-HOPE": {
+  "precio": 359,
+  "precioTarjeta": 381,
+  "nombre": "Rare Beauty Soft Pinch Tinted Lip Oil (#Hope)"
+ },
+ "STOCK-RB-TINTED-LIP-OIL-HAPPY": {
+  "precio": 359,
+  "precioTarjeta": 381,
+  "nombre": "Rare Beauty Soft Pinch Tinted Lip Oil (#Happy)"
+ },
+ "STOCK-RB-TINTED-LIP-OIL-WONDER": {
+  "precio": 359,
+  "precioTarjeta": 381,
+  "nombre": "Rare Beauty Soft Pinch Tinted Lip Oil (#Wonder)"
+ },
+ "STOCK-RB-TINTED-LIP-OIL-SERENITY": {
+  "precio": 359,
+  "precioTarjeta": 381,
+  "nombre": "Rare Beauty Soft Pinch Tinted Lip Oil (#Serenity)"
+ },
+ "STOCK-HUDA-BLUSH-FILTER-TOASTY-PEACH": {
+  "precio": 669,
+  "precioTarjeta": 710,
+  "nombre": "Huda Beauty Blush Filter Blurring Blushlighter (#Toasty Peach)"
+ },
+ "STOCK-HUDA-BLUSH-FILTER-ROSE-BERRY": {
+  "precio": 669,
+  "precioTarjeta": 710,
+  "nombre": "Huda Beauty Blush Filter Blurring Blushlighter (#Rose Berry)"
+ },
+ "STOCK-HUDA-EASY-BAKE-DUO-CHERRY-PEACH": {
+  "precio": 629,
+  "precioTarjeta": 667,
+  "nombre": "Huda Beauty Easy Bake Duo (#Cherry Peach)"
+ },
+ "STOCK-HUDA-EASY-BAKE-DUO-PINK-PUMPKIN": {
+  "precio": 629,
+  "precioTarjeta": 667,
+  "nombre": "Huda Beauty Easy Bake Duo (#Pink Pumpkin)"
+ },
+ "STOCK-HUDA-EASY-BAKE-PRESSED-POUND-CAKE": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Huda Beauty Easy Bake Airbrush Matte Pressed Setting Powder (#Pound Cake)"
+ },
+ "STOCK-HUDA-EASY-BAKE-PRESSED-PEACH-CUPCAKE": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Huda Beauty Easy Bake Airbrush Matte Pressed Setting Powder (#Peach Cupcake)"
+ },
+ "STOCK-HUDA-EASY-BAKE-PRESSED-BANANA-BREAD": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Huda Beauty Easy Bake Airbrush Matte Pressed Setting Powder (#Banana Bread)"
+ },
+ "STOCK-HUDA-EASY-BAKE-PRESSED-SUGAR-COOKIE": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Huda Beauty Easy Bake Airbrush Matte Pressed Setting Powder (#Sugar Cookie)"
+ },
+ "STOCK-SF-LIP-BUTTER-BALM-VANILLA": {
+  "precio": 359,
+  "precioTarjeta": 381,
+  "nombre": "Summer Fridays Lip Butter Balm (#Vanilla)"
+ },
+ "STOCK-SF-LIP-BUTTER-BALM-PINK-SUGAR": {
+  "precio": 359,
+  "precioTarjeta": 381,
+  "nombre": "Summer Fridays Lip Butter Balm (#Pink Sugar)"
+ },
+ "STOCK-SF-LIP-BUTTER-BALM-BROWN-SUGAR": {
+  "precio": 359,
+  "precioTarjeta": 381,
+  "nombre": "Summer Fridays Lip Butter Balm (#Brown Sugar)"
+ },
+ "STOCK-SF-LIP-BUTTER-BALM-ICED-COFFEE": {
+  "precio": 359,
+  "precioTarjeta": 381,
+  "nombre": "Summer Fridays Lip Butter Balm (#Iced Coffee)"
+ },
+ "STOCK-SF-LIP-BUTTER-BALM-CHERRY": {
+  "precio": 359,
+  "precioTarjeta": 381,
+  "nombre": "Summer Fridays Lip Butter Balm (#Cherry)"
+ },
+ "STOCK-NARS-LIGHT-REFLECTING-FDN-L2-MONT-BLANC": {
+  "precio": 819,
+  "precioTarjeta": 869,
+  "nombre": "NARS Light Reflecting Advanced Skincare Foundation (#L2 Mont Blanc)"
+ },
+ "STOCK-NARS-LIGHT-REFLECTING-FDN-L3-GOBI": {
+  "precio": 819,
+  "precioTarjeta": 869,
+  "nombre": "NARS Light Reflecting Advanced Skincare Foundation (#L3 Gobi)"
+ },
+ "STOCK-NARS-LIGHT-REFLECTING-FDN-L4-DEAUVILLE": {
+  "precio": 819,
+  "precioTarjeta": 869,
+  "nombre": "NARS Light Reflecting Advanced Skincare Foundation (#L4 Deauville)"
+ },
+ "STOCK-HOURGLASS-VANISH-CONCEALER-OAT": {
+  "precio": 589,
+  "precioTarjeta": 625,
+  "nombre": "Hourglass Vanish Airbrush Concealer (#Oat)"
+ },
+ "STOCK-HOURGLASS-VANISH-CONCEALER-CEDAR": {
+  "precio": 589,
+  "precioTarjeta": 625,
+  "nombre": "Hourglass Vanish Airbrush Concealer (#Cedar)"
+ },
+ "STOCK-HOURGLASS-VANISH-CONCEALER-BIRCH": {
+  "precio": 589,
+  "precioTarjeta": 625,
+  "nombre": "Hourglass Vanish Airbrush Concealer (#Birch)"
+ },
+ "STOCK-HOURGLASS-VANISH-CONCEALER-COTTON": {
+  "precio": 589,
+  "precioTarjeta": 625,
+  "nombre": "Hourglass Vanish Airbrush Concealer (#Cotton)"
+ },
+ "STOCK-HOURGLASS-VANISH-CONCEALER-SILK": {
+  "precio": 589,
+  "precioTarjeta": 625,
+  "nombre": "Hourglass Vanish Airbrush Concealer (#Silk)"
+ },
+ "STOCK-FENTY-GLOSS-BOMB-FENTY-GLOW": {
+  "precio": 349,
+  "precioTarjeta": 370,
+  "nombre": "Fenty Beauty Gloss Bomb Universal Lip Luminizer (#Fenty Glow)"
+ },
+ "STOCK-FENTY-GLOSS-BOMB-FUSSY": {
+  "precio": 349,
+  "precioTarjeta": 370,
+  "nombre": "Fenty Beauty Gloss Bomb Universal Lip Luminizer (#Fu$$y)"
+ },
+ "STOCK-FENTY-GLOSS-BOMB-SWEET-MOUTH": {
+  "precio": 349,
+  "precioTarjeta": 370,
+  "nombre": "Fenty Beauty Gloss Bomb Universal Lip Luminizer (#Sweet Mouth)"
+ },
+ "STOCK-FENTY-GLOSS-BOMB-RIRI": {
+  "precio": 349,
+  "precioTarjeta": 370,
+  "nombre": "Fenty Beauty Gloss Bomb Universal Lip Luminizer (#RiRi)"
+ },
+ "STOCK-FENTY-GLOSS-BOMB-HEAT-HOT-CHERRY": {
+  "precio": 389,
+  "precioTarjeta": 413,
+  "nombre": "Fenty Beauty Gloss Bomb Heat Universal Lip Luminizer + Plumper (#Hot Cherry)"
+ },
+ "STOCK-FENTY-GLOSS-BOMB-HEAT-FUSSY-HEAT": {
+  "precio": 389,
+  "precioTarjeta": 413,
+  "nombre": "Fenty Beauty Gloss Bomb Heat Universal Lip Luminizer + Plumper (#Fu$$y Heat)"
+ },
+ "STOCK-FENTY-GLOSS-BOMB-CREAM-HONEY-WAFFLES": {
+  "precio": 349,
+  "precioTarjeta": 370,
+  "nombre": "Fenty Beauty Gloss Bomb Cream Color Drip Lip Cream (#Honey Waffles)"
+ },
+ "STOCK-KIKO-UNLIMITED-DOUBLE-TOUCH-126": {
+  "precio": 299,
+  "precioTarjeta": 317,
+  "nombre": "KIKO Milano Unlimited Double Touch (#126)"
+ },
+ "STOCK-KIKO-UNLIMITED-DOUBLE-TOUCH-128": {
+  "precio": 299,
+  "precioTarjeta": 317,
+  "nombre": "KIKO Milano Unlimited Double Touch (#128)"
+ },
+ "STOCK-KIKO-3D-HYDRA-GLOSS-01": {
+  "precio": 229,
+  "precioTarjeta": 243,
+  "nombre": "KIKO Milano 3D Hydra Lipgloss (#01)"
+ },
+ "STOCK-KIKO-3D-HYDRA-GLOSS-05": {
+  "precio": 229,
+  "precioTarjeta": 243,
+  "nombre": "KIKO Milano 3D Hydra Lipgloss (#05)"
+ },
+ "STOCK-KIKO-3D-HYDRA-GLOSS-12": {
+  "precio": 229,
+  "precioTarjeta": 243,
+  "nombre": "KIKO Milano 3D Hydra Lipgloss (#12)"
+ },
+ "STOCK-KIKO-3D-HYDRA-GLOSS-15": {
+  "precio": 229,
+  "precioTarjeta": 243,
+  "nombre": "KIKO Milano 3D Hydra Lipgloss (#15)"
+ },
+ "STOCK-KIKO-3D-HYDRA-GLOSS-17": {
+  "precio": 229,
+  "precioTarjeta": 243,
+  "nombre": "KIKO Milano 3D Hydra Lipgloss (#17)"
+ },
+ "STOCK-KIKO-3D-HYDRA-GLOSS-18": {
+  "precio": 229,
+  "precioTarjeta": 243,
+  "nombre": "KIKO Milano 3D Hydra Lipgloss (#18)"
+ },
+ "STOCK-KIKO-3D-HYDRA-GLOSS-20": {
+  "precio": 229,
+  "precioTarjeta": 243,
+  "nombre": "KIKO Milano 3D Hydra Lipgloss (#20)"
+ },
+ "STOCK-KIKO-3D-HYDRA-GLOSS-21": {
+  "precio": 229,
+  "precioTarjeta": 243,
+  "nombre": "KIKO Milano 3D Hydra Lipgloss (#21)"
+ },
+ "STOCK-KIKO-3D-HYDRA-GLOSS-32": {
+  "precio": 229,
+  "precioTarjeta": 243,
+  "nombre": "KIKO Milano 3D Hydra Lipgloss (#32)"
+ },
+ "STOCK-KIKO-3D-HYDRA-GLOSS-33": {
+  "precio": 229,
+  "precioTarjeta": 243,
+  "nombre": "KIKO Milano 3D Hydra Lipgloss (#33)"
+ },
+ "STOCK-SDJ-BUM-BUM-JET-SET": {
+  "precio": 509,
+  "precioTarjeta": 540,
+  "nombre": "Sol de Janeiro Bum Bum Jet Set"
+ },
+ "STOCK-SDJ-BEIJA-FLOR-JET-SET": {
+  "precio": 509,
+  "precioTarjeta": 540,
+  "nombre": "Sol de Janeiro Beija Flor Jet Set"
+ },
+ "STOCK-SDJ-BOM-DIA-BRIGHT-JET-SET": {
+  "precio": 509,
+  "precioTarjeta": 540,
+  "nombre": "Sol de Janeiro Bom Dia Bright Jet Set"
+ },
+ "STOCK-SDJ-DELICIA-DRENCH-JET-SET": {
+  "precio": 509,
+  "precioTarjeta": 540,
+  "nombre": "Sol de Janeiro Delícia Drench Jet Set"
+ },
+ "STOCK-ONESIZE-ON-TIL-DAWN-SPRAY": {
+  "precio": 509,
+  "precioTarjeta": 540,
+  "nombre": "ONE/SIZE by Patrick Starrr On 'Til Dawn Mattifying Waterproof Setting Spray"
+ },
+ "STOCK-KIKO-UNLIMITED-DOUBLE-TOUCH-103": {
+  "precio": 299,
+  "precioTarjeta": 317,
+  "nombre": "KIKO Milano Unlimited Double Touch (#103)"
+ },
+ "STOCK-ELF-CAMO-LIQUID-BLUSH-PINKY-PROMISE": {
+  "precio": 75,
+  "precioTarjeta": 80,
+  "nombre": "e.l.f. Camo Liquid Blush (#Pinky Promise)"
+ },
+ "STOCK-ELF-CAMO-LIQUID-BLUSH-DUSTY-ROSE": {
+  "precio": 75,
+  "precioTarjeta": 80,
+  "nombre": "e.l.f. Camo Liquid Blush (#Dusty Rosé)"
+ },
+ "STOCK-ELF-CAMO-LIQUID-BLUSH-PEACH-PERFECT": {
+  "precio": 75,
+  "precioTarjeta": 80,
+  "nombre": "e.l.f. Camo Liquid Blush (#Peach Perfect)"
+ },
+ "STOCK-ELF-CAMO-LIQUID-BLUSH-CORAL-CRUSH": {
+  "precio": 75,
+  "precioTarjeta": 80,
+  "nombre": "e.l.f. Camo Liquid Blush (#Coral Crush)"
+ },
+ "STOCK-HOURGLASS-AMBIENT-UNLOCKED-HORSE": {
+  "precio": 1299,
+  "precioTarjeta": 1377,
+  "nombre": "Hourglass Ambient Lighting Edit Unlocked (#Horse)"
+ },
+ "STOCK-HOURGLASS-AMBIENT-UNLOCKED-SWAN": {
+  "precio": 1299,
+  "precioTarjeta": 1377,
+  "nombre": "Hourglass Ambient Lighting Edit Unlocked (#Swan)"
+ },
+ "STOCK-FENTY-GLOSS-BOMB-SWIRL-FUSSY-CHOCOLIT": {
+  "precio": 349,
+  "precioTarjeta": 370,
+  "nombre": "Fenty Beauty Gloss Bomb Swirl Twisted Lip Luminizer (#Fu$$y Chocolit)"
+ },
+ "STOCK-FENTY-GLOSS-BOMB-SWIRL-FUSSY-FLEX": {
+  "precio": 349,
+  "precioTarjeta": 370,
+  "nombre": "Fenty Beauty Gloss Bomb Swirl Twisted Lip Luminizer (#Fu$$y Flex)"
+ },
+ "STOCK-FENTY-GLOSS-BOMB-SWIRL-SWEET-RIRI": {
+  "precio": 349,
+  "precioTarjeta": 370,
+  "nombre": "Fenty Beauty Gloss Bomb Swirl Twisted Lip Luminizer (#$weet RiRi)"
+ },
+ "STOCK-YSL-MAKE-ME-BLUSH-06": {
+  "precio": 689,
+  "precioTarjeta": 731,
+  "nombre": "YSL Make Me Blush 24H Buildable Blurring Powder Blush (#06 Rose Haze)"
+ },
+ "STOCK-YSL-MAKE-ME-BLUSH-24": {
+  "precio": 689,
+  "precioTarjeta": 731,
+  "nombre": "YSL Make Me Blush 24H Buildable Blurring Powder Blush (#24 Suave Sunstone)"
+ },
+ "STOCK-YSL-MAKE-ME-BLUSH-44": {
+  "precio": 689,
+  "precioTarjeta": 731,
+  "nombre": "YSL Make Me Blush 24H Buildable Blurring Powder Blush (#44 Nude Lavallière)"
+ },
+ "STOCK-AD6BB7D4": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "rhode Pocket Bronze (#Sip)"
+ },
+ "STOCK-48A689D2": {
+  "precio": 379,
+  "precioTarjeta": 402,
+  "nombre": "rhode Pocket Bronze (#Pebble)"
+ },
+ "STOCK-06F638B0": {
+  "precio": 299,
+  "precioTarjeta": 317,
+  "nombre": "rhode Peptide Lip Tint (#Ribbon)"
+ },
+ "STOCK-98F94C5C": {
+  "precio": 299,
+  "precioTarjeta": 317,
+  "nombre": "rhode Peptide Lip Tint (#Toast)"
+ },
+ "STOCK-A3979D65": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Pound Cake)"
+ },
+ "STOCK-63F07051": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Cupcake)"
+ },
+ "STOCK-DADE31C5": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Banana Bread)"
+ },
+ "STOCK-CF4C7E2D": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Sugar Cookie)"
+ },
+ "STOCK-53D9EB96": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Peach Pie)"
+ },
+ "STOCK-93630E34": {
+  "precio": 599,
+  "precioTarjeta": 635,
+  "nombre": "Huda Beauty Easy Bake Loose Baking & Setting Powder (#Cherry Blossom Cake)"
+ },
+ "STOCK-C4B64104": {
+  "precio": 299,
+  "precioTarjeta": 317,
+  "nombre": "The Vita-A Retinal Shot Tightening Booster"
+ },
+ "ALTHEA-001": {
+  "precio": 289,
+  "precioTarjeta": 307,
+  "nombre": "345 Relief Cream"
+ },
+ "1137999832": {
+  "precio": 199,
+  "precioTarjeta": 211,
+  "nombre": "PDRN Pink Collagen Jelly Eye Mask 6 pairs (6 pairs)"
+ }
+}
