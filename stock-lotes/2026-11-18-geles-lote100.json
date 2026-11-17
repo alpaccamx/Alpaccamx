@@ -1,0 +1,24 @@
+{
+ "nombre": "Geles navideños: 50 lotes de 10 pasan a 5 lotes de 100",
+ "productos": [
+  {
+   "sku": "STOCK-BBW-GEL-LOTE100",
+   "nombre": "Geles antibacteriales navideños PocketBac · Lote de 100 surtido",
+   "marca": "Bath & Body Works",
+   "categoria": "Cuidado corporal",
+   "descripcion": "Lote de 100 geles antibacteriales navideños PocketBac de 29 ml de Bath & Body Works ($30 cada uno). El lote es surtido: trae hasta 16 variedades diferentes, así que los aromas pueden variar. Ideal para revender, regalos o intercambios navideños.",
+   "piezas": 5,
+   "precio": 3000,
+   "peso": 5,
+   "imagen": "https://alpacca.mx/assets/products/stock/bbw-pocketbac-surtido-caja.jpg",
+   "precioTarjeta": 3180
+  }
+ ],
+ "reabastecer": [
+  {
+   "id": "2026-11-18-geles-lote10-a-lote100",
+   "sku": "STOCK-BBW-GEL-LOTE10",
+   "sumar": -50
+  }
+ ]
+}
