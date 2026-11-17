@@ -1,0 +1,18 @@
+{
+ "voice_id": "uf7lwaqO0yghLWPq8lJ7",
+ "model_id": "eleven_v4",
+ "voice_settings": {
+  "stability": 0.5
+ },
+ "nota": "Misma voz y configuración que los videos pasados («Mae v4»).",
+ "lineas": [
+  "¿Cansada de contestar «¿precio?», «¿todavía lo tienes?» y de buscar comprobantes en el chat?",
+  "Mira, así se ve una tienda por dentro. Esta es de ejemplo.",
+  "Desde tu celular ves lo que vendiste y lo que tienes pendiente.",
+  "Te llega un pedido con su comprobante, y lo ves ahí mismo.",
+  "Le das «Ya me pagó», y el inventario se descuenta solo.",
+  "Ves qué te falta por mandar, con los datos de cada clienta.",
+  "Cambias precios y fotos, creas cupones y ves quién te compra más.",
+  "Y no necesitas saber de páginas web: yo te la armo con tu marca, tus colores y tu propio link, y te acompaño por WhatsApp. ¡Escríbeme!"
+ ]
+}
