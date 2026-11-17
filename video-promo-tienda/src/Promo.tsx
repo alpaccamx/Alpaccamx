@@ -6,8 +6,8 @@ import {
 import datos from "./datos.json";
 
 // ---------- marca ----------
-const ROSA = "#D9468A", CLARO = "#FFE3EE", MEDIO = "#F7B6D2", VINO = "#7A4A5E", BLANCO = "#FFFFFF";
-const MORA = ["#B4562F", "#5F6F52", "#EAD9C6", "#2B2522"]; // colores de la tienda de ejemplo
+export const ROSA = "#D9468A", CLARO = "#FFE3EE", MEDIO = "#F7B6D2", VINO = "#7A4A5E", BLANCO = "#FFFFFF";
+export const MORA = ["#B4562F", "#5F6F52", "#EAD9C6", "#2B2522"]; // colores de la tienda de ejemplo
 
 // ---------- fuentes ----------
 const fuentes: [string, string, string][] = [
@@ -52,11 +52,11 @@ const resorte = (t: number, t0: number, cfg = { damping: 13, stiffness: 140, mas
   t < t0 ? 0 : spring({ frame: (t - t0) * 30, fps: 30, config: cfg });
 
 // ---------- celular ----------
-const K = 480 / 390; // px de pantalla por punto CSS de la captura
-const SW = 480, SH = Math.round(844 * K), STATUS = Math.round(47 * K), PAGE_H = SH - STATUS;
+export const K = 480 / 390; // px de pantalla por punto CSS de la captura
+export const SW = 480, SH = Math.round(844 * K), STATUS = Math.round(47 * K), PAGE_H = SH - STATUS;
 const yP = (css: number) => STATUS + css * K;
 
-const BarraEstado: React.FC = () => (
+export const BarraEstado: React.FC = () => (
   <div style={{ position: "absolute", top: 0, left: 0, width: SW, height: STATUS, background: BLANCO, zIndex: 5,
     display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 34px 0 46px", boxSizing: "border-box",
     fontFamily: "Inter", fontWeight: 700, fontSize: 21, color: "#111" }}>
@@ -72,7 +72,7 @@ const BarraEstado: React.FC = () => (
 );
 
 // página larga con encabezado fijo (sticky), desplazada `scroll` puntos
-const PaginaLarga: React.FC<{ src: string; scroll: number; header?: number }> = ({ src, scroll, header = 155 }) => (
+export const PaginaLarga: React.FC<{ src: string; scroll: number; header?: number }> = ({ src, scroll, header = 155 }) => (
   <div style={{ position: "absolute", top: STATUS, left: 0, width: SW, height: PAGE_H, overflow: "hidden", background: BLANCO }}>
     <Img src={staticFile(src)} style={{ position: "absolute", left: 0, top: 0, width: SW, transform: `translateY(${-scroll * K}px)` }} />
     <div style={{ position: "absolute", left: 0, top: 0, width: SW, height: header * K, overflow: "hidden", boxShadow: scroll > 4 ? "0 2px 8px rgba(0,0,0,0.06)" : "none" }}>
@@ -220,7 +220,7 @@ const Celular: React.FC<{ t: number }> = ({ t }) => {
 };
 
 // ---------- fondo ----------
-const Destello: React.FC<{ x: number; y: number; s: number; t: number; c?: string; fase?: number }> = ({ x, y, s, t, c = BLANCO, fase = 0 }) => {
+export const Destello: React.FC<{ x: number; y: number; s: number; t: number; c?: string; fase?: number }> = ({ x, y, s, t, c = BLANCO, fase = 0 }) => {
   const k = 0.75 + 0.25 * Math.sin(t * 2.2 + fase);
   return (
     <svg style={{ position: "absolute", left: x - s / 2, top: y - s / 2, transform: `rotate(${t * 18 + fase * 30}deg) scale(${k})` }} width={s} height={s} viewBox="0 0 100 100">
@@ -254,7 +254,7 @@ const Titulo: React.FC<{ t: number; t0: number; t1: number; children: React.Reac
     </div>
   );
 };
-const Pastilla: React.FC<{ texto: React.ReactNode; bg?: string; fg?: string; size?: number; style?: React.CSSProperties }> = ({ texto, bg = BLANCO, fg = VINO, size = 40, style }) => (
+export const Pastilla: React.FC<{ texto: React.ReactNode; bg?: string; fg?: string; size?: number; style?: React.CSSProperties }> = ({ texto, bg = BLANCO, fg = VINO, size = 40, style }) => (
   <div style={{ display: "inline-flex", alignItems: "center", gap: 14, background: bg, color: fg, fontFamily: "Inter", fontWeight: 800, fontSize: size,
     padding: `${size * 0.42}px ${size * 0.8}px`, borderRadius: 999, boxShadow: "0 10px 30px rgba(122,74,94,0.22)", whiteSpace: "nowrap", ...style }}>{texto}</div>
 );
@@ -321,7 +321,7 @@ const Incluye: React.FC<{ t: number }> = ({ t }) => {
   );
 };
 
-const WhatsApp: React.FC<{ s: number }> = ({ s }) => (
+export const WhatsApp: React.FC<{ s: number }> = ({ s }) => (
   <svg width={s} height={s} viewBox="0 0 32 32"><path fill={BLANCO} d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.7a10.7 10.7 0 0 1-5.5-1.5l-.4-.2-3.9 1 1-3.8-.3-.4A10.7 10.7 0 1 1 16 26.7zm5.9-8c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a8.8 8.8 0 0 1-4.4-3.8c-.3-.6.3-.5 1-1.7.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.6 3.6 0 0 0-1.1 2.7 6.3 6.3 0 0 0 1.3 3.3 14.4 14.4 0 0 0 5.5 4.9c2 .9 2.8 1 3.8.8a3.2 3.2 0 0 0 2.1-1.5 2.6 2.6 0 0 0 .2-1.5c-.1-.1-.3-.2-.6-.3z" /></svg>
 );
 
