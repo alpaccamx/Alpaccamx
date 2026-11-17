@@ -8,6 +8,8 @@ Sin precios y solo con lo que incluye la tienda. Máximo 5 hashtags.
 >
 > Así funciona mi tienda: eligen su tono, pagan y a mí me llega el pedido. Y la tuya te la hago igualita, pero con tu marca, tus colores y tu logo ✨
 >
+> 👉 Chécala tú misma: alpacca.mx
+>
 > Tu tienda incluye:
 > 💳 Pago con tarjeta o transferencia
 > 📦 Envío calculado por código postal
@@ -28,6 +30,8 @@ Sin precios y solo con lo que incluye la tienda. Máximo 5 hashtags.
 >
 > Mis clientas compran desde el celular: eligen su tono, pagan y a mí me llega el pedido. La tuya te la hago con tu marca, tus colores y tu logo.
 >
+> 👉 Chécala tú misma: https://alpacca.mx
+>
 > ✅ Pago con tarjeta o transferencia
 > ✅ Envío calculado por código postal
 > ✅ Tonos y tallas
@@ -42,6 +46,7 @@ Sin precios y solo con lo que incluye la tienda. Máximo 5 hashtags.
 
 ## TikTok
 > ¿Tus clientas todavía te piden todo por inbox? 👀 Así se ve una tienda en línea con tu marca 💗
+> 👉 Chécala tú misma: alpacca.mx
 > Pagos, envíos, tonos y tallas, inventario y pedidos, todo en un solo lugar. Yo te la instalo y te acompaño ✨
 > 💬 Escríbeme por mensaje o WhatsApp y la hacemos juntas
 > #tiendaenlinea #emprendedorasmexicanas #negociodebelleza #emprendimiento #alpacca
