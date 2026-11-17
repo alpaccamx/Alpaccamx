@@ -420,6 +420,60 @@ exports.handler = async (event) => {
         return json(200, { apartado: rec, avisos, reembolso: reembolsoNuevo });
       }
 
+      // Al armar la caja no se encontró algo de este apartado: se quita del
+      // apartado y lo pagado de más queda como reembolso pendiente.
+      //   { id, faltantes: [{ i, qty }] }
+      case "faltantes": {
+        const falt = (Array.isArray(b.faltantes) ? b.faltantes : []).map((f) => ({ i: Math.floor(num(f.i)), qty: Math.floor(num(f.qty)) })).filter((f) => f.qty > 0);
+        if (!falt.length) return json(400, { error: "No dijiste qué falta." });
+        let error = "";
+        let monto = 0;
+        const lista = [];
+        const rec = await mutateApartado(id, (a) => {
+          monto = 0; lista.length = 0; error = "";
+          if (!["apartado", "llego", "liquidado"].includes(a.status)) { error = "Este apartado ya no se puede cambiar."; return null; }
+          const items = (a.items || []).map((it) => ({ ...it }));
+          for (const f of falt) {
+            const it = items[f.i];
+            if (!it || f.qty > it.qty) { error = "Un producto no coincide; recarga la página."; return null; }
+            it.qty -= f.qty;
+            monto = round2(monto + (Number(it.precio) || 0) * f.qty);
+            lista.push(`${f.qty} × ${[it.marca, it.nombre, it.variante].filter(Boolean).join(" ")}`);
+          }
+          const totalAntes = a.total;
+          a.items = items.filter((it) => it.qty > 0);
+          a.total = round2(a.items.reduce((t, it) => t + it.precio * it.qty, 0));
+          Object.assign(a, pesosEnvio(a.items));
+          const pagado = yaPagado(a);
+          const debido = round2(a.total + (["llego", "liquidado"].includes(a.status) ? Number(a.envio) || 0 : 0));
+          const falta = round2(debido - pagado);
+          const reembolso = falta < 0 ? round2(-falta) : 0;
+          if (a.status === "apartado") a.resto = { ...a.resto, monto: Math.max(0, round2(a.total - ((a.anticipo && a.anticipo.monto) || 0))) };
+          else if (a.status === "llego") {
+            a.resto = { ...a.resto, monto: Math.max(0, falta) };
+            if (falta <= 0) { a.resto = { ...a.resto, status: "pagado", paidAt: now(), metodo: "ya cubierto" }; a.status = "liquidado"; }
+          }
+          if (reembolso > 0) {
+            const previo = (a.reembolso && a.reembolso.status === "pendiente" && Number(a.reembolso.monto)) || 0;
+            a.reembolso = { monto: round2(previo + reembolso), status: "pendiente", at: now() };
+            a.devuelto = round2((Number(a.devuelto) || 0) + reembolso);
+          }
+          monto = reembolso;
+          hist(a, a.status, { faltantes: lista, totalAntes, total: a.total });
+          return a;
+        });
+        if (!rec || error) return json(error ? 409 : 404, { error: error || "No existe ese apartado." });
+        if (b.avisar !== false) {
+          await avisar(rec, `${rec.folio}: se agotó un producto de tu apartado`, `
+            <h2 style="margin:0 0 8px;font-size:20px;">Perdón, se agotó un producto 🙏</h2>
+            <p style="font-size:14px;">Al armar tu caja no tuvimos: <b>${esc(lista.join(", "))}</b>.</p>
+            ${listaHTML(rec)}
+            <p style="font-size:14px;">${monto > 0 ? `Te reembolsamos <b>${formatPriceMXN(monto)}</b>. Escríbenos por WhatsApp para hacerte tu reembolso.` : "Ya quedó ajustado tu apartado."}</p>`,
+          `${rec.folio}: perdón, se agotó ${lista.join(", ")}${monto > 0 ? `. Te reembolsamos ${formatPriceMXN(monto)}, escríbenos por WhatsApp para hacerte tu reembolso` : ""}`);
+        }
+        return json(200, { apartado: rec, reembolso: monto, lista });
+      }
+
       case "reembolsado": {
         const rec = await mutateApartado(id, (a) => {
           if (!a.reembolso) return null;

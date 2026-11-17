@@ -3891,7 +3891,7 @@ ${itemLines}
       <div class="pack-foot">
         ${completo
           ? `<button type="button" class="btn-primary" data-pack-close>✅ Listo, ya está todo</button>`
-          : orders.length ? `<button type="button" class="btn-secondary pack-falta" data-pack-faltan>⚠️ No encontré algo / me falta</button>` : ""}
+          : orders.length || packAps().length ? `<button type="button" class="btn-secondary pack-falta" data-pack-faltan>⚠️ No encontré algo / me falta</button>` : ""}
         <span class="meta">Se guarda solo: puedes cerrar y seguir después.</span>
       </div>
     </div>`;
@@ -3928,11 +3928,17 @@ ${itemLines}
   }
 
   function packRenderFaltan(el, orders) {
+    const aps = packAps();
+    const apPend = (a, i, it) => it.qty - Math.min(it.qty, ((pack.apProg || {})[a.id] || {})[String(i)] || 0);
     if (!pack.faltan) {
       pack.faltan = {};
       orders.forEach((o) => (o.items || []).forEach((it, i) => {
         const falta = it.qty - Math.min(it.qty, pack.prog[o.id][i] || 0);
         if (falta > 0) pack.faltan[`${o.id}:${i}`] = falta;
+      }));
+      aps.forEach((a) => (a.items || []).forEach((it, i) => {
+        const falta = apPend(a, i, it);
+        if (falta > 0) pack.faltan[`ap|${a.id}:${i}`] = falta;
       }));
     }
     const filas = [];
@@ -3946,6 +3952,23 @@ ${itemLines}
       filas.push(`<div class="pack-row falt${q ? " sel" : ""}">
         ${packImg(it)}
         <span class="pack-name"><b>${escapeHtml(itemMarca(it))}</b>${escapeHtml(it.nombre)}<em>${orders.length > 1 ? `#${orderNumber(o)} · ` : ""}${formatPrice(it.precio)} c/u</em></span>
+        <span class="pack-step">
+          <button type="button" data-falt="${key}" data-falt-d="-1" aria-label="Menos">−</button>
+          <b>${q}</b>
+          <button type="button" data-falt="${key}" data-falt-d="1" data-falt-max="${pendientes}" aria-label="Más">+</button>
+        </span>
+      </div>`);
+    }));
+    // Productos de los apartados de la preventa que van en la misma caja.
+    aps.forEach((a) => (a.items || []).forEach((it, i) => {
+      const key = `ap|${a.id}:${i}`;
+      const pendientes = apPend(a, i, it);
+      if (pendientes <= 0) return;
+      const q = pack.faltan[key] || 0;
+      totalReembolso += q * (Number(it.precio) || 0);
+      filas.push(`<div class="pack-row falt${q ? " sel" : ""}">
+        ${packImg(it)}
+        <span class="pack-name"><b>${escapeHtml(itemMarca(it))}</b>${escapeHtml(it.nombre)}${it.variante ? ` · ${escapeHtml(it.variante)}` : ""}<em>${escapeHtml(a.folio || "Preventa")} · ${formatPrice(it.precio)} c/u</em></span>
         <span class="pack-step">
           <button type="button" data-falt="${key}" data-falt-d="-1" aria-label="Menos">−</button>
           <b>${q}</b>
@@ -3987,12 +4010,18 @@ ${itemLines}
     const orders = packOrders();
     const cero = (document.getElementById("pack-cero") || {}).checked;
     const porPedido = {};
+    const porAp = {};
     Object.entries(pack.faltan || {}).forEach(([key, q]) => {
       if (!q) return;
+      if (key.startsWith("ap|")) {
+        const [id, i] = key.slice(3).split(":");
+        (porAp[id] = porAp[id] || []).push({ i: Number(i), qty: q });
+        return;
+      }
       const [id, i] = key.split(":");
       (porPedido[id] = porPedido[id] || []).push({ i: Number(i), qty: q });
     });
-    if (!Object.keys(porPedido).length) return;
+    if (!Object.keys(porPedido).length && !Object.keys(porAp).length) return;
     if (!confirm("¿Quitar esos productos del pedido y avisarle a la clienta que se le reembolsa?")) return;
     btn.disabled = true;
     btn.textContent = "Avisando…";
@@ -4010,6 +4039,34 @@ ${itemLines}
         hechos.push({ o: data.orders[0], lista: data.lista || [], monto: data.reembolso });
         pack.prog[o.id] = { ...((data.orders[0].armado && data.orders[0].armado.progreso) || {}) };
       }
+      for (const a of packAps()) {
+        if (!porAp[a.id]) continue;
+        const res = await fetch("/.netlify/functions/admin-preventa", {
+          method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ accion: "faltantes", id: a.id, faltantes: porAp[a.id] }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "No se pudo guardar.");
+        const nuevo = data.apartado;
+        [pvData && pvData.apartados, pvApartadosLigeros].forEach((lst) => { if (Array.isArray(lst)) { const k = lst.findIndex((x) => x.id === nuevo.id); if (k >= 0) lst[k] = nuevo; } });
+        // Las palomitas de ese apartado se reacomodan a los productos que quedaron.
+        const viejo = (pack.apProg || {})[a.id] || {};
+        const quita = {};
+        porAp[a.id].forEach((f) => { quita[f.i] = f.qty; });
+        const prog = {};
+        let k = 0;
+        (a.items || []).forEach((it, i) => {
+          const qty = it.qty - (quita[i] || 0);
+          if (qty <= 0) return;
+          const p = Math.min(qty, viejo[String(i)] || 0);
+          if (p) prog[String(k)] = p;
+          k++;
+        });
+        pack.apProg = pack.apProg || {};
+        pack.apProg[a.id] = prog;
+        packApSave();
+        hechos.push({ ap: nuevo, lista: data.lista || [], monto: data.reembolso || 0 });
+      }
     } catch (err) {
       alert(err.message);
       btn.disabled = false;
@@ -4020,7 +4077,16 @@ ${itemLines}
     el.innerHTML = `<div class="pack-sheet">
       <div class="pack-head"><div><b>✅ Listo, ya se le avisó</b><small>Se quitó del pedido y quedó apuntado el reembolso pendiente</small></div>
         <button type="button" class="pack-x" data-pack-close aria-label="Cerrar">✕</button></div>
-      ${hechos.map(({ o, lista, monto }) => {
+      ${hechos.map(({ o, ap, lista, monto }) => {
+        if (ap) {
+          const baseAp = waLinkFromPhone(ap.phone);
+          const txt = `Hola ${String(ap.name || "").split(" ")[0]} 💗 Perdón, al armar tu caja no tuve: ${lista.join(", ")} de tu apartado ${ap.folio}.${monto > 0 ? ` Te reembolso ${formatPrice(monto)}. ¿A qué cuenta te lo deposito?` : ""}`;
+          return `<div class="pack-done">
+          <div><b>${escapeHtml(ap.folio)}</b> · Reembolso: <b>${formatPrice(monto)}</b></div>
+          <div class="meta">${escapeHtml(lista.join(", "))}</div>
+          ${baseAp ? `<a class="btn-primary" style="text-decoration:none;display:inline-block;margin-top:8px;" target="_blank" rel="noopener" href="${escapeHtml(`${baseAp}?text=${encodeURIComponent(txt)}`)}">💬 Escribirle también por WhatsApp</a>` : ""}
+        </div>`;
+        }
         const base = waLinkFromPhone(o.customer && o.customer.phone);
         return `<div class="pack-done">
           <div><b>#${orderNumber(o)}</b> · Reembolso: <b>${formatPrice(monto)}</b></div>
