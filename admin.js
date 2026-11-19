@@ -6931,7 +6931,7 @@ ${itemLines}
       <div class="meta">${swmWho(c)} · ${swmFecha(c.createdAt)}<br>Cruce ${c.cobro === "comision" ? "15% (se cobra con la compra)" : "por peso (se cobra al enviar)"}</div>
       ${c.links ? `<div style="margin-top:8px;font-size:13px;white-space:pre-wrap;word-break:break-all;background:#faf7fb;border-radius:8px;padding:8px;">${escapeHtml(c.links)}</div>` : ""}
       ${c.origen === "whatsapp" ? `<div class="meta">💬 Por WhatsApp${c.tienda ? ` · ${escapeHtml(c.tienda)}` : ""}${(c.capturas || []).length ? ` · ${c.capturas.map((f) => `<button type="button" class="btn-secondary" data-swm-file="foto/${escapeHtml(f)}" style="padding:4px 10px;font-size:12px;">📷 Captura</button>`).join(" ")}` : ""}</div>` : ""}
-      ${q && q.items ? `<div style="margin-top:8px;font-size:13px;background:#faf7fb;border-radius:8px;padding:8px;">${q.items.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;"><span>${x.cantidad} × ${escapeHtml(x.nombre)}${x.tono ? ` · ${escapeHtml(x.tono)}` : ""}</span><span>${formatPrice(x.precio * x.cantidad)}</span></div>`).join("")}</div>` : ""}
+      ${q && q.items ? `<div style="margin-top:8px;font-size:13px;background:#faf7fb;border-radius:8px;padding:8px;">${q.items.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;"><span>${x.cantidad} × ${(c.facturaFotos || []).length && /ver tu factura/i.test(x.nombre || "") ? `<a href="#" data-swm-file="foto/${escapeHtml(c.facturaFotos[0])}" style="color:#b33660;font-weight:600;">${escapeHtml(x.nombre)}</a>` : escapeHtml(x.nombre)}${x.tono ? ` · ${escapeHtml(x.tono)}` : ""}</span><span>${formatPrice(x.precio * x.cantidad)}</span></div>`).join("")}${(c.facturaFotos || []).length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">${c.facturaFotos.map((f, i) => `<button type="button" data-swm-file="foto/${escapeHtml(f)}" style="padding:0;border:1px solid #f0d6e0;border-radius:10px;overflow:hidden;background:#fff;cursor:zoom-in;" aria-label="Ver factura ${i + 1}"><img data-swm-thumb="foto/${escapeHtml(f)}" alt="Factura ${i + 1}" style="display:block;max-height:220px;max-width:min(100%,320px);min-width:80px;min-height:60px;object-fit:contain;"></button>`).join("")}</div>` : ""}</div>` : ""}
       ${c.notas ? `<div class="meta">📝 ${escapeHtml(c.notas)}</div>` : ""}
       ${q ? `<div class="meta">Cotización: productos ${formatPrice(q.productos)}${q.cruce ? ` + cruce ${formatPrice(q.cruce)}` : ""} = <b>${formatPrice(q.total)}</b></div>` : ""}
       ${swmPagoBox("compra", c)}${action}
@@ -7480,7 +7480,7 @@ ${itemLines}
       return;
     }
     const file = t.closest("[data-swm-file]");
-    if (file) { swmOpenFile(file.dataset.swmFile); return; }
+    if (file) { e.preventDefault(); swmOpenFile(file.dataset.swmFile); return; }
     const pc = t.closest("[data-swm-pedir-correccion]");
     if (pc) {
       const motivo = prompt("¿Qué tiene que corregir? (se lo mandamos por correo)", "El valor que registraste no coincide con lo que trae el paquete.");
