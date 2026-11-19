@@ -6469,6 +6469,7 @@ ${itemLines}
   .acc{max-width:720px;margin:14px auto 0;display:flex;gap:8px;justify-content:center} .acc button{border:1.5px solid #f4b8cc;background:#fde8f0;color:#b33660;border-radius:999px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer}
   @media print{body{background:#fff;padding:0}.hoja{box-shadow:none}.acc{display:none}}
 </style></head><body>
+<div class="acc" style="margin:0 auto 12px;justify-content:flex-start;"><button onclick="salir()">← Regresar al admin</button></div>
 <div class="hoja">
   <div class="top">
     <div><img src="${location.origin}/assets/logo-wordmark.png" alt="Alpacca"><div class="muted">Personal shopper · alpacca.mx</div></div>
@@ -6489,7 +6490,8 @@ ${itemLines}
   ${pagada ? "" : `<div class="pagar">💳 Págala con tarjeta o transferencia aquí: <b>${escapeHtml(swmCompraLink(c))}</b></div>`}
   <p class="muted" style="margin-top:14px;">${c.cobro === "comision" ? "El cruce a México ya va incluido. " : "El cruce a México se cobra por peso cuando se envíe. "}El envío dentro de México se cobra aparte cuando tu compra cruce, según tu dirección.</p>
 </div>
-<div class="acc"><button onclick="window.print()">🖨️ Imprimir o guardar PDF</button></div>
+<div class="acc"><button onclick="window.print()">🖨️ Imprimir o guardar PDF</button><button onclick="salir()">✕ Cerrar y regresar al admin</button></div>
+<script>function salir(){try{window.close()}catch(e){}setTimeout(function(){location.href=${JSON.stringify(`${location.origin}/admin.html`)}},300)}</script>
 </body></html>`;
   }
 
