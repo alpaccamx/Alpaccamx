@@ -6351,6 +6351,13 @@ ${itemLines}
     const ps = psPaquetes(c).filter((p) => p.status !== "cancelado");
     return ps.length && ps.every((p) => ["enviado", "entregado"].includes(p.status)) ? "terminadas" : "envio";
   }
+  // Dentro de "Por mandar": lo que sigue en EE.UU. y lo que ya está en México.
+  let psDonde = "usa";
+  const psPaqEnMexico = (p) => !!p.enMexicoAt || ["en_mexico", "en_envio", "enviado", "entregado"].includes(p.status);
+  function psDondeDe(c) {
+    const ps = psPaquetes(c).filter((p) => p.status !== "cancelado");
+    return ps.length && ps.every(psPaqEnMexico) ? "mx" : "usa";
+  }
   const PS_TABS = [
     ["cobrar", "💳 Por cobrar"],
     ["pagadas", "✅ Pagadas"],
@@ -6422,10 +6429,14 @@ ${itemLines}
     const q = swmSearch.trim();
     const match = (c) => !q || swmMatches(c, q) || buscaEnTodo((c.cotizacion && c.cotizacion.items || []).map((x) => x.nombre), q)
       || psPaquetes(c).some((p) => swmMatches(p, q)) || psEnvios(c).some((e) => swmMatches(e, q));
-    const lista = ordenarCon("ps", q ? compras.filter(match) : compras.filter((c) => psEtapa(c) === psTab), SWM_ORDEN, "reciente");
-    const vacio = { cobrar: "No hay facturas por cobrar. Toca “🧾 Nueva factura” para hacer una.", pagadas: "No hay compras pagadas pendientes de comprar.", envio: "No hay compras por mandar.", terminadas: "Todavía no hay compras terminadas." }[psTab];
+    const porDonde = psTab === "envio" && !q;
+    const enEtapa = compras.filter((c) => psEtapa(c) === psTab);
+    const nDonde = (k) => enEtapa.filter((c) => psDondeDe(c) === k).length;
+    const lista = ordenarCon("ps", q ? compras.filter(match) : porDonde ? enEtapa.filter((c) => psDondeDe(c) === psDonde) : enEtapa, SWM_ORDEN, "reciente");
+    const donde = porDonde ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px;">${[["usa", "🇺🇸 En USA"], ["mx", "🇲🇽 En México"]].map(([k, l]) => `<button type="button" class="btn-secondary ${psDonde === k ? "on" : ""}" data-ps-donde="${k}">${l} (${nDonde(k)})</button>`).join("")}</div>` : "";
+    const vacio = { cobrar: "No hay facturas por cobrar. Toca “🧾 Nueva factura” para hacer una.", pagadas: "No hay compras pagadas pendientes de comprar.", envio: psDonde === "mx" ? "No hay compras en México por mandar." : "No hay compras esperando en EE.UU.", terminadas: "Todavía no hay compras terminadas." }[psTab];
     document.getElementById("swm-empty").style.display = "none";
-    document.getElementById("swm-list").innerHTML = (q ? globalHitsHTML(q, "ps") : "")
+    document.getElementById("swm-list").innerHTML = (q ? globalHitsHTML(q, "ps") : "") + donde
       + (lista.map(psCard).join("") || `<p style="color:#5f5866;font-size:14px;">${q ? `No encontré nada con "${escapeHtml(q)}".` : vacio}</p>`);
   }
 
@@ -7273,6 +7284,8 @@ ${itemLines}
     if (tab) { swmTab = tab.dataset.swmTab; renderSwmAdmin(); return; }
     const psT = t.closest("[data-ps-tab]");
     if (psT) { psTab = psT.dataset.psTab; swmSearch = ""; renderSwmAdmin(); return; }
+    const psD = t.closest("[data-ps-donde]");
+    if (psD) { psDonde = psD.dataset.psDonde; renderSwmAdmin(); return; }
     const psF = t.closest("[data-ps-factura]");
     if (psF) {
       const c = swmData.compras.find((x) => x.id === psF.dataset.psFactura);
