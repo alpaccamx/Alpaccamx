@@ -6490,8 +6490,28 @@ ${itemLines}
   ${pagada ? "" : `<div class="pagar">💳 Págala con tarjeta o transferencia aquí: <b>${escapeHtml(swmCompraLink(c))}</b></div>`}
   <p class="muted" style="margin-top:14px;">${c.cobro === "comision" ? "El cruce a México ya va incluido. " : "El cruce a México se cobra por peso cuando se envíe. "}El envío dentro de México se cobra aparte cuando tu compra cruce, según tu dirección.</p>
 </div>
-<div class="acc"><button onclick="window.print()">🖨️ Imprimir o guardar PDF</button><button onclick="salir()">✕ Cerrar y regresar al admin</button></div>
-<script>function salir(){try{window.close()}catch(e){}setTimeout(function(){location.href=${JSON.stringify(`${location.origin}/admin.html`)}},300)}</script>
+<div class="acc" style="flex-wrap:wrap;"><button id="btn-pdf" onclick="guardarPdf()" disabled>⏳ Preparando PDF…</button><button onclick="window.print()">🖨️ Imprimir</button><button onclick="salir()">✕ Cerrar y regresar al admin</button></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+function salir(){try{window.close()}catch(e){}setTimeout(function(){location.href=${JSON.stringify(`${location.origin}/admin.html`)}},300)}
+var NOMBRE=${JSON.stringify(`Factura-${c.folio}.pdf`)}, archivo=null;
+function prepararPdf(){
+  var el=document.querySelector(".hoja"), b=document.getElementById("btn-pdf");
+  html2canvas(el,{scale:2,useCORS:true,backgroundColor:"#ffffff"}).then(function(cv){
+    var w=210, h=cv.height*w/cv.width, doc=new window.jspdf.jsPDF({unit:"mm",format:[w,Math.max(h,60)]});
+    doc.addImage(cv.toDataURL("image/jpeg",0.92),"JPEG",0,0,w,h);
+    archivo=new File([doc.output("blob")],NOMBRE,{type:"application/pdf"});
+    b.disabled=false; b.textContent="📄 Guardar PDF o compartir";
+  }).catch(function(){ b.disabled=false; b.textContent="📄 Guardar PDF o compartir"; });
+}
+function guardarPdf(){
+  if(!archivo){ window.print(); return; }
+  if(navigator.canShare&&navigator.canShare({files:[archivo]})){ navigator.share({files:[archivo],title:NOMBRE}).catch(function(){}); return; }
+  var a=document.createElement("a"); a.href=URL.createObjectURL(archivo); a.download=NOMBRE; document.body.appendChild(a); a.click(); a.remove();
+}
+(function esperar(n){ if(window.html2canvas&&window.jspdf){ var imgs=[].slice.call(document.images); Promise.all(imgs.map(function(i){return i.complete?0:new Promise(function(r){i.onload=i.onerror=r;});})).then(prepararPdf); } else if(n<100){ setTimeout(function(){esperar(n+1);},100); } else { var b=document.getElementById("btn-pdf"); b.disabled=false; b.textContent="📄 Guardar PDF o compartir"; } })(0);
+</script>
 </body></html>`;
   }
 
