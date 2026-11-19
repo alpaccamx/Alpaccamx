@@ -6613,6 +6613,44 @@ ${itemLines}
     return `Se cobran ${kg} kg → cruce ${formatPrice(swmCrucePeso(kg))}`;
   }
 
+  // Contenido de la caja en la tarjeta del paquete: la lista de artículos que
+  // registró la clienta y, si subió capturas, las capturas en miniatura.
+  function swmContenidoHTML(p) {
+    const arts = (p.articulos || []).filter((a) => a && (a.desc || a.nombre));
+    const lista = arts.length
+      ? `<div style="margin-top:6px;"><b>📦 Contenido:</b><ul style="margin:2px 0 0 18px;padding:0;">${arts.map((a) => `<li>${Number(a.cant) > 1 ? `${Number(a.cant)} × ` : ""}${escapeHtml(a.desc || a.nombre)}${Number(a.costo) > 0 ? ` · ${escapeHtml(Number(a.costo).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}` : ""}</li>`).join("")}</ul></div>`
+      : p.contenido && !/^ver captura$/i.test(String(p.contenido).trim()) ? `<div style="margin-top:6px;"><b>📦 Contenido:</b> ${escapeHtml(p.contenido)}</div>` : "";
+    const imgs = (p.facturas || []).map((f, i) => ({ f, i })).filter(({ f }) => f.tipo !== "application/pdf");
+    const thumbs = imgs.length
+      ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">${imgs.map(({ f, i }) => { const key = `factura/paquete/${p.id}/${Number(f.n ?? i)}`; return `<button type="button" data-swm-file="${escapeHtml(key)}" style="padding:0;border:1px solid #f0d6e0;border-radius:10px;overflow:hidden;background:#fff;cursor:zoom-in;" aria-label="Ver captura ${i + 1}"><img data-swm-thumb="${escapeHtml(key)}" alt="Captura ${i + 1}" style="display:block;max-height:220px;max-width:min(100%,320px);min-width:80px;min-height:60px;object-fit:contain;"></button>`; }).join("")}</div>`
+      : "";
+    return lista + thumbs;
+  }
+
+  const swmThumbCache = new Map();
+  async function swmLoadThumbs(root) {
+    const imgs = [...(root || document).querySelectorAll("img[data-swm-thumb]:not([src])")];
+    for (const img of imgs) {
+      const key = img.dataset.swmThumb;
+      try {
+        if (!swmThumbCache.has(key)) {
+          swmThumbCache.set(key, fetch(`/.netlify/functions/admin-swm?archivo=${encodeURIComponent(key)}`, { headers: { "x-admin-key": adminKey } })
+            .then((r) => (r.ok ? r.blob() : Promise.reject(new Error("HTTP " + r.status))))
+            .then((b) => URL.createObjectURL(b)));
+        }
+        img.src = await swmThumbCache.get(key);
+      } catch (err) {
+        swmThumbCache.delete(key);
+        img.replaceWith(Object.assign(document.createElement("span"), { textContent: "📄 Ver captura", style: "display:inline-block;padding:6px 10px;font-size:12px;" }));
+      }
+    }
+  }
+  {
+    const panel = document.getElementById("swm-panel");
+    let t = 0;
+    if (panel) new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => swmLoadThumbs(panel), 60); }).observe(panel, { childList: true, subtree: true });
+  }
+
   function swmPaqueteCard(p) {
     const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : p.enMexicoAt ? "🇲🇽 En México" : "🇺🇸 En dirección americana", en_envio: "📦 En un envío", en_mexico: "🇲🇽 En México", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
     // El almacenaje gratis corre desde que el paquete llega a México.
@@ -6639,6 +6677,7 @@ ${itemLines}
       <div class="meta">${swmWho(p)}${swmCompacto ? "" : "<br>"}${p.origen === "sin_registro" ? `⚠️ Llegó sin registrar (cargo ${formatPrice(p.cargoSinRegistro || 0)})${p.datosPendientes ? " · <b>ella todavía no dice qué trae</b>" : ""} · ` : ""}${p.origen === "compra" && !swmCompacto ? "🛍️ De una compra de Mae · " : ""}Cruce ${p.crucePagado ? "ya pagado (15%)" : p.cobro === "auto" ? "lo más barato (peso o 15%)" : p.cobro === "comision" ? (p.valorTotal && p.moneda ? `15% de ${Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${escapeHtml(p.moneda)}` : `15% de US$${Number(p.valorUSD || 0).toFixed(2)}`) : "por peso"}${p.contenido && !swmCompacto ? ` · ${escapeHtml(p.contenido)}` : ""}
         ${p.valorTotal ? `<br>Valor declarado (con tax, sin envío): <b>${escapeHtml(Number(p.valorTotal).toLocaleString("es-MX", { maximumFractionDigits: 2 }))} ${escapeHtml(p.moneda || "")}</b>` : ""}${swmValorPesosHTML(p)}
         ${p.factura ? ` <button type="button" class="btn-secondary" data-swm-file="factura/paquete/${escapeHtml(p.id)}" style="padding:4px 10px;font-size:12px;">📄 Ver factura</button>` : ""}
+        ${swmContenidoHTML(p)}
         ${(p.facturas || []).length ? `<br>${p.facturas.map((f, i) => `<button type="button" class="btn-secondary" data-swm-file="factura/paquete/${escapeHtml(p.id)}/${Number(f.n ?? i)}" style="padding:4px 10px;font-size:12px;margin:2px 4px 2px 0;">📄 ${f.tipo === "application/pdf" ? "PDF" : "Captura"} ${i + 1}</button>`).join("")}` : ""}
         ${p.receivedAt ? `<br>Llegó ${swmFecha(p.receivedAt)}${p.enMexicoAt ? ` · en México desde ${swmFecha(p.enMexicoAt)} · almacenaje gratis ${vence > 0 ? `${vence} días más` : "<b style='color:#b33660'>vencido</b>"}` : ""}` : ""}</div>
       ${fotos ? `<div style="margin-top:6px;">${fotos}</div>` : ""}
