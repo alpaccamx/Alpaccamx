@@ -162,3 +162,12 @@
   from = "/stock.csv"
   to = "/.netlify/functions/stock-csv"
   status = 200
+
+# Velocidad: las imágenes no cambian casi nunca (cuando se cambia una foto
+# se sube con otro nombre, ej. -v2), así que el celular de la clienta las
+# guarda 1 día y, mientras revisa si hay versión nueva, enseña la que ya
+# tiene (stale-while-revalidate). Así la tienda abre más rápido la 2a vez.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
