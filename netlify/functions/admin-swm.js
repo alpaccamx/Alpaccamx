@@ -33,6 +33,9 @@
 //                      y el total a cobrar en pesos, que ya trae su comisión y el cruce)
 //   cotizar_envio     { id, envio, cruce?, consolidacion?, sinRegistro?, extras?, notaClienta? }
 //   revision_hecha    { id, fotos: [{ dataBase64, contentType }], nota? }  (fotos del contenido)
+//   llego_una_parte   { id, items?: [{ i, cantidad }], contenido?, rastreo? }  (paquete de una compra de Mae:
+//                     la tienda lo mandó en varias cajas y solo llegó una parte; lo que llegó pasa a un
+//                     paquete nuevo de la misma compra para mandarlo ya, y el resto se queda "por llegar")
 //   separar_paquete   { id, nuevo: { contenido, valorUSD?, kg, alto, ancho, largo }, resto: { contenido?, valorUSD?, kg, alto, ancho, largo }, fotos? }
 //   aprobar_pago      { kind, id }
 //   rechazar_pago     { kind, id, motivo }
@@ -450,6 +453,45 @@ exports.handler = async (event) => {
         return json(200, { paquete: rec });
       }
 
+      case "llego_una_parte": {
+        const orig = await getRecord("paquete", id);
+        if (!orig || orig.origen !== "compra") return json(404, { error: "Ese paquete no es de una compra." });
+        if (!["registrado", "recibido"].includes(orig.status) || orig.enMexicoAt) return json(409, { error: "Ese paquete ya cruzó o ya salió; ya no se puede dividir." });
+        const compra = orig.compraId ? await getRecord("compra", orig.compraId) : null;
+        const actuales = itemsDePaqueteCompra(orig, compra);
+        const texto = (lst) => clip(lst.map((x) => `${x.cantidad > 1 ? `${x.cantidad}× ` : ""}${x.nombre}${x.tono ? ` · ${x.tono}` : ""}`).join(", "), 600);
+        let llegaron = [], quedan = actuales;
+        if (actuales.length && Array.isArray(b.items)) {
+          const pide = new Map();
+          b.items.forEach((x) => { const i = Math.floor(num(x.i)), q = Math.floor(num(x.cantidad)); if (i >= 0 && i < actuales.length && q > 0) pide.set(i, Math.min(q, actuales[i].cantidad)); });
+          llegaron = actuales.map((x, i) => (pide.has(i) ? { ...x, cantidad: pide.get(i) } : null)).filter(Boolean);
+          quedan = actuales.map((x, i) => ({ ...x, cantidad: x.cantidad - (pide.get(i) || 0) })).filter((x) => x.cantidad > 0);
+          if (!llegaron.length) return json(400, { error: "Palomea lo que ya llegó." });
+          if (!quedan.length) return json(400, { error: "Palomeaste todo: si ya llegó todo, usa \"Ya llegó a la dirección americana\"." });
+        } else if (!clip(b.contenido, 600)) {
+          return json(400, { error: "Escribe qué fue lo que ya llegó." });
+        }
+        const rastreo = clip(b.rastreo, 80);
+        const nuevo = {
+          id: randomUUID(), folio: await nextFolio("paquete"), email: orig.email, name: orig.name, phone: orig.phone,
+          origen: "compra", compraId: orig.compraId, tienda: orig.tienda, rastreo, ordenTienda: orig.ordenTienda || "",
+          ...(llegaron.length ? { items: llegaron } : {}), contenido: llegaron.length ? texto(llegaron) : clip(b.contenido, 600),
+          valorUSD: 0, cobro: orig.cobro, crucePagado: orig.crucePagado, status: "registrado", divididoDe: orig.folio,
+          kg: 0, alto: 0, ancho: 0, largo: 0, cobrable: 0, fotos: [], notaClienta: "", notaPrivada: "",
+          history: [{ at: now(), status: "registrado", divididoDe: orig.folio }], createdAt: now(), updatedAt: now(),
+        };
+        await saveRecord("paquete", nuevo);
+        const rec = await mutateRecord("paquete", id, (p) => {
+          if (llegaron.length) { p.items = quedan; p.contenido = texto(quedan); }
+          if (rastreo && p.rastreo === rastreo) p.rastreo = "";
+          p.partes = [...(p.partes || []), nuevo.folio];
+          push(p, "parte_separada", { nuevo: nuevo.folio });
+          return p;
+        });
+        if (compra) await mutateRecord("compra", compra.id, (c) => { c.paqueteIds = [...new Set([...(c.paqueteIds || []), nuevo.id])]; return c; });
+        return json(200, { paquete: rec, nuevo });
+      }
+
       case "separar_paquete": {
         const orig = await getRecord("paquete", id);
         if (!orig || orig.status !== "recibido") return json(409, { error: "Solo se separan paquetes que están en el almacén." });
@@ -802,6 +844,16 @@ function fotosAdjuntas(lista, prefijo) {
     out.push({ filename: `${prefijo}-${out.length + 1}.${ext}`, content: buf.toString("base64") });
   }
   return out;
+}
+
+/* Lo que trae un paquete de una compra de Mae: su propia lista (si ya se
+   dividió) o, si es el único paquete de la compra, lo que se compró. */
+function itemsDePaqueteCompra(p, compra) {
+  if (Array.isArray(p.items)) return p.items.map((x) => ({ nombre: String(x.nombre || ""), tono: String(x.tono || ""), cantidad: Math.max(1, Math.floor(Number(x.cantidad) || 1)) }));
+  const activos = ((compra && compra.paqueteIds) || []).length;
+  if (!compra || activos > 1) return [];
+  return ((compra.cotizacion && compra.cotizacion.items) || []).filter((x) => !x.envio)
+    .map((x) => ({ nombre: String(x.nombre || ""), tono: String(x.tono || ""), cantidad: Math.max(1, Math.floor(Number(x.cantidad) || 1)) }));
 }
 
 async function guardarFotos(lista) {
