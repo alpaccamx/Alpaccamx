@@ -5834,23 +5834,39 @@ ${itemLines}
       const partes = r.partes || [r];
       const aMano = g("cobrar");
       const cobroTotal = aMano !== "" ? Number(aMano) : st.tabla != null ? st.tabla : Math.ceil(r.total) + 100;
+      // Guías que ese envío ya tiene (la 1a + las de otras cajas). Si una guía
+      // tarda más de 30 s el navegador ve un error aunque sí se hizo: antes de
+      // darla por fallida se revisa el envío, y al volver a tocar el botón se
+      // sigue con las cajas que faltan (no se repite ninguna).
+      const guiasDelEnvio = () => { const e = swmData.envios.find((x) => x.id === id); return e && e.guia ? [e.guia, ...(e.guiasExtra || []).map((x) => x.guia)] : []; };
       const llamar = async (k, extra) => {
-        const p = partes[k];
-        const res = await fetch("/.netlify/functions/admin-generate-guide", {
-          method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-          body: JSON.stringify({ envioId: id, cajaExtra: extra, weight: pesosCajas[k], total: p.total, cobrarEnvio: extra ? 0 : cobroTotal, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: p.provider, courier: p.carrier, service: p.service, quotationId: p.quotationId, rateId: p.rateId, carrierSlug: p.carrierSlug, serviceCode: p.serviceCode, destination }),
-        });
-        const d = await res.json();
-        if (!res.ok || d.error) throw new Error(`${k ? `La caja ${k + 1}` : "La caja 1"}: ${d.error || "no se pudo generar la guía."}`);
-        return d;
+        const p = partes[k] || partes[partes.length - 1];
+        let res = null, d = {};
+        try {
+          res = await fetch("/.netlify/functions/admin-generate-guide", {
+            method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+            body: JSON.stringify({ envioId: id, cajaExtra: extra, weight: pesosCajas[k], total: p.total, cobrarEnvio: extra ? 0 : cobroTotal, premioLealtad: !!(card.querySelector("[data-g-lealtad]") || {}).checked, provider: p.provider, courier: p.carrier, service: p.service, quotationId: p.quotationId, rateId: p.rateId, carrierSlug: p.carrierSlug, serviceCode: p.serviceCode, destination }),
+          });
+          d = await res.json().catch(() => ({}));
+        } catch (err) { res = null; }
+        if (res && res.ok && !d.error) return d;
+        if (!res || res.status >= 500) {
+          // Se tardó: puede que sí se haya hecho. Se revisa el envío.
+          await loadSwm({ quiet: true });
+          const ya = guiasDelEnvio();
+          if (ya.length > k) return { guia: ya[k], envio: swmData.envios.find((x) => x.id === id) };
+        }
+        throw new Error(`La caja ${k + 1}: ${d.error || "no se pudo generar la guía (la paquetería tardó demasiado). Vuelve a tocar el botón para seguir con las que faltan."}`);
       };
-      const hechas = []; let primera = null;
+      const previas = guiasDelEnvio();
+      const hechas = [...previas]; let primera = previas.length ? { envio: swmData.envios.find((x) => x.id === id) } : null;
+      if (previas.length >= pesosCajas.length) { errEl.textContent = `Este envío ya tiene ${previas.length} guía(s): ${previas.join(", ")}.`; genBtn.disabled = false; genBtn.textContent = label; return; }
       try {
-        for (let k = 0; k < pesosCajas.length; k++) {
+        for (let k = previas.length; k < pesosCajas.length; k++) {
           genBtn.textContent = `Generando guía de la caja ${k + 1} de ${pesosCajas.length}...`;
           const d = await llamar(k, k > 0);
           if (!k) primera = d;
-          hechas.push(k ? d.guia : d.envio.guia);
+          hechas.push(k ? d.guia : (d.envio && d.envio.guia) || d.guia);
         }
         showToast(`✅ ${hechas.length} guías listas (${hechas.join(", ")}) y cobro enviado (${formatPrice(cobroTotal + (Number((card.querySelector("[data-cobro-base]") || {}).dataset?.cobroBase) || 0))}). Cuando pague, le llegan sus guías.`);
         if (card.dataset.pmKey) pmTerminar(card, primera);
