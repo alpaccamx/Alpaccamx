@@ -3758,6 +3758,10 @@ ${itemLines}
       const p = swmData.paquetes.find((x) => x.id === pid);
       if (!p) return;
       const c = swmData.compras.find((x) => x.id === p.compraId || (x.paqueteIds || []).includes(pid));
+      if (Array.isArray(p.items) && p.items.length) {
+        out.set(`p:${p.id}`, { id: `p:${p.id}`, folio: p.folio, items: p.items.map((x) => ({ nombre: x.nombre || "", variante: x.tono || "", qty: Number(x.cantidad) || 1, marca: (c && c.tienda) || p.tienda || "" })) });
+        return;
+      }
       const its = c && c.cotizacion && (c.cotizacion.items || []).filter((x) => !x.envio);
       if (c && its && its.length) {
         if (!out.has(`c:${c.id}`)) out.set(`c:${c.id}`, { id: `c:${c.id}`, folio: c.folio, items: its.map((x) => ({ nombre: x.nombre || "", variante: x.tono || "", qty: Number(x.cantidad) || 1, marca: c.tienda || "", imagen: x.imagen || "" })) });
@@ -6354,9 +6358,14 @@ ${itemLines}
   // Dentro de "Por mandar": lo que sigue en EE.UU. y lo que ya está en México.
   let psDonde = "usa";
   const psPaqEnMexico = (p) => !!p.enMexicoAt || ["en_mexico", "en_envio", "enviado", "entregado"].includes(p.status);
+  // Una compra que llegó por partes sale en las dos pestañas.
   function psDondeDe(c) {
-    const ps = psPaquetes(c).filter((p) => p.status !== "cancelado");
-    return ps.length && ps.every(psPaqEnMexico) ? "mx" : "usa";
+    const ps = psPaquetes(c).filter((p) => !["cancelado", "enviado", "entregado"].includes(p.status));
+    if (!ps.length) return ["usa"];
+    const out = [];
+    if (ps.some((p) => !psPaqEnMexico(p))) out.push("usa");
+    if (ps.some(psPaqEnMexico)) out.push("mx");
+    return out;
   }
   const PS_TABS = [
     ["cobrar", "💳 Por cobrar"],
@@ -6431,8 +6440,8 @@ ${itemLines}
       || psPaquetes(c).some((p) => swmMatches(p, q)) || psEnvios(c).some((e) => swmMatches(e, q));
     const porDonde = psTab === "envio" && !q;
     const enEtapa = compras.filter((c) => psEtapa(c) === psTab);
-    const nDonde = (k) => enEtapa.filter((c) => psDondeDe(c) === k).length;
-    const lista = ordenarCon("ps", q ? compras.filter(match) : porDonde ? enEtapa.filter((c) => psDondeDe(c) === psDonde) : enEtapa, SWM_ORDEN, "reciente");
+    const nDonde = (k) => enEtapa.filter((c) => psDondeDe(c).includes(k)).length;
+    const lista = ordenarCon("ps", q ? compras.filter(match) : porDonde ? enEtapa.filter((c) => psDondeDe(c).includes(psDonde)) : enEtapa, SWM_ORDEN, "reciente");
     const donde = porDonde ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px;">${[["usa", "🇺🇸 En USA"], ["mx", "🇲🇽 En México"]].map(([k, l]) => `<button type="button" class="btn-secondary ${psDonde === k ? "on" : ""}" data-ps-donde="${k}">${l} (${nDonde(k)})</button>`).join("")}</div>` : "";
     const vacio = { cobrar: "No hay facturas por cobrar. Toca “🧾 Nueva factura” para hacer una.", pagadas: "No hay compras pagadas pendientes de comprar.", envio: psDonde === "mx" ? "No hay compras en México por mandar." : "No hay compras esperando en EE.UU.", terminadas: "Todavía no hay compras terminadas." }[psTab];
     document.getElementById("swm-empty").style.display = "none";
@@ -6684,6 +6693,39 @@ function guardarPdf(){
     if (panel) new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => swmLoadThumbs(panel), 60); }).observe(panel, { childList: true, subtree: true });
   }
 
+  // Lo que trae un paquete de una compra de Mae (igual que en el servidor).
+  function swmItemsPaqCompra(p) {
+    if (Array.isArray(p.items)) return p.items;
+    const c = swmData.compras.find((x) => x.id === p.compraId);
+    if (!c || (c.paqueteIds || []).length > 1) return [];
+    return ((c.cotizacion && c.cotizacion.items) || []).filter((x) => !x.envio).map((x) => ({ nombre: x.nombre || "", tono: x.tono || "", cantidad: Number(x.cantidad) || 1 }));
+  }
+  // "Llegó solo una parte": la tienda mandó la compra en varias cajas. Lo que
+  // llegó pasa a un paquete nuevo (se cruza y se manda ya, o se junta con
+  // otros pedidos de ella) y lo demás se queda esperando.
+  function swmParteHTML(p) {
+    if (p.origen !== "compra" || !["registrado", "recibido"].includes(p.status) || p.enMexicoAt) return "";
+    const its = swmItemsPaqCompra(p);
+    const total = its.reduce((t, x) => t + (Number(x.cantidad) || 1), 0);
+    if (its.length && total < 2) return "";
+    return `<details class="swm-peso" style="margin-top:8px;">
+      <summary>✂️ Llegó solo una parte (la tienda lo mandó en varias cajas)</summary>
+      <div data-parte style="margin-top:8px;">
+        <div class="meta" style="margin-bottom:6px;">Palomea lo que <b>ya llegó</b>. Eso se pasa a un paquete nuevo para que lo cruces y se lo mandes ya (o lo juntes con otro pedido de ella); lo demás se queda aquí como "Por llegar".</div>
+        ${its.length ? `<div style="display:flex;flex-direction:column;gap:4px;max-height:320px;overflow:auto;background:#faf7fb;border-radius:10px;padding:8px;">${its.map((x, i) => `<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;">
+            <input type="checkbox" data-parte-i="${i}" style="width:auto;">
+            <span style="flex:1;">${escapeHtml(x.nombre)}${x.tono ? ` · ${escapeHtml(x.tono)}` : ""}</span>
+            ${Number(x.cantidad) > 1 ? `<input type="number" data-parte-q="${i}" min="1" max="${Number(x.cantidad)}" value="${Number(x.cantidad)}" style="width:64px;padding:4px 6px;"> <span class="meta">de ${Number(x.cantidad)}</span>` : ""}
+          </label>`).join("")}</div>`
+        : `<label>¿Qué llegó?<textarea data-parte-texto rows="2" placeholder="Ej. 6 cremas Ultimate Hydration y 3 mists"></textarea></label>`}
+        <div class="grid" style="grid-template-columns:1fr auto;align-items:end;margin-top:8px;">
+          <label>Guía de USA de esa caja (opcional)<input data-parte-guia type="text" placeholder="Ej. 1Z999AA10123456784"></label>
+          <button type="button" class="btn-primary" data-swm-parte style="padding:8px 14px;font-size:13px;">✂️ Separar lo que llegó</button>
+        </div>
+      </div>
+    </details>`;
+  }
+
   function swmPaqueteCard(p) {
     const st = { sin_dueña: "❓ Sin dueña", registrado: "⏳ Por llegar", recibido: p.datosPendientes ? "⚠️ Sin registrar · faltan datos" : p.enMexicoAt ? "🇲🇽 En México" : "🇺🇸 En dirección americana", en_envio: "📦 En un envío", en_mexico: "🇲🇽 En México", enviado: "🚚 Enviado", entregado: "🎁 Entregado", cancelado: "❌ Cancelado" }[p.status] || p.status;
     // El almacenaje gratis corre desde que el paquete llega a México.
@@ -6704,6 +6746,8 @@ function guardarPdf(){
       <div data-swm-resultados style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">${fotosHtml(p)}<button type="button" class="btn-secondary" data-swm-cancel="paquete:${escapeHtml(p.id)}" style="padding:6px 12px;font-size:13px;">Ya dispuse de él</button></div>
     </div>` : ""}${sinDuena ? "" : `
+      ${p.divididoDe ? `<div class="meta" style="color:#6a45b8;">🧩 Parte que ya llegó de <b>${escapeHtml(p.divididoDe)}</b> (lo demás sigue en camino)</div>` : ""}
+      ${(p.partes || []).length && !["enviado", "entregado", "cancelado"].includes(p.status) ? `<div class="meta" style="color:#6a45b8;">🧩 Ya llegó una parte: ${p.partes.map(escapeHtml).join(", ")}. Aquí queda lo que falta.</div>` : ""}
       ${p.parteDe ? `<div class="meta" style="color:#6a45b8;">🧩 Otra caja de la orden <b>${escapeHtml(p.parteDeFolio || "")}</b> (la tienda la dividió). El valor declarado va en ${escapeHtml(p.parteDeFolio || "esa")}.</div>` : ""}
       ${p.ordenDividida && !p.parteDe ? `<div class="meta" style="color:#6a45b8;">🧩 Orden dividida en varias cajas${(() => { const otras = (swmData.paquetes || []).filter((x) => x.parteDe === p.id && x.status !== "cancelado").map((x) => x.folio); return otras.length ? `: también ${otras.map(escapeHtml).join(", ")}` : ""; })()}${p.contenidoCaja ? ` · esta caja trae: ${escapeHtml(p.contenidoCaja)}` : ""}</div>` : ""}
       ${(() => { const c = (p.history || []).filter((h) => h.status === "rastreo_cambiado").pop(); return c ? `<div class="meta" style="color:#8a5a00;">🔁 La clienta cambió el rastreo el ${swmFecha(c.at)} (antes: ${escapeHtml(c.antes || "—")})</div>` : ""; })()}
@@ -6723,7 +6767,8 @@ function guardarPdf(){
           <label>Número de pedido (tienda)<input data-nota-orden type="text" value="${escapeHtml(p.ordenTienda || "")}" placeholder="Ej. W174130258"></label>
           <label>Guía de USA (con la que te llega)<span data-guias style="display:flex;flex-direction:column;gap:4px;">${(p.guiasUSA && p.guiasUSA.length ? p.guiasUSA : [p.rastreo || ""]).map((g) => `<input data-nota-guia type="text" value="${escapeHtml(g)}" placeholder="Ej. 1Z999AA10123456784">`).join("")}</span><button type="button" class="btn-ghost" data-swm-mas-guia style="margin:4px 0 0;padding:2px 6px;font-size:12px;text-align:left;">+ otra guía (la tienda dividió el pedido)</button></label>
           <button type="button" class="btn-secondary" data-swm-nota-priv style="padding:8px 12px;font-size:13px;">💾 Guardar</button>
-        </div></div>` : ""}`}
+        </div></div>` : ""}
+      ${swmParteHTML(p)}`}
       ${editable ? `<details class="swm-peso"${(p.status === "recibido" && !p.cobrable) || enUSA ? " open" : ""}>
         <summary>${p.status === "registrado" ? "🇺🇸 Ya llegó a la dirección americana: avisarle" : enUSA ? "🇲🇽 Siguiente paso: cruzarlo a México" : `⚖️ Peso, medidas y fotos${p.cobrable ? ` · ${p.cobrable} kg` : ""}`}</summary>
       <div class="grid">
@@ -7542,6 +7587,23 @@ function guardarPdf(){
       nuevo.value = "";
       caja.appendChild(nuevo);
       nuevo.focus();
+      return;
+    }
+    const parteBtn = t.closest("[data-swm-parte]");
+    if (parteBtn) {
+      const c = parteBtn.closest("[data-swm-id]");
+      const box = parteBtn.closest("[data-parte]");
+      const items = [...box.querySelectorAll("[data-parte-i]")].filter((x) => x.checked).map((x) => {
+        const i = Number(x.dataset.parteI);
+        const q = box.querySelector(`[data-parte-q="${i}"]`);
+        return { i, cantidad: q ? Number(q.value) || 1 : 1 };
+      });
+      const texto = box.querySelector("[data-parte-texto]");
+      if (!texto && !items.length) { alert("Palomea lo que ya llegó."); return; }
+      if (texto && !texto.value.trim()) { alert("Escribe qué fue lo que ya llegó."); return; }
+      if (!confirm("¿Separar lo que ya llegó en un paquete nuevo? Lo demás se queda como \"Por llegar\".")) return;
+      const data = await swmAct({ accion: "llego_una_parte", id: c.dataset.swmId, items, contenido: texto ? texto.value.trim() : "", rastreo: box.querySelector("[data-parte-guia]").value.trim() }, parteBtn);
+      if (data && data.nuevo) showToast(`✂️ Listo: lo que llegó quedó en ${data.nuevo.folio}. Ahí toca "Ya llegó a la dirección americana" y luego crúzalo; se puede juntar con sus otros pedidos.`);
       return;
     }
     const nota = t.closest("[data-swm-nota-priv]");
