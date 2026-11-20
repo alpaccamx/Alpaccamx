@@ -4077,11 +4077,33 @@ ${itemLines}
       btn.textContent = "Quitar del pedido y avisarle a la clienta";
       if (!hechos.length) return;
     }
+    // Si en la misma caja faltó algo de varios pedidos de la misma clienta,
+    // se le escribe todo en un solo mensaje.
+    const telDe = (h) => String((h.ap ? h.ap.phone : h.o && h.o.customer && h.o.customer.phone) || "").replace(/\D/g, "").slice(-10);
+    const porTel = new Map();
+    hechos.forEach((h) => { const k = telDe(h); if (k) porTel.set(k, [...(porTel.get(k) || []), h]); });
+    const juntos = [...porTel.values()].filter((g) => g.length > 1);
+    const enJunto = new Set(juntos.flat());
+    const juntoHTML = juntos.map((g) => {
+      const h0 = g[0];
+      const base = waLinkFromPhone(h0.ap ? h0.ap.phone : h0.o.customer.phone);
+      if (!base) return "";
+      const nombre = h0.ap ? String(h0.ap.name || "").split(" ")[0] : firstName(h0.o);
+      const total = g.reduce((t, h) => t + (Number(h.monto) || 0), 0);
+      const lineas = g.map((h) => `• ${h.ap ? `Apartado ${h.ap.folio}` : `Pedido #${orderNumber(h.o)}`}: ${h.lista.join(", ")} (${formatPrice(h.monto || 0)})`).join("\n");
+      const mp = g.every((h) => h.o && h.o.source === "mercadopago");
+      const txt = `${nombre ? `Hola ${nombre} 💕` : "Hola 💕"} Al armar tu caja me di cuenta de que ya no tenía:\n${lineas}\nPerdón por el inconveniente. Te reembolso ${formatPrice(total)} en total. ${mp ? "Te lo regreso a tu tarjeta por Mercado Pago 🙏" : "¿Me pasas tu CLABE o número de tarjeta para hacerte la transferencia? 🙏"}`;
+      return `<div class="pack-done">
+          <div><b>${escapeHtml(nombre || "Clienta")}</b> · ${g.length} pedidos · Reembolso total: <b>${formatPrice(total)}</b></div>
+          ${g.map((h) => `<div class="meta">${escapeHtml(h.ap ? h.ap.folio : `#${orderNumber(h.o)}`)}: ${escapeHtml(h.lista.join(", "))} (${formatPrice(h.monto || 0)})</div>`).join("")}
+          <a class="btn-primary" style="text-decoration:none;display:inline-block;margin-top:8px;" target="_blank" rel="noopener" href="${escapeHtml(`${base}?text=${encodeURIComponent(txt)}`)}">💬 Escribirle todo en un solo mensaje</a>
+        </div>`;
+    }).join("");
     const el = document.getElementById("pack-modal");
     el.innerHTML = `<div class="pack-sheet">
       <div class="pack-head"><div><b>✅ Listo, ya se le avisó</b><small>Se quitó del pedido y quedó apuntado el reembolso pendiente</small></div>
         <button type="button" class="pack-x" data-pack-close aria-label="Cerrar">✕</button></div>
-      ${hechos.map(({ o, ap, lista, monto }) => {
+      ${juntoHTML}${hechos.filter((h) => !enJunto.has(h)).map(({ o, ap, lista, monto }) => {
         if (ap) {
           const baseAp = waLinkFromPhone(ap.phone);
           const txt = `Hola ${String(ap.name || "").split(" ")[0]} 💗 Perdón, al armar tu caja no tuve: ${lista.join(", ")} de tu apartado ${ap.folio}.${monto > 0 ? ` Te reembolso ${formatPrice(monto)}. ¿A qué cuenta te lo deposito?` : ""}`;
