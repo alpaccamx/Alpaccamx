@@ -5564,9 +5564,28 @@ function cartJuarez() {
   });
 }
 
+// La clienta escoge arriba de la dirección cómo lo recibe. Con entrega
+// personal en Juárez no llena dirección: se ocultan esos campos y se
+// rellenan solos con una dirección de Juárez (para que el envío salga en $0
+// y el pedido diga "Entrega personal").
 function entregaPersonalActiva() {
-  const box = document.getElementById("cart-entrega-personal");
-  return cartJuarez() && !!box && box.checked;
+  const r = document.querySelector('input[name="entrega-modo"]:checked');
+  return !!r && r.value === "personal";
+}
+
+const ENTREGA_PERSONAL_DIR = { "customer-street": "Entrega personal", "customer-colonia": "Ciudad Juárez", "customer-municipio": "Juárez", "customer-cp": "32000", "customer-estado": "Chihuahua" };
+function aplicarModoEntrega() {
+  const personal = entregaPersonalActiva();
+  document.querySelectorAll("[data-dir-envio]").forEach((el) => el.classList.toggle("hidden", personal));
+  if (personal && !document.getElementById("cart-saved-addr").innerHTML.trim()) document.getElementById("cart-saved-addr").classList.add("hidden");
+  Object.entries(ENTREGA_PERSONAL_DIR).forEach(([id, v]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (personal && el.dataset.auto !== "1") { el.dataset.prev = el.value; el.value = v; el.dataset.auto = "1"; }
+    else if (!personal && el.dataset.auto === "1") { el.value = el.dataset.prev || ""; delete el.dataset.auto; delete el.dataset.prev; }
+  });
+  updateNacionalShippingUI();
+  if (typeof updateCartSteps === "function") updateCartSteps();
 }
 
 /* Envío del carrito; con entrega personal en Juárez no lleva el nacional. */
@@ -5583,8 +5602,6 @@ function updateNacionalShippingUI() {
   const amount = document.getElementById("cart-shipping-nacional");
   const cp = document.getElementById("customer-cp").value.trim();
 
-  const personalWrap = document.getElementById("cart-entrega-personal-wrap");
-  if (personalWrap) personalWrap.classList.toggle("hidden", !(Object.keys(cart).length && cartJuarez()));
   if (!Object.keys(cart).length || cp.length !== 5) {
     row.classList.add("hidden");
     renderGrandTotal();
@@ -5597,7 +5614,7 @@ function updateNacionalShippingUI() {
     label.textContent = "📍 Entrega personal en Ciudad Juárez";
     amount.textContent = "Sin costo";
   } else if (shipping && shipping.hasNacional) {
-    label.textContent = `🚚 Envío nacional (estimado) a CP ${cp}`;
+    label.textContent = cartJuarez() ? `🚚 Envío nacional a CP ${cp} (¿eres de Juárez? elige "Entrega personal" arriba y no pagas envío)` : `🚚 Envío nacional (estimado) a CP ${cp}`;
     amount.textContent = formatPrice(shipping.nacionalMXN);
   } else {
     label.textContent = "🚚 Envío nacional";
@@ -5866,7 +5883,7 @@ function renderCart() {
 const CART_STEPS = [
   { label: "Productos", target: "cart-items", fields: [] },
   { label: "Tus datos", target: "customer-name", fields: ["customer-name", "customer-phone"] },
-  { label: "Envío", target: "customer-street", fields: ["customer-street", "customer-colonia", "customer-municipio", "customer-cp", "customer-estado"] },
+  { label: "Envío", target: "cart-entrega-modo", fields: ["customer-street", "customer-colonia", "customer-municipio", "customer-cp", "customer-estado"] },
   { label: "Pago", target: "pay-method", fields: [] },
 ];
 function cartStepDone(i) {
@@ -7959,7 +7976,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(btn.dataset.copy).then(done, () => {});
   });
   document.getElementById("customer-cp").addEventListener("input", updateNacionalShippingUI);
-  ["customer-municipio", "customer-estado", "cart-entrega-personal"].forEach((id) => document.getElementById(id).addEventListener("change", updateNacionalShippingUI));
+  ["customer-municipio", "customer-estado"].forEach((id) => document.getElementById(id).addEventListener("change", updateNacionalShippingUI));
+  document.querySelectorAll('input[name="entrega-modo"]').forEach((r) => r.addEventListener("change", aplicarModoEntrega));
   document.getElementById("quote-success-close").addEventListener("click", closeQuoteSuccess);
 
   document.getElementById("quiz-retake").addEventListener("click", () => {
