@@ -14,7 +14,7 @@
 //   probar_avisos     {} (manda aviso_casillero y aviso_pedido de prueba al WhatsApp de Mae)
 //   crear_envio       { email, paqueteIds[], direccion } (Mae junta paquetes de una clienta en una caja)
 //   agregar_a_envio   { id, paqueteIds[] } (mete más paquetes en una caja sin cobrar ni guía; si ya estaba cotizada, se vuelve a cotizar)
-//   editar_paquete    { id, tienda?, rastreo?, contenido?, valorUSD?, cobro?, kg?, alto?, ancho?, largo?, notaClienta?, notaPrivada? }
+//   editar_paquete    { id, tienda?, rastreo?, contenido?, valorUSD?, valorTotal?, moneda?, cobro?, kg?, alto?, ancho?, largo?, notaClienta?, notaPrivada? }
 //   cotizar_compra    { id, productos, cruce?, notaClienta? }   (MXN)
 //   crear_compra      { email, name?, phone?, tienda, items: [{ nombre, tono?, cantidad, precioUSD }], taxPct?, envioUSD?, cobro, cruce?, notaClienta?, fotos? }
 //                     (Mae arma la cotización con lo que la clienta le mandó por WhatsApp;
@@ -197,6 +197,12 @@ exports.handler = async (event) => {
           ["tienda", "rastreo"].forEach((k) => { if (b[k] != null) p[k] = clip(b[k], 80); });
           if (b.contenido != null) p.contenido = clip(b.contenido, 300);
           if (b.valorUSD != null) p.valorUSD = num(b.valorUSD);
+          // Valor declarado (con tax) en la moneda en que pagó: el cruce del 15% sale de aquí.
+          if (b.valorTotal != null) {
+            p.valorTotal = num(b.valorTotal);
+            if (b.moneda) p.moneda = clip(b.moneda, 5).toUpperCase();
+            if ((p.moneda || "USD") === "USD") p.valorUSD = p.valorTotal;
+          }
           if (b.cobro === "peso" || b.cobro === "comision") p.cobro = b.cobro;
           if (["kg", "alto", "ancho", "largo"].some((k) => b[k] != null)) {
             ["kg", "alto", "ancho", "largo"].forEach((k) => { if (b[k] != null) p[k] = num(b[k]); });
