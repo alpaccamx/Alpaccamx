@@ -310,6 +310,41 @@ exports.handler = async (event) => {
         return json(200, { compra: rec, tieneCuenta: Boolean(cuenta) });
       }
 
+      // Cambiar aromas/nombres de artículos sin tocar cantidades, precios ni el
+      // pago (ej. en la tienda ya no había un aroma y la clienta escogió otro).
+      //   { id, cambios: [{ i, nombre?, tono? }], avisar? }
+      case "cambiar_aromas": {
+        const cambios = (Array.isArray(b.cambios) ? b.cambios : []).map((x) => ({ i: Math.floor(num(x.i)), nombre: x.nombre != null ? clip(x.nombre, 200) : null, tono: x.tono != null ? clip(x.tono, 120) : null })).filter((x) => x.i >= 0);
+        if (!cambios.length) return json(400, { error: "No dijiste qué cambiar." });
+        let error = "";
+        const lista = [];
+        const rec = await mutateRecord("compra", id, (c) => {
+          lista.length = 0; error = "";
+          if (c.status === "cancelado" || !c.cotizacion) { error = "Esa compra no se puede cambiar."; return null; }
+          const items = (c.cotizacion.items || []).map((x) => ({ ...x }));
+          for (const ch of cambios) {
+            const it = items[ch.i];
+            if (!it || it.envio) { error = "Un artículo no coincide; recarga la página."; return null; }
+            const antes = `${it.nombre}${it.tono ? ` · ${it.tono}` : ""}`;
+            if (ch.nombre) it.nombre = ch.nombre;
+            if (ch.tono != null) it.tono = ch.tono;
+            lista.push(`${antes} → ${it.nombre}${it.tono ? ` · ${it.tono}` : ""}`);
+          }
+          c.cotizacion = { ...c.cotizacion, items };
+          push(c, c.status, { aromas: lista.slice() });
+          return c;
+        });
+        if (!rec || error) return json(409, { error: error || "No se pudo cambiar." });
+        if (b.avisar !== false) {
+          await avisar(rec, `actualicé los aromas de tu pedido ${rec.folio}`, `
+            <h2 style="margin:0 0 8px;font-size:20px;">Actualicé los aromas de tu pedido</h2>
+            <p style="font-size:14px;">${lista.map(esc).join("<br>")}</p>
+            <p style="font-size:14px;">El total no cambia: <b>${formatPriceMXN(rec.cotizacion.total)}</b>.</p>
+            <p style="font-size:14px;"><a href="https://alpacca.mx/?ver=direccion-americana&compra=${rec.id}">Ver mi pedido</a></p>`).catch(() => {});
+        }
+        return json(200, { compra: rec, lista });
+      }
+
       case "corregir_pagada": {
         // Compra ya pagada, todavía sin comprar: Mae ve los precios reales en
         // la tienda y corrige los artículos. Lo pagado no cambia: si lo real
