@@ -7042,8 +7042,16 @@ function guardarPdf(){
           <label>Nota para la clienta<input data-f="notaClienta" type="text" value="${escapeHtml(c.notaClienta || "")}"></label>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn-primary" data-swm-cotizar-compra>${c.status === "cotizado" ? "Actualizar cotización" : "Mandar cotización"}</button>${linkBtns}${swmCancelBtn("compra", c)}</div>`;
+    }
+    // Ya mandó comprobante o ya pagó, pero todavía no se compra: se puede
+    // editar igual; su pago se queda y la diferencia se cobra o reembolsa aparte.
+    const editConPago = c.origen === "whatsapp" && ["cotizado", "pagado"].includes(c.status) && c.pago && ["revision", "pagado"].includes(c.pago.status);
+    const editRow = editConPago ? (swmEditCompraId === c.id ? swmNuevaCompraForm(c)
+      : `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;"><button type="button" class="btn-secondary" data-swm-nc-edit style="padding:6px 12px;font-size:13px;">✏️ Editar</button><span class="meta">Su pago se queda; si el total cambia, la diferencia se le cobra o se le reembolsa aparte.</span></div>`) : "";
+    if (editConPago && swmEditCompraId === c.id) {
+      action = editRow;
     } else if (c.status === "pagado") {
-      action = `<div style="margin-top:10px;font-size:13px;font-weight:600;">Ya compré: ¿qué paquetes van a llegar?</div>
+      action = `${editRow}<div style="margin-top:10px;font-size:13px;font-weight:600;">Ya compré: ¿qué paquetes van a llegar?</div>
         <div data-swm-pkgs><div class="grid" data-swm-pkg><label>Tienda<input data-k="tienda" type="text" value="${escapeHtml(c.tienda || "")}"></label><label>Número de orden de la tienda (solo para ti)<input data-k="orden" type="text"></label><label>Guía de USA con la que te llegará (solo para ti)<span data-guias style="display:flex;flex-direction:column;gap:4px;"><input data-k="rastreo" type="text"></span><button type="button" class="btn-ghost" data-swm-mas-guia style="margin:4px 0 0;padding:2px 6px;font-size:12px;text-align:left;">+ otra guía (la tienda dividió el pedido)</button></label></div></div>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button type="button" class="btn-secondary" data-swm-add-pkg style="padding:6px 12px;font-size:13px;">+ Otro paquete</button><button type="button" class="btn-primary" data-swm-comprada>🛍️ Ya compré (avisarle)</button></div>`;
     }
@@ -7055,7 +7063,9 @@ function guardarPdf(){
       ${q && q.items ? `<div style="margin-top:8px;font-size:13px;background:#faf7fb;border-radius:8px;padding:8px;">${q.items.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;"><span>${x.cantidad} × ${(c.facturaFotos || []).length && /ver tu factura/i.test(x.nombre || "") ? `<a href="#" data-swm-file="foto/${escapeHtml(c.facturaFotos[0])}" style="color:#b33660;font-weight:600;">${escapeHtml(x.nombre)}</a>` : escapeHtml(x.nombre)}${x.tono ? ` · ${escapeHtml(x.tono)}` : ""}</span><span>${formatPrice(x.precio * x.cantidad)}</span></div>`).join("")}${(c.facturaFotos || []).length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">${c.facturaFotos.map((f, i) => `<button type="button" data-swm-file="foto/${escapeHtml(f)}" style="padding:0;border:1px solid #f0d6e0;border-radius:10px;overflow:hidden;background:#fff;cursor:zoom-in;" aria-label="Ver factura ${i + 1}"><img data-swm-thumb="foto/${escapeHtml(f)}" alt="Factura ${i + 1}" style="display:block;max-height:220px;max-width:min(100%,320px);min-width:80px;min-height:60px;object-fit:contain;"></button>`).join("")}</div>` : ""}</div>` : ""}
       ${c.notas ? `<div class="meta">📝 ${escapeHtml(c.notas)}</div>` : ""}
       ${q ? `<div class="meta">Cotización: productos ${formatPrice(q.productos)}${q.cruce ? ` + cruce ${formatPrice(q.cruce)}` : ""} = <b>${formatPrice(q.total)}</b></div>` : ""}
-      ${swmPagoBox("compra", c)}${action}
+      ${c.ajustePago ? `<div class="meta" style="color:${c.ajustePago.tipo === "falta" ? "#8a5a00" : "#b33660"};font-weight:600;">${c.ajustePago.tipo === "falta" ? `➕ Por el cambio le falta pagar ${formatPrice(c.ajustePago.monto)}${c.ajustePago.folio ? ` (cotización ${escapeHtml(c.ajustePago.folio)}; cuando pague las dos, únelas)` : ""}` : `💸 Reembolso pendiente: ${formatPrice(c.ajustePago.monto)} (bajó el total después de que pagó)`}</div>` : ""}
+      ${c.diferenciaDe ? `<div class="meta">🔗 Es la diferencia de su pedido <b>${escapeHtml(c.diferenciaDe)}</b>.</div>` : ""}
+      ${swmPagoBox("compra", c)}${action}${c.status === "cotizado" && editConPago && swmEditCompraId !== c.id ? editRow : ""}
     </div>`;
   }
 

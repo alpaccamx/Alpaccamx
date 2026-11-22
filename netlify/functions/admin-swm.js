@@ -254,8 +254,14 @@ exports.handler = async (event) => {
           const fotos = await guardarFotos(b.fotos);
           const facturaFotos = await guardarFotos(b.facturaFotos);
           let error = "";
+          // También se puede editar si ya mandó su comprobante o ya pagó (y Mae
+          // todavía no hace la compra): su pago se queda como está y, si el
+          // total cambia, la diferencia se le cobra aparte o se le reembolsa.
+          let pagoEnCurso = false, dif = 0, pagado = 0;
           const rec = await mutateRecord("compra", id, (c) => {
-            if (c.status !== "cotizado" || (c.pago && c.pago.status !== "pendiente")) { error = "Ya no se puede editar: ya mandó su pago o la compra cambió de estado."; return null; }
+            pagoEnCurso = false; dif = 0; error = "";
+            if (!["cotizado", "pagado"].includes(c.status) || (c.pago && !["pendiente", "revision", "pagado"].includes(c.pago.status))) { error = "Ya no se puede editar: la compra ya se hizo o se canceló."; return null; }
+            pagoEnCurso = !!(c.pago && ["revision", "pagado"].includes(c.pago.status));
             const base = round2(productos + cruce);
             const viejo = c.cotizacion || {};
             const descuento = viejo.cupon && cup ? discountFor(cup, base) : viejo.cupon ? Math.min(viejo.descuento || 0, base) : 0;
@@ -268,11 +274,42 @@ exports.handler = async (event) => {
             if (b.fechaCompra != null) c.fechaCompra = clip(b.fechaCompra, 20);
             c.capturas = [...(c.capturas || []), ...fotos];
             if (facturaFotos.length) c.facturaFotos = [...(b.quitarFactura ? [] : c.facturaFotos || []), ...facturaFotos];
-            c.pago = { status: "pendiente", monto: c.cotizacion.total };
-            push(c, "editado");
+            if (pagoEnCurso) {
+              pagado = round2(Number(c.pago.monto) || 0);
+              dif = round2(c.cotizacion.total - pagado);
+              c.ajustePago = dif > 0 ? { tipo: "falta", monto: dif, at: now() } : dif < 0 ? { tipo: "reembolso", monto: round2(-dif), status: "pendiente", at: now() } : null;
+              if (!c.ajustePago) delete c.ajustePago;
+            } else {
+              c.pago = { status: "pendiente", monto: c.cotizacion.total };
+              delete c.ajustePago;
+            }
+            push(c, "editado", pagoEnCurso ? { pagado, dif } : undefined);
             return c;
           });
           if (!rec || error) return json(409, { error: error || "No se pudo editar." });
+          if (pagoEnCurso) {
+            // Lo que falta se cobra en una cotización aparte ligada a esta.
+            let extra = null;
+            if (dif > 0) {
+              extra = {
+                id: randomUUID(), folio: await nextFolio("compra"), email: rec.email, name: rec.name, phone: rec.phone,
+                origen: "whatsapp", tienda: rec.tienda || "", links: "", notas: "", capturas: [], cobro: "comision", status: "cotizado",
+                diferenciaDe: rec.folio, diferenciaDeId: rec.id,
+                cotizacion: { items: [{ nombre: `Diferencia por cambios en tu pedido ${rec.folio}`, tono: "", cantidad: 1, precio: dif }], productos: dif, cruce: 0, total: dif, at: now() },
+                pago: { status: "pendiente", monto: dif }, paqueteIds: [], notaClienta: "", notaPrivada: "",
+                history: [{ at: now(), status: "cotizado", diferenciaDe: rec.folio }], createdAt: now(), updatedAt: now(),
+              };
+              await saveRecord("compra", extra);
+              await mutateRecord("compra", rec.id, (c) => { if (c.ajustePago) { c.ajustePago.compraId = extra.id; c.ajustePago.folio = extra.folio; } return c; });
+            }
+            await avisar(rec, `actualicé tu pedido ${rec.folio}`, `
+            <h2 style="margin:0 0 8px;font-size:20px;">Actualicé tu pedido</h2>
+            <p style="font-size:14px;">${rec.cotizacion.items.map((x) => `${x.cantidad} × ${esc(x.nombre)}${x.tono ? ` · ${esc(x.tono)}` : ""}`).join("<br>")}</p>
+            <p style="font-size:14px;">Total nuevo: <b>${formatPriceMXN(rec.cotizacion.total)}</b> · Ya pagaste: <b>${formatPriceMXN(pagado)}</b></p>
+            <p style="font-size:14px;">${dif > 0 ? `Te falta pagar <b>${formatPriceMXN(dif)}</b>: <a href="https://alpacca.mx/?ver=direccion-americana&compra=${extra.id}">págalo aquí</a>.` : dif < 0 ? `Te reembolso <b>${formatPriceMXN(-dif)}</b>. Escríbeme por WhatsApp para hacerte tu reembolso.` : "No tienes que pagar nada más 💗"}</p>`,
+            undefined, `actualicé tu pedido ${rec.folio}: total nuevo ${formatPriceMXN(rec.cotizacion.total)}${dif > 0 ? `, te falta pagar ${formatPriceMXN(dif)} en alpacca.mx > Dirección americana` : dif < 0 ? `, te reembolso ${formatPriceMXN(-dif)}` : ", no tienes que pagar nada más"}`).catch(() => {});
+            return json(200, { compra: rec, diferencia: dif, extra });
+          }
           await avisar(rec, `actualicé tu cotización ${rec.folio}`, `
             <h2 style="margin:0 0 8px;font-size:20px;">Actualicé tu cotización</h2>
             <p style="font-size:14px;">${rec.cotizacion.items.map((x) => `${x.cantidad} × ${esc(x.nombre)}${x.tono ? ` · ${esc(x.tono)}` : ""}`).join("<br>")}</p>
