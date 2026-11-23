@@ -54,6 +54,7 @@ const { nextFolio, saveRecord, getRecord, listRecords, mutateRecord, saveFile, g
 const { pesoCobrable, crucePorComision, CARGO_SIN_REGISTRO, DIAS_SIN_DUENA, SEPARAR, COMISION_PCT, LEALTAD_PCT } = require("./lib/swm-pricing.js");
 const { getCustomerByEmail, searchCustomers } = require("./lib/customer-store.js");
 const { getCoupon, discountFor } = require("./lib/coupons.js");
+const { ponerCruceAnticipado, valorEnPesos } = require("./lib/swm-core.js");
 const { ALMACENAJE_DIAS, ALMACENAJE_ANTES, diasAlmacenaje, round2, compraEnMano, marcarOrdenesDeCaja, cotizacionSugerida, cotizarEnvio, despacharConGuia, envioAutomatico, aplicarPago, avisar, formatPriceMXN, tiposDeCambio, lealtadDe } = require("./lib/swm-core.js");
 
 const num = (v) => Math.max(0, parseFloat(v) || 0);
@@ -193,6 +194,7 @@ exports.handler = async (event) => {
 
       case "editar_paquete": {
         const antes = await getRecord("paquete", id);
+        const ratesEP = (b.valorTotal != null || b.valorUSD != null || b.cobro != null) ? await tiposDeCambio() : null;
         const rec = await mutateRecord("paquete", id, (p) => {
           ["tienda", "rastreo"].forEach((k) => { if (b[k] != null) p[k] = clip(b[k], 80); });
           if (b.contenido != null) p.contenido = clip(b.contenido, 300);
@@ -210,6 +212,18 @@ exports.handler = async (event) => {
           }
           if (b.notaClienta != null) p.notaClienta = clip(b.notaClienta, 1000);
           if (b.notaPrivada != null) p.notaPrivada = clip(b.notaPrivada, 2000);
+          if (ratesEP && p.cobro === "comision") {
+            // Cruce del 15% por adelantado: si todavía no lo paga, se recalcula
+            // con el valor nuevo; si ya lo pagó, la diferencia se cobra con su envío.
+            const pagado = p.crucePagado || (p.pago && ["pagado", "revision"].includes(p.pago.status));
+            if (!pagado) ponerCruceAnticipado(p, ratesEP);
+            else if (p.pago && Number(p.pago.monto) > 0 && !p.envioId) {
+              const nuevo = Math.ceil(crucePorComision(valorEnPesos(p, ratesEP)));
+              const dif = nuevo - Math.round(Number(p.pago.monto));
+              p.cargos = (p.cargos || []).filter((c) => !c.difCruce);
+              if (dif > 0) p.cargos.push({ concepto: "Diferencia de cruce (valor corregido)", monto: dif, difCruce: true });
+            }
+          }
           return p;
         });
         if (!rec) return json(404, { error: "No existe ese paquete." });
