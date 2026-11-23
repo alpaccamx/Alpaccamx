@@ -214,14 +214,24 @@ exports.handler = async (event) => {
           if (b.notaPrivada != null) p.notaPrivada = clip(b.notaPrivada, 2000);
           if (ratesEP && p.cobro === "comision") {
             // Cruce del 15% por adelantado: si todavía no lo paga, se recalcula
-            // con el valor nuevo; si ya lo pagó, la diferencia se cobra con su envío.
-            const pagado = p.crucePagado || (p.pago && ["pagado", "revision"].includes(p.pago.status));
-            if (!pagado) ponerCruceAnticipado(p, ratesEP);
-            else if (p.pago && Number(p.pago.monto) > 0 && !p.envioId) {
+            // con el valor nuevo. Si ya lo pagó y sube el valor, la diferencia se cobra de una vez
+            // (no con el envío): lo pagado queda en cruceYaPagado y se abre un
+            // pago nuevo solo por la diferencia.
+            p.cargos = (p.cargos || []).filter((c) => !c.difCruce);
+            if (!p.cargos.length) delete p.cargos;
+            const yaPago = p.pago && p.pago.status === "pagado" && !p.envioId;
+            if (yaPago) {
               const nuevo = Math.ceil(crucePorComision(valorEnPesos(p, ratesEP)));
-              const dif = nuevo - Math.round(Number(p.pago.monto));
-              p.cargos = (p.cargos || []).filter((c) => !c.difCruce);
-              if (dif > 0) p.cargos.push({ concepto: "Diferencia de cruce (valor corregido)", monto: dif, difCruce: true });
+              const pagadoTotal = Math.round((Number(p.cruceYaPagado) || 0) + (Number(p.pago.monto) || 0));
+              if (nuevo - pagadoTotal > 0) {
+                p.pagosCruce = [...(p.pagosCruce || []), p.pago];
+                p.cruceYaPagado = pagadoTotal;
+                p.crucePagado = false;
+                delete p.pago;
+                ponerCruceAnticipado(p, ratesEP);
+              }
+            } else if (!(p.pago && p.pago.status === "revision")) {
+              if (!p.crucePagado) ponerCruceAnticipado(p, ratesEP);
             }
           }
           return p;

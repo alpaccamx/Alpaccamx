@@ -50,7 +50,7 @@ function valorEnPesos(p, rates) {
 
 function crucePaquete(p, rates) {
   if (p.crucePagado) return 0;
-  if (p.cobro === "comision") return crucePorComision(valorEnPesos(p, rates));
+  if (p.cobro === "comision") return Math.max(0, crucePorComision(valorEnPesos(p, rates)) - (Number(p.cruceYaPagado) || 0));
   if (p.cobro === "auto") {
     // "Lo que le salga más barato" (lo de ahora): por peso o el 15% de su valor.
     const opciones = [p.cobrable ? crucePorPeso(p.cobrable) : null, valorEnPesos(p, rates) > 0 ? crucePorComision(valorEnPesos(p, rates)) : null].filter((x) => x != null);
@@ -69,10 +69,11 @@ function ponerCruceAnticipado(p, rates) {
     if (p.pago && p.pago.status === "pendiente") { delete p.cotizacion; delete p.pago; }
     return p;
   }
-  const monto = Math.ceil(crucePorComision(valorEnPesos(p, rates || {})));
+  // cruceYaPagado: lo que ya pagó antes de que se corrigiera el valor; solo se cobra la diferencia.
+  const monto = Math.ceil(crucePorComision(valorEnPesos(p, rates || {}))) - Math.round(Number(p.cruceYaPagado) || 0);
   if (!(monto > 0)) return p;
   p.cotizacion = { cruce: monto, total: monto, at: new Date().toISOString() };
-  p.pago = { status: "pendiente", monto };
+  p.pago = { status: "pendiente", monto, ...(p.cruceYaPagado ? { diferencia: true } : {}) };
   return p;
 }
 
