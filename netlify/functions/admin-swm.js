@@ -276,7 +276,9 @@ exports.handler = async (event) => {
         const extraUSD = enUSD ? { tipoCambio: tc, taxPct } : {};
         const cobro = b.cobro === "comision" ? "comision" : "peso";
         const productos = round2(items.reduce((t, x) => t + x.precio * x.cantidad, 0));
-        const cruce = cobro === "comision" ? (b.cruce !== "" && b.cruce != null ? round2(num(b.cruce)) : crucePorComision(productos)) : 0;
+        const cruceManual = cobro === "comision" && b.cruce !== "" && b.cruce != null;
+        const cruce = cobro === "comision" ? (cruceManual ? round2(num(b.cruce)) : crucePorComision(productos)) : 0;
+        const marcaCruce = cruceManual ? { cruceManual: true } : {};
         if (editar) {
           const actual = await getRecord("compra", id);
           if (!actual) return json(404, { error: "No existe esa compra." });
@@ -295,7 +297,7 @@ exports.handler = async (event) => {
             const base = round2(productos + cruce);
             const viejo = c.cotizacion || {};
             const descuento = viejo.cupon && cup ? discountFor(cup, base) : viejo.cupon ? Math.min(viejo.descuento || 0, base) : 0;
-            c.cotizacion = { items, productos, cruce, total: round2(base - descuento), at: now(), ...extraUSD,
+            c.cotizacion = { items, productos, cruce, total: round2(base - descuento), at: now(), ...extraUSD, ...marcaCruce,
               ...(viejo.cupon ? { cupon: viejo.cupon, descuento, totalSinDescuento: base } : {}) };
             c.cobro = cobro;
             if (b.tienda != null) c.tienda = clip(b.tienda, 80);
@@ -359,7 +361,7 @@ exports.handler = async (event) => {
           origen: "whatsapp", tienda: clip(b.tienda, 80), links: "", notas: "", capturas: fotos, cobro, status: "cotizado",
           ...(b.ps ? { ps: true, yaComprado: true } : b.yaComprado ? { yaComprado: true } : {}), ...(b.fechaCompra ? { fechaCompra: clip(b.fechaCompra, 20) } : {}),
           ...(facturaFotos.length ? { facturaFotos } : {}),
-          cotizacion: { items, productos, cruce, total: round2(productos + cruce), at: now(), ...extraUSD },
+          cotizacion: { items, productos, cruce, total: round2(productos + cruce), at: now(), ...extraUSD, ...marcaCruce },
           pago: { status: "pendiente", monto: round2(productos + cruce) }, paqueteIds: [],
           notaClienta: clip(b.notaClienta, 1000), notaPrivada: "",
           history: [{ at: now(), status: "cotizado", por: "whatsapp" }], createdAt: now(), updatedAt: now(),
