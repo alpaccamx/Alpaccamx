@@ -6895,6 +6895,7 @@ function guardarPdf(){
       <label>Cant.<input data-k="cantidad" type="number" min="1" step="1" value="${x.cantidad || 1}"></label>
       <label>Precio c/u (USD, sin tax)<input data-k="precioUSD" type="number" min="0" step="0.01" value="${x.precioUSD || ""}"></label>
       <button type="button" class="btn-secondary" data-swm-nc-del title="Quitar artículo" style="align-self:end;padding:8px 10px;">🗑️</button>
+      <label style="grid-column:1/-1;font-size:12px;">…o precio c/u en pesos (MXN, ya final: sin tax ni dólar; ej. envío nacional)<input data-k="precioMXN" type="number" min="0" step="0.01" value="${x.precioUSD ? "" : x.precio || x.precioMXN || ""}"></label>
     </div>`;
   /* Lista pegada, un artículo por renglón: "Nombre x2 $1.95", "2 x Nombre - 1.95",
      "Nombre · tono (x3) US$2.25"... Cantidad = "x2" / "2x" / "2 ×"; precio =
@@ -6903,15 +6904,18 @@ function guardarPdf(){
     return String(txt || "").split(/\n+/).map((line) => {
       let s = line.replace(/^[\s•*\-–\d]+[.)]\s+/, (m) => (/\d/.test(m) && !/[.)]/.test(m) ? m : "")).replace(/^\s*[•*\-–]\s*/, "").trim();
       if (!s) return null;
-      let precioUSD = 0;
-      const pm = s.match(/(?:US)?\$\s*(\d+(?:[.,]\d{1,2})?)|(\d+[.,]\d{2})(?!.*\d)/i);
+      let precioUSD = 0, precioMXN = 0;
+      // "$260 MXN" / "260 pesos": precio final en pesos (envío nacional, etc.).
+      const mxn = s.match(/\$?\s*(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(?:mxn|pesos?)\b/i);
+      if (mxn) { precioMXN = parseFloat(mxn[1].replace(/,/g, "")) || 0; s = s.replace(mxn[0], " "); }
+      const pm = mxn ? null : s.match(/(?:US)?\$\s*(\d+(?:[.,]\d{1,2})?)|(\d+[.,]\d{2})(?!.*\d)/i);
       if (pm) { precioUSD = parseFloat((pm[1] || pm[2]).replace(",", ".")) || 0; s = s.replace(pm[0], " "); }
       let cantidad = 1;
       const qm = s.match(/(?:^|\s|\()(?:x|×)\s*(\d{1,3})\b|\b(\d{1,3})\s*(?:x|×)(?:\s|$)|(?:cant(?:idad)?|qty)\.?\s*:?\s*(\d{1,3})/i);
       if (qm) { cantidad = parseInt(qm[1] || qm[2] || qm[3], 10) || 1; s = s.replace(qm[0], " "); }
       s = s.replace(/[()]/g, " ").replace(/\s*[-–:,]\s*$/, "").replace(/\s{2,}/g, " ").trim();
       const [nombre, ...rest] = s.split(/\s+[·|]\s+/);
-      return nombre ? { nombre: nombre.trim(), tono: rest.join(" · ").trim(), cantidad, precioUSD } : null;
+      return nombre ? { nombre: nombre.trim(), tono: rest.join(" · ").trim(), cantidad, precioUSD, precioMXN } : null;
     }).filter(Boolean);
   }
   /* Sin "c": nueva cotización. Con "c": editar esa cotización (misma clienta). */
@@ -6943,7 +6947,7 @@ function guardarPdf(){
       </div>
       <div class="meta">El total ya debe traer tu comisión y el cruce (como en tu factura). El envío dentro de México se le cobra después, cuando cruce.</div>` : `
       <details style="margin-top:10px;" ${c ? "" : "open"}><summary style="cursor:pointer;font-weight:600;color:#a33a63;">📋 Pegar la lista de artículos (más rápido)</summary>
-        <div class="meta" style="margin-top:4px;">Un artículo por renglón: nombre, cantidad y precio en dólares. Ej.:<br><code>Winterberry Ice x2 $1.95</code><br><code>Champagne Toast · Moisturizing x3 $2.25</code><br>Puedes pedirle a Claude (en Chrome) que te dé el carrito así y pegarlo aquí.</div>
+        <div class="meta" style="margin-top:4px;">Un artículo por renglón: nombre, cantidad y precio en dólares. Ej.:<br><code>Winterberry Ice x2 $1.95</code><br><code>Champagne Toast · Moisturizing x3 $2.25</code><br><code>Envío nacional (Estafeta) x1 $260 MXN</code> ← si dice MXN o pesos, va en pesos tal cual<br>Puedes pedirle a Claude (en Chrome) que te dé el carrito así y pegarlo aquí.</div>
         <textarea data-swm-nc-paste rows="5" style="width:100%;margin-top:6px;border:1px solid #e5d6de;border-radius:10px;padding:8px;font-size:14px;" placeholder="Winterberry Ice x2 $1.95"></textarea>
         <button type="button" class="btn-secondary" data-swm-nc-paste-go style="margin-top:6px;padding:6px 12px;font-size:13px;">Agregar artículos</button>
       </details>
@@ -6955,7 +6959,12 @@ function guardarPdf(){
       </div>
       <div class="grid">
         <label>Cruce<select data-n="cobro"><option value="peso" ${cobro === "peso" ? "selected" : ""}>Por peso (se cobra al enviar)</option><option value="comision" ${cobro === "comision" ? "selected" : ""}>15% del valor (se cobra ahora)</option></select></label>
-        <label>Cruce 15% (vacío = automático)<input data-n="cruce" type="number" min="0" step="0.01"></label>
+        ${(() => {
+          // Al editar, un cruce puesto a mano (ej. 15% de las 6 piezas en un
+          // "compra 3 y llévate 3") se queda; si no, se vuelve a calcular solo.
+          const manual = c && q.cruce > 0 && (q.cruceManual || q.cruce !== Math.ceil((Number(q.productos) || 0) * 0.15));
+          return `<label>Cruce 15% (${manual ? "lo pusiste a mano; bórralo para calcularlo solo" : "vacío = automático"})<input data-n="cruce" type="number" min="0" step="0.01" value="${manual ? q.cruce : ""}"></label>`;
+        })()}
         <label>Nota para la clienta<input data-n="notaClienta" type="text" value="${escapeHtml((c && c.notaClienta) || "")}"></label>
         <label>${c ? "Agregar " : ""}${ps ? "Fotos de los tickets" : "Capturas"} (solo para ti)<input data-n="fotos" type="file" accept="image/*" multiple></label>
       </div>
@@ -6966,14 +6975,18 @@ function guardarPdf(){
   function swmNcLeer(box) {
     const items = [...box.querySelectorAll("[data-swm-nc-item]")].map((row) => {
       const k = (n) => row.querySelector(`[data-k="${n}"]`).value;
-      return { nombre: k("nombre").trim(), tono: k("tono").trim(), cantidad: Math.max(1, parseInt(k("cantidad"), 10) || 1), precioUSD: parseFloat(k("precioUSD")) || 0 };
-    }).filter((x) => x.nombre || x.precioUSD);
+      const precioUSD = parseFloat(k("precioUSD")) || 0;
+      // Precio en pesos (ya final) solo cuenta si no trae precio en dólares.
+      const precio = precioUSD ? 0 : parseFloat(k("precioMXN")) || 0;
+      return { nombre: k("nombre").trim(), tono: k("tono").trim(), cantidad: Math.max(1, parseInt(k("cantidad"), 10) || 1), precioUSD, ...(precio ? { precio } : {}) };
+    }).filter((x) => x.nombre || x.precioUSD || x.precio);
     const n = (k) => { const el = box.querySelector(`[data-n="${k}"]`); return el ? el.value : ""; };
     // Estimado en pesos con el tipo de cambio de Config (el servidor hace la cuenta final).
     const tc = pricingConfig.exchangeRate || 0;
     const tax = n("taxPct") === "" ? 8.25 : parseFloat(n("taxPct")) || 0;
     const usd = items.reduce((t, x) => t + x.precioUSD * x.cantidad, 0) * (1 + tax / 100) + (parseFloat(n("envioUSD")) || 0);
-    const productos = Math.round(usd * tc * 100) / 100;
+    const mxn = items.reduce((t, x) => t + (x.precio || 0) * x.cantidad, 0);
+    const productos = Math.round((usd * tc + mxn) * 100) / 100;
     const cruce = n("cobro") === "comision" ? (n("cruce") !== "" ? parseFloat(n("cruce")) || 0 : Math.ceil(productos * 0.15)) : 0;
     return { items, productos, cruce, n };
   }
@@ -7508,7 +7521,7 @@ function guardarPdf(){
       cont.insertAdjacentHTML("beforeend", items.map(swmNcItemRow).join(""));
       ta.value = "";
       swmNcTotal(box);
-      const sinPrecio = items.filter((x) => !x.precioUSD).length;
+      const sinPrecio = items.filter((x) => !x.precioUSD && !x.precioMXN).length;
       showToast(`✅ ${items.length} artículo${items.length === 1 ? "" : "s"} agregado${items.length === 1 ? "" : "s"}${sinPrecio ? ` · ${sinPrecio} sin precio, ponlo a mano` : ""}`);
       return;
     }
@@ -7553,7 +7566,7 @@ function guardarPdf(){
       }
       const { items, n } = swmNcLeer(box);
       if (!n("email").trim()) { alert("Busca a la clienta o pon su correo."); return; }
-      if (!items.length || items.some((x) => !x.nombre || !(x.precioUSD > 0))) { alert("Cada artículo necesita nombre y precio en dólares."); return; }
+      if (!items.length || items.some((x) => !x.nombre || !(x.precioUSD > 0 || x.precio > 0))) { alert("Cada artículo necesita nombre y precio (en dólares, o en pesos si ya es final)."); return; }
       const fotos = (await Promise.all([...(box.querySelector('[data-n="fotos"]').files || [])].slice(0, 8).map(swmResize))).filter(Boolean);
       const psExtra = box.dataset.ps ? { ps: true, yaComprado: true, fechaCompra: n("fechaCompra") } : {};
       if (box.dataset.editId) {
