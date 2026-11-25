@@ -106,7 +106,9 @@ async function getProduct(token, id, sku) {
   found.header.forEach((h, i) => {
     if (!h) return;
     const f = String((forms[0] || [])[i] ?? "");
-    fields[h] = { value: (vals[0] || [])[i] ?? "", formula: f.startsWith("=") };
+    // formulaText: el texto de la fórmula (solo lectura), para copiarla al
+    // agregar productos nuevos con admin-append-catalog-rows.
+    fields[h] = { value: (vals[0] || [])[i] ?? "", formula: f.startsWith("="), ...(f.startsWith("=") ? { formulaText: f } : {}) };
   });
   return jsonResponse(200, { row: found.row, fields, editable: EDITABLE });
 }
